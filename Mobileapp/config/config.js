@@ -1,0 +1,11 @@
+export const APPWRITE_API_KEY =
+  "<REDACTED>";
+export const FLW_SECRET_KEY = "<REDACTED>";
+
+export const FLW_PUBLIC_KEY = "FLWPUBK_TEST-3f46003263d0059485f45fcb5719fccd-X";
+
+export const STRIPE_PUBLISH_KEY =
+  "pk_test_51SYB9CJABwlNBb9PMEfcXqFA1OlYwpdVmKl3R1pcaRCvziYrTXsVjrjae3IZvDs7wMJzLZcTJqUURvoBZTt8Izbc00J9QDoAwq";
+
+export const PAYPAL_CLIENT_ID =
+  "AYoBTuR4XOz_Hi7W4TzL317cTR4cSkA8VNgjGxIk_LcJY5HmEFJBfiiN_1t2OAk5msJ_Omqox9xmQhSW";
