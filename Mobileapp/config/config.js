@@ -1,11 +1,16 @@
-export const APPWRITE_API_KEY =
-  "<REDACTED>";
-export const FLW_SECRET_KEY = "<REDACTED>";
+import Constants from "expo-constants";
 
-export const FLW_PUBLIC_KEY = "FLWPUBK_TEST-3f46003263d0059485f45fcb5719fccd-X";
+// SECURITY: Never hardcode secret keys in client code.
+// APPWRITE_API_KEY and FLW_SECRET_KEY must ONLY exist on the backend.
+// Public keys are loaded from EAS environment variables via app.config.js extra field.
 
+// Flutterwave public key (safe for client-side)
+export const FLW_PUBLIC_KEY = Constants.expoConfig?.extra?.FLW_PUBLIC_KEY || "";
+
+// Stripe publishable key (safe for client-side)
 export const STRIPE_PUBLISH_KEY =
-  "pk_test_51SYB9CJABwlNBb9PMEfcXqFA1OlYwpdVmKl3R1pcaRCvziYrTXsVjrjae3IZvDs7wMJzLZcTJqUURvoBZTt8Izbc00J9QDoAwq";
+  Constants.expoConfig?.extra?.STRIPE_PUBLISH_KEY || "";
 
+// PayPal client ID (safe for client-side)
 export const PAYPAL_CLIENT_ID =
-  "AYoBTuR4XOz_Hi7W4TzL317cTR4cSkA8VNgjGxIk_LcJY5HmEFJBfiiN_1t2OAk5msJ_Omqox9xmQhSW";
+  Constants.expoConfig?.extra?.PAYPAL_CLIENT_ID || "";
