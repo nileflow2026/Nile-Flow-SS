@@ -88,7 +88,9 @@ const SignIn = () => {
               Welcome Back
             </span>
             <br />
-            <span className="text-[color:var(--nf-text-primary)]">Premium African Marketplace</span>
+            <span className="text-[color:var(--nf-text-primary)]">
+              Premium African Marketplace
+            </span>
           </h1>
 
           <p className="text-[color:var(--nf-text-secondary)] text-lg max-w-2xl mx-auto mb-10">
@@ -264,7 +266,19 @@ const SignIn = () => {
                       className="flex items-center justify-center space-x-2 px-4 py-3 bg-[var(--nf-bg-elevated)] border border-[var(--nf-border-subtle)] rounded-xl hover:border-amber-500/50 transition-all duration-300"
                     >
                       <Globe className="w-5 h-5 text-blue-400" />
-                      <span className="text-[color:var(--nf-text-secondary)]">Google</span>
+                      <span className="text-[color:var(--nf-text-secondary)]">
+                        Google
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleFacebookSignIn}
+                      className="flex items-center justify-center space-x-2 px-4 py-3 bg-[var(--nf-bg-elevated)] border border-[var(--nf-border-subtle)] rounded-xl hover:border-amber-500/50 transition-all duration-300"
+                    >
+                      <Users className="w-5 h-5 text-blue-500" />
+                      <span className="text-[color:var(--nf-text-secondary)]">
+                        Facebook
+                      </span>
                     </button>
                   </div>
                 </form>

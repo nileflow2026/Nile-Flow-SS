@@ -27,7 +27,7 @@ import {
   updateCurrencyRates,
   useGlobalContext,
 } from "../../Context/GlobalProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 import Carousel from "../components/Carousel";
 import Categories from "../components/Categories";
 import CurrencyUpdater from "../components/CurrencyUpdater";
@@ -36,6 +36,7 @@ import ProductCard from "../components/ProductCard";
 
 const width = Dimensions.get("window").width;
 const Search = () => {
+  useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,7 @@ const Search = () => {
         category === "All" ? "" : category,
         limit,
         0,
-        ""
+        "",
       );
       setProducts(data);
     } catch (error) {
@@ -202,7 +203,7 @@ const Search = () => {
       () => {
         updateCurrencyRates();
       },
-      4 * 60 * 60 * 1000
+      4 * 60 * 60 * 1000,
     );
 
     return () => clearInterval(interval);
@@ -264,7 +265,7 @@ const Search = () => {
           toValue: 1,
           duration: 1900,
           useNativeDriver: true,
-        })
+        }),
       ).start();
     }
   }, [loading, spinValue]);

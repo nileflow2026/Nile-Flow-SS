@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
   Dimensions,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -181,7 +181,10 @@ const ProductCard = ({
           <Image
             source={{ uri: image || productData.image }}
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            recyclingKey={productId}
           />
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.8)"]}

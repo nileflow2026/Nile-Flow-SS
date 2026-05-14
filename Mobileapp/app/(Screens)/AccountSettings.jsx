@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "../../Context/GlobalProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -27,6 +27,7 @@ const logoutPadding = width < 350 ? 12 : 16;
 const logoutFontSize = width < 350 ? 14 : 16;
 
 const AccountSettings = () => {
+  useLanguage(); // re-render when locale changes
   const router = useRouter();
   const { user, setUser, setIsLogged } = useGlobalContext();
 

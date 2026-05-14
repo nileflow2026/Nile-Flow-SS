@@ -20,12 +20,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "../../app/components/FormField";
 import VerificationInput from "../../app/components/VerificationInput";
 import { signUp, useGlobalContext } from "../../Context/GlobalProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 import CusttomButton from "../components/CusttomButton";
 
 const { width } = Dimensions.get("window");
 
 const SignUp = () => {
+  useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [isSubmitting, setIsubmitting] = useState(false);
   const [step, setStep] = useState("signup"); // 'signup' or 'verify'
@@ -65,7 +66,7 @@ const SignUp = () => {
   const showToast = (message, type = "success") => {
     Alert.alert(
       type === "success" ? "Success" : type === "error" ? "Error" : "Info",
-      message
+      message,
     );
   };
 
@@ -97,7 +98,7 @@ const SignUp = () => {
     if (!termsAccepted) {
       showToast(
         "Please accept the Terms of Service and Privacy Policy",
-        "error"
+        "error",
       );
       return false;
     }
@@ -117,7 +118,7 @@ const SignUp = () => {
         form.password,
         form.username,
         form.phone,
-        { setUser, setIsLogged, setIsGuest }
+        { setUser, setIsLogged, setIsGuest },
       );
       if (result) {
         showToast("Verification code sent to your email!", "success");
@@ -150,7 +151,7 @@ const SignUp = () => {
     } catch (error) {
       showToast(
         error.message || "Verification failed. Please try again.",
-        "error"
+        "error",
       );
     } finally {
       setIsubmitting(false);
@@ -201,13 +202,13 @@ const SignUp = () => {
                   className="text-3xl font-bold mb-2 text-center"
                   style={{ color: "#fbbf24" }}
                 >
-                  Join Nile Flow Africa
+                  Join Nile Flow
                 </Text>
                 <Text
                   className="text-lg mb-8 text-center"
                   style={{ color: "white" }}
                 >
-                  Premium African Marketplace
+                  African Marketplace
                 </Text>
                 {/* Form Fields */}
                 <View className="space-y-4">
@@ -356,6 +357,7 @@ const SignUp = () => {
                     >
                       I agree to Nile Flow's{" "}
                       <Text
+                        onPress={() => router.push("/(Screens)/TermsOfService")}
                         style={{
                           color: "#fbbf24",
                           textDecorationLine: "underline",
@@ -365,6 +367,7 @@ const SignUp = () => {
                       </Text>{" "}
                       and{" "}
                       <Text
+                        onPress={() => router.push("/(Screens)/PrivacyPolicy")}
                         style={{
                           color: "#fbbf24",
                           textDecorationLine: "underline",
@@ -379,9 +382,7 @@ const SignUp = () => {
                 <View className="mt-8">
                   <CusttomButton
                     title={
-                      isSubmitting
-                        ? "Creating Account..."
-                        : "Create Premium Account"
+                      isSubmitting ? "Creating Account..." : "Create  Account"
                     }
                     handlePress={submit}
                     containerStyles="mb-6"
@@ -403,159 +404,6 @@ const SignUp = () => {
                   >
                     {i18n.t("Sign-In")}
                   </Link>
-                </View>
-                {/* Premium Benefits */}
-                <View
-                  className="mt-8 p-6 rounded-3xl"
-                  style={{
-                    backgroundColor: "rgba(251, 191, 36, 0.1)",
-                    borderWidth: 1,
-                    borderColor: "rgba(251, 191, 36, 0.3)",
-                  }}
-                >
-                  <Text
-                    className="text-lg font-bold text-center mb-4"
-                    style={{ color: "#fbbf24" }}
-                  >
-                    Premium Benefits
-                  </Text>
-                  <View className="space-y-3">
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="diamond-outline"
-                        size={16}
-                        color="#10b981"
-                        style={{ marginRight: 12 }}
-                      />
-                      <Text style={{ color: "white", flex: 1 }}>
-                        Exclusive African products
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="headset-outline"
-                        size={16}
-                        color="#10b981"
-                        style={{ marginRight: 12 }}
-                      />
-                      <Text style={{ color: "white", flex: 1 }}>
-                        24/7 Premium support
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="shield-checkmark-outline"
-                        size={16}
-                        color="#10b981"
-                        style={{ marginRight: 12 }}
-                      />
-                      <Text style={{ color: "white", flex: 1 }}>
-                        Secure transactions
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="globe-outline"
-                        size={16}
-                        color="#10b981"
-                        style={{ marginRight: 12 }}
-                      />
-                      <Text style={{ color: "white", flex: 1 }}>
-                        Cultural authenticity guarantee
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                {/* Trust Badges */}
-                <View className="mt-8 grid grid-cols-2 gap-4">
-                  <View
-                    className="p-6 rounded-2xl"
-                    style={{
-                      backgroundColor: "rgba(251, 191, 36, 0.1)",
-                      borderWidth: 1,
-                      borderColor: "rgba(251, 191, 36, 0.3)",
-                    }}
-                  >
-                    <Text
-                      className="text-2xl font-bold text-center mb-2"
-                      style={{ color: "#fbbf24" }}
-                    >
-                      100%
-                    </Text>
-                    <Text
-                      className="text-center"
-                      style={{ color: "rgba(251, 191, 36, 0.8)", fontSize: 12 }}
-                    >
-                      Secure Registration
-                    </Text>
-                  </View>
-
-                  <View
-                    className="p-6 rounded-2xl"
-                    style={{
-                      backgroundColor: "rgba(16, 185, 129, 0.1)",
-                      borderWidth: 1,
-                      borderColor: "rgba(16, 185, 129, 0.3)",
-                    }}
-                  >
-                    <Text
-                      className="text-2xl font-bold text-center mb-2"
-                      style={{ color: "#10b981" }}
-                    >
-                      24/7
-                    </Text>
-                    <Text
-                      className="text-center"
-                      style={{ color: "rgba(16, 185, 129, 0.8)", fontSize: 12 }}
-                    >
-                      Account Support
-                    </Text>
-                  </View>
-                </View>
-                <View className="mt-4 grid grid-cols-2 gap-4">
-                  <View
-                    className="p-6 rounded-2xl"
-                    style={{
-                      backgroundColor: "rgba(59, 130, 246, 0.1)",
-                      borderWidth: 1,
-                      borderColor: "rgba(59, 130, 246, 0.3)",
-                    }}
-                  >
-                    <Text
-                      className="text-2xl font-bold text-center mb-2"
-                      style={{ color: "#3b82f6" }}
-                    >
-                      Free
-                    </Text>
-                    <Text
-                      className="text-center"
-                      style={{ color: "rgba(59, 130, 246, 0.8)", fontSize: 12 }}
-                    >
-                      Premium Membership
-                    </Text>
-                  </View>
-
-                  <View
-                    className="p-6 rounded-2xl"
-                    style={{
-                      backgroundColor: "rgba(239, 68, 68, 0.1)",
-                      borderWidth: 1,
-                      borderColor: "rgba(239, 68, 68, 0.3)",
-                    }}
-                  >
-                    <Text
-                      className="text-2xl font-bold text-center mb-2"
-                      style={{ color: "#ef4444" }}
-                    >
-                      Instant
-                    </Text>
-                    <Text
-                      className="text-center"
-                      style={{ color: "rgba(239, 68, 68, 0.8)", fontSize: 12 }}
-                    >
-                      Account Access
-                    </Text>
-                  </View>
                 </View>
               </View>
             ) : (

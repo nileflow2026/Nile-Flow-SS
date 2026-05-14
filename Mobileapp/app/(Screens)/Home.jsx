@@ -1,15 +1,16 @@
 /* eslint-disable no-unused-vars */
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import axiosClient from "../../api";
 import {
   getCurrentUser,
   updateCurrencyRates,
 } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
 import CurrencyUpdater from "../components/CurrencyUpdater";
@@ -19,6 +20,7 @@ import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
 
 const Home = () => {
+  useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [user, setUser] = useState(null);
   const { themeStyles, theme } = useTheme();
@@ -124,10 +126,9 @@ const Home = () => {
                       : "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94",
                 }}
                 style={styles.avatar}
-                onLoad={() => console.log("Home avatar loaded successfully")}
-                onError={(error) => {
-                  console.log("Home avatar error:", error.nativeEvent);
-                }}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+                transition={150}
               />
               <View>
                 <Text

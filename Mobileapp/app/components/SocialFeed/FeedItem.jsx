@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useIsFocused } from "@react-navigation/native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { Image } from "expo-image";
 import {
   Heart,
   MessageCircle,
@@ -12,7 +13,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Animated,
   Dimensions,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -192,7 +192,10 @@ export default function FeedItem({
             <Image
               source={{ uri: item.imageUrl || item.mediaUrl }}
               style={styles.media}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+              recyclingKey={`feed-img-${item.id}`}
             />
           </View>
         );
@@ -209,6 +212,10 @@ export default function FeedItem({
             <Image
               source={{ uri: item.product.image }}
               style={styles.dealImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+              recyclingKey={`feed-deal-${item.id}`}
             />
             <Text style={[styles.dealTitle, { color: themeStyles.text }]}>
               {item.product.name}
@@ -263,6 +270,10 @@ export default function FeedItem({
             uri: item.user?.avatar || item.userAvatar || DEFAULT_AVATAR,
           }}
           style={styles.avatar}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={150}
+          recyclingKey={`feed-avatar-${item.id}`}
         />
         <View style={styles.userDetails}>
           <Text style={[styles.username, { color: themeStyles.text }]}>

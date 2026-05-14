@@ -60,28 +60,28 @@ const About = () => {
 
   const teamMembers = [
     {
-      name: "Margaret Nasieku",
+      name: "Anthony Wai",
       role: "Founder & CEO",
       avatar: "👑",
+      region: "Central Africa",
+    },
+    {
+      name: "Japhet Mupe",
+      role: "Head of Operations",
+      avatar: "🛡️",
       region: "East Africa",
     },
     {
-      name: "David Omondi",
-      role: "Head of Operations",
-      avatar: "🛡️",
-      region: "West Africa",
-    },
-    {
-      name: "Amina Hassan",
-      role: "Product Curator",
+      name: "Ted Wanjohi",
+      role: "Head of Finance",
       avatar: "💎",
-      region: "North Africa",
+      region: "East Africa",
     },
     {
-      name: "Thabo Ndlovu",
+      name: "Charity Kipkemboi",
       role: "Customer Experience",
       avatar: "🌟",
-      region: "Southern Africa",
+      region: "East Africa",
     },
   ];
 

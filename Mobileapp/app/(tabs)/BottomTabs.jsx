@@ -21,7 +21,7 @@ import { icons } from "../../constants";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useNotification } from "../../Context/NotificationContext";
 import { useTheme } from "../../Context/ThemeProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 
 const BottomTab = createBottomTabNavigator();
 const { width } = Dimensions.get("window");
@@ -147,6 +147,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
 };
 
 const BottomTabs = () => {
+  useLanguage(); // re-render when locale changes
   const { theme } = useTheme();
   const { cart } = useCart();
   const { notificationCount } = useNotification();

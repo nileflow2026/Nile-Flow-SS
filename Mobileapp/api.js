@@ -197,6 +197,20 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// Attach OAuth Bearer token when present (social sign-in stores token in AsyncStorage)
+axiosClient.interceptors.request.use(
+  async (config) => {
+    if (!config.headers.Authorization) {
+      const oauthToken = await AsyncStorage.getItem("oauthAccessToken");
+      if (oauthToken) {
+        config.headers.Authorization = `Bearer ${oauthToken}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 // Response interceptor - handle token refresh on 401
 axiosClient.interceptors.response.use(
   (response) => response,

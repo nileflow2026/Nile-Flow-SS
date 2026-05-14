@@ -5,13 +5,13 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
-  Image,
   Platform,
   ScrollView,
   Share,
@@ -758,7 +758,10 @@ const ProductDetails = () => {
                     <Image
                       source={{ uri: img }}
                       style={{ width: "100%", height: "100%" }}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                      recyclingKey={`pd-img-${img}`}
                     />
                   </View>
                 ))

@@ -40,6 +40,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
 import { useFavorites } from "../../Context/FavoritesContext";
@@ -49,12 +50,13 @@ import {
 } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
 import { usePremiumStatus } from "../../hooks/usePremiumStatus";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 import PremiumMonthlySummary from "./PremiumMonthlySummary";
 
 const { width, height } = Dimensions.get("window");
 
 const ProfilePage = () => {
+  useLanguage(); // re-render when locale changes
   const { user, setUser, isLogged, setIsLogged } = useGlobalContext();
   const { favorites } = useFavorites();
   const { theme, themeStyles } = useTheme();
@@ -620,9 +622,12 @@ const ProfilePage = () => {
           >
             {favorites.map((product) => (
               <View key={product.$id || product.id} style={styles.wishlistItem}>
-                <Image
+                <ExpoImage
                   source={{ uri: product.image || product.thumbnail }}
                   style={styles.wishlistImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                 />
                 <Text style={styles.wishlistTitle} numberOfLines={2}>
                   {product.title || product.name}
@@ -1389,9 +1394,12 @@ const ProfilePage = () => {
                   colors={["#EAB308", "#10B981"]}
                   style={styles.profileImageGlow}
                 />
-                <Image
+                <ExpoImage
                   source={{ uri: demoUser.profileImage }}
                   style={styles.profileImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
                 />
                 <TouchableOpacity
                   style={styles.cameraButton}

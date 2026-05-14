@@ -72,7 +72,7 @@ const Index = () => {
               marginBottom: 10,
             }}
           >
-            PREMIUM AFRICAN MARKETPLACE
+            AFRICAN MARKETPLACE
           </Text>
 
           {/* <Text
@@ -109,7 +109,7 @@ const Index = () => {
             }}
           >
             Discover authentic African products, support local artisans, and
-            experience premium e-commerce designed for the continent.
+            experience e-commerce designed for the continent.
           </Text>
 
           {/* Button */}

@@ -1,11 +1,17 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
-import { getCurrentUser, signIn } from "@/Context/GlobalProvider";
+import {
+  getCurrentUser,
+  signIn,
+  useGlobalContext,
+} from "@/Context/GlobalProvider";
 import { images } from "@/constants";
-import { useGlobalContext } from "@/Context/GlobalProvider";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import { Link, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   Alert,
@@ -17,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import axiosClient from "../../api";
 import FormField from "../../app/components/FormField";
 import { useTheme } from "../../Context/ThemeProvider";
 import CusttomButton from "../components/CusttomButton";
@@ -42,22 +49,58 @@ const SignIn = () => {
   });
 
   const handleGoogleSignIn = async () => {
-    try {
-      setError("");
-      // Add Google sign-in implementation here
-      Alert.alert("Info", "Google sign-in will be implemented");
-    } catch (err) {
-      setError("Failed to sign in with Google");
-    }
+    await handleOAuthSignIn("google");
   };
 
   const handleFacebookSignIn = async () => {
+    await handleOAuthSignIn("facebook");
+  };
+
+  const handleOAuthSignIn = async (provider) => {
     try {
       setError("");
-      // Add Facebook sign-in implementation here
-      Alert.alert("Info", "Facebook sign-in will be implemented");
+      setSubmitting(true);
+
+      // Get the OAuth URL from the backend
+      const res = await axiosClient.get(`/api/customerauth/oauth/${provider}`);
+      const authUrl = res.data?.authUrl;
+      if (!authUrl) throw new Error("Failed to get auth URL");
+
+      // Open in-app browser; expo-web-browser watches for the nileflowapp:// redirect
+      const REDIRECT = "nileflowapp://oauth/callback";
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT);
+
+      if (result.type !== "success") return; // user cancelled
+
+      // Parse the deep link returned by the website's OAuthCallback page
+      const parsed = Linking.parse(result.url);
+      const token = parsed.queryParams?.token;
+      const refreshToken = parsed.queryParams?.refreshToken;
+
+      if (!token) throw new Error("No token received from OAuth provider");
+
+      // Persist the OAuth access token so the axiosClient interceptor can use it
+      await AsyncStorage.setItem("oauthAccessToken", token);
+      if (refreshToken) {
+        await AsyncStorage.setItem("oauthRefreshToken", refreshToken);
+      }
+
+      // Fetch user profile (axiosClient interceptor will attach the Bearer token)
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Failed to fetch user profile");
+
+      setUser(user);
+      setIsLogged(true);
+      router.replace("/(tabs)/BottomTabs");
     } catch (err) {
-      setError("Failed to sign in with Facebook");
+      // Clean up stored token on failure
+      await AsyncStorage.multiRemove([
+        "oauthAccessToken",
+        "oauthRefreshToken",
+      ]).catch(() => {});
+      setError(err.message || `Failed to sign in with ${provider}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -120,7 +163,7 @@ const SignIn = () => {
                 Welcome Back
               </Text>
               <Text className="text-amber-200 text-xl font-bold text-center mb-4">
-                Premium African Marketplace
+                African Marketplace
               </Text>
               <Text className="text-gray-300 text-center text-base px-4 max-w-sm mx-auto">
                 Access your exclusive collection of authentic African products
@@ -139,7 +182,7 @@ const SignIn = () => {
                   </View>
                   <View className="flex-1">
                     <Text className="text-2xl font-bold text-amber-200">
-                      Premium Sign In
+                      Sign In
                     </Text>
                     <Text className="text-amber-100/70">
                       Access your Nile Flow account
@@ -341,88 +384,6 @@ const SignIn = () => {
                     Create Account
                   </Link>
                 </View>
-              </View>
-            </View>
-
-            {/* Benefits Section */}
-            <View className="bg-gray-900/80 border border-amber-800/30 rounded-3xl p-6 mb-8">
-              <Text className="text-2xl font-bold text-amber-200 mb-2">
-                Premium Benefits
-              </Text>
-              <Text className="text-amber-100/70 mb-6">
-                Unlock exclusive features with your Nile Flow account
-              </Text>
-
-              <View className="space-y-4">
-                <View className="flex-row items-start bg-amber-900/20 border border-amber-800/30 rounded-2xl p-4 mb-4">
-                  <View className="w-12 h-12 rounded-xl bg-amber-600 items-center justify-center mr-4">
-                    <Ionicons name="trophy" size={24} color="white" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-lg font-bold text-amber-100 mb-1">
-                      Exclusive Access
-                    </Text>
-                    <Text className="text-amber-100/70 text-sm leading-5">
-                      Premium African products only available to members
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-start bg-emerald-900/20 border border-emerald-800/30 rounded-2xl p-4 mb-4">
-                  <View className="w-12 h-12 rounded-xl bg-emerald-600 items-center justify-center mr-4">
-                    <Ionicons name="flash" size={24} color="white" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-lg font-bold text-emerald-100 mb-1">
-                      Fast Checkout
-                    </Text>
-                    <Text className="text-emerald-100/70 text-sm leading-5">
-                      Save your details for quicker purchases
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-start bg-blue-900/20 border border-blue-800/30 rounded-2xl p-4">
-                  <View className="w-12 h-12 rounded-xl bg-blue-600 items-center justify-center mr-4">
-                    <Ionicons name="star" size={24} color="white" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-lg font-bold text-blue-100 mb-1">
-                      Personalized Recommendations
-                    </Text>
-                    <Text className="text-blue-100/70 text-sm leading-5">
-                      Get tailored product suggestions
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Trust Badges */}
-              <View className="flex-row justify-around mt-6 pt-6 border-t border-amber-800/30">
-                <View className="items-center">
-                  <Text className="text-2xl font-bold text-amber-300">
-                    100%
-                  </Text>
-                  <Text className="text-amber-100/80 text-xs">
-                    Secure Login
-                  </Text>
-                </View>
-                <View className="items-center">
-                  <Text className="text-2xl font-bold text-emerald-300">
-                    24/7
-                  </Text>
-                  <Text className="text-emerald-100/80 text-xs">Support</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Trust Section */}
-            <View className="items-center mb-8 px-4">
-              <View className="flex-row items-center">
-                <Ionicons name="shield-checkmark" size={16} color="#FCD34D" />
-                <Text className="text-amber-100/60 text-sm ml-2 text-center flex-1">
-                  Your security is our priority. All data is encrypted.
-                </Text>
               </View>
             </View>
           </View>

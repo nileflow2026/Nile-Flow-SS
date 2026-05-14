@@ -21,7 +21,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -29,6 +28,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { useGroupBuy } from "../../Context/GroupBuyContext";
 import CountdownTimer from "../components/CountdownTimer";
 import ParticipantList from "../components/ParticipantList";
@@ -258,7 +258,9 @@ export default function GroupOrderPage() {
                 <Image
                   source={{ uri: productImage }}
                   className="w-20 h-20 rounded-xl bg-slate-700"
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                 />
               ) : (
                 <View className="w-20 h-20 rounded-xl bg-slate-700 items-center justify-center">

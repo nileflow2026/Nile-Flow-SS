@@ -3,7 +3,8 @@
  * No border, clean typography, inline char count.
  */
 
-import { Image, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { useTheme } from "../../../Context/ThemeProvider";
 
 const DEFAULT_AVATAR =
@@ -20,7 +21,12 @@ export default function CaptionInput({
 
   return (
     <View style={s.container}>
-      <Image source={{ uri: avatarUri }} style={s.avatar} />
+      <Image
+        source={{ uri: avatarUri }}
+        style={s.avatar}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+      />
       <View style={s.inputWrap}>
         <TextInput
           style={[s.input, { color: themeStyles.text }]}

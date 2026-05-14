@@ -1,12 +1,12 @@
 /* eslint-disable no-unused-vars */
 
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -227,6 +227,10 @@ const Cart = () => {
                         "https://placehold.co/100x100",
                     }}
                     style={styles.cartItemImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                    recyclingKey={`cart-${item.id || item.$id}`}
                   />
                   <View style={styles.cartItemInfo}>
                     <Text

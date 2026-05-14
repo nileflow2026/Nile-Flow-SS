@@ -1,9 +1,12 @@
 /* eslint-disable no-unused-vars */
+import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
 import {
   Alert,
   Dimensions,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +22,11 @@ const { width } = Dimensions.get("window");
 const HelpCenter = () => {
   const { theme, themeStyles } = useTheme();
   const isDark = theme === "dark";
+  const [expandedCategories, setExpandedCategories] = useState({});
+
+  const toggleCategory = (index) => {
+    setExpandedCategories((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
 
   // Responsive styles
   const titleFontSize = width < 350 ? 24 : 28;
@@ -108,7 +116,7 @@ const HelpCenter = () => {
 
   const contactMethods = [
     {
-      title: "24/7 Premium Support",
+      title: "24/7 Support",
       description: "Instant assistance via live chat",
       icon: "🎧",
       details: "Available 24/7",
@@ -127,7 +135,7 @@ const HelpCenter = () => {
       title: "Phone Support",
       description: "Direct premium assistance",
       icon: "📞",
-      details: "+254 703 115 359",
+      details: "+254 713 637 104",
       color: ["#2563eb", "#1d4ed8"],
       action: "Call Now",
     },
@@ -165,12 +173,62 @@ const HelpCenter = () => {
     },
   ];
 
+  const handleResourceAction = async (action) => {
+    try {
+      if (action === "Join Community") {
+        // Open WhatsApp community group
+        const whatsappUrl =
+          "whatsapp://send?phone=254713637104&text=Hello%21%20I%27d%20like%20to%20join%20the%20Nile%20Flow%20community.";
+        const supported = await Linking.canOpenURL(whatsappUrl);
+        if (supported) {
+          await Linking.openURL(whatsappUrl);
+        } else {
+          await Linking.openURL(
+            "https://wa.me/254713637104?text=Hello%21%20I%27d%20like%20to%20join%20the%20Nile%20Flow%20community.",
+          );
+        }
+      } else if (action === "View Tutorials") {
+        await Linking.openURL("https://nileflowafrica.com/tutorials");
+      } else if (action === "Track Order") {
+        router.push("/(Screens)/Orders");
+      }
+    } catch {
+      Alert.alert("Error", "Could not complete this action. Please try again.");
+    }
+  };
+
   const handleSearch = () => {
     Alert.alert("Search", "Search functionality coming soon!");
   };
 
-  const handleContactAction = (action, method) => {
-    Alert.alert(action, `${action} feature will be available soon!`);
+  const handleContactAction = async (action) => {
+    try {
+      if (action === "Start Live Chat") {
+        // Open WhatsApp chat with support number
+        const whatsappUrl =
+          "whatsapp://send?phone=254713637104&text=Hello%2C%20I%20need%20support%20with%20my%20Nile%20Flow%20order.";
+        const supported = await Linking.canOpenURL(whatsappUrl);
+        if (supported) {
+          await Linking.openURL(whatsappUrl);
+        } else {
+          // Fallback to WhatsApp web
+          await Linking.openURL(
+            "https://wa.me/254713637104?text=Hello%2C%20I%20need%20support%20with%20my%20Nile%20Flow%20order.",
+          );
+        }
+      } else if (action === "Send Email") {
+        await Linking.openURL(
+          "mailto:support@nileflowafrica.com?subject=Support%20Request&body=Hello%20Nile%20Flow%20Support%2C%0A%0AI%20need%20help%20with%3A",
+        );
+      } else if (action === "Call Now") {
+        await Linking.openURL("tel:+254713637104");
+      }
+    } catch {
+      Alert.alert(
+        "Error",
+        "Could not open the requested app. Please try again.",
+      );
+    }
   };
 
   return (
@@ -299,13 +357,15 @@ const HelpCenter = () => {
 
                 {/* Questions */}
                 <View style={styles.faqCardContent}>
-                  {category.questions.map((item, idx) => (
+                  {(expandedCategories[index]
+                    ? category.questions
+                    : category.questions.slice(0, 1)
+                  ).map((item, idx, visibleList) => (
                     <View
                       key={idx}
                       style={[
                         styles.faqItem,
-                        idx < category.questions.length - 1 &&
-                          styles.faqItemBorder,
+                        idx < visibleList.length - 1 && styles.faqItemBorder,
                       ]}
                     >
                       <View style={styles.questionContainer}>
@@ -337,17 +397,26 @@ const HelpCenter = () => {
                     </View>
                   ))}
 
-                  <TouchableOpacity style={styles.viewAllButton}>
+                  <TouchableOpacity
+                    style={styles.viewAllButton}
+                    onPress={() => toggleCategory(index)}
+                  >
                     <Text
                       style={[
                         styles.viewAllButtonText,
                         { fontSize: bodyFontSize },
                       ]}
                     >
-                      View All Questions
+                      {expandedCategories[index]
+                        ? "Show Less"
+                        : `View All ${category.questions.length} Questions`}
                     </Text>
                     <MaterialIcons
-                      name="arrow-forward"
+                      name={
+                        expandedCategories[index]
+                          ? "expand-less"
+                          : "arrow-forward"
+                      }
                       size={16}
                       color="#f59e0b"
                     />
@@ -360,10 +429,10 @@ const HelpCenter = () => {
         {/* Contact Methods */}
         <View style={styles.contactSection}>
           <Text style={[styles.contactTitle, { fontSize: titleFontSize }]}>
-            Premium Contact Methods
+            Contact Methods
           </Text>
           <Text style={[styles.contactSubtitle, { fontSize: bodyFontSize }]}>
-            Choose your preferred way to contact our premium support team
+            Choose your preferred way to contact our support team
           </Text>
 
           <View style={styles.contactGrid}>
@@ -406,9 +475,7 @@ const HelpCenter = () => {
 
                 <TouchableOpacity
                   style={styles.contactCardButton}
-                  onPress={() =>
-                    handleContactAction(method.action, method.title)
-                  }
+                  onPress={() => handleContactAction(method.action)}
                 >
                   <LinearGradient
                     colors={method.color}
@@ -442,7 +509,7 @@ const HelpCenter = () => {
                   { fontSize: subtitleFontSize },
                 ]}
               >
-                Premium Support Features
+                Support Features
               </Text>
               <Text
                 style={[
@@ -451,7 +518,7 @@ const HelpCenter = () => {
                 ]}
               >
                 Experience exceptional customer service designed specifically
-                for premium African product shoppers.
+                for African product shoppers.
               </Text>
             </View>
 
@@ -547,12 +614,7 @@ const HelpCenter = () => {
                     styles.resourceButton,
                     { borderColor: resource.color[0] + "50" },
                   ]}
-                  onPress={() =>
-                    Alert.alert(
-                      resource.title,
-                      `${resource.action} feature coming soon!`
-                    )
-                  }
+                  onPress={() => handleResourceAction(resource.action)}
                 >
                   <Text
                     style={[

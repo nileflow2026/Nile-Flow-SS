@@ -55,6 +55,7 @@ const SubscriptionSuccess = lazy(() => import("./Pages/SubscriptionSuccess"));
 const GroupBuyPage = lazy(() => import("./Pages/GroupBuyPage"));
 const NotFoundPage = lazy(() => import("./Pages/NotFoundPage"));
 const AccountDeletionPage = lazy(() => import("./Pages/AccountDeletion"));
+const OAuthCallback = lazy(() => import("./Pages/OAuthCallback"));
 
 // Lazy load heavy components
 const ApplicationForm = lazy(() => import("../components/ApplicationForm"));
@@ -197,6 +198,7 @@ const AppContent = () => {
             <Route path="/search" element={<SearchScreen />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/cart" element={<CartPage />} />

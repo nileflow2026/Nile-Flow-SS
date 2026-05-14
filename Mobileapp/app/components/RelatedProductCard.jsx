@@ -1,7 +1,8 @@
 // components/RelatedProductCard.js
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const RelatedProductCard = ({
   id,
@@ -37,7 +38,9 @@ const RelatedProductCard = ({
           <Image
             source={{ uri: image }}
             style={styles.image}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
           />
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.8)"]}

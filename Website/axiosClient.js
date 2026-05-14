@@ -2,9 +2,12 @@
 import axios from "axios";
 import { refreshSession } from "./authServices";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://nile-flow-backend.onrender.com";
+
 // Create Axios instance
 const axiosClient = axios.create({
-  baseURL: "http://localhost:3000", // your backend URL
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -23,7 +26,7 @@ axiosClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor for handling 401 (expired token)
@@ -53,7 +56,7 @@ axiosClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosClient;

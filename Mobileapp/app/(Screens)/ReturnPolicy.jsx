@@ -1,7 +1,9 @@
 /* eslint-disable no-unused-vars */
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import {
   Dimensions,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,10 +28,27 @@ const ReturnPolicy = () => {
 
   const isDark = theme === "dark";
 
+  const handleStartReturn = async () => {
+    const whatsappUrl =
+      "whatsapp://send?phone=254713637104&text=Hello%21%20I%27d%20like%20to%20start%20a%20return%20for%20my%20order.%20Order%20details%3A";
+    const supported = await Linking.canOpenURL(whatsappUrl);
+    if (supported) {
+      await Linking.openURL(whatsappUrl);
+    } else {
+      await Linking.openURL(
+        "https://wa.me/254713637104?text=Hello%21%20I%27d%20like%20to%20start%20a%20return%20for%20my%20order.%20Order%20details%3A",
+      );
+    }
+  };
+
+  const handleContactSupport = () => {
+    router.push("/(Screens)/HelpCenter");
+  };
+
   const benefits = [
     { title: "30-Day Window", description: "Ample time to decide", icon: "🕐" },
     { title: "Free Returns", description: "Across Africa", icon: "🚚" },
-    { title: "Premium Support", description: "24/7 assistance", icon: "🎧" },
+    { title: "Customer Support", description: "24/7 assistance", icon: "🎧" },
     { title: "Hassle-Free", description: "Simple process", icon: "✅" },
   ];
 
@@ -52,7 +71,7 @@ const ReturnPolicy = () => {
       icon: "🔄",
       color: ["#059669", "#047857"],
       steps: [
-        "Contact our premium customer service team with your order number.",
+        "Contact our customer service team with your order number.",
         "We will provide you with a prepaid return shipping label.",
         "Pack the item securely with all original accessories.",
         "Ship the item back using our designated courier service.",
@@ -120,19 +139,19 @@ const ReturnPolicy = () => {
           style={styles.heroSection}
         >
           <View style={styles.premiumBadge}>
-            <Text style={styles.badgeText}>🛡️ Premium Assurance ✨</Text>
+            <Text style={styles.badgeText}>🛡️ Our Assurance ✨</Text>
           </View>
 
           <Text style={[styles.heroTitle, { fontSize: titleFontSize + 4 }]}>
             <Text style={styles.gradientText}>Return Policy</Text>
           </Text>
           <Text style={[styles.heroSubtitle, { fontSize: titleFontSize - 4 }]}>
-            Premium African Standards
+            African Standards
           </Text>
 
           <Text style={[styles.heroDescription, { fontSize: bodyFontSize }]}>
-            We stand behind every authentic African product we sell. Our premium
-            return policy ensures your complete satisfaction and peace of mind.
+            We stand behind every authentic African product we sell. Our return
+            policy ensures your complete satisfaction and peace of mind.
           </Text>
 
           {/* Benefits Grid */}
@@ -240,7 +259,7 @@ const ReturnPolicy = () => {
                     { fontSize: subtitleFontSize },
                   ]}
                 >
-                  Premium African Quality Guarantee
+                  African Quality Guarantee
                 </Text>
                 <Text
                   style={[
@@ -299,18 +318,24 @@ const ReturnPolicy = () => {
             Need Help With a Return?
           </Text>
           <Text style={[styles.ctaDescription, { fontSize: bodyFontSize }]}>
-            Our premium customer support team is here to assist you 24/7 with
-            any return or exchange inquiries.
+            Our customer support team is here to assist you 24/7 with any return
+            or exchange inquiries.
           </Text>
           <View style={styles.ctaButtons}>
-            <TouchableOpacity style={styles.primaryButton}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleStartReturn}
+            >
               <Text
                 style={[styles.primaryButtonText, { fontSize: bodyFontSize }]}
               >
                 Start a Return →
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleContactSupport}
+            >
               <Text
                 style={[styles.secondaryButtonText, { fontSize: bodyFontSize }]}
               >
@@ -318,21 +343,6 @@ const ReturnPolicy = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Trust Badges */}
-        <View style={styles.trustBadges}>
-          {trustBadges.map((badge, index) => (
-            <View
-              key={index}
-              style={[styles.trustBadge, { borderColor: badge.color + "40" }]}
-            >
-              <Text style={[styles.trustBadgeValue, { color: badge.color }]}>
-                {badge.value}
-              </Text>
-              <Text style={styles.trustBadgeLabel}>{badge.label}</Text>
-            </View>
-          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

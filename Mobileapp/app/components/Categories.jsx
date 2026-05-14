@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import {
   Dimensions,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -118,7 +118,10 @@ const Categories = ({
                       <Image
                         source={{ uri: cat.img }}
                         style={styles.image}
-                        resizeMode="cover"
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={200}
+                        recyclingKey={`cat-${cat.id}`}
                       />
                       <LinearGradient
                         colors={["transparent", "rgba(0,0,0,0.8)"]}
@@ -167,7 +170,7 @@ const Categories = ({
                         <Text style={styles.fallbackTitle}>{category}</Text>
                       </LinearGradient>
                     </TouchableOpacity>
-                  )
+                  ),
               )}
         </View>
       </ScrollView>

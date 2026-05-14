@@ -3,13 +3,13 @@
 /* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -155,7 +155,10 @@ const CategoryDetailsScreen = () => {
               uri: item.image || "https://via.placeholder.com/300",
             }}
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            recyclingKey={`cat-item-${item.$id || item.id}`}
           />
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.8)"]}

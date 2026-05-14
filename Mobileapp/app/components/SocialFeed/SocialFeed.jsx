@@ -190,6 +190,7 @@ export default function SocialFeed() {
         maxToRenderPerBatch={2}
         windowSize={3}
         initialNumToRender={1}
+        updateCellsBatchingPeriod={50}
       />
 
       {loading && feedData.length > 0 && (

@@ -10,12 +10,12 @@ import { useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const PREVIEW_H = SCREEN_W; // Square aspect — Instagram standard
@@ -96,7 +96,9 @@ export default function MediaPreview({
             <Image
               source={{ uri: item.uri }}
               style={s.image}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={100}
             />
             {item.type === "video" && (
               <View style={s.playOverlay}>

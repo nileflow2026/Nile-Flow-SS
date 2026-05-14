@@ -35,8 +35,13 @@ const authMiddleware = async (req, res, next) => {
       );
     }
 
-    // Get token from cookie
-    const accessToken = req.cookies?.accessToken;
+    // Get token from cookie OR Authorization header (mobile OAuth uses Bearer token)
+    const cookieToken = req.cookies?.accessToken;
+    const authHeader = req.headers.authorization || "";
+    const bearerToken = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
+    const accessToken = cookieToken || bearerToken;
 
     if (!accessToken) {
       return res.status(401).json({

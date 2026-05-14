@@ -11,7 +11,8 @@
  *   onPress   - callback(group)
  *   onJoin    - callback(groupId)
  */
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
+import { Text, TouchableOpacity, View } from "react-native";
 import CountdownTimer from "./CountdownTimer";
 import ParticipantList from "./ParticipantList";
 
@@ -57,7 +58,9 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
             <Image
               source={{ uri: productImage }}
               className="w-16 h-16 rounded-xl bg-slate-700"
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
             />
           ) : (
             <View className="w-16 h-16 rounded-xl bg-slate-700 items-center justify-center">

@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -86,7 +86,10 @@ const FeaturedProducts = () => {
             <Image
               source={{ uri: item.image || item.images?.[0] }}
               style={styles.productImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+              recyclingKey={`featured-${item.$id || item.id}`}
             />
           </View>
 
@@ -185,6 +188,9 @@ const FeaturedProducts = () => {
         columnWrapperStyle={styles.row}
         scrollEnabled={false}
         contentContainerStyle={styles.listContainer}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        removeClippedSubviews={true}
       />
     </View>
   );

@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -107,7 +107,10 @@ const PremiumDeals = () => {
             <Image
               source={{ uri: item.image || item.images?.[0] }}
               style={styles.dealImage}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+              recyclingKey={`premium-deal-${item.$id || item.id}`}
             />
           </View>
 

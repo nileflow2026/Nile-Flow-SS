@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -185,7 +185,10 @@ const HeroCarousel = () => {
                     "https://via.placeholder.com/120x120/cccccc/666666?text=No+Image",
                 }}
                 style={styles.productImage}
-                resizeMode="contain"
+                contentFit="contain"
+                cachePolicy="memory-disk"
+                transition={200}
+                recyclingKey={`hero-${item.$id || item.id}`}
               />
             </View>
           </View>
@@ -207,11 +210,11 @@ const HeroCarousel = () => {
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         onMomentumScrollEnd={(event) => {
           const newIndex = Math.round(
-            event.nativeEvent.contentOffset.x / SLIDE_WIDTH
+            event.nativeEvent.contentOffset.x / SLIDE_WIDTH,
           );
           setCurrentIndex(newIndex);
         }}

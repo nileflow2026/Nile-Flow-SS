@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Image } from "expo-image";
 import {
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -174,7 +174,9 @@ const OrdersScreen = () => {
                     <Image
                       source={{ uri: item.productImage }}
                       style={styles.productImage}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
                     />
                   ) : (
                     <Text style={styles.itemIcon}>📦</Text>

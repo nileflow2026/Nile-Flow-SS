@@ -22,7 +22,7 @@ import { Config } from "../../Appwrite";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useGlobalContext } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
-import i18n from "../../i18n";
+import i18n, { useLanguage } from "../../i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -30,6 +30,7 @@ const { width } = Dimensions.get("window");
 const getFileViewUrl = (bucketId, fileId) =>
   `${Config.endpoint}/storage/buckets/${bucketId}/files/${fileId}/view?project=${Config.projectId}`;
 const Settings = () => {
+  useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploading, setUploading] = useState(false);

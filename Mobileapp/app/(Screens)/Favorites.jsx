@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import {
   Dimensions,
   FlatList,
-  Image,
   Text,
   TouchableOpacity,
   View,
@@ -77,7 +77,10 @@ const Favorites = () => {
                     source={{ uri: item.productImage }}
                     className="rounded-3xl mr-3"
                     style={{ width: imageWidth, height: imageHeight }}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
+                    recyclingKey={`fav-${item.$id || item.id}`}
                   />
                 </TouchableOpacity>
                 <View className="flex-1 pl-4 ml-5 mb-10">

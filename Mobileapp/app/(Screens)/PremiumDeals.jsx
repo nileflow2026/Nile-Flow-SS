@@ -2,13 +2,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -92,7 +92,10 @@ const PremiumDeals = () => {
                 "https://via.placeholder.com/300",
             }}
             style={styles.productImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+            recyclingKey={`deal-${item.$id || item.id}`}
           />
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.8)"]}

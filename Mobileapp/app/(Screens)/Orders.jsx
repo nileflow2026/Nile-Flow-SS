@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import moment from "moment";
 import { useCallback, useEffect, useState } from "react";
+import axiosClient from "../../api";
 import {
   ActivityIndicator,
   Alert,
@@ -209,6 +210,56 @@ const Orders = () => {
     });
   };
 
+  const CANCEL_REASONS = [
+    "Changed my mind",
+    "Found a better price elsewhere",
+    "Ordered by mistake",
+    "Delivery taking too long",
+  ];
+
+  const submitCancellation = async (order, reason) => {
+    try {
+      setLoading(true);
+      const response = await axiosClient.post("/api/orders/cancel-request", {
+        orderId: order.$id,
+        reason,
+        customerEmail: user?.email,
+        customerName: user?.username || user?.name,
+      });
+      if (response.data?.success) {
+        Alert.alert(
+          "Request Submitted",
+          response.data.message ||
+            "Your cancellation request has been submitted. Our team will review it within 24 hours.",
+          [{ text: "OK" }],
+        );
+        await fetchOrders();
+      } else {
+        Alert.alert(
+          "Error",
+          response.data?.message || "Failed to submit cancellation request.",
+        );
+      }
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        "Failed to submit cancellation request. Please try again.";
+      Alert.alert("Error", msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showCancelReasons = (order) => {
+    Alert.alert("Select Reason", "Why are you cancelling this order?", [
+      ...CANCEL_REASONS.map((reason) => ({
+        text: reason,
+        onPress: () => submitCancellation(order, reason),
+      })),
+      { text: "Back", style: "cancel" },
+    ]);
+  };
+
   const handleCancelOrder = (order) => {
     Alert.alert(
       "Cancel Order",
@@ -216,15 +267,9 @@ const Orders = () => {
       [
         { text: "No", style: "cancel" },
         {
-          text: "Yes, Cancel",
+          text: "Yes, Continue",
           style: "destructive",
-          onPress: () => {
-            // TODO: Implement order cancellation
-            Alert.alert(
-              "Order Cancelled",
-              "Your order has been cancelled successfully.",
-            );
-          },
+          onPress: () => showCancelReasons(order),
         },
       ],
     );
@@ -259,7 +304,7 @@ const Orders = () => {
                 size={18}
                 color={premiumColors.primary}
               />
-              <Text style={styles.badgeText}>Premium Orders</Text>
+              <Text style={styles.badgeText}>Your Orders</Text>
               <MaterialIcons name="auto-awesome" size={16} color="#fde047" />
             </LinearGradient>
 
@@ -267,11 +312,11 @@ const Orders = () => {
               Your <Text style={styles.heroTitleAccent}>Orders</Text>
             </Text>
 
-            <Text style={styles.heroSubtitle}>Premium Purchase History</Text>
+            <Text style={styles.heroSubtitle}>Purchase History</Text>
 
             <Text style={styles.heroDescription}>
-              Track and manage your premium African product purchases with our
-              exclusive order tracking system.
+              Track and manage your African product purchases with our exclusive
+              order tracking system.
             </Text>
 
             {/* Stats Grid */}
@@ -384,7 +429,7 @@ const Orders = () => {
                 <ActivityIndicator size="large" color={premiumColors.primary} />
                 <Text style={styles.loadingTitle}>Loading Your Orders</Text>
                 <Text style={styles.loadingDescription}>
-                  Retrieving your premium purchase history...
+                  Retrieving your purchase history...
                 </Text>
               </View>
             </View>
@@ -413,13 +458,13 @@ const Orders = () => {
                   </Text>
                   <Text style={styles.emptyDescription}>
                     {selectedStatus === "all"
-                      ? "Your premium orders will appear here. Start your African shopping journey with our exclusive collection."
+                      ? "Your orders will appear here. Start your African shopping journey with our exclusive collection."
                       : `You don't have any ${selectedStatus} orders at the moment.`}
                   </Text>
                   <TouchableOpacity
                     style={styles.emptyButton}
                     onPress={() =>
-                      Alert.alert("Shop", "Redirecting to premium products...")
+                      Alert.alert("Shop", "Redirecting to products...")
                     }
                   >
                     <LinearGradient
@@ -432,7 +477,7 @@ const Orders = () => {
                         color="white"
                       />
                       <Text style={styles.emptyButtonText}>
-                        Explore Premium Products
+                        Explore Products
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -656,7 +701,7 @@ const Orders = () => {
                                   color="white"
                                 />
                                 <Text style={styles.premiumBadgeText}>
-                                  Premium Order
+                                  Top Order
                                 </Text>
                               </LinearGradient>
                             </View>
@@ -685,7 +730,7 @@ const Orders = () => {
                       color={premiumColors.primary}
                     />
                     <Text style={styles.summaryCardTitle}>
-                      Premium Protection
+                      Order Protection
                     </Text>
                     <Text style={styles.summaryCardDescription}>
                       All orders are protected
@@ -718,7 +763,9 @@ const Orders = () => {
                       size={24}
                       color="#3b82f6"
                     />
-                    <Text style={styles.summaryCardTitle}>Premium Support</Text>
+                    <Text style={styles.summaryCardTitle}>
+                      Customer Support
+                    </Text>
                     <Text style={styles.summaryCardDescription}>
                       24/7 order assistance
                     </Text>

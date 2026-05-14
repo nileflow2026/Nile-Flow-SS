@@ -1,6 +1,9 @@
 // services/customerTrackingService.js
 import io from "socket.io-client";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://nile-flow-backend.onrender.com";
+
 class CustomerTrackingService {
   constructor() {
     this.socket = null;
@@ -16,8 +19,7 @@ class CustomerTrackingService {
       this.disconnect();
     }
 
-    // Use your backend URL
-    const backendUrl =  "http://localhost:3000";
+    const backendUrl = API_BASE_URL;
 
     this.socket = io(backendUrl, {
       transports: ["websocket", "polling"],
