@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { Suspense, lazy } from "react";
 import * as Sentry from "@sentry/react";
 import {
@@ -144,7 +145,7 @@ const ScrollToTop = () => {
 };
 
 // Temporary Sentry test button — remove after verifying errors appear in Sentry dashboard
-/* function ErrorButton() {
+function ErrorButton() {
   return (
     <button
       style={{
@@ -166,7 +167,7 @@ const ScrollToTop = () => {
       Break the world
     </button>
   );
-} */
+}
 
 // Separate component to use auth hooks
 const AppContent = () => {
