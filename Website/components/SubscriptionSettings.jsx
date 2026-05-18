@@ -50,7 +50,7 @@ const SubscriptionSettings = () => {
   const handleCancel = async () => {
     if (
       window.confirm(
-        "Are you sure you want to cancel your premium subscription?"
+        "Are you sure you want to cancel your premium subscription?",
       )
     ) {
       const result = await cancelSubscription();
@@ -64,7 +64,7 @@ const SubscriptionSettings = () => {
 
   // Handle payment status updates
   React.useEffect(() => {
-    if (paymentStatus === "completed") {
+    if (paymentStatus === "active") {
       setShowPaymentPending(false);
       setPaymentMessage("");
       setPhoneNumber("");
@@ -79,7 +79,7 @@ const SubscriptionSettings = () => {
       setShowPaymentPending(false);
       setPaymentMessage("");
       alert(
-        "Payment verification timed out. Please check your subscription status."
+        "Payment verification timed out. Please check your subscription status.",
       );
       stopPolling();
     }
@@ -203,7 +203,9 @@ const SubscriptionSettings = () => {
                         {benefit.title}
                       </h4>
                     </div>
-                    <p className="text-[color:var(--nf-text-muted)] text-sm">{benefit.desc}</p>
+                    <p className="text-[color:var(--nf-text-muted)] text-sm">
+                      {benefit.desc}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -221,7 +223,9 @@ const SubscriptionSettings = () => {
               </h3>
               <p className="text-[color:var(--nf-text-muted)]">
                 Unlock exclusive benefits for just{" "}
-                <span className="text-[color:var(--nf-accent)] font-bold">200 Ksh/month</span>
+                <span className="text-[color:var(--nf-accent)] font-bold">
+                  200 Ksh/month
+                </span>
               </p>
             </div>
 
@@ -265,7 +269,9 @@ const SubscriptionSettings = () => {
                   <h4 className="text-xl font-bold text-[color:var(--nf-accent)] mb-2">
                     {benefit.title}
                   </h4>
-                  <p className="text-[color:var(--nf-text-muted)]">{benefit.desc}</p>
+                  <p className="text-[color:var(--nf-text-muted)]">
+                    {benefit.desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -315,7 +321,9 @@ const SubscriptionSettings = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-[color:var(--nf-text-muted)] text-lg">📱</span>
+                      <span className="text-[color:var(--nf-text-muted)] text-lg">
+                        📱
+                      </span>
                     </div>
                     <input
                       type="tel"

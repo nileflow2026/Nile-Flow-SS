@@ -206,17 +206,6 @@ const ProductDetails = () => {
               review.user_name ||
               "Anonymous";
 
-            // Debug log for first review to see what data we're getting
-            if (review.id === productReviews[0]?.id) {
-              console.log("Sample review structure:", {
-                userName: review.userName,
-                username: review.username,
-                user_name: review.user_name,
-                finalUserName: userName,
-                allKeys: Object.keys(review),
-              });
-            }
-
             return {
               id: review._id || review.$id || review.id,
               userName,
@@ -257,7 +246,7 @@ const ProductDetails = () => {
           `/api/customerprofile/fetch-product-mobile`,
           {
             params: {
-              limit: 50,
+              limit: 20,
             },
           },
         );
@@ -284,7 +273,6 @@ const ProductDetails = () => {
       });
       setRelatedProducts(related);
       setRatings(ratingsData);
-      console.log("Final ratings state:", ratingsData); // Log 4
     };
 
     if (product?.category && product?.$id) {

@@ -119,13 +119,6 @@ const SignIn = () => {
       setUser(result);
       setIsLogged(true);
 
-      // Handle remember me functionality
-      if (rememberMe) {
-        // Store user preference locally
-        // You can implement AsyncStorage here if needed
-      }
-
-      Alert.alert("Success", "User signed in successfully");
       router.replace("/(tabs)/BottomTabs");
     } catch (error) {
       setError(error.message || "Invalid credentials. Please try again.");

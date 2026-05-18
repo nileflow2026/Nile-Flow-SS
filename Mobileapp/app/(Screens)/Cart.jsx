@@ -5,7 +5,6 @@ import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -21,7 +20,6 @@ const { width } = Dimensions.get("window");
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity, fetchCartItems } = useCart();
 
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   // Mirror cart into a ref so useFocusEffect can read the current length
@@ -116,11 +114,7 @@ const Cart = () => {
   const formattedTotal = fmt(total);
 
   const handleCheckout = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/(Screens)/Payments");
-    }, 1000);
+    router.push("/(Screens)/Payments");
   };
 
   const handleQuantityChange = (itemId, newQuantity) => {
@@ -135,7 +129,8 @@ const Cart = () => {
     >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
       >
         <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
           Shopping Cart
@@ -260,10 +255,16 @@ const Cart = () => {
                         item.quantity <= 1 && styles.quantityButtonDisabled,
                       ]}
                       disabled={item.quantity <= 1}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Decrease quantity of ${item.productName}`}
+                      accessibilityState={{ disabled: item.quantity <= 1 }}
                     >
                       <Text style={styles.quantityButtonText}>-</Text>
                     </TouchableOpacity>
-                    <Text style={styles.cartItemQuantityValue}>
+                    <Text
+                      style={styles.cartItemQuantityValue}
+                      accessibilityLabel={`Quantity: ${item.quantity || 1}`}
+                    >
                       {item.quantity || 1}
                     </Text>
                     <TouchableOpacity
@@ -274,6 +275,8 @@ const Cart = () => {
                         )
                       }
                       style={styles.quantityButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Increase quantity of ${item.productName}`}
                     >
                       <Text style={styles.quantityButtonText}>+</Text>
                     </TouchableOpacity>
@@ -282,6 +285,8 @@ const Cart = () => {
                         removeFromCart(item.id || item.$id || item.productId)
                       }
                       style={styles.removeButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${item.productName} from cart`}
                     >
                       <Text style={styles.removeButtonText}>Remove</Text>
                     </TouchableOpacity>
@@ -325,15 +330,10 @@ const Cart = () => {
             <TouchableOpacity
               style={styles.checkoutButton}
               onPress={handleCheckout}
-              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Proceed to checkout"
             >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.checkoutButtonText}>
-                  Proceed to Checkout
-                </Text>
-              )}
+              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
             </TouchableOpacity>
           </View>
         )}

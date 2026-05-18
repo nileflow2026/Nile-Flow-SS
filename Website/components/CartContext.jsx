@@ -91,7 +91,7 @@ export const CartProvider = ({ children }) => {
         // Optional: cache for offline support
         localStorage.setItem(
           `@cart_items_${userId}`,
-          JSON.stringify(normalizedCart)
+          JSON.stringify(normalizedCart),
         );
       } else {
         setCart([]);
@@ -122,7 +122,7 @@ export const CartProvider = ({ children }) => {
         } catch (error) {
           console.warn(
             `Failed to merge guest item ${guestItem.productName}:`,
-            error
+            error,
           );
         }
       }
@@ -161,7 +161,7 @@ export const CartProvider = ({ children }) => {
     if (!userId) {
       // Handle guest user - store in guest cart
       const existingGuestItem = guestCart.find(
-        (item) => item.productId === product.$id
+        (item) => item.productId === product.$id,
       );
 
       if (existingGuestItem) {
@@ -187,7 +187,7 @@ export const CartProvider = ({ children }) => {
       setCart(updatedGuestCart); // Update cart display
       localStorage.setItem(
         "@guest_cart_items",
-        JSON.stringify(updatedGuestCart)
+        JSON.stringify(updatedGuestCart),
       );
 
       toast.success("Added to Cart (Sign in to save your cart!)");
@@ -197,7 +197,8 @@ export const CartProvider = ({ children }) => {
     // Check if item already exists in current cart for authenticated users
     const existingItem = cart.find(
       (item) =>
-        item.productId === product.$id || item.productId === String(product.$id)
+        item.productId === product.$id ||
+        item.productId === String(product.$id),
     );
 
     if (existingItem) {
@@ -267,13 +268,13 @@ export const CartProvider = ({ children }) => {
         const actualExistingItem = cart.find(
           (item) =>
             item.productId === product.$id ||
-            item.productId === String(product.$id)
+            item.productId === String(product.$id),
         );
 
         if (!actualExistingItem) {
           // Item doesn't exist in current state, so let's keep the optimistic item
           console.log(
-            "Backend says already exists but not in current cart state, keeping item"
+            "Backend says already exists but not in current cart state, keeping item",
           );
           toast.success("Added to Cart");
         } else {
@@ -282,7 +283,7 @@ export const CartProvider = ({ children }) => {
             const updated = prev.filter((item) => item.id !== tempItem.id);
             localStorage.setItem(
               `@cart_items_${userId}`,
-              JSON.stringify(updated)
+              JSON.stringify(updated),
             );
             return updated;
           });
@@ -294,7 +295,7 @@ export const CartProvider = ({ children }) => {
       // Replace temp item with normalized backend item
       setCart((prev) => {
         const updated = prev.map((item) =>
-          item.id === tempItem.id ? normalizedItem : item
+          item.id === tempItem.id ? normalizedItem : item,
         );
         localStorage.setItem(`@cart_items_${userId}`, JSON.stringify(updated));
         return updated;
@@ -320,13 +321,13 @@ export const CartProvider = ({ children }) => {
     if (!userId || itemToRemove?.isGuest) {
       // Handle guest cart removal
       const updatedGuestCart = guestCart.filter(
-        (item) => item.id !== cartItemId
+        (item) => item.id !== cartItemId,
       );
       setGuestCart(updatedGuestCart);
       setCart(updatedGuestCart);
       localStorage.setItem(
         "@guest_cart_items",
-        JSON.stringify(updatedGuestCart)
+        JSON.stringify(updatedGuestCart),
       );
       toast.success("Removed from Cart");
       return;
@@ -373,10 +374,9 @@ export const CartProvider = ({ children }) => {
       await axiosClient.delete(`/cart/clear/${userId}`);
     } catch (err) {
       console.error("Error clearing cart:", err);
-      // Rollback
-      const cached =
-        JSON.parse(localStorage.getItem(`@cart_items_${userId}`)) || [];
-      setCart(cached);
+      // Rollback using the snapshot taken before the optimistic update
+      setCart(prevCart);
+      localStorage.setItem(`@cart_items_${userId}`, JSON.stringify(prevCart));
       toast.error("Failed to clear cart");
     }
   };
@@ -413,7 +413,7 @@ export const CartProvider = ({ children }) => {
       (item) =>
         item.id === cartItemId ||
         item.productId === cartItemId ||
-        item.$id === cartItemId
+        item.$id === cartItemId,
     );
 
     if (!userId || itemToUpdate?.isGuest) {
@@ -423,13 +423,13 @@ export const CartProvider = ({ children }) => {
         item.productId === cartItemId ||
         item.$id === cartItemId
           ? { ...item, quantity: newQuantity }
-          : item
+          : item,
       );
       setGuestCart(updatedGuestCart);
       setCart(updatedGuestCart);
       localStorage.setItem(
         "@guest_cart_items",
-        JSON.stringify(updatedGuestCart)
+        JSON.stringify(updatedGuestCart),
       );
       toast.info("Quantity updated");
       return;
@@ -444,7 +444,7 @@ export const CartProvider = ({ children }) => {
       item.productId === cartItemId ||
       item.$id === cartItemId
         ? { ...item, quantity: newQuantity }
-        : item
+        : item,
     );
     setCart(updatedCart);
     localStorage.setItem(`@cart_items_${userId}`, JSON.stringify(updatedCart));
@@ -457,7 +457,7 @@ export const CartProvider = ({ children }) => {
         "Updating quantity for productId:",
         productIdForAPI,
         "to quantity:",
-        newQuantity
+        newQuantity,
       );
 
       const res = await axiosClient.put(`/cart/update/${productIdForAPI}`, {
@@ -479,8 +479,8 @@ export const CartProvider = ({ children }) => {
               item.productId === cartItemId ||
               item.$id === cartItemId
                 ? { ...item, quantity: updated.quantity }
-                : item
-            )
+                : item,
+            ),
           );
 
           // also refresh cache from latest state - check all possible ID fields
@@ -489,12 +489,12 @@ export const CartProvider = ({ children }) => {
             item.productId === cartItemId ||
             item.$id === cartItemId
               ? { ...item, quantity: updated.quantity }
-              : item
+              : item,
           );
           localStorage.setItem(`@cart_items_${userId}`, JSON.stringify(fresh));
         } else {
           console.log(
-            "Backend returned invalid quantity data, keeping optimistic update"
+            "Backend returned invalid quantity data, keeping optimistic update",
           );
         }
       } else {
@@ -515,7 +515,7 @@ export const CartProvider = ({ children }) => {
       } else {
         console.log(
           "Non-critical error, keeping optimistic update:",
-          error.message
+          error.message,
         );
         toast.warning("Quantity updated (sync will retry later)");
       }
@@ -532,7 +532,7 @@ export const CartProvider = ({ children }) => {
       updateQuantity,
       fetchCartItems,
     }),
-    [cart]
+    [cart],
   );
 
   return (

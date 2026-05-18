@@ -40,10 +40,11 @@ axiosClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const newToken = await refreshSession();
-        axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-        return axiosClient(originalRequest); // retry request with new token
+        // Auth is cookie-based — refreshSession updates the httpOnly cookies
+        // server-side. No token is returned in the body, so we simply retry
+        // the original request which will carry the new cookies automatically.
+        await refreshSession();
+        return axiosClient(originalRequest); // retry with refreshed cookies
       } catch (refreshError) {
         console.error("Refresh token failed, logging out...");
         // Clear auth data but don't redirect here - let the app handle it

@@ -98,7 +98,7 @@ const Header = () => {
                 src="/images/logo.png"
                 alt="Nile Flow"
                 className="relative h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-md"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
               />
             </div>

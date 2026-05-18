@@ -88,21 +88,31 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
   const showErrorToast = (message) => {
     const toast = document.createElement("div");
     toast.className = "fixed top-4 right-4 z-50 animate-fadeIn";
-    toast.innerHTML = `
-      <div class="bg-gradient-to-r from-red-900/80 to-amber-900/80 backdrop-blur-sm border border-red-700/50 rounded-2xl p-4 shadow-2xl">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
-            <svg class="w-6 h-6 text-[color:var(--nf-text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </div>
-          <div>
-            <p class="font-bold text-[color:var(--nf-text-primary)]">Error</p>
-            <p class="text-red-100 text-sm">${message}</p>
-          </div>
-        </div>
+    // Build DOM nodes instead of innerHTML to prevent XSS
+    const outer = document.createElement("div");
+    outer.className =
+      "bg-gradient-to-r from-red-900/80 to-amber-900/80 backdrop-blur-sm border border-red-700/50 rounded-2xl p-4 shadow-2xl";
+    const inner = document.createElement("div");
+    inner.className = "flex items-center space-x-3";
+    inner.innerHTML = `
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center">
+        <svg class="w-6 h-6 text-[color:var(--nf-text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
       </div>
     `;
+    const textDiv = document.createElement("div");
+    const titleEl = document.createElement("p");
+    titleEl.className = "font-bold text-[color:var(--nf-text-primary)]";
+    titleEl.textContent = "Error";
+    const msgEl = document.createElement("p");
+    msgEl.className = "text-red-100 text-sm";
+    msgEl.textContent = message; // textContent prevents XSS
+    textDiv.appendChild(titleEl);
+    textDiv.appendChild(msgEl);
+    inner.appendChild(textDiv);
+    outer.appendChild(inner);
+    toast.appendChild(outer);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   };
@@ -111,6 +121,8 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
   const handleModalClick = (e) => {
     e.stopPropagation();
   };
+
+  if (!isOpen) return null;
 
   // Success message component
   if (showSuccessMessage) {
@@ -124,7 +136,9 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
             <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-[color:var(--nf-text-primary)]" />
             </div>
-            <h3 className="text-xl font-bold text-[color:var(--nf-text-primary)] mb-2">Perfect!</h3>
+            <h3 className="text-xl font-bold text-[color:var(--nf-text-primary)] mb-2">
+              Perfect!
+            </h3>
             <p className="text-[color:var(--nf-text-secondary)]">
               Your pickup address has been saved successfully. You can now enjoy
               seamless delivery tracking!
@@ -135,13 +149,8 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
     );
   }
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm">
       <div
         className="bg-[var(--nf-card-bg)] rounded-2xl max-w-2xl w-full mx-4 border border-amber-700/50 shadow-2xl overflow-hidden"
         onClick={handleModalClick}
@@ -202,7 +211,9 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
                   onChange={handleInputChange}
                   placeholder="Enter your street address"
                   className={`w-full pl-10 pr-4 py-3 bg-[var(--nf-bg-subtle)] border ${
-                    errors.address ? "border-red-500" : "border-[var(--nf-border)]"
+                    errors.address
+                      ? "border-red-500"
+                      : "border-[var(--nf-border)]"
                   } rounded-xl text-[color:var(--nf-text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500`}
                   required
                 />
@@ -226,7 +237,9 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
                   onChange={handleInputChange}
                   placeholder="Enter your phone number"
                   className={`w-full pl-10 pr-4 py-3 bg-[var(--nf-bg-subtle)] border ${
-                    errors.phone ? "border-red-500" : "border-[var(--nf-border)]"
+                    errors.phone
+                      ? "border-red-500"
+                      : "border-[var(--nf-border)]"
                   } rounded-xl text-[color:var(--nf-text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500`}
                   required
                 />
@@ -269,7 +282,9 @@ const PickupAddressModal = ({ isOpen, onClose, onSubmit }) => {
                   onChange={handleInputChange}
                   placeholder="State/Province"
                   className={`w-full px-4 py-3 bg-[var(--nf-bg-subtle)] border ${
-                    errors.state ? "border-red-500" : "border-[var(--nf-border)]"
+                    errors.state
+                      ? "border-red-500"
+                      : "border-[var(--nf-border)]"
                   } rounded-xl text-[color:var(--nf-text-primary)] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500`}
                   required
                 />

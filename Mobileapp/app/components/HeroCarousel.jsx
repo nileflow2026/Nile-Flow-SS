@@ -25,9 +25,21 @@ const HeroCarousel = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef(null);
   const intervalRef = useRef(null);
+  // Keep a ref in sync so the interval callback always sees the latest index
+  // without needing to restart the interval on every slide change.
+  const currentIndexRef = useRef(0);
+  const slidesLengthRef = useRef(0);
   const { theme } = useTheme();
   const router = useRouter();
   const isDark = theme === "dark";
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    slidesLengthRef.current = slides.length;
+  }, [slides.length]);
 
   useEffect(() => {
     fetchHeroProducts();
@@ -52,15 +64,17 @@ const HeroCarousel = () => {
       intervalRef.current = null;
     }
 
-    if (slides.length <= 1) return;
+    if (slidesLengthRef.current <= 1) return;
 
     intervalRef.current = setInterval(() => {
+      const nextIndex = (currentIndexRef.current + 1) % slidesLengthRef.current;
+      setCurrentIndex(nextIndex);
       flatListRef.current?.scrollToIndex({
-        index: (currentIndex + 1) % slides.length,
+        index: nextIndex,
         animated: true,
       });
     }, 5000);
-  }, [slides.length, currentIndex]);
+  }, []);
 
   useEffect(() => {
     if (slides.length > 1) {
@@ -73,7 +87,7 @@ const HeroCarousel = () => {
         intervalRef.current = null;
       }
     };
-  }, [startAutoSlide]);
+  }, [startAutoSlide, slides.length]);
 
   const handleNext = () => {
     const nextIndex = (currentIndex + 1) % slides.length;

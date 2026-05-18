@@ -1,7 +1,7 @@
 // src/components/CustomerProtectedRoute.jsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useCustomerAuth } from "../contexts/CustomerAuthContext";
+import { useCustomerAuth } from "../Context/CustomerAuthContext";
 
 export const CustomerProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useCustomerAuth();

@@ -21,6 +21,7 @@ const cardWidth = (width - 48) / 2;
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -30,13 +31,16 @@ const FeaturedProducts = () => {
   }, []);
 
   const fetchFeaturedProducts = async () => {
+    setError(false);
+    setLoading(true);
     try {
       const response = await axiosClient.get(
         "/api/customerprofile/featured-products",
       );
       setProducts(response.data || []);
-    } catch (error) {
-      console.error("Failed to fetch featured products:", error);
+    } catch (err) {
+      console.error("Failed to fetch featured products:", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -107,7 +111,11 @@ const FeaturedProducts = () => {
 
             <View style={styles.priceRow}>
               <Text style={styles.price}>
-                {item.price ? `$${item.price.toFixed(2)}` : "Price on request"}
+                {item.price
+                  ? typeof item.price === "object" && item.price.displayValue
+                    ? item.price.displayValue
+                    : `KSh ${Number(item.price.raw ?? item.price).toLocaleString("en", { maximumFractionDigits: 0 })}`
+                  : "Price on request"}
               </Text>
               {item.reviewCount > 0 && (
                 <View style={styles.ratingContainer}>
@@ -159,6 +167,28 @@ const FeaturedProducts = () => {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Could not load featured products</Text>
+        <TouchableOpacity
+          onPress={fetchFeaturedProducts}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading featured products"
+          style={{
+            marginTop: 8,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: "#F59E0B",
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: "#000", fontWeight: "bold" }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (products.length === 0) {
     return null;
   }
@@ -171,7 +201,11 @@ const FeaturedProducts = () => {
           <Ionicons name="trophy" size={24} color="#F59E0B" />
           <Text style={styles.headerTitle}>Featured Products</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/(Screens)/Explore")}>
+        <TouchableOpacity
+          onPress={() => router.push("/(Screens)/Explore")}
+          accessibilityRole="button"
+          accessibilityLabel="See all products"
+        >
           <View style={styles.seeAllButton}>
             <Text style={styles.seeAllText}>See All</Text>
             <Ionicons name="arrow-forward" size={16} color="#F59E0B" />

@@ -43,6 +43,19 @@ export const PremiumProvider = ({ children }) => {
 
   useEffect(() => {
     fetchPremiumStatus();
+
+    // Reset premium state on logout
+    const handleLogout = () => {
+      setPremiumStatus({
+        isPremium: false,
+        expiresAt: null,
+        loading: false,
+        error: null,
+      });
+    };
+
+    window.addEventListener("auth:logout", handleLogout);
+    return () => window.removeEventListener("auth:logout", handleLogout);
   }, []);
 
   const value = {

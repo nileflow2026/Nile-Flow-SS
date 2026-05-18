@@ -19,7 +19,10 @@ import { usePremiumContext } from "../Context/PremiumContext";
  */
 const PremiumBanner = () => {
   const navigate = useNavigate();
-  const { isPremium, expiresAt } = usePremiumContext();
+  const { isPremium, expiresAt, loading } = usePremiumContext();
+
+  // Don't render until premium status is confirmed to avoid FOUC
+  if (loading) return null;
 
   if (isPremium) {
     return (
@@ -66,8 +69,12 @@ const PremiumBanner = () => {
             </div>
             <div className="bg-gradient-to-br from-amber-900/30 to-yellow-900/20 backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-xl p-4 text-center">
               <Zap className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-              <div className="text-[color:var(--nf-accent)] font-bold text-lg">1-2 Days</div>
-              <div className="text-[color:var(--nf-text-muted)] text-xs">Fast Delivery</div>
+              <div className="text-[color:var(--nf-accent)] font-bold text-lg">
+                1-2 Days
+              </div>
+              <div className="text-[color:var(--nf-text-muted)] text-xs">
+                Fast Delivery
+              </div>
             </div>
             <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/20 backdrop-blur-sm border border-purple-800/30 rounded-xl p-4 text-center">
               <Star className="w-6 h-6 text-purple-400 mx-auto mb-2" />
@@ -100,7 +107,9 @@ const PremiumBanner = () => {
 
             <p className="text-[color:var(--nf-text-muted)] text-base md:text-lg mb-6">
               Get priority delivery, 2x Nile Miles, and exclusive deals for just{" "}
-              <span className="text-[color:var(--nf-accent)] font-bold">200 Ksh/month</span>
+              <span className="text-[color:var(--nf-accent)] font-bold">
+                200 Ksh/month
+              </span>
             </p>
 
             <div className="grid sm:grid-cols-3 gap-3">

@@ -7,9 +7,22 @@ import "./index.css";
 
 // Initialize Sentry synchronously so it's ready before any user interaction
 Sentry.init({
-  dsn: "https://3aad5fac01fcd59243cc74a4d52bb5a0@o4510430501666816.ingest.us.sentry.io/4511229573464064",
+  dsn: "https://4f439835f9a532d6371f7e0421b83766@o4510430501666816.ingest.us.sentry.io/4511230033199104",
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_VERSION,
   sendDefaultPii: true,
-  tracesSampleRate: 0.1,
+  // Capture 10% of sessions for performance tracing
+  tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+  // Replay 100% of sessions with errors, 5% of all sessions
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 0.05,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: false,
+      blockAllMedia: false,
+    }),
+  ],
 });
 
 // Defer non-critical imports

@@ -37,7 +37,7 @@ const SignIn = () => {
 
     try {
       const result = await signIn(email, password, rememberMe);
-      navigate("/home");
+      navigate("/");
     } catch (err) {
       setError(err.message || "Invalid credentials. Please try again.");
     } finally {
@@ -48,7 +48,7 @@ const SignIn = () => {
   const handleGoogleSignIn = async () => {
     try {
       const result = await loginWithGoogle();
-      navigate("/home");
+      navigate("/");
     } catch (err) {
       setError(err.message || "Failed to sign in with Google");
     }
@@ -57,7 +57,7 @@ const SignIn = () => {
   const handleFacebookSignIn = async () => {
     try {
       const result = await loginWithFacebook();
-      navigate("/home");
+      navigate("/");
     } catch (err) {
       setError(err.message || "Failed to sign in with Facebook");
     }

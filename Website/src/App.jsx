@@ -16,8 +16,7 @@ const Deals = lazy(() => import("./Pages/Deals"));
 const Contact = lazy(() => import("./Pages/Contact"));
 const Language = lazy(() => import("./Pages/Language"));
 const CategoryPage = lazy(() => import("./Pages/CategoryPage"));
-// Don't lazy load ProductDetailPage to avoid Router context issues
-import ProductDetailPage from "./Pages/ProductDetailPage";
+const ProductDetailPage = lazy(() => import("./Pages/ProductDetailPage"));
 const SearchScreen = lazy(() => import("./Pages/Search"));
 const SignIn = lazy(() => import("./Pages/SignIn"));
 const SignUp = lazy(() => import("./Pages/Signup"));
@@ -260,28 +259,74 @@ const App = () => {
     return <Maintenance />;
   }
 
-  /*  localStorage.clear(); // Clear localStorage on app start */
   return (
-    <ThemeProvider>
-      <Router>
-        <CustomerAuthProvider>
-          <CurrencyProvider>
-            <PremiumProvider>
-              <FavoritesProvider>
-                <NotificationProvider>
-                  <CartProvider>
-                    <GroupBuyProvider>
-                      <AppContent />
-                    </GroupBuyProvider>
-                  </CartProvider>
-                </NotificationProvider>
-              </FavoritesProvider>
-            </PremiumProvider>
-          </CurrencyProvider>
-        </CustomerAuthProvider>
-        <UpdateNotifier />
-      </Router>
-    </ThemeProvider>
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) => (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            padding: "2rem",
+            background: "#0a0a0a",
+            color: "#fff",
+            fontFamily: "sans-serif",
+          }}
+        >
+          <h1 style={{ color: "#f59e0b", marginBottom: "1rem" }}>
+            Something went wrong
+          </h1>
+          <p
+            style={{
+              color: "#9ca3af",
+              marginBottom: "1.5rem",
+              textAlign: "center",
+            }}
+          >
+            We&apos;ve been notified and are looking into it. Please try
+            refreshing the page.
+          </p>
+          <button
+            onClick={resetError}
+            style={{
+              background: "#b45309",
+              color: "#fff",
+              border: "none",
+              padding: "0.75rem 1.5rem",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              fontSize: "1rem",
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+      showDialog
+    >
+      <ThemeProvider>
+        <Router>
+          <CustomerAuthProvider>
+            <CurrencyProvider>
+              <PremiumProvider>
+                <FavoritesProvider>
+                  <NotificationProvider>
+                    <CartProvider>
+                      <GroupBuyProvider>
+                        <AppContent />
+                      </GroupBuyProvider>
+                    </CartProvider>
+                  </NotificationProvider>
+                </FavoritesProvider>
+              </PremiumProvider>
+            </CurrencyProvider>
+          </CustomerAuthProvider>
+          <UpdateNotifier />
+        </Router>
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
   );
 };
 

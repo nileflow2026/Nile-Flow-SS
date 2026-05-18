@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import GlobalProvider from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
@@ -19,6 +20,21 @@ import { initializeLanguage } from "../i18n";
 import { SocialProvider } from "../Context/SocialContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "../global.css";
+
+// Initialize Sentry as early as possible — before any navigation or providers
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: __DEV__ ? "development" : "production",
+  // Capture 20% of sessions for performance tracing in production
+  tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+  // Record replays for 100% of errors, 10% of sessions
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
+  integrations: [Sentry.mobileReplayIntegration()],
+  // Do not send PII in development
+  sendDefaultPii: !__DEV__,
+  enableLogs: true,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,7 +67,7 @@ function AppContent() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
@@ -79,3 +95,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default Sentry.wrap(RootLayout);

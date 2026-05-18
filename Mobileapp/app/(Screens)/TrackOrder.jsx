@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import { useEffect, useState } from "react";
 import { useTheme } from "../../Context/ThemeProvider";
@@ -64,34 +65,43 @@ const TrackOrder = () => {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: "#0f172a" }]}>
       <View style={styles.container}>
-        <Text style={styles.title}>📦 Track Your Order</Text>
-        <Text className="text-yellow-600" style={styles.subtitle}>
-          Order ID: {orderId}
-        </Text>
+        <Text style={styles.title}>Track Your Order</Text>
+        <Text style={styles.subtitle}>Order ID: {orderId}</Text>
 
         {/* Tracking Steps */}
         <FlatList
           data={trackingSteps}
           keyExtractor={(item) => item.status}
           renderItem={({ item }) => (
-            <View style={styles.stepContainer}>
+            <View
+              style={styles.stepContainer}
+              accessibilityLabel={`${item.status}: ${item.completed ? "completed" : "pending"}`}
+            >
+              <MaterialIcons
+                name={
+                  item.completed ? "check-circle" : "radio-button-unchecked"
+                }
+                size={22}
+                color={item.completed ? "#4CAF50" : "#9CA3AF"}
+                style={{ marginRight: 10 }}
+              />
               <Text
                 style={[styles.stepText, item.completed && styles.completed]}
               >
-                {item.completed ? "✅" : "⏳"} {item.status}
+                {item.status}
               </Text>
             </View>
           )}
         />
 
-        {/* Order Details "🚚" */}
+        {/* Order Details */}
         <View
           style={[
             styles.detailsContainer,
             { backgroundColor: themeStyles.accent2 },
           ]}
         >
-          <Text style={styles.detailTitle}>🕒 Order Details</Text>
+          <Text style={styles.detailTitle}>Order Details</Text>
           <Text style={styles.detailText}>Order Time: {orderTime}</Text>
           <Text style={styles.detailText}>
             Estimated Delivery: {estimatedDelivery}
@@ -138,6 +148,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#444",
+    flexDirection: "row",
+    alignItems: "center",
   },
   stepText: {
     fontSize: 16,

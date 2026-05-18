@@ -207,6 +207,7 @@ const BottomTabs = () => {
           component={Home}
           options={{
             title: "Home",
+            tabBarAccessibilityLabel: "Home tab",
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 icon={icons.home}
@@ -239,6 +240,7 @@ const BottomTabs = () => {
           component={Explore}
           options={{
             title: "Discover",
+            tabBarAccessibilityLabel: "Discover tab",
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 icon={icons.search}
@@ -255,6 +257,8 @@ const BottomTabs = () => {
           component={Cart}
           options={{
             title: "Cart",
+            tabBarAccessibilityLabel:
+              cartCount > 0 ? `Cart, ${cartCount} items` : "Cart tab",
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 icon={icons.cart}
@@ -289,6 +293,10 @@ const BottomTabs = () => {
           component={MyNotificationsScreen}
           options={{
             title: "Notifications",
+            tabBarAccessibilityLabel:
+              notificationCount > 0
+                ? `Notifications, ${notificationCount} unread`
+                : "Notifications tab",
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 icon={icons.notifications}
@@ -306,6 +314,7 @@ const BottomTabs = () => {
           component={Profile}
           options={{
             title: "Profile",
+            tabBarAccessibilityLabel: "Profile tab",
             tabBarIcon: ({ focused }) => (
               <TabIcon
                 icon={icons.profile}

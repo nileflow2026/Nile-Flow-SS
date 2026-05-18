@@ -175,15 +175,11 @@ const ProfilePage = () => {
       formData.append("userId", user?.id || "");
 
       console.log("🔄 Uploading avatar for user ID:", user?.id);
-      console.log("🔄 FormData created with URI:", uri);
 
       // Test connectivity first
       try {
-        console.log("🔍 Testing server connectivity...");
         await axiosClient.get("/api/customerauth/getCustomerProfile");
-        console.log("✅ Server connectivity OK");
       } catch (connectError) {
-        console.error("❌ Server connectivity failed:", connectError);
         throw new Error(
           "Cannot connect to server. Please check your network connection.",
         );
@@ -198,8 +194,6 @@ const ProfilePage = () => {
           },
         },
       );
-
-      console.log("✅ Avatar upload successful:", res.data);
 
       if (user) {
         const updatedUser = {

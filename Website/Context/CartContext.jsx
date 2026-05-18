@@ -26,18 +26,19 @@ export const CartProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
 
   useEffect(() => {
-    loadCartFromStorage();
     loadUserId();
   }, []);
-  const loadCartFromStorage = async () => {
+  const loadCartFromStorage = async (overrideUserId) => {
+    const uid = overrideUserId || userId;
+    if (!uid) return;
     try {
-      const res = await axiosClient.get(`/cart/load/${userId}`);
+      const res = await axiosClient.get(`/cart/load/${uid}`);
 
       if (res.status === 200) {
         setCart(res.data);
 
         // Optional: cache for offline support
-        localStorage.setItem(`@cart_items_${userId}`, JSON.stringify(res.data));
+        localStorage.setItem(`@cart_items_${uid}`, JSON.stringify(res.data));
       } else {
         setCart([]);
       }
@@ -48,15 +49,15 @@ export const CartProvider = ({ children }) => {
   };
 
   const loadUserId = async () => {
-    setLoadingUser(true); // Start loading
+    setLoadingUser(true);
     try {
-      const id = await fetchUserId(); // Fetch the user ID
-      setUserId(id); // Set the user ID in your app's state
-      await loadCartFromStorage(); // Load the cart from Appwrite using the user ID
+      const id = await fetchUserId();
+      setUserId(id);
+      await loadCartFromStorage(id); // Pass id directly to avoid stale closure
     } catch (error) {
       console.error("Error fetching user ID:", error);
     } finally {
-      setLoadingUser(false); // Reset loading state
+      setLoadingUser(false);
     }
   };
 
@@ -74,16 +75,6 @@ export const CartProvider = ({ children }) => {
   };
 
   const addToCart = async (product) => {
-    console.log("Toast in CartContext:", toast);
-    console.log("Sending to backend:", {
-      userId,
-      productId: product.$id,
-      productName: product.productName,
-      price: product.price,
-      image: product.image,
-      userName,
-    });
-
     // First check stock
     const stockCheck = await checkProductStock(product.$id);
 
@@ -172,7 +163,7 @@ export const CartProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error updating cart quantity:", error);
-      toast.success("Failed to update quantity");
+      toast.error("Failed to update quantity");
     }
   };
 
@@ -188,8 +179,6 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       console.error("Error fetching cart:", error);
       setCart([]);
-    } finally {
-      setLoadingCart(false);
     }
   };
 

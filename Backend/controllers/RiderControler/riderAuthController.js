@@ -21,6 +21,45 @@ const log = {
   error: (...args) => console.error("[rider-auth]", ...args),
 };
 
+/**
+ * Get appropriate cookie domain/security settings based on request origin.
+ * Mirrors the same helper used in customer and admin auth controllers.
+ */
+function getCookieDomain(req) {
+  const origin = req.get("origin") || req.get("referer");
+  const host = req.headers.host;
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+
+  const isCrossOrigin =
+    origin &&
+    host &&
+    !origin.includes(host) &&
+    !host.includes(origin.replace("https://", "").replace("http://", ""));
+
+  if (isCrossOrigin) {
+    return {
+      domain: undefined,
+      secure: protocol === "https",
+      sameSite: "none",
+    };
+  }
+
+  if (
+    !origin ||
+    origin.includes("localhost") ||
+    origin.includes("127.0.0.1") ||
+    (host && host.includes("localhost"))
+  ) {
+    return { domain: undefined, secure: false, sameSite: "lax" };
+  }
+
+  return {
+    domain: undefined,
+    secure: true,
+    sameSite: "none",
+  };
+}
+
 // Ensure critical env values exist
 if (
   !env.APPWRITE_DATABASE_ID ||
@@ -28,7 +67,7 @@ if (
   !env.RIDER_SESSIONS_COLLECTION_ID
 ) {
   throw new Error(
-    "Missing Rider collection env variables. Please set APPWRITE_DATABASE_ID, RIDER_COLLECTION_ID, RIDER_SESSIONS_COLLECTION_ID."
+    "Missing Rider collection env variables. Please set APPWRITE_DATABASE_ID, RIDER_COLLECTION_ID, RIDER_SESSIONS_COLLECTION_ID.",
   );
 }
 
@@ -45,7 +84,7 @@ async function persistRefreshToken({
 }) {
   const hashedRefreshToken = hashToken(refreshToken);
   const expiresAt = new Date(
-    Date.now() + timeframeToMs(env.JWT_REFRESH_EXPIRES_IN || "30d")
+    Date.now() + timeframeToMs(env.JWT_REFRESH_EXPIRES_IN || "30d"),
   ).toISOString();
   const docId = ID.unique();
 
@@ -63,7 +102,7 @@ async function persistRefreshToken({
       userAgent,
       deviceId,
       rotatedFrom,
-    }
+    },
   );
 }
 
@@ -75,7 +114,7 @@ async function findRefreshTokenRecordByHash(refreshToken) {
   const result = await db.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
-    [Query.equal("refreshToken", tokenHash)]
+    [Query.equal("refreshToken", tokenHash)],
   );
 
   if (!result || !result.documents || result.documents.length === 0)
@@ -91,7 +130,7 @@ async function findTokensByRiderAndDevice(riderId, deviceId, userAgent) {
     const res = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_SESSIONS_COLLECTION_ID,
-      [Query.equal("riderId", riderId), Query.equal("deviceId", deviceId)]
+      [Query.equal("riderId", riderId), Query.equal("deviceId", deviceId)],
     );
     return res?.documents || [];
   }
@@ -99,14 +138,14 @@ async function findTokensByRiderAndDevice(riderId, deviceId, userAgent) {
     const res = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_SESSIONS_COLLECTION_ID,
-      [Query.equal("riderId", riderId), Query.equal("userAgent", userAgent)]
+      [Query.equal("riderId", riderId), Query.equal("userAgent", userAgent)],
     );
     return res?.documents || [];
   }
   const res = await db.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
-    [Query.equal("riderId", riderId)]
+    [Query.equal("riderId", riderId)],
   );
   return res?.documents || [];
 }
@@ -119,7 +158,7 @@ async function revokeRefreshTokenById(docId) {
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     docId,
-    { revoked: true, revokedAt: new Date().toISOString() }
+    { revoked: true, revokedAt: new Date().toISOString() },
   );
 }
 
@@ -130,7 +169,7 @@ async function revokeAllRiderRefreshTokens(riderId) {
   const res = await db.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
-    [Query.equal("riderId", riderId)]
+    [Query.equal("riderId", riderId)],
   );
 
   if (!res || !res.documents) return 0;
@@ -145,7 +184,7 @@ async function revokeAllRiderRefreshTokens(riderId) {
         {
           revoked: true,
           revokedAt: new Date().toISOString(),
-        }
+        },
       );
       count++;
     }
@@ -226,7 +265,7 @@ const riderAuthController = {
       const existingRiders = await db.listDocuments(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        [Query.equal("email", email)]
+        [Query.equal("email", email)],
       );
 
       if (existingRiders.total > 0) {
@@ -259,7 +298,7 @@ const riderAuthController = {
           totalDeliveries: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }
+        },
       );
 
       // Generate tokens
@@ -284,22 +323,22 @@ const riderAuthController = {
       }
 
       // Set cookies
-      res.cookie("accessToken", accessToken, {
+      const regCookieConfig = getCookieDomain(req);
+      const regCookieBase = {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
-        maxAge: 15 * 60 * 1000,
+        secure: regCookieConfig.secure,
+        sameSite: regCookieConfig.sameSite,
         path: "/",
-      });
+      };
+      if (regCookieConfig.domain) regCookieBase.domain = regCookieConfig.domain;
 
+      res.cookie("accessToken", accessToken, {
+        ...regCookieBase,
+        maxAge: 15 * 60 * 1000,
+      });
       res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
+        ...regCookieBase,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/",
       });
 
       log.info("Rider registration successful:", rider.email);
@@ -336,7 +375,7 @@ const riderAuthController = {
       const riders = await db.listDocuments(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        [Query.equal("email", email)]
+        [Query.equal("email", email)],
       );
 
       if (riders.total === 0) {
@@ -387,22 +426,23 @@ const riderAuthController = {
       }
 
       // Set cookies
-      res.cookie("accessToken", accessToken, {
+      const loginCookieConfig = getCookieDomain(req);
+      const loginCookieBase = {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
-        maxAge: 15 * 60 * 1000,
+        secure: loginCookieConfig.secure,
+        sameSite: loginCookieConfig.sameSite,
         path: "/",
-      });
+      };
+      if (loginCookieConfig.domain)
+        loginCookieBase.domain = loginCookieConfig.domain;
 
+      res.cookie("accessToken", accessToken, {
+        ...loginCookieBase,
+        maxAge: 15 * 60 * 1000,
+      });
       res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
+        ...loginCookieBase,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/",
       });
 
       log.info("Rider login successful:", rider.email);
@@ -438,7 +478,7 @@ const riderAuthController = {
       const rider = await db.getDocument(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        decoded.sub
+        decoded.sub,
       );
 
       res.json({
@@ -494,7 +534,7 @@ const riderAuthController = {
       if (!record) {
         log.warn("Refresh token record not found for rider:", riderId);
         await revokeAllRiderRefreshTokens(riderId).catch((e) =>
-          log.error("Error revoking all tokens:", e)
+          log.error("Error revoking all tokens:", e),
         );
         return res.status(401).json({
           success: false,
@@ -506,7 +546,7 @@ const riderAuthController = {
       if (record.revoked) {
         log.warn("Revoked refresh token used for rider:", riderId);
         await revokeAllRiderRefreshTokens(riderId).catch((e) =>
-          log.error("Error revoking all tokens:", e)
+          log.error("Error revoking all tokens:", e),
         );
         return res.status(401).json({
           success: false,
@@ -516,7 +556,7 @@ const riderAuthController = {
 
       if (new Date(record.expiresAt) < new Date()) {
         await revokeRefreshTokenById(record.$id).catch((e) =>
-          log.error("Error revoking expired token:", e)
+          log.error("Error revoking expired token:", e),
         );
         return res.status(401).json({
           success: false,
@@ -531,13 +571,13 @@ const riderAuthController = {
       const deviceTokens = await findTokensByRiderAndDevice(
         riderId,
         requestDeviceId,
-        requestUserAgent
+        requestUserAgent,
       );
 
       if (!deviceTokens || deviceTokens.length === 0) {
         log.warn("No device-scoped tokens found for rider:", riderId);
         await revokeAllRiderRefreshTokens(riderId).catch((e) =>
-          log.error("Error revoking all tokens:", e)
+          log.error("Error revoking all tokens:", e),
         );
         return res.status(401).json({
           success: false,
@@ -563,7 +603,7 @@ const riderAuthController = {
       if (foundNewer) {
         log.warn("Refresh token reuse detected for rider:", riderId);
         await revokeAllRiderRefreshTokens(riderId).catch((e) =>
-          log.error("Error revoking all tokens:", e)
+          log.error("Error revoking all tokens:", e),
         );
         return res.status(401).json({
           success: false,
@@ -575,7 +615,7 @@ const riderAuthController = {
       const rider = await db.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        riderId
+        riderId,
       );
 
       if (!rider) {
@@ -606,13 +646,16 @@ const riderAuthController = {
       } catch (persistErr) {
         log.error(
           "Failed to persist rotated refresh token:",
-          persistErr?.message
+          persistErr?.message,
         );
+        const partialCookieConfig = getCookieDomain(req);
         res.cookie("accessToken", newAccessToken, {
           httpOnly: true,
-          secure: false,
-          sameSite: "lax",
-          domain: "localhost",
+          secure: partialCookieConfig.secure,
+          sameSite: partialCookieConfig.sameSite,
+          ...(partialCookieConfig.domain
+            ? { domain: partialCookieConfig.domain }
+            : {}),
           maxAge: 15 * 60 * 1000,
           path: "/",
         });
@@ -633,7 +676,7 @@ const riderAuthController = {
             {
               rotatedTo: newDoc.$id,
               rotatedAt: new Date().toISOString(),
-            }
+            },
           )
           .catch(() => {});
       } catch (revErr) {
@@ -641,22 +684,23 @@ const riderAuthController = {
       }
 
       // Set new cookies
-      res.cookie("accessToken", newAccessToken, {
+      const refreshCookieConfig = getCookieDomain(req);
+      const refreshCookieBase = {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
-        maxAge: 15 * 60 * 1000,
+        secure: refreshCookieConfig.secure,
+        sameSite: refreshCookieConfig.sameSite,
         path: "/",
-      });
+      };
+      if (refreshCookieConfig.domain)
+        refreshCookieBase.domain = refreshCookieConfig.domain;
 
+      res.cookie("accessToken", newAccessToken, {
+        ...refreshCookieBase,
+        maxAge: 15 * 60 * 1000,
+      });
       res.cookie("refreshToken", newRefreshToken, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        domain: "localhost",
+        ...refreshCookieBase,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/",
       });
 
       return res.status(200).json({
@@ -700,14 +744,14 @@ const riderAuthController = {
         const result = await db.listDocuments(
           env.RIDER_DATABASE_ID,
           env.RIDER_SESSIONS_COLLECTION_ID,
-          queries
+          queries,
         );
 
         if (result && result.documents && result.documents.length > 0) {
           for (const doc of result.documents) {
             if (!doc.revoked) {
               await revokeRefreshTokenById(doc.$id).catch((e) =>
-                log.error("Failed to revoke token in logout:", e)
+                log.error("Failed to revoke token in logout:", e),
               );
             }
           }
@@ -715,8 +759,18 @@ const riderAuthController = {
       }
 
       // Clear cookies
-      res.clearCookie("accessToken", { domain: "localhost", path: "/" });
-      res.clearCookie("refreshToken", { domain: "localhost", path: "/" });
+      const logoutCookieConfig = getCookieDomain(req);
+      const clearOptions = {
+        httpOnly: true,
+        secure: logoutCookieConfig.secure,
+        sameSite: logoutCookieConfig.sameSite,
+        path: "/",
+      };
+      if (logoutCookieConfig.domain)
+        clearOptions.domain = logoutCookieConfig.domain;
+
+      res.clearCookie("accessToken", clearOptions);
+      res.clearCookie("refreshToken", clearOptions);
 
       res.json({
         success: true,
@@ -742,9 +796,9 @@ const riderAuthController = {
       {
         verificationToken: hashedToken,
         verificationTokenExpiry: new Date(
-          Date.now() + 24 * 60 * 60 * 1000
+          Date.now() + 24 * 60 * 60 * 1000,
         ).toISOString(),
-      }
+      },
     );
 
     // Send email with verification link
@@ -759,7 +813,7 @@ const riderAuthController = {
     const riders = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
-      [Query.equal("verificationToken", hashedToken)]
+      [Query.equal("verificationToken", hashedToken)],
     );
 
     if (riders.total === 0) {
@@ -780,7 +834,7 @@ const riderAuthController = {
         emailVerified: true,
         verificationToken: null,
         verificationTokenExpiry: null,
-      }
+      },
     );
 
     res.json({ success: true, message: "Email verified successfully" });
@@ -800,7 +854,7 @@ const riderAuthController = {
         otp: hashedOTP,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         verified: false,
-      }
+      },
     );
 
     // Send SMS via Twilio, Africa's Talking, etc.
@@ -818,7 +872,7 @@ const riderAuthController = {
         Query.equal("phone", phone),
         Query.equal("otp", hashedOTP),
         Query.equal("verified", false),
-      ]
+      ],
     );
 
     if (otpRecords.total === 0) {
@@ -835,7 +889,7 @@ const riderAuthController = {
       env.APPWRITE_DATABASE_ID,
       env.OTP_COLLECTION_ID,
       record.$id,
-      { verified: true }
+      { verified: true },
     );
 
     res.json({ success: true, message: "Phone verified successfully" });
@@ -857,7 +911,7 @@ const riderAuthController = {
       {
         twoFactorSecret: secret.base32,
         twoFactorEnabled: false, // Will be true after verification
-      }
+      },
     );
 
     res.json({
@@ -874,7 +928,7 @@ const riderAuthController = {
     const rider = await db.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
-      riderId
+      riderId,
     );
 
     const verified = speakeasy.totp.verify({
@@ -891,7 +945,7 @@ const riderAuthController = {
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
-      { twoFactorEnabled: true }
+      { twoFactorEnabled: true },
     );
 
     res.json({ success: true, message: "2FA enabled successfully" });

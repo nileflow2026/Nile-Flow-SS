@@ -120,11 +120,16 @@ const ProductCard = ({
         ? ["#F59E0B", "#D97706"]
         : ["#10B981", "#059669"];
 
+  const productTitle =
+    title || productData?.productName || productData?.name || "Product";
+
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${productTitle}`}
     >
       <LinearGradient
         colors={["rgba(17, 24, 39, 0.9)", "rgba(0, 0, 0, 0.9)"]}
@@ -160,6 +165,13 @@ const ProductCard = ({
             styles.wishlistButton,
             isWishlisted && styles.wishlistButtonActive,
           ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isWishlisted
+              ? `Remove ${productTitle} from wishlist`
+              : `Add ${productTitle} to wishlist`
+          }
+          accessibilityState={{ selected: isWishlisted }}
         >
           <LinearGradient
             colors={

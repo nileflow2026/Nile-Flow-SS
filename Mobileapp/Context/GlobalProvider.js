@@ -188,13 +188,23 @@ export const signOut = async () => {
   try {
     // Use the backend logout endpoint to clear httpOnly cookies
     await axiosClient.post("/api/customerauth/logout/customer");
-    // Clear local storage
-    await AsyncStorage.multiRemove(["user", "isGuest", "deviceId"]);
+    // Clear all locally-stored auth data including OAuth tokens
+    await AsyncStorage.multiRemove([
+      "user",
+      "isGuest",
+      "deviceId",
+      "oauthAccessToken",
+      "oauthRefreshToken",
+    ]);
   } catch (error) {
     // Still clear local state even if backend call fails
-    await AsyncStorage.multiRemove(["user", "isGuest", "deviceId"]).catch(
-      () => {},
-    );
+    await AsyncStorage.multiRemove([
+      "user",
+      "isGuest",
+      "deviceId",
+      "oauthAccessToken",
+      "oauthRefreshToken",
+    ]).catch(() => {});
     throw new Error("Sign-out failed. Please try again.");
   }
 };

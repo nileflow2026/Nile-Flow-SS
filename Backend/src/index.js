@@ -1,5 +1,11 @@
+// IMPORTANT: instrument.js must be the very first import — initializes Sentry
+// before any other module so all errors and traces are captured from startup.
+require("../instrument.js");
+const Sentry = require("@sentry/node");
+
 // EMERGENCY DEBUG - Add to VERY TOP of index.js
 process.on("uncaughtException", (error) => {
+  Sentry.captureException(error);
   console.error("💥 UNCAUGHT EXCEPTION:");
   console.error("Message:", error.message);
   console.error("Stack:", error.stack);
@@ -15,6 +21,7 @@ process.on("uncaughtException", (error) => {
 });
 
 process.on("unhandledRejection", (reason, promise) => {
+  Sentry.captureException(reason);
   console.error("💥 UNHANDLED REJECTION at:", promise);
   console.error("Reason:", reason);
   if (reason && reason.stack) {
@@ -606,6 +613,15 @@ app.get("/api/cors-test", (req, res) => {
 // ========== COOKIE DEBUG ENDPOINT ==========
 // REMOVED: Debug endpoint exposed cookie data in production
 
+// ========== SENTRY VERIFICATION ENDPOINT (dev only) ==========
+// Hit GET /debug-sentry to confirm Sentry is receiving events.
+// Remove or gate behind auth before going to production.
+if (process.env.NODE_ENV !== "production") {
+  app.get("/debug-sentry", function debugSentryHandler(req, res) {
+    throw new Error("Sentry test error from nileflow-backend");
+  });
+}
+
 // Helper function to safely mount routes
 function safeMount(path, router, description) {
   try {
@@ -848,125 +864,22 @@ try {
 console.log("🎯 All routes mounted successfully!");
 
 // ========== ERROR HANDLING MIDDLEWARE ==========
-app.use((req, res, next) => {
+// Sentry must come before any other error handler so it captures all errors
+Sentry.setupExpressErrorHandler(app);
+
+// 404 — unknown routes (must be before the error handler)
+app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
+    code: "NOT_FOUND",
     path: req.path,
     method: req.method,
   });
 });
 
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-
-  // Always set CORS headers for all app routes, even on errors
-  const origin = req.headers.origin;
-  if (
-    origin &&
-    (origin.includes("admin.nileflowafrica.com") ||
-      origin.includes("vendor.nileflowafrica.com") ||
-      origin.includes("nileflowafrica.com") ||
-      origin.includes("localhost"))
-  ) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
-    );
-    console.log(`🚨 Error handler: CORS headers set for ${origin}`);
-  }
-
-  res.status(err.status || 500).json({
-    error:
-      process.env.NODE_ENV === "production"
-        ? "Internal server error"
-        : err.message,
-    code: "INTERNAL_ERROR",
-  });
-});
-
-// 404 handler
-app.use((req, res) => {
-  // Set CORS headers for all app routes even on 404
-  const origin = req.headers.origin;
-  if (
-    origin &&
-    (origin.includes("admin.nileflowafrica.com") ||
-      origin.includes("vendor.nileflowafrica.com") ||
-      origin.includes("nileflowafrica.com") ||
-      origin.includes("localhost"))
-  ) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    console.log(`📍 404 handler: CORS headers set for ${origin}`);
-  }
-
-  res.status(404).json({
-    error: "Route not found",
-    code: "NOT_FOUND",
-  });
-});
-
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err.stack || err);
-
-  // Always set CORS headers for all app routes
-  const origin = req.headers.origin;
-  if (
-    origin &&
-    (origin.includes("admin.nileflowafrica.com") ||
-      origin.includes("vendor.nileflowafrica.com") ||
-      origin.includes("nileflowafrica.com") ||
-      origin.includes("localhost"))
-  ) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
-    );
-    console.log(`🚨 Final error handler: CORS headers set for ${origin}`);
-  }
-
-  // Handle file upload size limit errors
-  if (err.code === "LIMIT_FILE_SIZE") {
-    return res.status(413).json({
-      error: "File too large",
-      code: "FILE_TOO_LARGE",
-      maxSize: "50MB",
-    });
-  }
-
-  // Handle CORS errors
-  if (err.message === "Not allowed by CORS") {
-    return res.status(403).json({
-      error: "CORS policy violation",
-      code: "CORS_BLOCKED",
-    });
-  }
-
-  // Handle rate limit errors
-  if (err.status === 429) {
-    return res.status(429).json(err);
-  }
-
-  // Default error
-  res.status(500).json({
-    error: "Internal server error",
-    code: "INTERNAL_ERROR",
-    message: process.env.NODE_ENV === "development" ? err.message : undefined,
-    requestId: req.headers["x-transaction-id"] || "none",
-  });
-});
+// Centralized error handler — handles all errors passed via next(err)
+const errorHandler = require("../middleware/errorHandler");
+app.use(errorHandler);
 
 // ========== START SERVER ==========
 async function startServer() {

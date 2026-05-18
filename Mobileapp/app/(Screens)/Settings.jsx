@@ -20,7 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
 import { Config } from "../../Appwrite";
 import { useCart } from "../../Context/CartContext_NEW";
-import { useGlobalContext } from "../../Context/GlobalProvider";
+import { signOut, useGlobalContext } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
 import i18n, { useLanguage } from "../../i18n";
 
@@ -76,10 +76,8 @@ const Settings = () => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem("accessToken");
-      await AsyncStorage.removeItem("refreshToken");
-      await AsyncStorage.removeItem("user");
-      await AsyncStorage.removeItem("authToken");
+      // Revoke refresh tokens server-side and clear all local auth state
+      await signOut();
       await AsyncStorage.removeItem(`@cart_items_${user?.$id}`);
 
       setCart([]);

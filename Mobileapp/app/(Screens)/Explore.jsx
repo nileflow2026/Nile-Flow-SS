@@ -280,6 +280,9 @@ const Explore = () => {
           <TouchableOpacity
             key={category.id}
             onPress={() => setSelectedCategory(category.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by ${category.name}`}
+            accessibilityState={{ selected: selectedCategory === category.id }}
           >
             {selectedCategory === category.id ? (
               <LinearGradient
@@ -336,9 +339,15 @@ const Explore = () => {
             returnKeyType="search"
             blurOnSubmit={false}
             autoCorrect={false}
+            accessibilityLabel="Search products"
+            accessibilityHint="Type to filter products by name"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
               <Ionicons name="close-circle" size={20} color="#9CA3AF" />
             </TouchableOpacity>
           )}

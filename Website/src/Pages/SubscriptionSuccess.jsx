@@ -26,18 +26,11 @@ const SubscriptionSuccess = () => {
 
     // Poll subscription status
     let pollCount = 0;
-    const maxPolls = 30; // 60 seconds total (2 second intervals) - increased for webhook delay
+    const maxPolls = 30; // 60 seconds total (2 second intervals)
 
     const checkStatus = setInterval(async () => {
-      console.log(
-        `[Stripe Success] Polling subscription status... (${
-          pollCount + 1
-        }/${maxPolls})`
-      );
-
       try {
         await refreshStatus();
-        console.log(`[Stripe Success] Current isPremium status:`, isPremium);
       } catch (error) {
         console.error(`[Stripe Success] Error refreshing status:`, error);
       }
@@ -49,28 +42,28 @@ const SubscriptionSuccess = () => {
 
       // Stop polling after max attempts
       if (pollCount >= maxPolls) {
-        console.log('[Stripe Success] Max polls reached, stopping...');
         clearInterval(checkStatus);
-        if (!isPremium) {
-          console.log('[Stripe Success] Still not premium, showing failed state');
-          setStatus("failed");
-        }
+        // Use functional update to avoid stale closure on status;
+        // only mark failed if success hasn't already been detected
+        setStatus((currentStatus) => {
+          if (currentStatus === "checking") return "failed";
+          return currentStatus;
+        });
       }
     }, 2000);
 
     return () => clearInterval(checkStatus);
-  }, [sessionId, refreshStatus, isPremium]);
+    // Intentionally exclude isPremium — the separate effect below handles success.
+    // Including it would restart the interval on every status change.
+  }, [sessionId, refreshStatus]);
 
-  // Check if premium status changed
+  // Check if premium status changed — handles success independently of the polling interval
   useEffect(() => {
-    console.log('[Stripe Success] isPremium changed:', isPremium, 'status:', status);
     if (isPremium && status === "checking") {
-      console.log('[Stripe Success] Premium activated! Showing success message');
       setStatus("success");
-      
+
       // Redirect to profile after 3 seconds
       setTimeout(() => {
-        console.log('[Stripe Success] Redirecting to profile...');
         navigate("/profile?tab=premium");
       }, 3000);
     }
@@ -102,7 +95,8 @@ const SubscriptionSuccess = () => {
                   ⏱️ Verifying Payment
                 </p>
                 <p className="text-purple-100/70 text-sm">
-                  Stripe is confirming your payment. This can take up to 60 seconds.
+                  Stripe is confirming your payment. This can take up to 60
+                  seconds.
                 </p>
                 <div className="mt-4 text-purple-200/60 text-xs">
                   Time remaining: {countdown} seconds
@@ -191,7 +185,9 @@ const SubscriptionSuccess = () => {
 
               <div className="bg-gradient-to-r from-red-900/30 to-red-900/20 backdrop-blur-sm border border-red-800/30 rounded-xl p-6 mb-8">
                 <ul className="text-left max-w-md mx-auto space-y-2 text-red-100/80 mb-4">
-                  <li>• Stripe webhook hasn't arrived yet (can take 30-60 seconds)</li>
+                  <li>
+                    • Stripe webhook hasn't arrived yet (can take 30-60 seconds)
+                  </li>
                   <li>• Payment was cancelled or declined</li>
                   <li>• Network connection issues</li>
                   <li>• Payment is still being processed</li>
@@ -201,7 +197,8 @@ const SubscriptionSuccess = () => {
                     <strong>Session ID:</strong> {sessionId?.slice(-20)}
                   </p>
                   <p className="text-red-200/60 text-xs mt-2">
-                    Check your profile in a few minutes - the subscription may activate soon.
+                    Check your profile in a few minutes - the subscription may
+                    activate soon.
                   </p>
                 </div>
               </div>

@@ -4,6 +4,19 @@ const { format } = winston;
 const path = require("path");
 const { env } = require("../src/env");
 
+// Lazy-load Sentry to avoid circular dependency issues at startup
+let _sentry;
+function getSentry() {
+  if (!_sentry) {
+    try {
+      _sentry = require("@sentry/node");
+    } catch {
+      _sentry = null;
+    }
+  }
+  return _sentry;
+}
+
 class Logger {
   constructor() {
     this.env = env.NODE_ENV || "development";
@@ -19,7 +32,7 @@ class Logger {
           ? ` ${JSON.stringify(meta)}`
           : "";
         return `[${timestamp}] ${level.toUpperCase()}: ${message}${metaString}`;
-      })
+      }),
     );
 
     // Create logger instance
@@ -63,7 +76,7 @@ class Logger {
       this.logger.add(
         new winston.transports.Console({
           format: format.combine(format.colorize(), format.simple()),
-        })
+        }),
       );
     }
   }
@@ -75,6 +88,12 @@ class Logger {
 
   error(message, meta = {}) {
     this.logger.error(message, meta);
+    // Forward errors to Sentry so they appear in the Sentry Issues board
+    const sentry = getSentry();
+    if (sentry) {
+      const err = meta instanceof Error ? meta : new Error(message);
+      sentry.captureException(err, { extra: meta });
+    }
   }
 
   warn(message, meta = {}) {

@@ -1,4 +1,5 @@
 import React from "react";
+import * as Sentry from "@sentry/react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 
 class ErrorBoundary extends React.Component {
@@ -12,7 +13,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // In production, send to crash reporting service (e.g., Sentry)
+    Sentry.captureException(error, { extra: errorInfo });
     if (__DEV__) {
       console.error("ErrorBoundary caught:", error, errorInfo);
     }
@@ -21,8 +22,14 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <View className="flex-1 items-center justify-center bg-gray-900 px-6">
-          <Text className="text-white text-2xl font-bold mb-3">
+        <View
+          className="flex-1 items-center justify-center bg-gray-900 px-6"
+          accessibilityLiveRegion="assertive"
+        >
+          <Text
+            className="text-white text-2xl font-bold mb-3"
+            accessibilityRole="header"
+          >
             Something went wrong
           </Text>
           <Text className="text-gray-400 text-center mb-6">
@@ -31,6 +38,8 @@ class ErrorBoundary extends React.Component {
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false })}
             className="bg-amber-600 px-6 py-3 rounded-xl"
+            accessibilityRole="button"
+            accessibilityLabel="Try again"
           >
             <Text className="text-white font-semibold text-base">
               Try Again

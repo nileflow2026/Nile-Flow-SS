@@ -81,6 +81,19 @@ const CheckoutPage = () => {
   // Timer for auto-redirect if payment takes too long
   const [paymentTimeout, setPaymentTimeout] = useState(30);
   const timeoutRef = useRef(null);
+  // Tracks whether the component is still mounted to prevent state updates after unmount
+  const mountedRef = useRef(true);
+  // Holds the M-Pesa polling interval so it can be cleared on unmount
+  const mpesaPollRef = useRef(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (mpesaPollRef.current) clearInterval(mpesaPollRef.current);
+      if (timeoutRef.current) clearInterval(timeoutRef.current);
+    };
+  }, []);
 
   // Check if user has pickup address when checkout loads
   useEffect(() => {
@@ -710,7 +723,13 @@ const CheckoutPage = () => {
     let attempts = 0;
     const maxAttempts = 60; // Poll for 2 minutes (60 * 2 seconds)
 
-    const pollInterval = setInterval(async () => {
+    mpesaPollRef.current = setInterval(async () => {
+      // Stop polling if the component has unmounted
+      if (!mountedRef.current) {
+        clearInterval(mpesaPollRef.current);
+        return;
+      }
+
       attempts++;
 
       try {
@@ -720,7 +739,7 @@ const CheckoutPage = () => {
         const { paymentStatus, orderStatus } = response.data;
 
         if (paymentStatus === "succeeded" && orderStatus === "Ordered") {
-          clearInterval(pollInterval);
+          clearInterval(mpesaPollRef.current);
           setMpesaProcessing(false);
           setShowMpesaModal(false);
 
@@ -744,7 +763,7 @@ const CheckoutPage = () => {
 
           navigate("/orders");
         } else if (paymentStatus === "failed") {
-          clearInterval(pollInterval);
+          clearInterval(mpesaPollRef.current);
           setMpesaProcessing(false);
           setShowMpesaModal(false);
 
@@ -756,7 +775,7 @@ const CheckoutPage = () => {
           // Clear pending reward if payment failed
           localStorage.removeItem("pendingRewardToMark");
         } else if (attempts >= maxAttempts) {
-          clearInterval(pollInterval);
+          clearInterval(mpesaPollRef.current);
           setMpesaProcessing(false);
           setShowMpesaModal(false);
           alert(
@@ -770,7 +789,7 @@ const CheckoutPage = () => {
         if (error.response?.status === 404) {
           console.warn("Order not found, continuing to poll...");
         } else if (attempts >= maxAttempts) {
-          clearInterval(pollInterval);
+          clearInterval(mpesaPollRef.current);
           setMpesaProcessing(false);
           setShowMpesaModal(false);
         }
@@ -831,8 +850,10 @@ const CheckoutPage = () => {
           setCodCountdown((prev) => {
             if (prev <= 1) {
               clearInterval(countdownInterval);
-              // Auto-place order after countdown
-              handleCodConfirmation();
+              // Only auto-place the order if the component is still mounted
+              if (mountedRef.current) {
+                handleCodConfirmation();
+              }
               return 0;
             }
             return prev - 1;
@@ -988,7 +1009,9 @@ const CheckoutPage = () => {
 
               <div className="bg-gradient-to-r from-amber-900/30 to-yellow-900/20 border border-[var(--nf-border-subtle)] rounded-xl p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[color:var(--nf-text-secondary)]">Time remaining:</span>
+                  <span className="text-[color:var(--nf-text-secondary)]">
+                    Time remaining:
+                  </span>
                   <span className="text-[color:var(--nf-accent)] font-bold">
                     {paymentTimeout}s
                   </span>
@@ -1046,7 +1069,9 @@ const CheckoutPage = () => {
               Finalize Order
             </span>
             <br />
-            <span className="text-[color:var(--nf-text-primary)]">Premium African Treasures</span>
+            <span className="text-[color:var(--nf-text-primary)]">
+              Premium African Treasures
+            </span>
           </h1>
 
           <p className="text-[color:var(--nf-text-secondary)] text-lg max-w-2xl mx-auto mb-10">
@@ -1080,7 +1105,9 @@ const CheckoutPage = () => {
                       </div>
                     </div>
                     <div className="bg-gradient-to-r from-amber-900/40 to-yellow-900/30 backdrop-blur-sm px-4 py-2 rounded-xl border border-[var(--nf-border-subtle)]">
-                      <span className="text-[color:var(--nf-accent)] font-bold">Secure</span>
+                      <span className="text-[color:var(--nf-accent)] font-bold">
+                        Secure
+                      </span>
                     </div>
                   </div>
 
@@ -1096,7 +1123,9 @@ const CheckoutPage = () => {
                             src={getImageUrl(item.productImage || item.image)}
                             alt={item.productName}
                             className="w-full h-full object-cover"
-                           loading="lazy" decoding="async" />
+                            loading="lazy"
+                            decoding="async"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1122,14 +1151,18 @@ const CheckoutPage = () => {
                   {/* Price Breakdown */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between py-3 border-b border-[var(--nf-border-subtle)]">
-                      <span className="text-[color:var(--nf-text-secondary)]">Subtotal</span>
+                      <span className="text-[color:var(--nf-text-secondary)]">
+                        Subtotal
+                      </span>
                       <span className="text-[color:var(--nf-accent)] font-bold text-lg">
                         {formattedSubtotal}
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-3 border-b border-[var(--nf-border-subtle)]">
                       <div className="flex items-center space-x-2">
-                        <span className="text-[color:var(--nf-text-secondary)]">Shipping</span>
+                        <span className="text-[color:var(--nf-text-secondary)]">
+                          Shipping
+                        </span>
                         {isPremium && (
                           <div className="flex items-center space-x-1 px-2 py-1 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-lg border border-purple-500/30">
                             <Crown className="w-3 h-3 text-purple-300" />
@@ -1199,7 +1232,9 @@ const CheckoutPage = () => {
                     )}
 
                     <div className="flex items-center justify-between py-4 border-t border-amber-500/30">
-                      <span className="text-[color:var(--nf-text-secondary)] text-xl">Total</span>
+                      <span className="text-[color:var(--nf-text-secondary)] text-xl">
+                        Total
+                      </span>
                       <span className="text-[color:var(--nf-accent)] font-bold text-3xl">
                         {formatPrice(total)}
                       </span>
@@ -1219,7 +1254,9 @@ const CheckoutPage = () => {
                             <span className="text-2xl font-bold text-[color:var(--nf-accent)]">
                               {Math.round(milesInfo.actualMiles)}
                             </span>
-                            <span className="text-[color:var(--nf-accent)]">Nile Miles</span>
+                            <span className="text-[color:var(--nf-accent)]">
+                              Nile Miles
+                            </span>
                             {isPremium && milesInfo.multiplier > 1 && (
                               <div className="flex items-center space-x-1 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
                                 <Zap className="w-3 h-3 text-[color:var(--nf-text-primary)]" />
@@ -1542,9 +1579,10 @@ const CheckoutPage = () => {
                                   )}
                                 </div>
                               </div>
-                              {selectedPayment === method.value && !method.comingSoon && (
-                                <CheckCircle className="w-5 h-5" />
-                              )}
+                              {selectedPayment === method.value &&
+                                !method.comingSoon && (
+                                  <CheckCircle className="w-5 h-5" />
+                                )}
                               {method.comingSoon && (
                                 <div className="bg-gray-600/50 text-[color:var(--nf-text-muted)] text-xs px-2 py-1 rounded-full">
                                   Soon
@@ -1759,7 +1797,9 @@ const CheckoutPage = () => {
               <div className="space-y-2 mb-6">
                 <div className="flex items-center space-x-2 text-left">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">1</span>
+                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">
+                      1
+                    </span>
                   </div>
                   <p className="text-[color:var(--nf-text-secondary)] text-sm">
                     Check your phone for M-Pesa prompt
@@ -1767,15 +1807,23 @@ const CheckoutPage = () => {
                 </div>
                 <div className="flex items-center space-x-2 text-left">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">2</span>
+                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">
+                      2
+                    </span>
                   </div>
-                  <p className="text-[color:var(--nf-text-secondary)] text-sm">Enter your M-Pesa PIN</p>
+                  <p className="text-[color:var(--nf-text-secondary)] text-sm">
+                    Enter your M-Pesa PIN
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2 text-left">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">3</span>
+                    <span className="text-[color:var(--nf-text-primary)] text-xs font-bold">
+                      3
+                    </span>
                   </div>
-                  <p className="text-[color:var(--nf-text-secondary)] text-sm">Wait for confirmation</p>
+                  <p className="text-[color:var(--nf-text-secondary)] text-sm">
+                    Wait for confirmation
+                  </p>
                 </div>
               </div>
 
@@ -1833,7 +1881,9 @@ const CheckoutPage = () => {
 
               <div className="bg-[var(--nf-bg-elevated)] border border-[var(--nf-border-subtle)] rounded-xl p-4 mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[color:var(--nf-text-secondary)]">Placing order in:</span>
+                  <span className="text-[color:var(--nf-text-secondary)]">
+                    Placing order in:
+                  </span>
                   <span className="text-[color:var(--nf-accent)] font-bold text-2xl">
                     {codCountdown}s
                   </span>
