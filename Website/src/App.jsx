@@ -174,7 +174,7 @@ const AppContent = () => {
   return (
     <>
       <SeoHead />
-      {/* <ErrorButton /> */}
+      <ErrorButton />
       <ScrollToTop />
       <div
         className="font-sans min-h-screen relative"
