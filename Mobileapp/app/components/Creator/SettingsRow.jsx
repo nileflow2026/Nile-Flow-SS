@@ -10,7 +10,6 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 export default function SettingsRow({
   icon: Icon,
@@ -19,8 +18,6 @@ export default function SettingsRow({
   onPress,
   loading,
 }) {
-  const { themeStyles } = useTheme();
-
   return (
     <TouchableOpacity
       style={s.row}
@@ -28,8 +25,8 @@ export default function SettingsRow({
       activeOpacity={0.6}
       disabled={!onPress || loading}
     >
-      {Icon && <Icon size={20} color={themeStyles.text} strokeWidth={1.5} />}
-      <Text style={[s.label, { color: themeStyles.text }]}>{label}</Text>
+      {Icon && <Icon size={20} color="#374151" strokeWidth={1.5} />}
+      <Text style={[s.label, { color: "#111827" }]}>{label}</Text>
       {loading ? (
         <ActivityIndicator size="small" color="#8E8E8E" />
       ) : (

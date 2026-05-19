@@ -13,7 +13,6 @@
 
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -97,11 +96,11 @@ const OtpInputRow = ({ otp, setOtp }) => {
 // ─────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const cfg = {
-    pending: { label: "Pending Deletion", bg: "#7f1d1d", text: "#fca5a5" },
-    processing: { label: "Processing", bg: "#1e3a5f", text: "#93c5fd" },
-    completed: { label: "Completed", bg: "#064e3b", text: "#6ee7b7" },
-    cancelled: { label: "Cancelled", bg: "#1e293b", text: "#94a3b8" },
-    none: { label: "No Request", bg: "#1e293b", text: "#64748b" },
+    pending: { label: "Pending Deletion", bg: "#FEF2F2", text: "#DC2626" },
+    processing: { label: "Processing", bg: "#EFF6FF", text: "#2563EB" },
+    completed: { label: "Completed", bg: "#F0FDF4", text: "#16A34A" },
+    cancelled: { label: "Cancelled", bg: "#F9FAFB", text: "#6B7280" },
+    none: { label: "No Request", bg: "#F9FAFB", text: "#9CA3AF" },
   };
   const c = cfg[status] || cfg.none;
   return (
@@ -619,9 +618,9 @@ const AccountDeletionScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={["#1e0505", "#0f172a"]} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <MaterialIcons name="arrow-back" size={24} color="#e2e8f0" />
+          <MaterialIcons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Delete Account</Text>
@@ -629,8 +628,8 @@ const AccountDeletionScreen = () => {
             Privacy &amp; Data Management
           </Text>
         </View>
-        <MaterialIcons name="delete-forever" size={24} color="#ef4444" />
-      </LinearGradient>
+        <MaterialIcons name="delete-forever" size={24} color="#DC2626" />
+      </View>
 
       {/* Content */}
       <View style={styles.content}>
@@ -649,7 +648,7 @@ const AccountDeletionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   header: {
     flexDirection: "row",
@@ -657,19 +656,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   backBtn: {
     padding: 4,
   },
   headerTitle: {
-    color: "#e2e8f0",
+    color: "#111827",
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
   },
   headerSubtitle: {
-    color: "#64748b",
+    color: "#6B7280",
     fontSize: 12,
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   content: {
     flex: 1,
@@ -678,35 +681,36 @@ const styles = StyleSheet.create({
   },
   warningCard: {
     flexDirection: "row",
-    backgroundColor: "rgba(239,68,68,0.08)",
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.25)",
+    borderColor: "#FECACA",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   warningTitle: {
-    color: "#fca5a5",
-    fontWeight: "600",
+    color: "#DC2626",
+    fontFamily: "Poppins-SemiBold",
     fontSize: 14,
     marginBottom: 4,
   },
   warningText: {
-    color: "rgba(252,165,165,0.7)",
+    color: "#EF4444",
     fontSize: 12,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
   card: {
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
   cardTitle: {
-    color: "#cbd5e1",
-    fontWeight: "600",
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
     fontSize: 14,
     marginBottom: 12,
   },
@@ -717,38 +721,41 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   listItemText: {
-    color: "#94a3b8",
+    color: "#374151",
     fontSize: 13,
     flex: 1,
+    fontFamily: "Poppins-Regular",
   },
   retentionCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "rgba(245,158,11,0.06)",
+    backgroundColor: "#FFFBEB",
     borderWidth: 1,
-    borderColor: "rgba(245,158,11,0.2)",
+    borderColor: "#FDE68A",
     borderRadius: 12,
     padding: 14,
     gap: 10,
     marginBottom: 8,
   },
   retentionText: {
-    color: "rgba(245,158,11,0.7)",
+    color: "#92400E",
     fontSize: 12,
     lineHeight: 18,
     flex: 1,
+    fontFamily: "Poppins-Regular",
   },
   label: {
-    color: "#94a3b8",
+    color: "#374151",
     fontSize: 13,
     marginBottom: 8,
+    fontFamily: "Poppins-Regular",
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -756,58 +763,62 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    color: "#e2e8f0",
+    color: "#111827",
     fontSize: 15,
+    fontFamily: "Poppins-Regular",
   },
   errorText: {
-    color: "#f87171",
+    color: "#EF4444",
     fontSize: 13,
     marginTop: 12,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#dc2626",
+    backgroundColor: "#DC2626",
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
     marginTop: 20,
   },
   deleteButtonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   footerNote: {
-    color: "#475569",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
     marginTop: 12,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
   lockIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(239,68,68,0.1)",
+    backgroundColor: "#FEF2F2",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
   otpTitle: {
-    color: "#e2e8f0",
+    color: "#111827",
     fontSize: 22,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
   },
   otpSubtitle: {
-    color: "#94a3b8",
+    color: "#6B7280",
     fontSize: 14,
     textAlign: "center",
     marginTop: 8,
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   otpRow: {
     flexDirection: "row",
@@ -820,16 +831,16 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.12)",
-    backgroundColor: "rgba(255,255,255,0.05)",
-    color: "#e2e8f0",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+    color: "#111827",
     fontSize: 24,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
   },
   otpInputFilled: {
-    borderColor: "rgba(239,68,68,0.6)",
-    backgroundColor: "rgba(239,68,68,0.08)",
+    borderColor: "#DC2626",
+    backgroundColor: "#FEF2F2",
   },
   secondaryButton: {
     flexDirection: "row",
@@ -843,13 +854,14 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   secondaryButtonText: {
-    color: "#94a3b8",
+    color: "#6B7280",
     fontSize: 14,
+    fontFamily: "Poppins-Regular",
   },
   statusCard: {
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -866,22 +878,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
+    borderTopColor: "#E5E7EB",
   },
   statusLabel: {
-    color: "#64748b",
+    color: "#6B7280",
     fontSize: 13,
+    fontFamily: "Poppins-Regular",
   },
   statusValue: {
-    color: "#cbd5e1",
+    color: "#111827",
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: "Poppins-Medium",
   },
   pendingCard: {
     flexDirection: "row",
-    backgroundColor: "rgba(239,68,68,0.06)",
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.2)",
+    borderColor: "#FECACA",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -889,9 +902,9 @@ const styles = StyleSheet.create({
   completedCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(16,185,129,0.06)",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "rgba(16,185,129,0.2)",
+    borderColor: "#BBF7D0",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,

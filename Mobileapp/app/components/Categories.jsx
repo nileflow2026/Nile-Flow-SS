@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import {
@@ -72,7 +71,7 @@ const Categories = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="apps-outline" size={24} color="#F59E0B" />
+        <Ionicons name="apps-outline" size={24} color="#16A34A" />
         <Text style={styles.headerText}>Shop by Category</Text>
       </View>
 
@@ -90,27 +89,16 @@ const Categories = ({
                   style={[styles.card, { width: cardWidth }]}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["rgba(15, 23, 42, 0.8)", "rgba(30, 41, 59, 0.8)"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.cardGradient}
-                  >
+                  <View style={styles.cardGradient}>
                     {/* Icon Badge */}
                     <View style={styles.iconBadge}>
-                      <LinearGradient
-                        colors={[
-                          "rgba(245, 158, 11, 0.3)",
-                          "rgba(234, 179, 8, 0.3)",
-                        ]}
-                        style={styles.iconBadgeGradient}
-                      >
+                      <View style={styles.iconBadgeGradient}>
                         <Ionicons
                           name={getCategoryIcon(cat.name)}
                           size={20}
-                          color="#F59E0B"
+                          color="#16A34A"
                         />
-                      </LinearGradient>
+                      </View>
                     </View>
 
                     {/* Image */}
@@ -123,10 +111,6 @@ const Categories = ({
                         transition={200}
                         recyclingKey={`cat-${cat.id}`}
                       />
-                      <LinearGradient
-                        colors={["transparent", "rgba(0,0,0,0.8)"]}
-                        style={styles.imageOverlay}
-                      />
                     </View>
 
                     {/* Title */}
@@ -137,10 +121,10 @@ const Categories = ({
                       <Ionicons
                         name="arrow-forward"
                         size={16}
-                        color="#F59E0B"
+                        color="#16A34A"
                       />
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               ))
             : // Fallback to text-only categories
@@ -153,22 +137,14 @@ const Categories = ({
                       style={[styles.fallbackCard, { width: cardWidth }]}
                       activeOpacity={0.8}
                     >
-                      <LinearGradient
-                        colors={[
-                          "rgba(15, 23, 42, 0.8)",
-                          "rgba(30, 41, 59, 0.8)",
-                        ]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.fallbackGradient}
-                      >
+                      <View style={styles.fallbackGradient}>
                         <Ionicons
                           name={getCategoryIcon(category)}
                           size={32}
-                          color="#F59E0B"
+                          color="#16A34A"
                         />
                         <Text style={styles.fallbackTitle}>{category}</Text>
-                      </LinearGradient>
+                      </View>
                     </TouchableOpacity>
                   ),
               )}
@@ -192,7 +168,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#14532D",
   },
   gridContainer: {
     paddingHorizontal: 16,
@@ -210,9 +186,10 @@ const styles = StyleSheet.create({
   cardGradient: {
     height: 180,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#BBF7D0",
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#F0FDF4",
   },
   iconBadge: {
     position: "absolute",
@@ -227,7 +204,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.2)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#DCFCE7",
   },
   imageContainer: {
     width: "100%",
@@ -255,7 +233,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#14532D",
     flex: 1,
   },
   fallbackCard: {
@@ -266,16 +244,17 @@ const styles = StyleSheet.create({
   fallbackGradient: {
     height: 120,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#BBF7D0",
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
+    backgroundColor: "#F0FDF4",
   },
   fallbackTitle: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#14532D",
     textAlign: "center",
   },
 });

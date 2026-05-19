@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 const SLIDE_WIDTH = width - 32;
@@ -29,9 +28,7 @@ const HeroCarousel = () => {
   // without needing to restart the interval on every slide change.
   const currentIndexRef = useRef(0);
   const slidesLengthRef = useRef(0);
-  const { theme } = useTheme();
   const router = useRouter();
-  const isDark = theme === "dark";
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
@@ -49,7 +46,18 @@ const HeroCarousel = () => {
     try {
       const res = await axiosClient.get("/api/customerprofile/hero-products");
       const data = res.data;
-      const combined = [...(data.featured || []), ...(data.deals || [])];
+      // Preserve the type tag added by the backend; add a fallback in case the
+      // backend did not enrich (e.g. older cached response).
+      const combined = [
+        ...(data.featured || []).map((item) => ({
+          ...item,
+          type: item.type ?? "featured",
+        })),
+        ...(data.deals || []).map((item) => ({
+          ...item,
+          type: item.type ?? "deal",
+        })),
+      ];
       setSlides(combined);
     } catch (error) {
       console.error("Error fetching hero products:", error);
@@ -119,7 +127,7 @@ const HeroCarousel = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F59E0B" />
+        <ActivityIndicator size="large" color="#16A34A" />
         <Text style={styles.loadingText}>Loading exclusive deals...</Text>
       </View>
     );
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
     height: 280,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     borderRadius: 24,
     marginHorizontal: 16,
     marginBottom: 16,
@@ -273,7 +281,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#F59E0B",
+    color: "#16A34A",
     fontWeight: "500",
   },
   slideContainer: {

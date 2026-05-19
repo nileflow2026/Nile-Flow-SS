@@ -3,7 +3,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useStripe } from "@stripe/stripe-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   ArrowRight,
@@ -37,10 +36,8 @@ import {
   createNotification,
   getCurrentUser,
 } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 const Payments = () => {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -51,9 +48,7 @@ const Payments = () => {
   const router = useRouter();
   const [createdAt, setCreatedAt] = useState(null);
   const [estimatedDelivery, setEstimatedDelivery] = useState(null);
-  const { theme, themeStyles } = useTheme();
-  const isDarkMode = theme === "dark";
-  const [currency, setCurrency] = useState("KES"); // or 'KES'
+  const [currency, setCurrency] = useState("KES");
   const [navigationTrigger, setNavigationTrigger] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [mpesaLoading, setMpesaLoading] = useState(false);
@@ -719,14 +714,8 @@ const Payments = () => {
   const itemMarginBottom = width < 350 ? 8 : 12;
   const buttonPadding = width < 350 ? 12 : 16;
   const buttonFontSize = width < 350 ? 16 : 18;
-  const themedText = isDarkMode ? "text-white" : "text-black";
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0f172a"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -778,7 +767,7 @@ const Payments = () => {
               </View>
               <Text
                 style={{
-                  color: "#9CA3AF",
+                  color: "#6B7280",
                   fontSize: 16,
                   lineHeight: 24,
                 }}
@@ -790,10 +779,10 @@ const Payments = () => {
               {/* Trust Badges */}
               <View
                 style={{
-                  backgroundColor: "rgba(30, 41, 59, 0.6)",
+                  backgroundColor: "#F9FAFB",
                   borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: "rgba(245, 158, 11, 0.2)",
+                  borderColor: "#E5E7EB",
                   padding: 16,
                   marginTop: 20,
                 }}
@@ -806,25 +795,25 @@ const Payments = () => {
                   }}
                 >
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Shield size={18} color="#10B981" />
+                    <Shield size={18} color="#16A34A" />
                     <Text
-                      style={{ color: "#A7F3D0", fontSize: 12, marginLeft: 6 }}
+                      style={{ color: "#15803D", fontSize: 12, marginLeft: 6 }}
                     >
                       SSL Secured
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Gem size={18} color="#F59E0B" />
+                    <Gem size={18} color="#D97706" />
                     <Text
-                      style={{ color: "#FDE68A", fontSize: 12, marginLeft: 6 }}
+                      style={{ color: "#92400E", fontSize: 12, marginLeft: 6 }}
                     >
                       Premium Security
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Sparkles size={18} color="#A855F7" />
+                    <Sparkles size={18} color="#7C3AED" />
                     <Text
-                      style={{ color: "#DDD6FE", fontSize: 12, marginLeft: 6 }}
+                      style={{ color: "#5B21B6", fontSize: 12, marginLeft: 6 }}
                     >
                       100% Safe
                     </Text>
@@ -836,9 +825,9 @@ const Payments = () => {
             {/* Payment Methods Title */}
             <Text
               style={{
-                color: "white",
+                color: "#111827",
                 fontSize: 20,
-                fontWeight: "600",
+                fontFamily: "Poppins-SemiBold",
                 marginBottom: 20,
               }}
             >
@@ -856,14 +845,10 @@ const Payments = () => {
                     key={method.id}
                     onPress={() => setSelectedMethod(method.id)}
                     style={{
-                      backgroundColor: isSelected
-                        ? "rgba(30, 41, 59, 0.9)"
-                        : "rgba(30, 41, 59, 0.6)",
+                      backgroundColor: isSelected ? "#F0FDF4" : "#F9FAFB",
                       borderRadius: 16,
                       borderWidth: 2,
-                      borderColor: isSelected
-                        ? "rgba(245, 158, 11, 0.5)"
-                        : "rgba(245, 158, 11, 0.2)",
+                      borderColor: isSelected ? "#16A34A" : "#E5E7EB",
                       padding: 20,
                       marginBottom: 16,
                       shadowColor: isSelected ? "#F59E0B" : "transparent",
@@ -885,9 +870,7 @@ const Payments = () => {
                           width: 56,
                           height: 56,
                           borderRadius: 12,
-                          backgroundColor: isSelected
-                            ? "rgba(245, 158, 11, 0.3)"
-                            : "rgba(75, 85, 99, 0.5)",
+                          backgroundColor: isSelected ? "#D1FAE5" : "#F3F4F6",
                           alignItems: "center",
                           justifyContent: "center",
                           marginRight: 16,
@@ -895,7 +878,7 @@ const Payments = () => {
                       >
                         <Icon
                           size={28}
-                          color={isSelected ? "#F59E0B" : "#9CA3AF"}
+                          color={isSelected ? "#16A34A" : "#6B7280"}
                         />
                       </View>
                       <View style={{ flex: 1 }}>
@@ -909,21 +892,21 @@ const Payments = () => {
                           <Text
                             style={{
                               fontSize: 18,
-                              fontWeight: "bold",
-                              color: isSelected ? "#FCD34D" : "white",
+                              fontFamily: "Poppins-Bold",
+                              color: isSelected ? "#14532D" : "#111827",
                               marginRight: 8,
                             }}
                           >
                             {method.name}
                           </Text>
                           {isSelected && (
-                            <CheckCircle size={20} color="#10B981" />
+                            <CheckCircle size={20} color="#16A34A" />
                           )}
                         </View>
                         <Text
                           style={{
                             fontSize: 14,
-                            color: "#9CA3AF",
+                            color: "#6B7280",
                             marginBottom: 8,
                           }}
                         >
@@ -943,16 +926,16 @@ const Payments = () => {
                                 paddingHorizontal: 12,
                                 paddingVertical: 4,
                                 borderRadius: 20,
-                                backgroundColor: "rgba(17, 24, 39, 0.5)",
+                                backgroundColor: "#F3F4F6",
                                 borderWidth: 1,
-                                borderColor: "rgba(245, 158, 11, 0.3)",
+                                borderColor: "#E5E7EB",
                               }}
                             >
                               <Text
                                 style={{
-                                  color: "#FDE68A",
+                                  color: "#374151",
                                   fontSize: 12,
-                                  fontWeight: "500",
+                                  fontFamily: "Poppins-Medium",
                                 }}
                               >
                                 {feature}
@@ -971,19 +954,19 @@ const Payments = () => {
             {selectedMethod === "mobile" && (
               <View
                 style={{
-                  backgroundColor: "rgba(245, 158, 11, 0.1)",
+                  backgroundColor: "#F0FDF4",
                   borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: "rgba(245, 158, 11, 0.3)",
+                  borderColor: "#BBF7D0",
                   padding: 20,
                   marginBottom: 24,
                 }}
               >
                 <Text
                   style={{
-                    color: "#FCD34D",
+                    color: "#14532D",
                     fontSize: 16,
-                    fontWeight: "600",
+                    fontFamily: "Poppins-SemiBold",
                     marginBottom: 12,
                   }}
                 >
@@ -991,12 +974,12 @@ const Payments = () => {
                 </Text>
                 <TextInput
                   style={{
-                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    backgroundColor: "#FFFFFF",
                     borderRadius: 12,
                     borderWidth: 1,
-                    borderColor: "rgba(245, 158, 11, 0.4)",
+                    borderColor: "#D1FAE5",
                     padding: 16,
-                    color: "white",
+                    color: "#111827",
                     fontSize: 16,
                     marginBottom: 8,
                   }}
@@ -1011,7 +994,7 @@ const Payments = () => {
                 />
                 <Text
                   style={{
-                    color: "#9CA3AF",
+                    color: "#6B7280",
                     fontSize: 12,
                     lineHeight: 16,
                   }}
@@ -1024,10 +1007,10 @@ const Payments = () => {
             {/* Security Info */}
             <View
               style={{
-                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                backgroundColor: "#F0FDF4",
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: "rgba(245, 158, 11, 0.2)",
+                borderColor: "#BBF7D0",
                 padding: 20,
                 marginBottom: 24,
               }}
@@ -1035,15 +1018,15 @@ const Payments = () => {
               <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
                 <Shield
                   size={20}
-                  color="#10B981"
+                  color="#16A34A"
                   style={{ marginTop: 2, marginRight: 12 }}
                 />
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      color: "#A7F3D0",
+                      color: "#14532D",
                       fontSize: 14,
-                      fontWeight: "600",
+                      fontFamily: "Poppins-SemiBold",
                       marginBottom: 4,
                     }}
                   >
@@ -1051,7 +1034,7 @@ const Payments = () => {
                   </Text>
                   <Text
                     style={{
-                      color: "#D1D5DB",
+                      color: "#374151",
                       fontSize: 14,
                       lineHeight: 20,
                     }}
@@ -1072,17 +1055,17 @@ const Payments = () => {
               style={{
                 backgroundColor:
                   loading || !selectedMethod || mpesaLoading || paymentPolling
-                    ? "#4B5563"
-                    : "#F59E0B",
+                    ? "#9CA3AF"
+                    : "#16A34A",
                 borderRadius: 16,
                 padding: 20,
                 alignItems: "center",
                 shadowColor:
                   loading || !selectedMethod || mpesaLoading || paymentPolling
                     ? "transparent"
-                    : "#F59E0B",
+                    : "#16A34A",
                 shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.4,
+                shadowOpacity: 0.3,
                 shadowRadius: 12,
                 elevation:
                   loading || !selectedMethod || mpesaLoading || paymentPolling
@@ -1183,7 +1166,7 @@ const Payments = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 

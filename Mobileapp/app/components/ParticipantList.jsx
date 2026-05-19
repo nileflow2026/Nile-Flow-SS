@@ -21,7 +21,7 @@ function Avatar({ userId, index }) {
   const color = AVATAR_COLORS[index % AVATAR_COLORS.length];
   return (
     <View
-      className={`w-9 h-9 rounded-full items-center justify-center ${color} border-2 border-slate-900 -ml-2 first:ml-0`}
+      className={`w-9 h-9 rounded-full items-center justify-center ${color} border-2 border-white -ml-2 first:ml-0`}
     >
       <Text className="text-white text-xs font-bold">{initials}</Text>
     </View>
@@ -30,8 +30,8 @@ function Avatar({ userId, index }) {
 
 function EmptySlot() {
   return (
-    <View className="w-9 h-9 rounded-full items-center justify-center bg-slate-700 border-2 border-slate-900 border-dashed -ml-2">
-      <Text className="text-slate-500 text-sm">+</Text>
+    <View className="w-9 h-9 rounded-full items-center justify-center bg-gray-200 border-2 border-white border-dashed -ml-2">
+      <Text className="text-gray-400 text-sm">+</Text>
     </View>
   );
 }
@@ -59,7 +59,7 @@ export default function ParticipantList({
               <EmptySlot key={`empty-${i}`} />
             ))}
         </View>
-        <Text className="ml-3 text-slate-300 font-medium text-sm">
+        <Text className="ml-3 text-gray-600 font-medium text-sm">
           {filled} / {maxParticipants} joined
         </Text>
       </View>
@@ -67,13 +67,13 @@ export default function ParticipantList({
       {/* Progress bar */}
       {showProgress && maxParticipants > 0 && (
         <View className="mt-1">
-          <View className="h-2 bg-slate-700 rounded-full overflow-hidden">
+          <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <View
               className="h-full bg-emerald-500 rounded-full"
               style={{ width: `${pct}%` }}
             />
           </View>
-          <Text className="text-xs text-slate-400 mt-1">
+          <Text className="text-xs text-gray-500 mt-1">
             {remaining === 0
               ? "🎉 Group is full!"
               : `${remaining} more ${remaining === 1 ? "person" : "people"} needed`}

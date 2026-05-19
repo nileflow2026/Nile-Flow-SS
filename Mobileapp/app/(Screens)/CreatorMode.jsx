@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../Context/ThemeProvider";
 import useCreatorPost from "../../hooks/useCreatorPost";
 import usePostSettings from "../../hooks/usePostSettings";
 import AudiencePickerModal from "../components/Creator/AudiencePickerModal";
@@ -26,7 +25,6 @@ import SettingsRow from "../components/Creator/SettingsRow";
 const ACCENT = "#FF4458";
 
 export default function CreatorMode() {
-  const { themeStyles } = useTheme();
   const {
     mediaItems,
     pickMedia,
@@ -86,9 +84,8 @@ export default function CreatorMode() {
   };
 
   const progress = Math.round(uploadProgress * 100);
-  const isDark = themeStyles.name === "dark";
-  const divider = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const bg = isDark ? "#0f172a" : "#f8fafc";
+  const divider = "rgba(0,0,0,0.08)";
+  const bg = "#FFFFFF";
 
   const audienceLabel =
     audienceOptions.find((o) => o.key === audience)?.label || "Public";
@@ -98,9 +95,7 @@ export default function CreatorMode() {
       {/* ─── Top Navigation Bar (fixed) ─── */}
       <View style={[s.topBar, { borderBottomColor: divider }]}>
         <View style={s.topBarSpacer} />
-        <Text style={[s.topBarTitle, { color: themeStyles.text }]}>
-          New Post
-        </Text>
+        <Text style={[s.topBarTitle, { color: "#111827" }]}>New Post</Text>
         <TouchableOpacity
           style={[s.shareBtn, !canSubmit && s.shareBtnOff]}
           onPress={handleShare}

@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -24,10 +23,7 @@ const ReviewList = ({
   const displayedReviews = showAllReviews
     ? reviews
     : reviews.slice(0, initialReviewCount);
-  const { theme } = useTheme();
-  const isDarkMode = theme === "dark";
-  const themedText = isDarkMode ? "text-white" : "text-black";
-  const themedBackground = isDarkMode ? "bg-black" : "bg-white";
+
   const renderReview = ({ item }) => (
     <View style={{ marginVertical }}>
       <View
@@ -46,8 +42,11 @@ const ReviewList = ({
         />
 
         <Text
-          className={`${themedText} `}
-          style={[{ fontSize: reviewFontSize }]}
+          style={{
+            fontSize: reviewFontSize,
+            color: "#111827",
+            fontWeight: "600",
+          }}
         >
           {item.userName}
         </Text>
@@ -58,7 +57,7 @@ const ReviewList = ({
           {Array.from({ length: item.rating }).map((_, index) => (
             <Text
               key={`star-${item.id}-${index}`}
-              style={{ color: "gold", marginRight: 2, fontSize: 20 }}
+              style={{ color: "#D97706", marginRight: 2, fontSize: 20 }}
             >
               ★
             </Text>
@@ -67,18 +66,12 @@ const ReviewList = ({
       )}
 
       {item.text && (
-        <Text
-          className={`${themedText} `}
-          style={[{ fontSize: reviewFontSize }]}
-        >
+        <Text style={{ fontSize: reviewFontSize, color: "#374151" }}>
           {item.text}
         </Text>
       )}
 
-      <Text
-        className={`${themedText} `}
-        style={[styles.date, { fontSize: reviewFontSize }]}
-      >
+      <Text style={[styles.date, { fontSize: reviewFontSize }]}>
         Posted on: {item.date}
       </Text>
     </View>
@@ -107,21 +100,23 @@ export default ReviewList;
 
 const styles = StyleSheet.create({
   userName: {
-    color: "#fff",
+    color: "#111827",
     fontWeight: "bold",
   },
   reviewText: {
-    color: "#ccc",
+    color: "#374151",
     paddingVertical: 6,
   },
   date: {
     borderBottomWidth: 1,
-    borderBottomColor: "#444",
+    borderBottomColor: "#E5E7EB",
     paddingBottom: 6,
+    color: "#6B7280",
   },
   toggleText: {
-    color: "#40a9ff",
+    color: "#16A34A",
     textAlign: "center",
     marginTop: 8,
+    fontWeight: "600",
   },
 });

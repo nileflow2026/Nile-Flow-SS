@@ -16,7 +16,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 const POPULAR_LOCATIONS = [
   { name: "New York, USA" },
@@ -37,14 +36,12 @@ export default function LocationPickerModal({
   onSelect,
   currentLocation,
 }) {
-  const { themeStyles } = useTheme();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(POPULAR_LOCATIONS);
   const inputRef = useRef(null);
-  const isDark = themeStyles.name === "dark";
-  const bg = isDark ? "#0f172a" : "#f8fafc";
-  const cardBg = isDark ? "#1e293b" : "#fff";
-  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const bg = "#F8FAFC";
+  const cardBg = "#FFFFFF";
+  const borderColor = "rgba(0,0,0,0.08)";
 
   useEffect(() => {
     if (visible) {
@@ -92,9 +89,9 @@ export default function LocationPickerModal({
         {/* Header */}
         <View style={[s.header, { borderBottomColor: borderColor }]}>
           <TouchableOpacity onPress={onClose} hitSlop={12}>
-            <X size={24} color={themeStyles.text} />
+            <X size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={[s.headerTitle, { color: themeStyles.text }]}>
+          <Text style={[s.headerTitle, { color: "#111827" }]}>
             Add Location
           </Text>
           {currentLocation ? (
@@ -115,7 +112,7 @@ export default function LocationPickerModal({
           <Search size={18} color="#8E8E8E" />
           <TextInput
             ref={inputRef}
-            style={[s.searchInput, { color: themeStyles.text }]}
+            style={[s.searchInput, { color: "#111827" }]}
             placeholder="Search locations…"
             placeholderTextColor="#8E8E8E"
             value={query}
@@ -147,7 +144,7 @@ export default function LocationPickerModal({
               activeOpacity={0.6}
             >
               <MapPin size={18} color="#FF4458" />
-              <Text style={[s.customText, { color: themeStyles.text }]}>
+              <Text style={[s.customText, { color: "#111827" }]}>
                 Use &quot;{query.trim()}&quot;
               </Text>
             </TouchableOpacity>
@@ -166,9 +163,7 @@ export default function LocationPickerModal({
               activeOpacity={0.6}
             >
               <MapPin size={18} color="#8E8E8E" />
-              <Text style={[s.rowText, { color: themeStyles.text }]}>
-                {item.name}
-              </Text>
+              <Text style={[s.rowText, { color: "#111827" }]}>{item.name}</Text>
             </TouchableOpacity>
           )}
           ListHeaderComponent={

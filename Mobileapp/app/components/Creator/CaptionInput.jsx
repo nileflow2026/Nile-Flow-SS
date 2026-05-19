@@ -5,7 +5,6 @@
 
 import { Image } from "expo-image";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 const DEFAULT_AVATAR =
   "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94";
@@ -16,7 +15,6 @@ export default function CaptionInput({
   maxLength,
   userAvatar,
 }) {
-  const { themeStyles } = useTheme();
   const avatarUri = userAvatar || DEFAULT_AVATAR;
 
   return (
@@ -29,7 +27,7 @@ export default function CaptionInput({
       />
       <View style={s.inputWrap}>
         <TextInput
-          style={[s.input, { color: themeStyles.text }]}
+          style={[s.input, { color: "#111827" }]}
           placeholder="Write a caption…"
           placeholderTextColor="#8E8E8E"
           value={value}
@@ -60,7 +58,7 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#2C2C2E",
+    backgroundColor: "#F3F4F6",
     marginTop: 2,
   },
   inputWrap: { flex: 1 },

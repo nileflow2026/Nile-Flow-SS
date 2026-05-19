@@ -1,6 +1,5 @@
 // components/RelatedProducts.js
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Dimensions, FlatList, Text, View } from "react-native";
 import ProductCard from "./ProductCard";
@@ -15,22 +14,23 @@ const RelatedProducts = ({ relatedProducts = [], ratings = {} }) => {
   if (relatedProducts.length === 0) {
     return (
       <View style={{ marginTop: 16, marginBottom: 32, paddingHorizontal: 16 }}>
-        <LinearGradient
-          colors={["#374151", "#1f2937"]}
+        <View
           style={{
             padding: 20,
             borderRadius: 24,
-            alignItems: "center",
+            backgroundColor: "#F0FDF4",
+            borderWidth: 1,
+            borderColor: "#BBF7D0",
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
+            shadowOpacity: 0.06,
             shadowRadius: 8,
-            elevation: 4,
+            elevation: 2,
           }}
         >
           <Text
             style={{
-              color: "#9ca3af",
+              color: "#6B7280",
               fontSize: descFontSize,
               fontStyle: "italic",
               textAlign: "center",
@@ -38,23 +38,25 @@ const RelatedProducts = ({ relatedProducts = [], ratings = {} }) => {
           >
             No related products available
           </Text>
-        </LinearGradient>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={{ marginTop: 16, marginBottom: 32, paddingHorizontal: 16 }}>
-      <LinearGradient
-        colors={["#1e293b", "#334155"]}
+      <View
         style={{
           padding: 20,
           borderRadius: 24,
-          shadowColor: "#fbbf24",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          elevation: 8,
+          backgroundColor: "#F0FDF4",
+          borderWidth: 1,
+          borderColor: "#BBF7D0",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
         }}
       >
         <View
@@ -65,29 +67,31 @@ const RelatedProducts = ({ relatedProducts = [], ratings = {} }) => {
             marginBottom: 20,
           }}
         >
-          <LinearGradient
-            colors={["rgba(245, 158, 11, 0.2)", "rgba(217, 119, 6, 0.1)"]}
+          <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               paddingHorizontal: 16,
               paddingVertical: 8,
               borderRadius: 20,
+              backgroundColor: "#DCFCE7",
+              borderWidth: 1,
+              borderColor: "#BBF7D0",
               gap: 8,
             }}
           >
-            <MaterialIcons name="recommend" size={20} color="#fbbf24" />
+            <MaterialIcons name="recommend" size={20} color="#16A34A" />
             <Text
               style={{
                 fontSize: titleFontSize,
                 fontWeight: "bold",
-                color: "#fbbf24",
+                color: "#14532D",
               }}
             >
               Related Products
             </Text>
-            <MaterialIcons name="arrow-forward" size={16} color="#fbbf24" />
-          </LinearGradient>
+            <MaterialIcons name="arrow-forward" size={16} color="#16A34A" />
+          </View>
         </View>
 
         <FlatList
@@ -134,7 +138,7 @@ const RelatedProducts = ({ relatedProducts = [], ratings = {} }) => {
           }}
           style={{ marginTop: 4 }}
         />
-      </LinearGradient>
+      </View>
     </View>
   );
 };

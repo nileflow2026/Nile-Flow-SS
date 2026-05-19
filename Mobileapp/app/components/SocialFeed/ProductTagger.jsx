@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 export default function ProductTagger({
   taggedProducts,
@@ -25,8 +24,6 @@ export default function ProductTagger({
   onTag,
   onRemove,
 }) {
-  const { themeStyles } = useTheme();
-
   return (
     <View>
       {/* Tagged products */}
@@ -61,15 +58,10 @@ export default function ProductTagger({
       )}
 
       {/* Search input */}
-      <View
-        style={[
-          styles.searchRow,
-          { borderColor: themeStyles.border || "#333" },
-        ]}
-      >
+      <View style={[styles.searchRow, { borderColor: "#E5E7EB" }]}>
         <Search size={18} color="#8E8E8E" />
         <TextInput
-          style={[styles.searchInput, { color: themeStyles.text }]}
+          style={[styles.searchInput, { color: "#111827" }]}
           placeholder="Search products to tag..."
           placeholderTextColor="#8E8E8E"
           value={productQuery}
@@ -80,12 +72,7 @@ export default function ProductTagger({
 
       {/* Results dropdown */}
       {productResults.length > 0 && (
-        <View
-          style={[
-            styles.dropdown,
-            { backgroundColor: themeStyles.cardBackground || "#1C1C1E" },
-          ]}
-        >
+        <View style={[styles.dropdown, { backgroundColor: "#F9FAFB" }]}>
           <FlatList
             data={productResults}
             keyExtractor={(item) => item.id}
@@ -107,7 +94,7 @@ export default function ProductTagger({
                 )}
                 <View style={styles.resultInfo}>
                   <Text
-                    style={[styles.resultName, { color: themeStyles.text }]}
+                    style={[styles.resultName, { color: "#111827" }]}
                     numberOfLines={1}
                   >
                     {item.name}

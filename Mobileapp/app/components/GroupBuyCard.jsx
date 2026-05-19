@@ -40,7 +40,7 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
     <TouchableOpacity
       onPress={() => onPress?.(group)}
       activeOpacity={0.85}
-      className="bg-slate-800 rounded-2xl border border-slate-700/50 overflow-hidden mb-3"
+      className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-3"
     >
       {/* Header — savings badge */}
       {savingsPercent && savingsPercent !== "0%" && (
@@ -57,13 +57,13 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
           {productImage ? (
             <Image
               source={{ uri: productImage }}
-              className="w-16 h-16 rounded-xl bg-slate-700"
+              className="w-16 h-16 rounded-xl bg-gray-100"
               contentFit="cover"
               cachePolicy="memory-disk"
               transition={200}
             />
           ) : (
-            <View className="w-16 h-16 rounded-xl bg-slate-700 items-center justify-center">
+            <View className="w-16 h-16 rounded-xl bg-gray-100 items-center justify-center">
               <Text className="text-3xl">🛍️</Text>
             </View>
           )}
@@ -72,7 +72,7 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
           <View className="flex-1">
             {productName && (
               <Text
-                className="text-white font-semibold text-sm"
+                className="text-gray-900 font-semibold text-sm"
                 numberOfLines={1}
               >
                 {productName}
@@ -85,11 +85,11 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
                 ${Number(currentPrice).toFixed(2)}
               </Text>
               {basePrice && currentPrice < basePrice && (
-                <Text className="text-slate-500 text-sm line-through">
+                <Text className="text-gray-400 text-sm line-through">
                   ${Number(basePrice).toFixed(2)}
                 </Text>
               )}
-              <Text className="text-slate-400 text-xs">/ person</Text>
+              <Text className="text-gray-500 text-xs">/ person</Text>
             </View>
 
             {/* Countdown */}
@@ -112,7 +112,7 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
           disabled={isFull || isExpired}
           className={`mt-4 rounded-xl py-3 items-center ${
             isFull || isExpired
-              ? "bg-slate-600"
+              ? "bg-gray-300"
               : "bg-emerald-600 active:bg-emerald-700"
           }`}
         >

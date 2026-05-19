@@ -23,21 +23,21 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <View
-          className="flex-1 items-center justify-center bg-gray-900 px-6"
+          className="flex-1 items-center justify-center bg-gray-50 px-6"
           accessibilityLiveRegion="assertive"
         >
           <Text
-            className="text-white text-2xl font-bold mb-3"
+            className="text-gray-900 text-2xl font-bold mb-3"
             accessibilityRole="header"
           >
             Something went wrong
           </Text>
-          <Text className="text-gray-400 text-center mb-6">
+          <Text className="text-gray-500 text-center mb-6">
             We're sorry for the inconvenience. Please try again.
           </Text>
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false })}
-            className="bg-amber-600 px-6 py-3 rounded-xl"
+            className="bg-green-600 px-6 py-3 rounded-xl"
             accessibilityRole="button"
             accessibilityLabel="Try again"
           >

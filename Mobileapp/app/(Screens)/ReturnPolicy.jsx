@@ -134,10 +134,7 @@ const ReturnPolicy = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Section */}
-        <LinearGradient
-          colors={["#0f172a", "#1e293b", "#334155"]}
-          style={styles.heroSection}
-        >
+        <View style={styles.heroSection}>
           <View style={styles.premiumBadge}>
             <Text style={styles.badgeText}>🛡️ Our Assurance ✨</Text>
           </View>
@@ -166,17 +163,14 @@ const ReturnPolicy = () => {
               </View>
             ))}
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Policy Sections */}
         <View style={styles.sectionsContainer}>
           {policySections.map((section, index) => (
             <View key={index} style={styles.policySection}>
               {/* Section Header */}
-              <LinearGradient
-                colors={section.color}
-                style={styles.sectionHeader}
-              >
+              <View style={styles.sectionHeader}>
                 <View style={styles.sectionHeaderContent}>
                   <View style={styles.sectionIcon}>
                     <Text style={styles.iconText}>{section.icon}</Text>
@@ -190,7 +184,7 @@ const ReturnPolicy = () => {
                     {section.title}
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
 
               {/* Section Content */}
               <View style={styles.sectionContent}>
@@ -243,10 +237,7 @@ const ReturnPolicy = () => {
         </View>
 
         {/* Premium Quality Guarantee */}
-        <LinearGradient
-          colors={["#1f2937", "#374151"]}
-          style={styles.guaranteeSection}
-        >
+        <View style={styles.guaranteeSection}>
           <View style={styles.guaranteeContent}>
             <View style={styles.guaranteeHeader}>
               <View style={styles.guaranteeIcon}>
@@ -282,7 +273,7 @@ const ReturnPolicy = () => {
               </View>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* FAQ Section */}
         <View style={styles.faqSection}>
@@ -354,48 +345,52 @@ export default ReturnPolicy;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   heroSection: {
     paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 40,
     alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BBF7D0",
   },
   premiumBadge: {
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#FFFBEB",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#FDE68A",
     marginBottom: 20,
   },
   badgeText: {
-    color: "#fbbf24",
+    color: "#D97706",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   heroTitle: {
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   gradientText: {
-    color: "#fbbf24",
+    color: "#14532D",
   },
   heroSubtitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#16A34A",
+    fontFamily: "Poppins-Bold",
     marginBottom: 16,
     textAlign: "center",
   },
   heroDescription: {
-    color: "#d1d5db",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 30,
     paddingHorizontal: 10,
+    fontFamily: "Poppins-Regular",
   },
   benefitsGrid: {
     flexDirection: "row",
@@ -404,44 +399,47 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   benefitCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     width: "48%",
     marginBottom: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#BBF7D0",
   },
   benefitIcon: {
     fontSize: 24,
     marginBottom: 8,
   },
   benefitTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#15803D",
+    fontFamily: "Poppins-SemiBold",
     marginBottom: 4,
     fontSize: 14,
   },
   benefitDescription: {
-    color: "#d1d5db",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   sectionsContainer: {
     paddingHorizontal: 20,
     marginBottom: 30,
+    marginTop: 20,
   },
   policySection: {
     marginBottom: 20,
     borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   sectionHeader: {
     padding: 20,
+    backgroundColor: "#F0FDF4",
   },
   sectionHeaderContent: {
     flexDirection: "row",
@@ -451,7 +449,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -460,8 +458,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   sectionTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-SemiBold",
     flex: 1,
   },
   sectionContent: {
@@ -479,23 +477,24 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#DCFCE7",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#BBF7D0",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
     marginTop: 2,
   },
   stepNumberText: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#15803D",
+    fontFamily: "Poppins-Bold",
     fontSize: 14,
   },
   stepText: {
-    color: "#d1d5db",
+    color: "#374151",
     flex: 1,
     lineHeight: 22,
+    fontFamily: "Poppins-Regular",
   },
   itemsList: {
     marginTop: 10,
@@ -513,34 +512,37 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
     marginTop: 2,
+    backgroundColor: "#DCFCE7",
   },
   bulletText: {
     fontSize: 12,
   },
   itemText: {
-    color: "#d1d5db",
+    color: "#374151",
     flex: 1,
     lineHeight: 22,
+    fontFamily: "Poppins-Regular",
   },
   noteContainer: {
     marginTop: 20,
-    backgroundColor: "rgba(217, 119, 6, 0.2)",
+    backgroundColor: "#FFFBEB",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#FDE68A",
   },
   noteText: {
-    color: "#fbbf24",
+    color: "#D97706",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   guaranteeSection: {
     margin: 20,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   guaranteeContent: {
     flexDirection: "column",
@@ -554,7 +556,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: "rgba(217, 119, 6, 0.8)",
+    backgroundColor: "#D97706",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -566,12 +568,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guaranteeTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   guaranteeSubtitle: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#D97706",
+    fontFamily: "Poppins-Regular",
   },
   guaranteeStats: {
     flexDirection: "row",
@@ -582,21 +585,22 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
   },
   statLabel: {
-    color: "rgba(251, 191, 36, 0.8)",
+    color: "#6B7280",
     fontSize: 12,
     marginTop: 4,
+    fontFamily: "Poppins-Regular",
   },
   faqSection: {
     paddingHorizontal: 20,
     marginBottom: 30,
   },
   faqTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -604,11 +608,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   faqItem: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   questionContainer: {
     flexDirection: "row",
@@ -619,7 +623,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(217, 119, 6, 0.8)",
+    backgroundColor: "#D97706",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -627,45 +631,47 @@ const styles = StyleSheet.create({
   questionIconText: {
     color: "#ffffff",
     fontSize: 12,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   questionText: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
     flex: 1,
   },
   answerText: {
-    color: "#d1d5db",
+    color: "#6B7280",
     lineHeight: 20,
     paddingLeft: 36,
+    fontFamily: "Poppins-Regular",
   },
   ctaSection: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#F0FDF4",
     borderRadius: 20,
     padding: 24,
     margin: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#BBF7D0",
   },
   ctaTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 12,
   },
   ctaDescription: {
-    color: "#d1d5db",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   ctaButtons: {
     width: "100%",
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: "rgba(217, 119, 6, 0.9)",
+    backgroundColor: "#16A34A",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -673,19 +679,19 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   secondaryButton: {
     borderWidth: 2,
-    borderColor: "rgba(245, 158, 11, 0.5)",
+    borderColor: "#BBF7D0",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#f59e0b",
-    fontWeight: "bold",
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
   },
   trustBadges: {
     flexDirection: "row",
@@ -695,7 +701,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   trustBadge: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 16,
     padding: 20,
     width: "48%",
@@ -705,12 +711,13 @@ const styles = StyleSheet.create({
   },
   trustBadgeValue: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   trustBadgeLabel: {
-    color: "#d1d5db",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
 });

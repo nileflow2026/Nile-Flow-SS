@@ -95,31 +95,36 @@ const CategoryScreen = () => {
   );
 
   return (
-    <SafeAreaView className="h-full" style={{ backgroundColor: "#0f172a" }}>
-      <View className="flex-row items-center mb-5">
+    <SafeAreaView className="h-full bg-nile-white">
+      <View className="flex-row items-center mb-5 px-2 pt-2">
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons
             name="keyboard-arrow-left"
             size={45}
-            color={"#2f9e44"}
+            color={"#16A34A"}
           />
         </TouchableOpacity>
-        <Text className="text-white text-3xl">{category}</Text>
+        <Text className="text-nile-green-900 text-3xl font-psemibold">
+          {category}
+        </Text>
       </View>
 
       {/* Sort buttons */}
-      <View className="flex-row justify-around mb-4">
+      <View className="flex-row justify-around mb-4 px-2">
         {["price", "brand", "rating"].map((opt) => (
           <TouchableOpacity
             key={opt}
             onPress={() => handleSort(opt)}
             style={{
               padding: 10,
-              backgroundColor: sortOption === opt ? "#f59e0b" : "gray",
-              borderRadius: 5,
+              backgroundColor: sortOption === opt ? "#16A34A" : "#E5E7EB",
+              borderRadius: 8,
             }}
           >
-            <Text className="text-white font-psemibold capitalize">
+            <Text
+              className="font-psemibold capitalize"
+              style={{ color: sortOption === opt ? "#FFFFFF" : "#374151" }}
+            >
               Sort by {opt.charAt(0).toUpperCase() + opt.slice(1)}
             </Text>
           </TouchableOpacity>
@@ -130,7 +135,7 @@ const CategoryScreen = () => {
         {loading ? (
           <ActivityIndicator
             size="large"
-            color="#f59e0b"
+            color="#16A34A"
             style={{ marginTop: 40 }}
           />
         ) : sortedData.length > 0 ? (
@@ -145,7 +150,7 @@ const CategoryScreen = () => {
             columnWrapperStyle={{ justifyContent: "space-between" }}
           />
         ) : (
-          <Text className="text-white text-center mt-10">
+          <Text className="text-gray-500 text-center mt-10 font-pregular">
             No products found in this category
           </Text>
         )}

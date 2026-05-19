@@ -173,7 +173,7 @@ const Settings = () => {
   return (
     <SafeAreaView
       style={{
-        backgroundColor: "#0f172a",
+        backgroundColor: "#FFFFFF",
         flex: 1,
       }}
     >

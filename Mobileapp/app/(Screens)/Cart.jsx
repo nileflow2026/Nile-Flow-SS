@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -13,7 +12,6 @@ import {
   View,
 } from "react-native";
 import { useCart } from "../../Context/CartContext_NEW";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -27,14 +25,6 @@ const Cart = () => {
   // every cart state change while the tab is focused).
   const cartRef = useRef(cart);
   cartRef.current = cart;
-
-  // Refresh cart with correct currency each time the tab is focused —
-  // BUT only when the cart is empty. If items already exist (e.g. from
-  // an addToCart optimistic update with SSP prices), do NOT re-fetch.
-  // A re-fetch risks sending ?currency=KES (if the singleton hasn't
-  // resolved to SSP yet) and overwriting the correct SSP display data.
-  const { theme } = useTheme();
-  const isDarkMode = theme === "dark";
 
   useFocusEffect(
     useCallback(() => {
@@ -123,10 +113,7 @@ const Cart = () => {
   };
 
   return (
-    <LinearGradient
-      colors={isDarkMode ? ["#0f172a", "#1e293b"] : ["#f8fafc", "#fbbf24"]}
-      style={styles.gradientBg}
-    >
+    <View style={[styles.gradientBg, { backgroundColor: "#FFFFFF" }]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -145,7 +132,7 @@ const Cart = () => {
 
         {/* Cart Summary */}
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryBox, { backgroundColor: "#3b2f1e" }]}>
+          <View style={[styles.summaryBox, { backgroundColor: "#FEF3C7" }]}>
             <Text style={styles.summaryValue}>{cart.length}</Text>
             <Text
               style={styles.summaryLabel}
@@ -156,7 +143,7 @@ const Cart = () => {
             </Text>
           </View>
           {cart.length > 0 && (
-            <View style={[styles.summaryBox, { backgroundColor: "#1e3a2a" }]}>
+            <View style={[styles.summaryBox, { backgroundColor: "#F0FDF4" }]}>
               <Text style={styles.summaryValue}>
                 {subtotal > 100 ? "FREE" : formattedShipping}
               </Text>
@@ -169,7 +156,7 @@ const Cart = () => {
               </Text>
             </View>
           )}
-          <View style={[styles.summaryBox, { backgroundColor: "#1e293b" }]}>
+          <View style={[styles.summaryBox, { backgroundColor: "#F3F4F6" }]}>
             <Text style={styles.summaryValue}>100%</Text>
             <Text
               style={styles.summaryLabel}
@@ -179,7 +166,7 @@ const Cart = () => {
               Authentic
             </Text>
           </View>
-          <View style={[styles.summaryBox, { backgroundColor: "#3b1e1e" }]}>
+          <View style={[styles.summaryBox, { backgroundColor: "#FEF2F2" }]}>
             <Text style={styles.summaryValue}>30D</Text>
             <Text
               style={styles.summaryLabel}
@@ -338,7 +325,7 @@ const Cart = () => {
           </View>
         )}
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -353,8 +340,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     textAlign: "center",
     marginBottom: 4,
     flexWrap: "wrap",
@@ -363,7 +350,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 16,
-    color: "#e5e7eb",
+    color: "#374151",
     textAlign: "center",
     marginBottom: 24,
     flexWrap: "wrap",
@@ -386,12 +373,12 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 22,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   summaryLabel: {
     fontSize: 12,
-    color: "#e5e7eb",
+    color: "#374151",
     marginTop: 4,
     flexWrap: "wrap",
     width: "100%",
@@ -405,37 +392,39 @@ const styles = StyleSheet.create({
   },
   emptyCartTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 8,
   },
   emptyCartText: {
     fontSize: 14,
-    color: "#e5e7eb",
+    color: "#374151",
     textAlign: "center",
     marginBottom: 16,
   },
   shopButton: {
-    backgroundColor: "#fbbf24",
+    backgroundColor: "#16A34A",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   shopButtonText: {
-    color: "#18181b",
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   cartItemsContainer: {
     marginBottom: 32,
   },
   cartItemBox: {
-    backgroundColor: "#27272a",
+    backgroundColor: "#F9FAFB",
     borderRadius: 18,
     marginBottom: 16,
     padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
@@ -449,15 +438,15 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 12,
     marginRight: 16,
-    backgroundColor: "#18181b",
+    backgroundColor: "#E5E7EB",
   },
   cartItemInfo: {
     flex: 1,
   },
   cartItemName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 4,
     flexWrap: "wrap",
     width: "100%",
@@ -465,12 +454,12 @@ const styles = StyleSheet.create({
   },
   cartItemPrice: {
     fontSize: 16,
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
   },
   cartItemQuantity: {
     fontSize: 13,
-    color: "#e5e7eb",
+    color: "#6B7280",
     marginTop: 2,
   },
   cartItemActions: {
@@ -479,25 +468,25 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   quantityButton: {
-    backgroundColor: "#18181b",
+    backgroundColor: "#F3F4F6",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginHorizontal: 2,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#E5E7EB",
   },
   quantityButtonDisabled: {
     opacity: 0.5,
   },
   quantityButtonText: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#374151",
+    fontFamily: "Poppins-Bold",
     fontSize: 18,
   },
   cartItemQuantityValue: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
     marginHorizontal: 6,
   },
@@ -510,7 +499,7 @@ const styles = StyleSheet.create({
   },
   removeButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     fontSize: 13,
   },
   cartItemTotalBox: {
@@ -520,29 +509,31 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cartItemTotalLabel: {
-    color: "#e5e7eb",
+    color: "#6B7280",
     fontSize: 14,
     marginRight: 8,
   },
   cartItemTotalValue: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   orderSummaryBox: {
-    backgroundColor: "#18181b",
+    backgroundColor: "#F9FAFB",
     borderRadius: 18,
     padding: 20,
     marginBottom: 32,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
   orderSummaryTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginBottom: 16,
     textAlign: "center",
     flexWrap: "wrap",
@@ -555,12 +546,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   orderSummaryLabel: {
-    color: "#e5e7eb",
+    color: "#374151",
     fontSize: 15,
   },
   orderSummaryValue: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     fontSize: 15,
   },
   orderSummaryRowTotal: {
@@ -570,25 +561,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   orderSummaryTotalLabel: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
     fontSize: 18,
   },
   orderSummaryTotalValue: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
     fontSize: 22,
   },
   checkoutButton: {
-    backgroundColor: "#fbbf24",
+    backgroundColor: "#16A34A",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 16,
   },
   checkoutButtonText: {
-    color: "#18181b",
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
     fontSize: 18,
     flexWrap: "wrap",
     width: "100%",

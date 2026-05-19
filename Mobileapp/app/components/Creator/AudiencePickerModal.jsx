@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 const ACCENT = "#FF4458";
 
@@ -24,10 +23,8 @@ export default function AudiencePickerModal({
   selected,
   onSelect,
 }) {
-  const { themeStyles } = useTheme();
-  const isDark = themeStyles.name === "dark";
-  const bg = isDark ? "#1e293b" : "#fff";
-  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const bg = "#FFFFFF";
+  const borderColor = "rgba(0,0,0,0.06)";
 
   return (
     <Modal
@@ -40,17 +37,12 @@ export default function AudiencePickerModal({
         <Pressable style={[s.sheet, { backgroundColor: bg }]}>
           {/* Handle */}
           <View style={s.handleWrap}>
-            <View
-              style={[
-                s.handle,
-                { backgroundColor: isDark ? "#475569" : "#D1D5DB" },
-              ]}
-            />
+            <View style={[s.handle, { backgroundColor: "#D1D5DB" }]} />
           </View>
 
           {/* Header */}
           <View style={[s.header, { borderBottomColor: borderColor }]}>
-            <Text style={[s.title, { color: themeStyles.text }]}>
+            <Text style={[s.title, { color: "#111827" }]}>
               Who can see this?
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
@@ -75,7 +67,7 @@ export default function AudiencePickerModal({
                   <Text
                     style={[
                       s.optionLabel,
-                      { color: themeStyles.text },
+                      { color: "#111827" },
                       active && { color: ACCENT, fontWeight: "700" },
                     ]}
                   >

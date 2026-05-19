@@ -1,7 +1,6 @@
 /* eslint-disable no-dupe-keys */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -16,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 import { usePremiumStatus } from "../../hooks/usePremiumStatus";
 import { premiumService } from "../../utils/premiumService";
 
@@ -29,13 +27,11 @@ const cardWidth = (width - 48) / 2;
  */
 const PremiumDeals = () => {
   const router = useRouter();
-  const { theme } = useTheme();
   const { isPremium, loading: statusLoading } = usePremiumStatus();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const isDark = theme === "dark";
 
   useEffect(() => {
     if (!statusLoading) {
@@ -78,10 +74,7 @@ const PremiumDeals = () => {
       }
       activeOpacity={0.9}
     >
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.9)", "rgba(0, 0, 0, 0.9)"]}
-        style={styles.productGradient}
-      >
+      <View style={styles.productGradient}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
           <Image
@@ -97,30 +90,18 @@ const PremiumDeals = () => {
             transition={200}
             recyclingKey={`deal-${item.$id || item.id}`}
           />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.8)"]}
-            style={styles.imageOverlay}
-          />
 
           {/* Premium Badge */}
-          <LinearGradient
-            colors={["#A855F7", "#7C3AED"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.premiumBadge}
-          >
+          <View style={styles.premiumBadge}>
             <Ionicons name="diamond" size={12} color="#FFF" />
             <Text style={styles.premiumText}>Premium</Text>
-          </LinearGradient>
+          </View>
 
           {/* Discount Badge */}
           {item.discount && (
-            <LinearGradient
-              colors={["#EF4444", "#DC2626"]}
-              style={styles.discountBadge}
-            >
+            <View style={styles.discountBadge}>
               <Text style={styles.discountText}>-{item.discount}%</Text>
-            </LinearGradient>
+            </View>
           )}
         </View>
 
@@ -176,7 +157,7 @@ const PremiumDeals = () => {
             <Ionicons name="arrow-forward" size={14} color="#000" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -202,39 +183,19 @@ const PremiumDeals = () => {
     return (
       <ScrollView style={styles.container}>
         <View style={styles.upgradeContainer}>
-          <LinearGradient
-            colors={
-              isDark
-                ? ["rgba(168, 85, 247, 0.2)", "rgba(147, 51, 234, 0.2)"]
-                : ["rgba(168, 85, 247, 0.1)", "rgba(147, 51, 234, 0.1)"]
-            }
-            style={styles.upgradeCard}
-          >
+          <View style={styles.upgradeCard}>
             {/* Lock Icon */}
             <View style={styles.lockContainer}>
-              <LinearGradient
-                colors={["#A855F7", "#7C3AED"]}
-                style={styles.lockIcon}
-              >
+              <View style={styles.lockIcon}>
                 <Ionicons name="lock-closed" size={32} color="#FFF" />
-              </LinearGradient>
+              </View>
             </View>
 
             {/* Content */}
-            <Text
-              style={[
-                styles.upgradeTitle,
-                { color: isDark ? "#FFF" : "#1F2937" },
-              ]}
-            >
+            <Text style={styles.upgradeTitle}>
               Premium Deals Are Members-Only
             </Text>
-            <Text
-              style={[
-                styles.upgradeSubtitle,
-                { color: isDark ? "#A3A3A3" : "#6B7280" },
-              ]}
-            >
+            <Text style={styles.upgradeSubtitle}>
               Unlock exclusive discounts, priority delivery, and 2x Nile Miles
               with Nile Premium for just{" "}
               <Text style={styles.priceHighlight}>200 Ksh/month</Text>
@@ -247,22 +208,8 @@ const PremiumDeals = () => {
                   <Text style={styles.benefitEmoji}>🏷️</Text>
                 </View>
                 <View style={styles.benefitText}>
-                  <Text
-                    style={[
-                      styles.benefitTitle,
-                      { color: isDark ? "#FFF" : "#1F2937" },
-                    ]}
-                  >
-                    Up to 40% Off
-                  </Text>
-                  <Text
-                    style={[
-                      styles.benefitDesc,
-                      { color: isDark ? "#A3A3A3" : "#6B7280" },
-                    ]}
-                  >
-                    Premium-only deals
-                  </Text>
+                  <Text style={styles.benefitTitle}>Up to 40% Off</Text>
+                  <Text style={styles.benefitDesc}>Premium-only deals</Text>
                 </View>
               </View>
               <View style={styles.benefit}>
@@ -270,22 +217,8 @@ const PremiumDeals = () => {
                   <Text style={styles.benefitEmoji}>🚀</Text>
                 </View>
                 <View style={styles.benefitText}>
-                  <Text
-                    style={[
-                      styles.benefitTitle,
-                      { color: isDark ? "#FFF" : "#1F2937" },
-                    ]}
-                  >
-                    Priority Delivery
-                  </Text>
-                  <Text
-                    style={[
-                      styles.benefitDesc,
-                      { color: isDark ? "#A3A3A3" : "#6B7280" },
-                    ]}
-                  >
-                    Get it in 1-2 days
-                  </Text>
+                  <Text style={styles.benefitTitle}>Priority Delivery</Text>
+                  <Text style={styles.benefitDesc}>Get it in 1-2 days</Text>
                 </View>
               </View>
               <View style={styles.benefit}>
@@ -293,22 +226,8 @@ const PremiumDeals = () => {
                   <Text style={styles.benefitEmoji}>⭐</Text>
                 </View>
                 <View style={styles.benefitText}>
-                  <Text
-                    style={[
-                      styles.benefitTitle,
-                      { color: isDark ? "#FFF" : "#1F2937" },
-                    ]}
-                  >
-                    2x Miles
-                  </Text>
-                  <Text
-                    style={[
-                      styles.benefitDesc,
-                      { color: isDark ? "#A3A3A3" : "#6B7280" },
-                    ]}
-                  >
-                    Double rewards
-                  </Text>
+                  <Text style={styles.benefitTitle}>2x Miles</Text>
+                  <Text style={styles.benefitDesc}>Double rewards</Text>
                 </View>
               </View>
             </View>
@@ -318,26 +237,16 @@ const PremiumDeals = () => {
               onPress={() => router.push("/(Screens)/SubscriptionSettings")}
               activeOpacity={0.9}
             >
-              <LinearGradient
-                colors={["#A855F7", "#7C3AED"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.upgradeButton}
-              >
+              <View style={styles.upgradeButton}>
                 <Ionicons name="diamond" size={20} color="#FFF" />
                 <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
-            <Text
-              style={[
-                styles.finePrint,
-                { color: isDark ? "#6B7280" : "#9CA3AF" },
-              ]}
-            >
+            <Text style={styles.finePrint}>
               Try it risk-free. Cancel anytime.
             </Text>
-          </LinearGradient>
+          </View>
         </View>
       </ScrollView>
     );
@@ -357,33 +266,16 @@ const PremiumDeals = () => {
             <View style={styles.errorIcon}>
               <Ionicons name="alert-circle" size={48} color="#EF4444" />
             </View>
-            <Text
-              style={[
-                styles.errorTitle,
-                { color: isDark ? "#FFF" : "#1F2937" },
-              ]}
-            >
-              Failed to Load Premium Deals
-            </Text>
-            <Text
-              style={[
-                styles.errorMessage,
-                { color: isDark ? "#A3A3A3" : "#6B7280" },
-              ]}
-            >
-              {error}
-            </Text>
+            <Text style={styles.errorTitle}>Failed to Load Premium Deals</Text>
+            <Text style={styles.errorMessage}>{error}</Text>
             <TouchableOpacity
               onPress={fetchDeals}
               style={styles.retryButton}
               activeOpacity={0.9}
             >
-              <LinearGradient
-                colors={["#EF4444", "#DC2626"]}
-                style={styles.retryGradient}
-              >
+              <View style={styles.retryGradient}>
                 <Text style={styles.retryText}>Try Again</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -408,36 +300,15 @@ const PremiumDeals = () => {
         ListHeaderComponent={
           <>
             {/* Header */}
-            <LinearGradient
-              colors={
-                isDark
-                  ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-                  : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.header}
-            >
+            <View style={styles.header}>
               <View style={styles.headerRow}>
-                {/* <TouchableOpacity
-                  onPress={() => router.back()}
-                  style={styles.backButton}
-                >
-                  <Ionicons name="arrow-back" size={24} color="#A855F7" />
-                </TouchableOpacity> */}
                 <View style={styles.headerInfo}>
-                  <LinearGradient
-                    colors={[
-                      "rgba(168, 85, 247, 0.3)",
-                      "rgba(147, 51, 234, 0.3)",
-                    ]}
-                    style={styles.premiumTag}
-                  >
-                    <Ionicons name="diamond" size={14} color="#A855F7" />
+                  <View style={styles.premiumTag}>
+                    <Ionicons name="diamond" size={14} color="#16A34A" />
                     <Text style={styles.premiumTagText}>
                       Premium Collection
                     </Text>
-                  </LinearGradient>
+                  </View>
 
                   <Text style={styles.categoryTitle}>Premium Deals</Text>
 
@@ -465,14 +336,11 @@ const PremiumDeals = () => {
                   </View>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Info Banner */}
             <View style={styles.infoBannerContainer}>
-              <LinearGradient
-                colors={["rgba(16, 185, 129, 0.2)", "rgba(5, 150, 105, 0.2)"]}
-                style={styles.infoBannerGradient}
-              >
+              <View style={styles.infoBannerGradient}>
                 <View style={styles.infoBannerIcon}>
                   <Ionicons
                     name="information-circle"
@@ -489,7 +357,7 @@ const PremiumDeals = () => {
                     Nile Miles
                   </Text>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
           </>
         }
@@ -522,7 +390,7 @@ const PremiumDeals = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   listContent: {
     paddingBottom: 100,
@@ -534,6 +402,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     marginBottom: 16,
+    backgroundColor: "#F0FDF4",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   headerRow: {
     flexDirection: "row",
@@ -543,7 +414,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -559,30 +430,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "#BBF7D0",
     marginBottom: 12,
     gap: 6,
+    backgroundColor: "#F0FDF4",
   },
   premiumTagText: {
-    color: "#A855F7",
+    color: "#16A34A",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   categoryTitle: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#A855F7",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginBottom: 8,
   },
   categoryDescription: {
     fontSize: 14,
-    color: "#D1D5DB",
+    color: "#374151",
     marginBottom: 4,
   },
   productCount: {
     fontSize: 12,
-    color: "#A855F7",
-    opacity: 0.7,
+    color: "#16A34A",
+    opacity: 0.8,
     marginBottom: 12,
   },
   statsRow: {
@@ -593,16 +465,16 @@ const styles = StyleSheet.create({
   statBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 6,
   },
   statText: {
-    color: "#F3F4F6",
+    color: "#374151",
     fontSize: 11,
   },
   infoBannerContainer: {
@@ -615,7 +487,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   infoBannerIcon: {
     marginRight: 12,
@@ -626,11 +499,11 @@ const styles = StyleSheet.create({
   infoBannerText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#FFF",
+    color: "#374151",
   },
   infoBannerHighlight: {
-    fontWeight: "bold",
-    color: "#10B981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   row: {
     justifyContent: "space-between",
@@ -646,8 +519,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "#E5E7EB",
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
   },
   imageContainer: {
     height: 180,
@@ -670,11 +544,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
     gap: 4,
+    backgroundColor: "#16A34A",
   },
   premiumText: {
     color: "#FFF",
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
   },
   discountBadge: {
     position: "absolute",
@@ -683,10 +558,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    backgroundColor: "#EF4444",
   },
   discountText: {
     fontSize: 11,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#FFF",
   },
   productInfo: {
@@ -694,8 +570,8 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFF",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 8,
   },
   priceRow: {
@@ -716,8 +592,8 @@ const styles = StyleSheet.create({
   },
   premiumPrice: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#A855F7",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -726,8 +602,8 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: "#D1D5DB",
-    fontWeight: "600",
+    color: "#374151",
+    fontFamily: "Poppins-SemiBold",
   },
   perksContainer: {
     flexDirection: "row",
@@ -738,30 +614,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#F0FDF4",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   perkText: {
     fontSize: 9,
-    fontWeight: "600",
-    color: "#A855F7",
+    fontFamily: "Poppins-SemiBold",
+    color: "#16A34A",
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#16A34A",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     gap: 6,
   },
   addButtonText: {
-    color: "#000",
+    color: "#FFF",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   // Loading states
   loadingContainer: {
@@ -771,13 +647,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#A855F7",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginTop: 16,
   },
   loadingSubtext: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 8,
   },
   // Empty state
@@ -791,9 +667,9 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "#BBF7D0",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
@@ -803,13 +679,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFF",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
   },
@@ -822,8 +698,9 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "#E5E7EB",
     alignItems: "center",
+    backgroundColor: "#F9FAFB",
   },
   lockContainer: {
     marginBottom: 20,
@@ -834,22 +711,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#16A34A",
   },
   upgradeTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 12,
+    color: "#111827",
   },
   upgradeSubtitle: {
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
+    color: "#6B7280",
   },
   priceHighlight: {
-    fontWeight: "bold",
-    color: "#F59E0B",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
   },
   benefitsContainer: {
     width: "100%",
@@ -864,7 +744,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -877,11 +757,13 @@ const styles = StyleSheet.create({
   },
   benefitTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
     marginBottom: 2,
+    color: "#111827",
   },
   benefitDesc: {
     fontSize: 14,
+    color: "#6B7280",
   },
   upgradeButton: {
     flexDirection: "row",
@@ -891,15 +773,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     marginBottom: 16,
+    backgroundColor: "#16A34A",
   },
   upgradeButtonText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#FFF",
   },
   finePrint: {
     fontSize: 12,
     textAlign: "center",
+    color: "#9CA3AF",
   },
   // Error state
   errorContainer: {
@@ -914,15 +798,17 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 8,
+    color: "#111827",
   },
   errorMessage: {
     fontSize: 14,
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 20,
+    color: "#6B7280",
   },
   retryButton: {
     borderRadius: 12,
@@ -931,31 +817,19 @@ const styles = StyleSheet.create({
   retryGradient: {
     paddingHorizontal: 24,
     paddingVertical: 12,
+    backgroundColor: "#16A34A",
+    borderRadius: 12,
   },
   retryText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#FFF",
-  },
-  // Empty state (alternative)
-  emptyContainer: {
-    paddingVertical: 80,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
+    color: "#6B7280",
   },
 });
 

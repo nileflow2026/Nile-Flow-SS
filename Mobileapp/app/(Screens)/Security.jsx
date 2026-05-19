@@ -1,7 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -259,21 +258,14 @@ const Security = () => {
   ];
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         {/* Header */}
-        <LinearGradient
-          colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Security & Privacy</Text>
@@ -281,17 +273,14 @@ const Security = () => {
               Manage your account security
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           {/* Security Status Banner */}
-          <LinearGradient
-            colors={["rgba(5, 150, 105, 0.2)", "rgba(4, 120, 87, 0.1)"]}
-            style={styles.statusBanner}
-          >
+          <View style={styles.statusBanner}>
             <View style={styles.statusIconContainer}>
               <MaterialIcons name="verified-user" size={32} color="#10B981" />
             </View>
@@ -303,15 +292,12 @@ const Security = () => {
                   : "Sign in to manage security settings"}
               </Text>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Account Security Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account Security</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {securityItems.map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -322,12 +308,11 @@ const Security = () => {
                   ]}
                 >
                   <View style={styles.menuItemLeft}>
-                    <LinearGradient
-                      colors={item.iconColors}
-                      style={styles.menuIconContainer}
+                    <View
+                      style={[styles.menuIconContainer, { backgroundColor: item.iconColors[0] }]}
                     >
                       <MaterialIcons name={item.icon} size={20} color="white" />
-                    </LinearGradient>
+                    </View>
                     <View style={styles.menuTextContainer}>
                       <Text
                         style={[
@@ -344,38 +329,30 @@ const Security = () => {
                     <MaterialIcons
                       name="chevron-right"
                       size={24}
-                      color={item.danger ? "#DC2626" : "#F59E0B"}
+                      color={item.danger ? "#DC2626" : "#16A34A"}
                     />
                   )}
                 </TouchableOpacity>
               ))}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Preferences Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Security Preferences</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {/* Biometric Toggle */}
               <View style={[styles.menuItem, styles.menuItemBorder]}>
                 <View style={styles.menuItemLeft}>
-                  <LinearGradient
-                    colors={
-                      biometricSupported
-                        ? ["#7C3AED", "#6D28D9"]
-                        : ["#374151", "#1F2937"]
-                    }
-                    style={styles.menuIconContainer}
+                  <View
+                    style={[styles.menuIconContainer, { backgroundColor: biometricSupported ? "#7C3AED" : "#E5E7EB" }]}
                   >
                     <MaterialIcons
                       name="fingerprint"
                       size={20}
                       color={biometricSupported ? "white" : "#6B7280"}
                     />
-                  </LinearGradient>
+                  </View>
                   <View style={styles.menuTextContainer}>
                     <Text
                       style={[
@@ -396,10 +373,10 @@ const Security = () => {
                   value={biometricEnabled}
                   onValueChange={handleBiometricToggle}
                   disabled={!biometricSupported || togglingBiometric}
-                  trackColor={{ false: "#374151", true: "#D97706" }}
+                  trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
                   thumbColor={
                     biometricEnabled && biometricSupported
-                      ? "#F59E0B"
+                      ? "#16A34A"
                       : "#9CA3AF"
                   }
                 />
@@ -408,16 +385,15 @@ const Security = () => {
               {/*  Login Alerts Toggle*/}
               <View style={styles.menuItem}>
                 <View style={styles.menuItemLeft}>
-                  <LinearGradient
-                    colors={["#2563EB", "#1D4ED8"]}
-                    style={styles.menuIconContainer}
+                  <View
+                    style={[styles.menuIconContainer, { backgroundColor: "#2563EB" }]}
                   >
                     <MaterialIcons
                       name="notifications-active"
                       size={20}
                       color="white"
                     />
-                  </LinearGradient>
+                  </View>
                   <View style={styles.menuTextContainer}>
                     <Text style={styles.menuTitle}>Login Alerts</Text>
                     <Text style={styles.menuSubtitle}>
@@ -429,20 +405,17 @@ const Security = () => {
                   value={loginAlerts}
                   onValueChange={handleLoginAlertsToggle}
                   disabled={togglingAlerts}
-                  trackColor={{ false: "#374151", true: "#D97706" }}
-                  thumbColor={loginAlerts ? "#F59E0B" : "#9CA3AF"}
+                  trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
+                  thumbColor={loginAlerts ? "#16A34A" : "#9CA3AF"}
                 />
               </View>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Privacy Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Privacy</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {privacyItems.map((item, index) => (
                 <TouchableOpacity
                   key={index}
@@ -453,12 +426,11 @@ const Security = () => {
                   ]}
                 >
                   <View style={styles.menuItemLeft}>
-                    <LinearGradient
-                      colors={item.iconColors}
-                      style={styles.menuIconContainer}
+                    <View
+                      style={[styles.menuIconContainer, { backgroundColor: item.iconColors[0] }]}
                     >
                       <MaterialIcons name={item.icon} size={20} color="white" />
-                    </LinearGradient>
+                    </View>
                     <View style={styles.menuTextContainer}>
                       <Text style={styles.menuTitle}>{item.title}</Text>
                       <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -468,16 +440,15 @@ const Security = () => {
                     <MaterialIcons
                       name="chevron-right"
                       size={24}
-                      color="#F59E0B"
+                      color="#16A34A"
                     />
                   )}
                 </TouchableOpacity>
               ))}
-            </LinearGradient>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -492,25 +463,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   scrollContent: {
     padding: 16,
@@ -523,14 +496,15 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
     gap: 12,
   },
   statusIconContainer: {
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -539,27 +513,29 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#10B981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   statusSubtitle: {
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#374151",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   section: {
     gap: 10,
   },
   sectionTitle: {
     fontSize: width < 350 ? 14 : 16,
-    fontWeight: "600",
-    color: "#FCD34D",
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
     paddingHorizontal: 4,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     overflow: "hidden",
   },
   menuItem: {
@@ -568,10 +544,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: "#E5E7EB",
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -591,19 +568,20 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: width < 350 ? 14 : 15,
-    fontWeight: "600",
-    color: "#F1F5F9",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
   },
   menuSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   dangerText: {
-    color: "#F87171",
+    color: "#DC2626",
   },
   disabledText: {
-    color: "#6B7280",
+    color: "#9CA3AF",
   },
 });
 

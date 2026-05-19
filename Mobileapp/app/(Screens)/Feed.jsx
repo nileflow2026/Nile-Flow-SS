@@ -1,6 +1,5 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 import NileMilesDisplay from "../components/SocialFeed/NileMilesDisplay";
 import SocialFeed from "../components/SocialFeed/SocialFeed";
 
@@ -10,14 +9,9 @@ import SocialFeed from "../components/SocialFeed/SocialFeed";
  * Core engagement hub for Nile Mart social commerce experience
  */
 export default function Feed() {
-  const { themeStyles, theme } = useTheme();
-  const isDark = theme === "dark";
-
   return (
-    <View
-      style={[styles.container, { backgroundColor: themeStyles.background }]}
-    >
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
+      <StatusBar style="dark" />
 
       {/* Nile Miles display - floating on top */}
       <View style={styles.milesContainer}>

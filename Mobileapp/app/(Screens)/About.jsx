@@ -19,13 +19,13 @@ const { width } = Dimensions.get("window");
 const About = () => {
   // Premium African marketplace theme
   const premiumColors = {
-    primary: "#fbbf24", // amber-400
-    secondary: "#d97706", // amber-600
-    accent: "#10b981", // emerald-500
-    background: "#0f172a", // slate-900
-    surface: "#1e293b", // slate-800
-    text: "#f8fafc", // slate-50
-    textSecondary: "#cbd5e1", // slate-300
+    primary: "#D97706", // amber-600 on white
+    secondary: "#B45309", // amber-700
+    accent: "#16A34A", // green-600
+    background: "#FFFFFF",
+    surface: "#F9FAFB",
+    text: "#111827",
+    textSecondary: "#6B7280",
   };
 
   const stats = [
@@ -101,10 +101,7 @@ const About = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0f172a"]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
@@ -112,18 +109,15 @@ const About = () => {
         >
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <LinearGradient
-              colors={["rgba(251, 191, 36, 0.1)", "rgba(217, 119, 6, 0.05)"]}
-              style={styles.premiumBadge}
-            >
+            <View style={styles.premiumBadge}>
               <MaterialIcons
                 name="star"
                 size={18}
                 color={premiumColors.primary}
               />
               <Text style={styles.badgeText}>Our Story</Text>
-              <MaterialIcons name="auto-awesome" size={16} color="#fde047" />
-            </LinearGradient>
+              <MaterialIcons name="auto-awesome" size={16} color="#D97706" />
+            </View>
 
             <Text style={styles.heroTitle}>
               About <Text style={styles.heroTitleAccent}>Nile Flow</Text>
@@ -141,14 +135,9 @@ const About = () => {
             {/* Stats Grid */}
             <View style={styles.statsGrid}>
               {stats.map((stat, index) => (
-                <LinearGradient
+                <View
                   key={index}
-                  colors={
-                    index % 2 === 0
-                      ? ["rgba(251, 191, 36, 0.1)", "rgba(0, 0, 0, 0.1)"]
-                      : ["rgba(16, 185, 129, 0.1)", "rgba(0, 0, 0, 0.1)"]
-                  }
-                  style={styles.statCard}
+                  style={[styles.statCard, index % 2 === 0 ? { borderColor: "#FDE68A" } : { borderColor: "#BBF7D0" }]}
                 >
                   <MaterialIcons
                     name={stat.icon}
@@ -161,17 +150,14 @@ const About = () => {
                   />
                   <Text style={styles.statValue}>{stat.value}</Text>
                   <Text style={styles.statLabel}>{stat.label}</Text>
-                </LinearGradient>
+                </View>
               ))}
             </View>
           </View>
 
           {/* Mission & Vision */}
           <View style={styles.sectionContainer}>
-            <LinearGradient
-              colors={["rgba(251, 191, 36, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-              style={styles.missionCard}
-            >
+            <View style={styles.missionCard}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={[premiumColors.primary, premiumColors.secondary]}
@@ -191,12 +177,9 @@ const About = () => {
                 products, connecting talented artisans with discerning global
                 customers while preserving Africa's rich cultural heritage.
               </Text>
-            </LinearGradient>
+            </View>
 
-            <LinearGradient
-              colors={["rgba(16, 185, 129, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-              style={styles.visionCard}
-            >
+            <View style={styles.visionCard}>
               <View style={styles.sectionHeader}>
                 <LinearGradient
                   colors={[premiumColors.accent, "#059669"]}
@@ -216,7 +199,7 @@ const About = () => {
                 purchase tells a story of craftsmanship, heritage, and quality
                 worldwide.
               </Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Core Values */}
@@ -228,29 +211,22 @@ const About = () => {
 
             <View style={styles.valuesGrid}>
               {values.map((value, index) => (
-                <LinearGradient
+                <View
                   key={index}
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
                   style={styles.valueCard}
                 >
-                  <LinearGradient
-                    colors={[
-                      `${premiumColors.primary}20`,
-                      `${premiumColors.secondary}20`,
-                    ]}
-                    style={styles.valueIcon}
-                  >
+                  <View style={styles.valueIcon}>
                     <MaterialIcons
                       name={value.icon}
                       size={20}
                       color={premiumColors.primary}
                     />
-                  </LinearGradient>
+                  </View>
                   <Text style={styles.valueTitle}>{value.title}</Text>
                   <Text style={styles.valueDescription}>
                     {value.description}
                   </Text>
-                </LinearGradient>
+                </View>
               ))}
             </View>
           </View>
@@ -265,9 +241,8 @@ const About = () => {
 
             <View style={styles.teamGrid}>
               {teamMembers.map((member, index) => (
-                <LinearGradient
+                <View
                   key={index}
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
                   style={styles.teamCard}
                 >
                   <View style={styles.memberAvatar}>
@@ -277,18 +252,15 @@ const About = () => {
                   </View>
                   <Text style={styles.memberName}>{member.name}</Text>
                   <Text style={styles.memberRole}>{member.role}</Text>
-                  <LinearGradient
-                    colors={["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]}
-                    style={styles.memberRegion}
-                  >
+                  <View style={styles.memberRegion}>
                     <MaterialIcons
                       name="location-on"
                       size={12}
                       color={premiumColors.accent}
                     />
                     <Text style={styles.memberRegionText}>{member.region}</Text>
-                  </LinearGradient>
-                </LinearGradient>
+                  </View>
+                </View>
               ))}
             </View>
           </View>
@@ -307,16 +279,10 @@ const About = () => {
                   Linking.openURL("mailto:support@nileflowafrica.com")
                 }
               >
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                  style={styles.contactCardInner}
-                >
-                  <LinearGradient
-                    colors={["#3b82f6", "#1d4ed8"]}
-                    style={styles.contactIcon}
-                  >
-                    <MaterialIcons name="email" size={20} color="white" />
-                  </LinearGradient>
+                <View style={styles.contactCardInner}>
+                  <View style={[styles.contactIcon, { backgroundColor: "#EFF6FF" }]}>
+                    <MaterialIcons name="email" size={20} color="#3B82F6" />
+                  </View>
                   <Text style={styles.contactTitle}>Email Support</Text>
                   <Text style={styles.contactValue}>
                     support@nileflowafrica.com
@@ -324,46 +290,34 @@ const About = () => {
                   <Text style={styles.contactDescription}>
                     24/7 Premium Support
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.contactCard}
                 onPress={() => Linking.openURL("tel:+254703115359")}
               >
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                  style={styles.contactCardInner}
-                >
-                  <LinearGradient
-                    colors={[premiumColors.accent, "#059669"]}
-                    style={styles.contactIcon}
-                  >
-                    <MaterialIcons name="phone" size={20} color="white" />
-                  </LinearGradient>
+                <View style={styles.contactCardInner}>
+                  <View style={[styles.contactIcon, { backgroundColor: "#DCFCE7" }]}>
+                    <MaterialIcons name="phone" size={20} color={premiumColors.accent} />
+                  </View>
                   <Text style={styles.contactTitle}>Phone Support</Text>
                   <Text style={styles.contactValue}>+254 703 115 359</Text>
                   <Text style={styles.contactDescription}>Available 24/7</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <View style={styles.contactCard}>
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                  style={styles.contactCardInner}
-                >
-                  <LinearGradient
-                    colors={["#ef4444", "#dc2626"]}
-                    style={styles.contactIcon}
-                  >
-                    <MaterialIcons name="location-on" size={20} color="white" />
-                  </LinearGradient>
+                <View style={styles.contactCardInner}>
+                  <View style={[styles.contactIcon, { backgroundColor: "#FEF2F2" }]}>
+                    <MaterialIcons name="location-on" size={20} color="#EF4444" />
+                  </View>
                   <Text style={styles.contactTitle}>Headquarters</Text>
                   <Text style={styles.contactValue}>Nairobi, Kenya</Text>
                   <Text style={styles.contactDescription}>
                     Premium Showroom
                   </Text>
-                </LinearGradient>
+                </View>
               </View>
             </View>
           </View>
@@ -376,10 +330,7 @@ const About = () => {
             </Text>
 
             <View style={styles.appInfoGrid}>
-              <LinearGradient
-                colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                style={styles.appInfoCard}
-              >
+              <View style={styles.appInfoCard}>
                 <View style={styles.appInfoHeader}>
                   <MaterialIcons
                     name="diamond"
@@ -391,27 +342,18 @@ const About = () => {
                     <Text style={styles.appInfoSubtitle}>Premium Edition</Text>
                   </View>
                 </View>
-                <LinearGradient
-                  colors={[
-                    `${premiumColors.primary}40`,
-                    `${premiumColors.secondary}30`,
-                  ]}
-                  style={styles.versionBadge}
-                >
+                <View style={styles.versionBadge}>
                   <Text style={styles.versionText}>
                     v{Constants.expoConfig?.version || "1.5.2"}
                   </Text>
-                </LinearGradient>
-              </LinearGradient>
+                </View>
+              </View>
 
               <TouchableOpacity
                 style={styles.appInfoCard}
                 onPress={openPrivacyPolicy}
               >
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                  style={styles.appInfoCardInner}
-                >
+                <View style={styles.appInfoCardInner}>
                   <View style={styles.appInfoHeader}>
                     <MaterialIcons
                       name="security"
@@ -428,15 +370,12 @@ const About = () => {
                     </View>
                   </View>
                   <Text style={styles.privacyLink}>View Policy →</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
-              <LinearGradient
-                colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                style={styles.appInfoCard}
-              >
+              <View style={styles.appInfoCard}>
                 <View style={styles.appInfoHeader}>
-                  <MaterialIcons name="trending-up" size={24} color="#3b82f6" />
+                  <MaterialIcons name="trending-up" size={24} color="#3B82F6" />
                   <View style={styles.appInfoHeaderText}>
                     <Text style={styles.appInfoTitle}>Latest Update</Text>
                     <Text style={styles.appInfoSubtitle}>
@@ -445,14 +384,11 @@ const About = () => {
                   </View>
                 </View>
                 <Text style={styles.updateDate}>Jan 2026</Text>
-              </LinearGradient>
+              </View>
             </View>
 
             {/* App Features */}
-            <LinearGradient
-              colors={["rgba(30, 41, 59, 0.6)", "rgba(15, 23, 42, 0.6)"]}
-              style={styles.featuresContainer}
-            >
+            <View style={styles.featuresContainer}>
               <Text style={styles.featuresTitle}>Premium App Features</Text>
               <View style={styles.featuresGrid}>
                 <View style={styles.featureItem}>
@@ -480,15 +416,12 @@ const About = () => {
                   <Text style={styles.featureText}>Fast Delivery</Text>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Final CTA */}
           <View style={styles.ctaSection}>
-            <LinearGradient
-              colors={["rgba(251, 191, 36, 0.1)", "rgba(16, 185, 129, 0.1)"]}
-              style={styles.ctaCard}
-            >
+            <View style={styles.ctaCard}>
               <Text style={styles.ctaTitle}>Join Our African Journey</Text>
               <Text style={styles.ctaDescription}>
                 Be part of a movement that celebrates African craftsmanship and
@@ -501,14 +434,11 @@ const About = () => {
                     Alert.alert("Shop", "Redirecting to premium products...")
                   }
                 >
-                  <LinearGradient
-                    colors={[premiumColors.primary, premiumColors.secondary]}
-                    style={styles.primaryButtonGradient}
-                  >
+                  <View style={styles.primaryButtonGradient}>
                     <Text style={styles.primaryButtonText}>
                       Shop Premium Products
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.secondaryButton}
@@ -519,11 +449,11 @@ const About = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -553,39 +483,40 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
   },
   badgeText: {
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     marginHorizontal: 8,
     fontSize: 14,
   },
   heroTitle: {
     fontSize: width > 400 ? 36 : 32,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 8,
-    color: "#f8fafc",
+    color: "#14532D",
   },
   heroTitleAccent: {
-    background: "linear-gradient(to right, #fbbf24, #fde047)",
-    color: "#fbbf24",
+    color: "#16A34A",
   },
   heroSubtitle: {
     fontSize: 20,
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     textAlign: "center",
     marginBottom: 16,
   },
   heroDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
     paddingHorizontal: 20,
+    fontFamily: "Poppins-Regular",
   },
   statsGrid: {
     flexDirection: "row",
@@ -600,19 +531,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   statValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginTop: 4,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   // Section Containers
   sectionContainer: {
@@ -621,16 +554,17 @@ const styles = StyleSheet.create({
   },
   mainSectionTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     textAlign: "center",
     marginBottom: 8,
   },
   mainSectionSubtitle: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   // Mission & Vision Cards
   missionCard: {
@@ -638,13 +572,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
   },
   visionCard: {
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -664,17 +600,19 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   sectionDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#374151",
     lineHeight: 24,
+    fontFamily: "Poppins-Regular",
   },
   // Values Grid
   valuesGrid: {
@@ -688,7 +626,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   valueIcon: {
     width: 48,
@@ -698,18 +637,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
   },
   valueTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#D97706",
     marginBottom: 8,
   },
   valueDescription: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   // Team Grid
   teamGrid: {
@@ -724,13 +665,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   memberAvatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#fbbf24",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -740,15 +682,15 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
     textAlign: "center",
     marginBottom: 4,
   },
   memberRole: {
     fontSize: 14,
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -759,12 +701,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   memberRegionText: {
     fontSize: 12,
-    color: "#10b981",
+    color: "#16A34A",
     marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
   // Contact Grid
   contactGrid: {
@@ -778,7 +722,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   contactIcon: {
     width: 40,
@@ -787,22 +732,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
+    backgroundColor: "#FFFBEB",
   },
   contactTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
     marginBottom: 4,
   },
   contactValue: {
     fontSize: 16,
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     marginBottom: 4,
   },
   contactDescription: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   // App Info Grid
   appInfoGrid: {
@@ -816,7 +763,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   appInfoHeader: {
     flexDirection: "row",
@@ -829,12 +777,13 @@ const styles = StyleSheet.create({
   },
   appInfoTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
   },
   appInfoSubtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   versionBadge: {
     paddingHorizontal: 12,
@@ -842,21 +791,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
   },
   versionText: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#D97706",
   },
   privacyLink: {
     fontSize: 16,
-    color: "#10b981",
-    fontWeight: "600",
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
   },
   updateDate: {
     fontSize: 14,
-    color: "#3b82f6",
+    color: "#3B82F6",
+    fontFamily: "Poppins-Regular",
   },
   // Features
   featuresContainer: {
@@ -864,12 +815,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   featuresTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#D97706",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -886,8 +838,9 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#374151",
     marginLeft: 8,
+    fontFamily: "Poppins-Regular",
   },
   // CTA Section
   ctaSection: {
@@ -898,21 +851,23 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   ctaTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     textAlign: "center",
     marginBottom: 12,
   },
   ctaDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   ctaButtons: {
     gap: 12,
@@ -926,15 +881,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: "center",
     borderRadius: 12,
+    backgroundColor: "#16A34A",
   },
   primaryButtonText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#ffffff",
   },
   secondaryButton: {
     borderWidth: 2,
-    borderColor: "rgba(251, 191, 36, 0.5)",
+    borderColor: "#16A34A",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -942,7 +898,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#16A34A",
   },
 });

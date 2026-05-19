@@ -2,7 +2,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -18,8 +17,6 @@ import {
 } from "react-native";
 import axiosClient from "../../api";
 
-import { useTheme } from "../../Context/ThemeProvider";
-
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
 
@@ -33,12 +30,12 @@ const CategoryDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("grid");
 
-  const { theme } = useTheme();
   const router = useRouter();
-  const isDark = theme === "dark";
 
   useEffect(() => {
-    loadData();
+    if (categoryId) {
+      loadData();
+    }
   }, [categoryId]);
 
   const loadData = async () => {
@@ -92,24 +89,32 @@ const CategoryDetailsScreen = () => {
     }
   };
 
-  const handleSubcategoryClick = (subId) => {
+  const handleSubcategoryClick = async (subId) => {
     setSelectedSubcategory(subId);
 
     if (!subId) {
       // Show all products
       setProducts(allProducts);
-      console.log("✅ Showing all products:", allProducts.length);
     } else {
-      // Filter products by subcategory
-      const filtered = allProducts.filter(
-        (product) =>
-          product.subcategoryId === subId || product.subcategory === subId,
-      );
-      setProducts(filtered);
-      console.log(
-        `✅ Filtered products for subcategory ${subId}:`,
-        filtered.length,
-      );
+      setLoading(true);
+      try {
+        const response = await axiosClient.get(
+          `/api/customerprofile/fetch-product-mobile`,
+          {
+            params: { category: categoryId, subcategoryId: subId, limit: 100 },
+          },
+        );
+        if (response.data.success) {
+          setProducts(response.data.products || []);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error("Error fetching subcategory products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -144,10 +149,7 @@ const CategoryDetailsScreen = () => {
         })
       }
     >
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.9)", "rgba(0, 0, 0, 0.9)"]}
-        style={styles.productGradient}
-      >
+      <View style={styles.productGradient}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
           <Image
@@ -160,21 +162,12 @@ const CategoryDetailsScreen = () => {
             transition={200}
             recyclingKey={`cat-item-${item.$id || item.id}`}
           />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.8)"]}
-            style={styles.imageOverlay}
-          />
 
           {/* Premium Badge */}
-          <LinearGradient
-            colors={["#F59E0B", "#D97706"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.premiumBadge}
-          >
+          <View style={styles.premiumBadge}>
             <Ionicons name="trophy" size={12} color="#FFF" />
             <Text style={styles.premiumText}>Premium</Text>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Product Info */}
@@ -211,10 +204,10 @@ const CategoryDetailsScreen = () => {
             }
           >
             <Text style={styles.addButtonText}>View Details</Text>
-            <Ionicons name="arrow-forward" size={14} color="#000" />
+            <Ionicons name="arrow-forward" size={14} color="#111827" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -231,30 +224,24 @@ const CategoryDetailsScreen = () => {
         ListHeaderComponent={
           <>
             {/* Header */}
-            <LinearGradient
-              colors={
-                isDark
-                  ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-                  : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.header}
+            <View
+              style={[
+                styles.header,
+                {
+                  backgroundColor: "#FFFFFF",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#E5E7EB",
+                },
+              ]}
             >
               <View style={styles.headerRow}>
                 <View style={styles.headerInfo}>
-                  <LinearGradient
-                    colors={[
-                      "rgba(245, 158, 11, 0.3)",
-                      "rgba(16, 185, 129, 0.3)",
-                    ]}
-                    style={styles.premiumTag}
-                  >
-                    <Ionicons name="sparkles" size={14} color="#FCD34D" />
+                  <View style={styles.premiumTag}>
+                    <Ionicons name="sparkles" size={14} color="#D97706" />
                     <Text style={styles.premiumTagText}>
                       Premium Collection
                     </Text>
-                  </LinearGradient>
+                  </View>
 
                   <Text style={styles.categoryTitle} numberOfLines={2}>
                     {categoryDetails?.name || categoryName || "Loading..."}
@@ -291,7 +278,7 @@ const CategoryDetailsScreen = () => {
                   </View>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Subcategories Bar */}
             {subcategories.length > 0 && (
@@ -317,12 +304,6 @@ const CategoryDetailsScreen = () => {
                       !selectedSubcategory && styles.subcategoryButtonActive,
                     ]}
                   >
-                    {!selectedSubcategory && (
-                      <LinearGradient
-                        colors={["#F59E0B", "#D97706"]}
-                        style={StyleSheet.absoluteFill}
-                      />
-                    )}
                     <Text
                       style={[
                         styles.subcategoryText,
@@ -343,12 +324,6 @@ const CategoryDetailsScreen = () => {
                           styles.subcategoryButtonActive,
                       ]}
                     >
-                      {selectedSubcategory === sub.$id && (
-                        <LinearGradient
-                          colors={["#F59E0B", "#D97706"]}
-                          style={StyleSheet.absoluteFill}
-                        />
-                      )}
                       <Text
                         style={[
                           styles.subcategoryText,
@@ -358,7 +333,7 @@ const CategoryDetailsScreen = () => {
                       >
                         {sub.name}
                       </Text>
-                      <Ionicons name="flash" size={12} color="#FCD34D" />
+                      <Ionicons name="flash" size={12} color="#D97706" />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -397,7 +372,7 @@ const CategoryDetailsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   listContent: {
     paddingBottom: 100,
@@ -418,7 +393,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -434,30 +409,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
     marginBottom: 12,
     gap: 6,
   },
   premiumTagText: {
-    color: "#FCD34D",
+    color: "#D97706",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   categoryTitle: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginBottom: 8,
   },
   categoryDescription: {
     fontSize: 14,
-    color: "#D1D5DB",
+    color: "#374151",
     marginBottom: 4,
   },
   productCount: {
     fontSize: 12,
-    color: "#FCD34D",
-    opacity: 0.7,
+    color: "#D97706",
+    opacity: 0.9,
     marginBottom: 12,
   },
   statsRow: {
@@ -468,16 +444,16 @@ const styles = StyleSheet.create({
   statBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 6,
   },
   statText: {
-    color: "#F3F4F6",
+    color: "#374151",
     fontSize: 11,
   },
   subcategoriesSection: {
@@ -492,12 +468,12 @@ const styles = StyleSheet.create({
   },
   subcategoriesTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   subcategoriesSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
   },
   subcategoriesScroll: {
     gap: 12,
@@ -506,30 +482,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 16,
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    overflow: "hidden",
   },
   subcategoryButtonActive: {
-    borderColor: "#F59E0B",
-    shadowColor: "#F59E0B",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: "#16A34A",
+    borderColor: "#16A34A",
   },
   subcategoryText: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#D1D5DB",
+    fontFamily: "Poppins-Medium",
+    color: "#374151",
   },
   subcategoryTextActive: {
     color: "#FFF",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   row: {
     justifyContent: "space-between",
@@ -540,12 +511,18 @@ const styles = StyleSheet.create({
     width: cardWidth,
     borderRadius: 24,
     overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   productGradient: {
     flex: 1,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
     overflow: "hidden",
   },
   imageContainer: {
@@ -569,19 +546,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
     gap: 4,
+    backgroundColor: "#D97706",
   },
   premiumText: {
     color: "#FFF",
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
   },
   productInfo: {
     padding: 12,
+    backgroundColor: "#FFFFFF",
   },
   productName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFF",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 8,
   },
   priceRow: {
@@ -592,8 +571,8 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
   },
   ratingContainer: {
     flexDirection: "row",
@@ -602,23 +581,25 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: "#D1D5DB",
-    fontWeight: "600",
+    color: "#6B7280",
+    fontFamily: "Poppins-SemiBold",
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#F0FDF4",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     gap: 6,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
   addButtonText: {
-    color: "#000",
+    color: "#14532D",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   loadingContainer: {
     alignItems: "center",
@@ -627,13 +608,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginTop: 16,
   },
   loadingSubtext: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 8,
   },
   emptyContainer: {
@@ -646,22 +627,22 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#FFFBEB",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#FDE68A",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFF",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
   },

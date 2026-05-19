@@ -235,10 +235,7 @@ const HelpCenter = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Section */}
-        <LinearGradient
-          colors={["#1e293b", "#334155", "#475569"]}
-          style={styles.heroSection}
-        >
+        <View style={styles.heroSection}>
           <View style={styles.premiumBadge}>
             <Text style={styles.badgeText}>❓ Premium Support Center ✨</Text>
           </View>
@@ -299,8 +296,7 @@ const HelpCenter = () => {
               </View>
             ))}
           </View>
-        </LinearGradient>
-
+        </View>
         {/* FAQ Categories */}
         <View style={styles.faqSection}>
           <View style={styles.sectionHeader}>
@@ -639,48 +635,52 @@ export default HelpCenter;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   heroSection: {
     paddingHorizontal: 20,
     paddingVertical: 30,
     alignItems: "center",
     marginBottom: 20,
+    backgroundColor: "#F0FDF4",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BBF7D0",
   },
   premiumBadge: {
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#FFFBEB",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#FDE68A",
     marginBottom: 20,
   },
   badgeText: {
-    color: "#fbbf24",
+    color: "#D97706",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   heroTitle: {
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   gradientText: {
-    color: "#fbbf24",
+    color: "#14532D",
   },
   heroSubtitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#16A34A",
+    fontFamily: "Poppins-Bold",
     marginBottom: 16,
     textAlign: "center",
   },
   heroDescription: {
-    color: "#d1d5db",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 30,
     paddingHorizontal: 10,
+    fontFamily: "Poppins-Regular",
   },
   searchContainer: {
     width: "100%",
@@ -688,10 +688,10 @@ const styles = StyleSheet.create({
   },
   searchInputContainer: {
     flexDirection: "row",
-    backgroundColor: "rgba(31, 41, 55, 0.9)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     overflow: "hidden",
   },
   searchIcon: {
@@ -700,16 +700,17 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     paddingVertical: 12,
-    color: "#fbbf24",
+    color: "#111827",
+    fontFamily: "Poppins-Regular",
   },
   searchButton: {
-    backgroundColor: "rgba(217, 119, 6, 0.9)",
+    backgroundColor: "#16A34A",
     paddingHorizontal: 20,
     justifyContent: "center",
   },
   searchButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-SemiBold",
   },
   statsGrid: {
     flexDirection: "row",
@@ -718,23 +719,25 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     width: "48%",
     marginBottom: 12,
     alignItems: "center",
     borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   statValue: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   statLabel: {
-    color: "#d1d5db",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   faqSection: {
     paddingHorizontal: 20,
@@ -747,34 +750,37 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   sectionSubtitle: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   premiumIndicator: {
     flexDirection: "row",
     alignItems: "center",
   },
   premiumText: {
-    color: "#f59e0b",
+    color: "#D97706",
     fontSize: 12,
     marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
   faqGrid: {
     gap: 20,
   },
   faqCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   faqCardHeader: {
     padding: 20,
+    backgroundColor: "#F0FDF4",
   },
   faqCardHeaderContent: {
     flexDirection: "row",
@@ -784,12 +790,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: "#BBF7D0",
   },
   faqCardIconText: {
     fontSize: 20,
@@ -798,12 +804,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   faqCardTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   faqCardSubtitle: {
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   faqCardContent: {
     padding: 20,
@@ -813,7 +820,7 @@ const styles = StyleSheet.create({
   },
   faqItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(217, 119, 6, 0.3)",
+    borderBottomColor: "#E5E7EB",
     paddingBottom: 20,
   },
   questionContainer: {
@@ -825,22 +832,22 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#FFFBEB",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#FDE68A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
     marginTop: 2,
   },
   questionIconText: {
-    color: "#f59e0b",
+    color: "#D97706",
     fontSize: 12,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   questionText: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
     flex: 1,
   },
   answerContainer: {
@@ -851,65 +858,67 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "rgba(16, 185, 129, 0.3)",
+    backgroundColor: "#DCFCE7",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.5)",
+    borderColor: "#BBF7D0",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
     marginTop: 2,
   },
   answerIconText: {
-    color: "#10b981",
+    color: "#16A34A",
     fontSize: 12,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   answerText: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     flex: 1,
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 12,
     marginTop: 20,
   },
   viewAllButtonText: {
-    color: "#f59e0b",
+    color: "#16A34A",
     marginRight: 8,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   contactSection: {
     paddingHorizontal: 20,
     marginBottom: 30,
   },
   contactTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 8,
   },
   contactSubtitle: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     textAlign: "center",
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   contactGrid: {
     gap: 20,
   },
   contactCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 24,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   contactCardIcon: {
     width: 64,
@@ -923,29 +932,30 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   contactCardTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   contactCardDescription: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     textAlign: "center",
     marginBottom: 16,
+    fontFamily: "Poppins-Regular",
   },
   contactCardDetails: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFBEB",
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     width: "100%",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#FDE68A",
   },
   contactCardDetailsText: {
-    color: "#fbbf24",
+    color: "#D97706",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   contactCardButton: {
     width: "100%",
@@ -959,14 +969,15 @@ const styles = StyleSheet.create({
   },
   contactCardButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   premiumFeaturesSection: {
     margin: 20,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   premiumFeaturesContent: {
     alignItems: "center",
@@ -976,15 +987,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   premiumFeaturesTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   premiumFeaturesDescription: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
+    fontFamily: "Poppins-Regular",
   },
   featuresGrid: {
     flexDirection: "row",
@@ -1001,7 +1013,8 @@ const styles = StyleSheet.create({
   },
   featureText: {
     marginLeft: 8,
-    color: "#d1d5db",
+    color: "#374151",
+    fontFamily: "Poppins-Regular",
   },
   awardContainer: {
     position: "relative",
@@ -1011,7 +1024,7 @@ const styles = StyleSheet.create({
     width: 128,
     height: 128,
     borderRadius: 24,
-    backgroundColor: "rgba(217, 119, 6, 0.9)",
+    backgroundColor: "#D97706",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1025,7 +1038,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(16, 185, 129, 0.9)",
+    backgroundColor: "#16A34A",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -1036,7 +1049,7 @@ const styles = StyleSheet.create({
   },
   awardBadgeText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   resourcesSection: {
@@ -1046,11 +1059,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   resourceCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   resourceHeader: {
     flexDirection: "row",
@@ -1072,17 +1085,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resourceTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   resourceSubtitle: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   resourceDescription: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     marginBottom: 16,
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   resourceButton: {
     borderWidth: 1,
@@ -1091,6 +1106,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   resourceButtonText: {
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
 });

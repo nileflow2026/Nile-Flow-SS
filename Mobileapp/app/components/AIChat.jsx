@@ -13,13 +13,10 @@ import {
   View,
 } from "react-native";
 import { useGlobalContext } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 import aiChatService from "../../utils/aiChatService";
 
 const AIChat = ({ showChat = false, onClose }) => {
   const { user } = useGlobalContext();
-  const { themeStyles, theme } = useTheme();
-  const isDark = theme === "dark";
 
   const [open, setOpen] = useState(showChat);
   const [messages, setMessages] = useState([
@@ -111,14 +108,8 @@ const AIChat = ({ showChat = false, onClose }) => {
 
   const renderMessage = ({ item }) => {
     const isUser = item.role === "user";
-    const bgColor = isUser
-      ? isDark
-        ? "#1e40af"
-        : "#3b82f6"
-      : isDark
-        ? "#374151"
-        : "#e5e7eb";
-    const textColor = isUser ? "#fff" : isDark ? "#f3f4f6" : "#1f2937";
+    const bgColor = isUser ? "#16A34A" : "#F0FDF4";
+    const textColor = isUser ? "#fff" : "#1F2937";
 
     return (
       <View
@@ -169,29 +160,14 @@ const AIChat = ({ showChat = false, onClose }) => {
     <>
       {/* Chat Window Container - Only visible when open */}
       {open && (
-        <View
-          style={[
-            styles.chatWindow,
-            { backgroundColor: isDark ? "#0f172a" : "#f8fafc" },
-          ]}
-        >
+        <View style={[styles.chatWindow, { backgroundColor: "#FFFFFF" }]}>
           {/* Header */}
-          <View
-            style={[
-              styles.header,
-              { backgroundColor: isDark ? "#1e293b" : "#ffffff" },
-            ]}
-          >
+          <View style={[styles.header, { backgroundColor: "#F0FDF4" }]}>
             <View>
-              <Text style={[styles.headerTitle, { color: themeStyles.text }]}>
+              <Text style={[styles.headerTitle, { color: "#14532D" }]}>
                 🤖 Nile AI Assistant
               </Text>
-              <Text
-                style={[
-                  styles.headerSubtitle,
-                  { color: themeStyles.textSecondary },
-                ]}
-              >
+              <Text style={[styles.headerSubtitle, { color: "#6B7280" }]}>
                 Always here to help
               </Text>
             </View>
@@ -228,12 +204,12 @@ const AIChat = ({ showChat = false, onClose }) => {
                   key={index}
                   style={[
                     styles.suggestionButton,
-                    { backgroundColor: isDark ? "#1e293b" : "#f1f5f9" },
+                    { backgroundColor: "#F0FDF4" },
                   ]}
                   onPress={() => handleSendMessage(suggestion.message)}
                 >
                   <Text
-                    style={[styles.suggestionText, { color: themeStyles.text }]}
+                    style={[styles.suggestionText, { color: "#14532D" }]}
                     numberOfLines={2}
                   >
                     {suggestion.label}
@@ -246,16 +222,8 @@ const AIChat = ({ showChat = false, onClose }) => {
           {/* Loading Indicator */}
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator
-                size="small"
-                color={isDark ? "#3b82f6" : "#1e40af"}
-              />
-              <Text
-                style={[
-                  styles.loadingText,
-                  { color: themeStyles.textSecondary },
-                ]}
-              >
+              <ActivityIndicator size="small" color="#16A34A" />
+              <Text style={[styles.loadingText, { color: "#6B7280" }]}>
                 Assistant is typing...
               </Text>
             </View>
@@ -264,22 +232,19 @@ const AIChat = ({ showChat = false, onClose }) => {
           {/* Input Area */}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={[
-              styles.inputContainer,
-              { backgroundColor: isDark ? "#1e293b" : "#ffffff" },
-            ]}
+            style={[styles.inputContainer, { backgroundColor: "#FFFFFF" }]}
           >
             <TextInput
               style={[
                 styles.input,
                 {
-                  color: themeStyles.text,
-                  borderColor: isDark ? "#374151" : "#e5e7eb",
-                  backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+                  color: "#111827",
+                  borderColor: "#BBF7D0",
+                  backgroundColor: "#F0FDF4",
                 },
               ]}
               placeholder="Ask me anything..."
-              placeholderTextColor={themeStyles.textSecondary}
+              placeholderTextColor="#9CA3AF"
               value={input}
               onChangeText={setInput}
               editable={!loading}
@@ -304,10 +269,7 @@ const AIChat = ({ showChat = false, onClose }) => {
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => setOpen(!open)}
-        style={[
-          styles.fab,
-          { backgroundColor: isDark ? "#1e40af" : "#3b82f6" },
-        ]}
+        style={[styles.fab, { backgroundColor: "#16A34A" }]}
       >
         <Text style={styles.fabIcon}>{open ? "✕" : "🤖"}</Text>
         {!open && <Text style={styles.fabLabel}>Chat</Text>}
@@ -466,7 +428,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#16A34A",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,

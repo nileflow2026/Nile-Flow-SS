@@ -8,7 +8,6 @@ import {
 import { images } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -25,7 +24,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
 import FormField from "../../app/components/FormField";
-import { useTheme } from "../../Context/ThemeProvider";
 import CusttomButton from "../components/CusttomButton";
 
 const { width } = Dimensions.get("window");
@@ -38,11 +36,6 @@ const SignIn = () => {
   const [error, setError] = useState("");
   const logoWidth = width > 400 ? 180 : 140;
   const logoHeight = width > 400 ? 55 : 45;
-  const { theme, themeStyles } = useTheme();
-  const isDarkMode = theme === "dark";
-
-  const themedText = isDarkMode ? "text-white" : "text-black";
-
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -128,19 +121,33 @@ const SignIn = () => {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: "#111827", flex: 1 }}>
-      <LinearGradient
-        colors={["#111827", "#000000", "#111827"]}
-        style={{ flex: 1 }}
-      >
+    <SafeAreaView style={{ backgroundColor: "#FFFFFF", flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header Section */}
           <View className="px-4 pt-8 pb-6">
             <View className="items-center mb-8">
-              <View className="bg-amber-600/20 p-3 rounded-2xl border border-amber-700/30 mb-4">
-                <Ionicons name="shield-checkmark" size={24} color="#FCD34D" />
+              <View
+                style={{
+                  backgroundColor: "#F0FDF4",
+                  borderWidth: 1,
+                  borderColor: "#BBF7D0",
+                  padding: 12,
+                  borderRadius: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <Ionicons name="shield-checkmark" size={24} color="#16A34A" />
               </View>
-              <Text className="text-amber-200 font-medium text-sm tracking-wide mb-4">
+              <Text
+                style={{
+                  color: "#16A34A",
+                  fontWeight: "500",
+                  fontSize: 14,
+                  letterSpacing: 1,
+                  marginBottom: 16,
+                }}
+              >
                 Secure Access
               </Text>
               <Image
@@ -152,13 +159,21 @@ const SignIn = () => {
                   marginBottom: 16,
                 }}
               />
-              <Text className="text-white text-3xl font-bold text-center mb-2">
+              <Text className="text-gray-900 text-3xl font-bold text-center mb-2">
                 Welcome Back
               </Text>
-              <Text className="text-amber-200 text-xl font-bold text-center mb-4">
+              <Text
+                style={{
+                  color: "#16A34A",
+                  fontSize: 20,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  marginBottom: 16,
+                }}
+              >
                 African Marketplace
               </Text>
-              <Text className="text-gray-300 text-center text-base px-4 max-w-sm mx-auto">
+              <Text className="text-gray-500 text-center text-base px-4 max-w-sm mx-auto">
                 Access your exclusive collection of authentic African products
               </Text>
             </View>
@@ -166,18 +181,37 @@ const SignIn = () => {
 
           {/* Main Form Section */}
           <View className="px-4">
-            <View className="bg-gray-900/80 border border-amber-800/30 rounded-3xl overflow-hidden mb-8">
+            <View
+              style={{
+                backgroundColor: "#FFFFFF",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+                borderRadius: 24,
+                overflow: "hidden",
+                marginBottom: 32,
+              }}
+            >
               {/* Form Header */}
-              <View className="p-6 border-b border-amber-800/30">
+              <View className="p-6 border-b border-gray-100">
                 <View className="flex-row items-center mb-2">
-                  <View className="w-12 h-12 rounded-2xl bg-amber-600 items-center justify-center mr-3">
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 16,
+                      backgroundColor: "#16A34A",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                    }}
+                  >
                     <Ionicons name="crown" size={24} color="white" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-2xl font-bold text-amber-200">
+                    <Text className="text-2xl font-bold text-gray-900">
                       Sign In
                     </Text>
-                    <Text className="text-amber-100/70">
+                    <Text className="text-gray-500">
                       Access your Nile Flow account
                     </Text>
                   </View>
@@ -189,8 +223,8 @@ const SignIn = () => {
                 {/* Email Field */}
                 <View className="mb-6">
                   <View className="flex-row items-center mb-2">
-                    <Ionicons name="mail" size={16} color="#FCD34D" />
-                    <Text className="text-amber-100 font-medium ml-2">
+                    <Ionicons name="mail" size={16} color="#16A34A" />
+                    <Text className="text-gray-700 font-medium ml-2">
                       Email Address
                     </Text>
                   </View>
@@ -200,15 +234,15 @@ const SignIn = () => {
                     placeholder={"Enter your email address"}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    otherStyles={"border-amber-800/50 bg-gray-900/50"}
+                    otherStyles={"border-gray-200 bg-gray-50"}
                   />
                 </View>
 
                 {/* Password Field */}
                 <View className="mb-6">
                   <View className="flex-row items-center mb-2">
-                    <Ionicons name="lock-closed" size={16} color="#FCD34D" />
-                    <Text className="text-amber-100 font-medium ml-2">
+                    <Ionicons name="lock-closed" size={16} color="#16A34A" />
+                    <Text className="text-gray-700 font-medium ml-2">
                       Password
                     </Text>
                   </View>
@@ -220,7 +254,7 @@ const SignIn = () => {
                       }
                       placeholder={"Enter your password"}
                       secureTextEntry={!showPassword}
-                      otherStyles={"border-amber-800/50 bg-gray-900/50 pr-12"}
+                      otherStyles={"border-gray-200 bg-gray-50 pr-12"}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
@@ -230,7 +264,7 @@ const SignIn = () => {
                       <Ionicons
                         name={showPassword ? "eye-off" : "eye"}
                         size={20}
-                        color="#FCD34D"
+                        color="#6B7280"
                       />
                     </TouchableOpacity>
                   </View>
@@ -243,11 +277,17 @@ const SignIn = () => {
                     className="flex-row items-center mb-4"
                   >
                     <View
-                      className={`w-5 h-5 rounded border items-center justify-center mr-2 ${
-                        rememberMe
-                          ? "bg-amber-600 border-amber-500"
-                          : "border-amber-800/50"
-                      }`}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 8,
+                        backgroundColor: rememberMe ? "#16A34A" : "transparent",
+                        borderColor: rememberMe ? "#16A34A" : "#D1D5DB",
+                      }}
                     >
                       {rememberMe && (
                         <View className="w-2 h-2 rounded-full bg-white" />
@@ -255,8 +295,7 @@ const SignIn = () => {
                     </View>
                     <Text
                       style={{
-                        color: "#FCD34D",
-                        opacity: 0.8,
+                        color: "#374151",
                         fontSize: 14,
                         minWidth: 100,
                         flexShrink: 0,
@@ -275,7 +314,7 @@ const SignIn = () => {
                     }}
                   >
                     <Text
-                      style={{ color: "#FCD34D", fontSize: 14, minWidth: 120 }}
+                      style={{ color: "#16A34A", fontSize: 14, minWidth: 120 }}
                     >
                       Forgot password?
                     </Text>
@@ -284,14 +323,23 @@ const SignIn = () => {
 
                 {/* Error Message */}
                 {error ? (
-                  <View className="bg-red-900/30 border border-red-700/30 rounded-xl p-4 mb-6">
+                  <View
+                    style={{
+                      backgroundColor: "#FEF2F2",
+                      borderWidth: 1,
+                      borderColor: "#FECACA",
+                      borderRadius: 12,
+                      padding: 16,
+                      marginBottom: 24,
+                    }}
+                  >
                     <View className="flex-row items-center">
-                      <Ionicons
-                        name="shield-checkmark"
-                        size={20}
-                        color="#FCA5A5"
-                      />
-                      <Text className="text-red-200 ml-2 flex-1">{error}</Text>
+                      <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                      <Text
+                        style={{ color: "#DC2626", marginLeft: 8, flex: 1 }}
+                      >
+                        {error}
+                      </Text>
                     </View>
                   </View>
                 ) : null}
@@ -300,22 +348,21 @@ const SignIn = () => {
                 <CusttomButton
                   title={isSubmitting ? "Signing In..." : "Sign In"}
                   handlePress={submit}
-                  containerStyles={"mb-6 bg-amber-600"}
+                  containerStyles={"mb-6"}
                   isLoading={isSubmitting}
                 />
 
                 {/* Divider */}
                 <View className="mb-6">
                   <View className="flex-row items-center">
-                    <View className="flex-1 border-t border-amber-800/30" />
+                    <View className="flex-1 border-t border-gray-200" />
                     <View className="px-6">
                       <Text
                         style={{
-                          color: "#FCD34D",
-                          opacity: 0.5,
+                          color: "#6B7280",
                           fontSize: 14,
                           textAlign: "center",
-                          backgroundColor: "rgba(17, 24, 39, 0.8)",
+                          backgroundColor: "#FFFFFF",
                           minWidth: 120,
                           paddingHorizontal: 8,
                         }}
@@ -323,7 +370,7 @@ const SignIn = () => {
                         Or continue with
                       </Text>
                     </View>
-                    <View className="flex-1 border-t border-amber-800/30" />
+                    <View className="flex-1 border-t border-gray-200" />
                   </View>
                 </View>
 
@@ -331,12 +378,24 @@ const SignIn = () => {
                 <View className="flex-row gap-3 mb-6">
                   <TouchableOpacity
                     onPress={handleGoogleSignIn}
-                    className="flex-1 flex-row items-center justify-center bg-gray-900/50 border border-amber-800/30 rounded-xl py-4 px-4"
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#F9FAFB",
+                      borderWidth: 1,
+                      borderColor: "#E5E7EB",
+                      borderRadius: 12,
+                      paddingVertical: 16,
+                      paddingHorizontal: 16,
+                      gap: 8,
+                    }}
                   >
-                    <Ionicons name="logo-google" size={20} color="#60A5FA" />
+                    <Ionicons name="logo-google" size={20} color="#4285F4" />
                     <Text
                       style={{
-                        color: "#FCD34D",
+                        color: "#374151",
                         fontSize: 14,
                         fontWeight: "500",
                         minWidth: 60,
@@ -349,12 +408,24 @@ const SignIn = () => {
 
                   <TouchableOpacity
                     onPress={handleFacebookSignIn}
-                    className="flex-1 flex-row items-center justify-center bg-gray-900/50 border border-amber-800/30 rounded-xl py-4 px-4"
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#F9FAFB",
+                      borderWidth: 1,
+                      borderColor: "#E5E7EB",
+                      borderRadius: 12,
+                      paddingVertical: 16,
+                      paddingHorizontal: 16,
+                      gap: 8,
+                    }}
                   >
-                    <Ionicons name="logo-facebook" size={20} color="#A78BFA" />
+                    <Ionicons name="logo-facebook" size={20} color="#1877F2" />
                     <Text
                       style={{
-                        color: "#FCD34D",
+                        color: "#374151",
                         fontSize: 14,
                         fontWeight: "500",
                         minWidth: 70,
@@ -368,12 +439,15 @@ const SignIn = () => {
               </View>
 
               {/* Sign Up Link */}
-              <View className="p-6 border-t border-amber-800/30">
+              <View className="p-6 border-t border-gray-100">
                 <View className="flex-row items-center justify-center flex-wrap">
-                  <Text className="text-amber-100/70 mr-2 text-center">
+                  <Text className="text-gray-500 mr-2 text-center">
                     Don't have an account?
                   </Text>
-                  <Link href={"/sign-up"} className="text-amber-400 font-bold">
+                  <Link
+                    href={"/sign-up"}
+                    style={{ color: "#16A34A", fontWeight: "bold" }}
+                  >
                     Create Account
                   </Link>
                 </View>
@@ -381,7 +455,7 @@ const SignIn = () => {
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };

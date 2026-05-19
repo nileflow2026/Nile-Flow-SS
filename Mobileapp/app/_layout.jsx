@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import Constants from "expo-constants";
 import GlobalProvider from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
@@ -10,6 +11,7 @@ import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import { STRIPE_PUBLISH_KEY } from "../config/config";
@@ -23,8 +25,17 @@ import "../global.css";
 
 // Initialize Sentry as early as possible — before any navigation or providers
 Sentry.init({
-  dsn: process.env.SENTRY_DSN,
+  dsn: "https://913978e2e014e234568fdfd4ffc3b3e2@o4510430501666816.ingest.us.sentry.io/4511411561037824",
   environment: __DEV__ ? "development" : "production",
+  // Release tied to app version for Release Health tracking
+  release: `nile-flow@${Constants.expoConfig?.version ?? "1.0.0"}`,
+  dist: String(
+    Constants.expoConfig?.ios?.buildNumber ??
+      Constants.expoConfig?.android?.versionCode ??
+      "1",
+  ),
+  // Automatically track session start/end (crash-free users & sessions)
+  autoSessionTracking: true,
   // Capture 20% of sessions for performance tracing in production
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
   // Record replays for 100% of errors, 10% of sessions
@@ -41,14 +52,29 @@ SplashScreen.preventAutoHideAsync();
 function AppContent() {
   const router = useRouter();
 
+  const [fontsLoaded, fontError] = useFonts({
+    "Poppins-Thin": require("../assets/fonts/Poppins-Thin.ttf"),
+    "Poppins-ExtraLight": require("../assets/fonts/Poppins-ExtraLight.ttf"),
+    "Poppins-Light": require("../assets/fonts/Poppins-Light.ttf"),
+    "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
+    "Poppins-Medium": require("../assets/fonts/Poppins-Medium.ttf"),
+    "Poppins-SemiBold": require("../assets/fonts/Poppins-SemiBold.ttf"),
+    "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
+    "Poppins-ExtraBold": require("../assets/fonts/Poppins-ExtraBold.ttf"),
+    "Poppins-Black": require("../assets/fonts/Poppins-Black.ttf"),
+  });
+
   useEffect(() => {
     // Kick off currency detection immediately so it resolves before any
     // screen (Cart, Explore) tries to fetch data. initCurrency() is a
     // singleton — subsequent calls from screens return the same promise.
     initCurrency();
     initializeLanguage();
-    SplashScreen.hideAsync();
-  }, []);
+    // Only hide splash once fonts are ready (or errored out)
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
 
   // Handle case where app is opened from a killed state via notification tap
   useEffect(() => {
@@ -58,6 +84,9 @@ function AppContent() {
       }
     });
   }, []);
+
+  // Keep splash visible until fonts resolve
+  if (!fontsLoaded && !fontError) return null;
 
   return (
     <>
@@ -92,8 +121,12 @@ function RootLayout() {
           </StripeProvider>
         </ThemeProvider>
       </ErrorBoundary>
+
+      <StatusBar backgroundColor="auto" style="dark" />
     </GestureHandlerRootView>
   );
 }
 
 export default Sentry.wrap(RootLayout);
+
+// --- Currency Detection Logic ---

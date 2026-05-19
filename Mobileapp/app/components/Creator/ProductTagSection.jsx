@@ -25,7 +25,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 export default function ProductTagSection({
   taggedProducts,
@@ -38,9 +37,7 @@ export default function ProductTagSection({
   maxProducts,
   onSearchFocus,
 }) {
-  const { themeStyles } = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const isDark = themeStyles.name === "dark";
   const atLimit = maxProducts && taggedProducts.length >= maxProducts;
 
   return (
@@ -54,11 +51,9 @@ export default function ProductTagSection({
         }}
         activeOpacity={0.6}
       >
-        <ShoppingBag size={20} color={themeStyles.text} strokeWidth={1.5} />
+        <ShoppingBag size={20} color="#374151" strokeWidth={1.5} />
         <View style={s.headerText}>
-          <Text style={[s.title, { color: themeStyles.text }]}>
-            Tag Products
-          </Text>
+          <Text style={[s.title, { color: "#111827" }]}>Tag Products</Text>
           <Text style={s.subtitle}>Boost conversions by tagging items</Text>
         </View>
         {taggedProducts.length > 0 && (
@@ -119,15 +114,13 @@ export default function ProductTagSection({
                 style={[
                   s.searchRow,
                   {
-                    borderColor: isDark
-                      ? "rgba(255,255,255,0.1)"
-                      : "rgba(0,0,0,0.1)",
+                    borderColor: "rgba(0,0,0,0.1)",
                   },
                 ]}
               >
                 <Search size={16} color="#8E8E8E" />
                 <TextInput
-                  style={[s.searchInput, { color: themeStyles.text }]}
+                  style={[s.searchInput, { color: "#111827" }]}
                   placeholder="Search products…"
                   placeholderTextColor="#8E8E8E"
                   value={productQuery}
@@ -182,7 +175,7 @@ export default function ProductTagSection({
                         )}
                         <View style={s.resultInfo}>
                           <Text
-                            style={[s.resultName, { color: themeStyles.text }]}
+                            style={[s.resultName, { color: "#111827" }]}
                             numberOfLines={1}
                           >
                             {item.name}

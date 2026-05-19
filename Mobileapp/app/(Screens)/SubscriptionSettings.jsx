@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useStripe } from "@stripe/stripe-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -69,7 +68,7 @@ const SubscriptionSettings = () => {
           () => {
             // On timeout - status will be handled by useEffect
             console.log("Payment polling timed out");
-          }
+          },
         );
       }
     } else {
@@ -160,7 +159,7 @@ const SubscriptionSettings = () => {
         const { premiumService } = await import("../../utils/premiumService");
         const confirmResult = await premiumService.confirmPayment(
           paymentIntentId,
-          subscriptionId
+          subscriptionId,
         );
 
         if (confirmResult.success) {
@@ -173,19 +172,19 @@ const SubscriptionSettings = () => {
           Alert.alert(
             "Success!",
             "Payment successful! Your premium subscription is now active.",
-            [{ text: "OK", onPress: () => {} }]
+            [{ text: "OK", onPress: () => {} }],
           );
         } else {
           Alert.alert(
             "Error",
-            confirmResult.message || "Failed to activate subscription"
+            confirmResult.message || "Failed to activate subscription",
           );
         }
       } catch (confirmError) {
         console.error("❌ Payment confirmation error:", confirmError);
         Alert.alert(
           "Payment Processed",
-          "Payment was successful, but there was an issue activating your subscription. Please contact support."
+          "Payment was successful, but there was an issue activating your subscription. Please contact support.",
         );
       }
     } catch (error) {
@@ -212,12 +211,12 @@ const SubscriptionSettings = () => {
             } else {
               Alert.alert(
                 "Error",
-                result.message || "Failed to cancel subscription"
+                result.message || "Failed to cancel subscription",
               );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -229,7 +228,7 @@ const SubscriptionSettings = () => {
       setPhoneNumber("");
       Alert.alert(
         "Success",
-        "Payment successful! Your premium subscription is now active."
+        "Payment successful! Your premium subscription is now active.",
       );
       stopPolling();
     } else if (paymentStatus === "failed" || paymentStatus === "cancelled") {
@@ -242,7 +241,7 @@ const SubscriptionSettings = () => {
       setPaymentMessage("");
       Alert.alert(
         "Timeout",
-        "Payment verification timed out. Please check your subscription status."
+        "Payment verification timed out. Please check your subscription status.",
       );
       stopPolling();
     }
@@ -252,37 +251,49 @@ const SubscriptionSettings = () => {
     <TouchableOpacity
       style={[styles.benefitCard, gradient && styles.benefitCardShadow]}
     >
-      <LinearGradient
-        colors={gradient || ["#1f2937", "#111827"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.benefitGradient}
+      <View
+        style={[
+          styles.benefitGradient,
+          gradient
+            ? { backgroundColor: gradient[0] }
+            : { backgroundColor: "#F9FAFB" },
+        ]}
       >
         <View
           style={[styles.benefitIcon, gradient && styles.benefitIconGradient]}
         >
-          <LinearGradient
-            colors={gradient || ["#f59e0b", "#d97706"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.benefitIconInner}
+          <View
+            style={[
+              styles.benefitIconInner,
+              gradient
+                ? { backgroundColor: gradient[0] }
+                : { backgroundColor: "#D97706" },
+            ]}
           >
             <Ionicons name={icon} size={24} color="white" />
-          </LinearGradient>
+          </View>
         </View>
-        <Text style={styles.benefitTitle}>{title}</Text>
-        <Text style={styles.benefitDesc}>{desc}</Text>
-      </LinearGradient>
+        <Text
+          style={[styles.benefitTitle, gradient ? { color: "#FFFFFF" } : {}]}
+        >
+          {title}
+        </Text>
+        <Text
+          style={[
+            styles.benefitDesc,
+            gradient ? { color: "rgba(255,255,255,0.8)" } : {},
+          ]}
+        >
+          {desc}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <ScrollView style={styles.container}>
-        <LinearGradient
-          colors={["#f8fafc", "#f1f5f9"]}
-          style={styles.loadingCard}
-        >
+        <View style={styles.loadingCard}>
           <View style={styles.loadingContent}>
             <ActivityIndicator size="large" color="#3b82f6" />
             <View style={styles.loadingPlaceholders}>
@@ -293,7 +304,7 @@ const SubscriptionSettings = () => {
               </View>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </ScrollView>
     );
   }
@@ -305,14 +316,9 @@ const SubscriptionSettings = () => {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.headerIcon}>
-              <LinearGradient
-                colors={["#9333ea", "#3b82f6"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.headerIconGradient}
-              >
+              <View style={styles.headerIconGradient}>
                 <Ionicons name="diamond" size={32} color="white" />
-              </LinearGradient>
+              </View>
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>Premium Subscription</Text>
@@ -325,23 +331,17 @@ const SubscriptionSettings = () => {
           </View>
 
           {isPremium && (
-            <LinearGradient
-              colors={["#10b981", "#059669"]}
-              style={styles.activeStatus}
-            >
+            <View style={styles.activeStatus}>
               <Ionicons name="sparkles" size={16} color="white" />
               <Text style={styles.activeStatusText}>ACTIVE</Text>
-            </LinearGradient>
+            </View>
           )}
         </View>
 
         {isPremium ? (
           <View style={styles.content}>
             {/* Premium Status */}
-            <LinearGradient
-              colors={["rgba(16,185,129,0.2)", "rgba(5,150,105,0.1)"]}
-              style={styles.statusCard}
-            >
+            <View style={styles.statusCard}>
               <View style={styles.statusHeader}>
                 <View>
                   <Text style={styles.statusTitle}>Current Plan</Text>
@@ -358,7 +358,7 @@ const SubscriptionSettings = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Premium Benefits */}
             <View style={styles.benefitsSection}>
@@ -392,12 +392,9 @@ const SubscriptionSettings = () => {
             {/* Non-Premium Header */}
             <View style={styles.upgradeHeader}>
               <View style={styles.upgradeIconContainer}>
-                <LinearGradient
-                  colors={["#9333ea", "#3b82f6"]}
-                  style={styles.upgradeIcon}
-                >
+                <View style={styles.upgradeIcon}>
                   <Ionicons name="diamond" size={40} color="white" />
-                </LinearGradient>
+                </View>
               </View>
               <Text style={styles.upgradeTitle}>Upgrade to Premium</Text>
               <Text style={styles.upgradeSubtitle}>
@@ -437,10 +434,7 @@ const SubscriptionSettings = () => {
             </View>
 
             {/* Payment Section */}
-            <LinearGradient
-              colors={["rgba(147,51,234,0.2)", "rgba(59,130,246,0.1)"]}
-              style={styles.paymentSection}
-            >
+            <View style={styles.paymentSection}>
               <Text style={styles.paymentTitle}>Choose Payment Method</Text>
 
               <View style={styles.paymentMethods}>
@@ -451,13 +445,13 @@ const SubscriptionSettings = () => {
                     paymentMethod === "mpesa" && styles.paymentMethodSelected,
                   ]}
                 >
-                  <LinearGradient
-                    colors={
+                  <View
+                    style={[
+                      styles.paymentMethodInner,
                       paymentMethod === "mpesa"
-                        ? ["rgba(16,185,129,0.2)", "rgba(5,150,105,0.1)"]
-                        : ["rgba(31,41,55,0.5)", "rgba(0,0,0,0.5)"]
-                    }
-                    style={styles.paymentMethodInner}
+                        ? { backgroundColor: "#F0FDF4", borderColor: "#16A34A" }
+                        : {},
+                    ]}
                   >
                     <Text style={styles.paymentMethodIcon}>📱</Text>
                     <Text
@@ -473,10 +467,10 @@ const SubscriptionSettings = () => {
                       <Ionicons
                         name="checkmark-circle"
                         size={20}
-                        color="#10b981"
+                        color="#16A34A"
                       />
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -486,13 +480,13 @@ const SubscriptionSettings = () => {
                     paymentMethod === "stripe" && styles.paymentMethodSelected,
                   ]}
                 >
-                  <LinearGradient
-                    colors={
+                  <View
+                    style={[
+                      styles.paymentMethodInner,
                       paymentMethod === "stripe"
-                        ? ["rgba(147,51,234,0.2)", "rgba(79,70,229,0.1)"]
-                        : ["rgba(31,41,55,0.5)", "rgba(0,0,0,0.5)"]
-                    }
-                    style={styles.paymentMethodInner}
+                        ? { backgroundColor: "#F5F3FF", borderColor: "#7C3AED" }
+                        : {},
+                    ]}
                   >
                     <Text style={styles.paymentMethodIcon}>💳</Text>
                     <Text
@@ -508,10 +502,10 @@ const SubscriptionSettings = () => {
                       <Ionicons
                         name="checkmark-circle"
                         size={20}
-                        color="#9333ea"
+                        color="#7C3AED"
                       />
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -545,12 +539,7 @@ const SubscriptionSettings = () => {
                   stripeLoading && { opacity: 0.7 },
                 ]}
               >
-                <LinearGradient
-                  colors={["#9333ea", "#3b82f6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.subscribeButtonGradient}
-                >
+                <View style={styles.subscribeButtonGradient}>
                   {stripeLoading ? (
                     <ActivityIndicator size="small" color="white" />
                   ) : (
@@ -563,7 +552,7 @@ const SubscriptionSettings = () => {
                         ? "Pay with Stripe - 200 Ksh/month"
                         : "Subscribe Now - 200 Ksh/month"}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               {paymentMethod === "stripe" && !stripeLoading && (
@@ -571,7 +560,7 @@ const SubscriptionSettings = () => {
                   Secure payment with your card or mobile money
                 </Text>
               )}
-            </LinearGradient>
+            </View>
           </View>
         )}
       </View>
@@ -589,12 +578,9 @@ const SubscriptionSettings = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalSpinner}>
-              <LinearGradient
-                colors={["#f59e0b", "#d97706"]}
-                style={styles.spinnerContainer}
-              >
+              <View style={styles.spinnerContainer}>
                 <ActivityIndicator size="large" color="white" />
-              </LinearGradient>
+              </View>
             </View>
 
             <Text style={styles.modalTitle}>Processing Payment</Text>
@@ -603,15 +589,12 @@ const SubscriptionSettings = () => {
             </Text>
 
             {paymentMethod === "mpesa" && (
-              <LinearGradient
-                colors={["rgba(16,185,129,0.3)", "rgba(5,150,105,0.2)"]}
-                style={styles.mpesaInstructions}
-              >
+              <View style={styles.mpesaInstructions}>
                 <Text style={styles.mpesaTitle}>📱 Check your phone</Text>
                 <Text style={styles.mpesaText}>
                   Enter your M-Pesa PIN to complete the payment
                 </Text>
-              </LinearGradient>
+              </View>
             )}
 
             <TouchableOpacity
@@ -638,11 +621,11 @@ const { width } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFFFFF",
   },
   mainCard: {
     flex: 1,
-    backgroundColor: "#1e293b",
+    backgroundColor: "#FFFFFF",
   },
   loadingCard: {
     backgroundColor: "#f1f5f9",
@@ -699,8 +682,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#16A34A",
     elevation: 4,
-    shadowColor: "#9333ea",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -724,8 +708,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    backgroundColor: "#16A34A",
     elevation: 2,
-    shadowColor: "#10b981",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
@@ -865,8 +850,9 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#16A34A",
     elevation: 8,
-    shadowColor: "#9333ea",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
@@ -979,7 +965,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     elevation: 4,
-    shadowColor: "#9333ea",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -990,6 +976,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 32,
+    backgroundColor: "#16A34A",
   },
   subscribeButtonText: {
     color: "white",
@@ -1032,8 +1019,9 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#16A34A",
     elevation: 4,
-    shadowColor: "#f59e0b",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 8,

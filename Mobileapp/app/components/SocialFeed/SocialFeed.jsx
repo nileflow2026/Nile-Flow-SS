@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 import useSocialFeed from "../../../hooks/useSocialFeed";
 import FeedItem from "./FeedItem";
 
@@ -20,7 +19,6 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
  * Fetches live data from the social commerce API
  */
 export default function SocialFeed() {
-  const { themeStyles } = useTheme();
   const {
     feedData,
     loading,
@@ -110,15 +108,8 @@ export default function SocialFeed() {
   // Error state
   if (error && feedData.length === 0) {
     return (
-      <View
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: themeStyles.background },
-        ]}
-      >
-        <Text style={[styles.errorText, { color: themeStyles.text }]}>
-          {error}
-        </Text>
+      <View style={[styles.loadingContainer, { backgroundColor: "#FFFFFF" }]}>
+        <Text style={[styles.errorText, { color: "#111827" }]}>{error}</Text>
       </View>
     );
   }
@@ -126,14 +117,9 @@ export default function SocialFeed() {
   // Initial loading state
   if (loading && feedData.length === 0) {
     return (
-      <View
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: themeStyles.background },
-        ]}
-      >
-        <ActivityIndicator size="large" color={themeStyles.primary} />
-        <Text style={[styles.loadingText, { color: themeStyles.text }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: "#FFFFFF" }]}>
+        <ActivityIndicator size="large" color="#16A34A" />
+        <Text style={[styles.loadingText, { color: "#374151" }]}>
           Loading your feed...
         </Text>
       </View>
@@ -143,13 +129,8 @@ export default function SocialFeed() {
   // Empty state
   if (!loading && feedData.length === 0) {
     return (
-      <View
-        style={[
-          styles.loadingContainer,
-          { backgroundColor: themeStyles.background },
-        ]}
-      >
-        <Text style={[styles.emptyText, { color: themeStyles.text }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: "#FFFFFF" }]}>
+        <Text style={[styles.emptyText, { color: "#374151" }]}>
           No posts yet. Be the first to share!
         </Text>
       </View>
@@ -157,9 +138,7 @@ export default function SocialFeed() {
   }
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: themeStyles.background }]}
-    >
+    <View style={[styles.container, { backgroundColor: "#000000" }]}>
       <FlatList
         ref={flatListRef}
         data={feedData}
@@ -178,7 +157,7 @@ export default function SocialFeed() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={refresh}
-            tintColor={themeStyles.primary}
+            tintColor="#16A34A"
           />
         }
         getItemLayout={(data, index) => ({

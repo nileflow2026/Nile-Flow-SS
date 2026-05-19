@@ -6,7 +6,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -32,7 +31,6 @@ import {
   submitReview,
   useGlobalContext,
 } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 import CustomAlertReview from "../components/CustomAlertReview";
 import ProductCard from "../components/ProductCard";
 import RatingModal from "../components/RatingModal";
@@ -76,7 +74,7 @@ const StarRating = ({
             <MaterialIcons
               name={isFilled ? "star" : "star-border"}
               size={sizes[size].width}
-              color={isFilled ? "#fbbf24" : "#6b7280"}
+              color={isFilled ? "#D97706" : "#6b7280"}
             />
           </TouchableOpacity>
         );
@@ -119,8 +117,7 @@ const ProductDetails = () => {
   const [activeImage, setActiveImage] = useState(null);
   const [fetchedImages, setFetchedImages] = useState(null); // null = not yet fetched
   const imageScrollRef = useRef(null);
-  const { theme, themeStyles } = useTheme();
-  const isDarkMode = theme === "dark";
+  const isDarkMode = false;
 
   let product = item;
   // Check if item is a string and parse it to object
@@ -544,7 +541,6 @@ const ProductDetails = () => {
   }, [isLogged, user, product, reviewText, selectedImage, selectedRating]);
 
   const handleRelatedProducts = ({ item }) => (
-    /*     const handleRaltedProducts = ({ item: product }) => { */
     <View>
       <ProductCard
         id={product.id}
@@ -679,20 +675,14 @@ const ProductDetails = () => {
     [],
   );
 
-  const themedText = useMemo(
-    () => (isDarkMode ? "text-white" : "text-black"),
-    [isDarkMode],
-  );
-  const themedBackground = useMemo(
-    () => (isDarkMode ? "bg-black" : "bg-white"),
-    [isDarkMode],
-  );
+  const themedText = "text-black";
+  const themedBackground = "bg-white";
 
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b"]}
+    <View
       style={{
         flex: 1,
+        backgroundColor: "#FFFFFF",
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
@@ -705,7 +695,7 @@ const ProductDetails = () => {
           <View
             style={{
               height: 400,
-              backgroundColor: "#1f2937",
+              backgroundColor: "#F3F4F6",
               borderRadius: 24,
               overflow: "hidden",
               marginHorizontal: 16,
@@ -780,8 +770,7 @@ const ProductDetails = () => {
                 zIndex: 10,
               }}
             >
-              <LinearGradient
-                colors={["#f59e0b", "#d97706"]}
+              <View
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 6,
@@ -789,6 +778,7 @@ const ProductDetails = () => {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 4,
+                  backgroundColor: "#D97706",
                 }}
               >
                 <MaterialIcons name="star" size={16} color="#fff" />
@@ -797,7 +787,7 @@ const ProductDetails = () => {
                 >
                   PREMIUM
                 </Text>
-              </LinearGradient>
+              </View>
             </View>
 
             {/* Arrow buttons (complement swipe; hidden for single images) */}
@@ -861,7 +851,7 @@ const ProductDetails = () => {
               <MaterialIcons
                 name={isFavorite(product.$id) ? "favorite" : "favorite-border"}
                 size={22}
-                color={isFavorite(product.$id) ? "#fff" : "#fbbf24"}
+                color={isFavorite(product.$id) ? "#fff" : "#D97706"}
               />
             </TouchableOpacity>
 
@@ -889,7 +879,7 @@ const ProductDetails = () => {
                       borderRadius: 4,
                       backgroundColor:
                         i === currentImageIndex
-                          ? "#fbbf24"
+                          ? "#D97706"
                           : "rgba(255,255,255,0.4)",
                     }}
                   />
@@ -897,42 +887,40 @@ const ProductDetails = () => {
               </View>
             )}
           </View>
-
           <CustomAlertReview
             isVisible={isSignUpModalVisible}
             onClose={closeSignUpModal}
             onSignUp={navigateToSignUp}
           />
-
           {/* Premium Product Info */}
           <View style={{ padding: 16, marginTop: 16 }}>
-            <LinearGradient
-              colors={["#3b2f1e", "#4a3728"]}
+            <View
               style={{
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 16,
                 alignSelf: "flex-start",
                 marginBottom: 16,
+                backgroundColor: "#FEF3C7",
               }}
             >
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
               >
-                <MaterialIcons name="stars" size={16} color="#fbbf24" />
+                <MaterialIcons name="stars" size={16} color="#D97706" />
                 <Text
-                  style={{ color: "#fbbf24", fontSize: 12, fontWeight: "bold" }}
+                  style={{ color: "#D97706", fontSize: 12, fontWeight: "bold" }}
                 >
                   Premium Collection
                 </Text>
               </View>
-            </LinearGradient>
+            </View>
 
             <Text
               style={{
                 fontSize: 28,
                 fontWeight: "bold",
-                color: "#fff",
+                color: "#111827",
                 marginBottom: 12,
               }}
             >
@@ -949,35 +937,37 @@ const ProductDetails = () => {
               }}
             >
               <StarRating rating={averageRating} size="lg" />
-              <Text style={{ color: "#e5e7eb" }}>
+              <Text style={{ color: "#374151" }}>
                 {averageRating.toFixed(1)} ({reviews.length} reviews)
               </Text>
             </View>
 
             {/* Brand */}
             {product.brand && (
-              <LinearGradient
-                colors={["#1e3a2a", "#2a4f3a"]}
+              <View
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 12,
                   alignSelf: "flex-start",
                   marginBottom: 16,
+                  backgroundColor: "#F0FDF4",
+                  borderWidth: 1,
+                  borderColor: "#BBF7D0",
                 }}
               >
                 <Text
-                  style={{ color: "#6ee7b7", fontSize: 14, fontWeight: "600" }}
+                  style={{ color: "#16A34A", fontSize: 14, fontWeight: "600" }}
                 >
                   Brand: {product.brand}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
 
             {/* Description */}
             <Text
               style={{
-                color: "#e5e7eb",
+                color: "#374151",
                 fontSize: 16,
                 lineHeight: 24,
                 marginBottom: 16,
@@ -987,9 +977,15 @@ const ProductDetails = () => {
             </Text>
 
             {/* Price Section */}
-            <LinearGradient
-              colors={["#3b2f1e", "#4a3728"]}
-              style={{ padding: 20, borderRadius: 20, marginBottom: 16 }}
+            <View
+              style={{
+                padding: 20,
+                borderRadius: 20,
+                marginBottom: 16,
+                backgroundColor: "#F9FAFB",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+              }}
             >
               <View
                 style={{
@@ -1000,7 +996,7 @@ const ProductDetails = () => {
                 }}
               >
                 <Text
-                  style={{ fontSize: 32, fontWeight: "bold", color: "#fbbf24" }}
+                  style={{ fontSize: 32, fontWeight: "bold", color: "#D97706" }}
                 >
                   {convertedPrice || "Loading..."}
                 </Text>
@@ -1018,13 +1014,13 @@ const ProductDetails = () => {
               </View>
 
               {product.originalPrice && (
-                <LinearGradient
-                  colors={["#7c2d12", "#991b1b"]}
+                <View
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 16,
                     alignSelf: "flex-start",
+                    backgroundColor: "#FEE2E2",
                   }}
                 >
                   <View
@@ -1034,10 +1030,10 @@ const ProductDetails = () => {
                       gap: 4,
                     }}
                   >
-                    <MaterialIcons name="flash-on" size={16} color="#fca5a5" />
+                    <MaterialIcons name="flash-on" size={16} color="#EF4444" />
                     <Text
                       style={{
-                        color: "#fca5a5",
+                        color: "#EF4444",
                         fontSize: 12,
                         fontWeight: "bold",
                       }}
@@ -1045,15 +1041,15 @@ const ProductDetails = () => {
                       Save ${(product.originalPrice - numericPrice).toFixed(2)}
                     </Text>
                   </View>
-                </LinearGradient>
+                </View>
               )}
-            </LinearGradient>
+            </View>
 
             {/* Quantity Selector */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
-                  color: "#fbbf24",
+                  color: "#D97706",
                   fontSize: 16,
                   fontWeight: "600",
                   marginBottom: 8,
@@ -1064,12 +1060,14 @@ const ProductDetails = () => {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
               >
-                <LinearGradient
-                  colors={["#374151", "#1f2937"]}
+                <View
                   style={{
                     flexDirection: "row",
                     borderRadius: 12,
                     overflow: "hidden",
+                    backgroundColor: "#F3F4F6",
+                    borderWidth: 1,
+                    borderColor: "#E5E7EB",
                   }}
                 >
                   <TouchableOpacity
@@ -1078,7 +1076,7 @@ const ProductDetails = () => {
                   >
                     <Text
                       style={{
-                        color: "#fbbf24",
+                        color: "#D97706",
                         fontSize: 18,
                         fontWeight: "bold",
                       }}
@@ -1090,7 +1088,7 @@ const ProductDetails = () => {
                     style={{
                       paddingHorizontal: 20,
                       paddingVertical: 12,
-                      color: "#fff",
+                      color: "#111827",
                       fontSize: 16,
                       fontWeight: "bold",
                     }}
@@ -1103,7 +1101,7 @@ const ProductDetails = () => {
                   >
                     <Text
                       style={{
-                        color: "#fbbf24",
+                        color: "#D97706",
                         fontSize: 18,
                         fontWeight: "bold",
                       }}
@@ -1111,8 +1109,8 @@ const ProductDetails = () => {
                       +
                     </Text>
                   </TouchableOpacity>
-                </LinearGradient>
-                <Text style={{ color: "#e5e7eb", fontSize: 14 }}>
+                </View>
+                <Text style={{ color: "#6B7280", fontSize: 14 }}>
                   {product.stock || "Limited"} items available
                 </Text>
               </View>
@@ -1131,15 +1129,14 @@ const ProductDetails = () => {
                 {
                   icon: "local-shipping",
                   text: "Free Shipping",
-                  color: "#60a5fa",
+                  color: "#2563EB",
                 },
-                { icon: "verified", text: "Authentic", color: "#10b981" },
-                { icon: "refresh", text: "30 Days Return", color: "#fbbf24" },
-                { icon: "security", text: "Secure Payment", color: "#a855f7" },
+                { icon: "verified", text: "Authentic", color: "#16A34A" },
+                { icon: "refresh", text: "30 Days Return", color: "#D97706" },
+                { icon: "security", text: "Secure Payment", color: "#7C3AED" },
               ].map((feature, index) => (
-                <LinearGradient
+                <View
                   key={index}
-                  colors={["#374151", "#1f2937"]}
                   style={{
                     flex: 1,
                     minWidth: "45%",
@@ -1148,6 +1145,9 @@ const ProductDetails = () => {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 8,
+                    backgroundColor: "#F9FAFB",
+                    borderWidth: 1,
+                    borderColor: "#E5E7EB",
                   }}
                 >
                   <MaterialIcons
@@ -1169,18 +1169,20 @@ const ProductDetails = () => {
                       {feature.text.split(" ").slice(1).join(" ")}
                     </Text>
                   </View>
-                </LinearGradient>
+                </View>
               ))}
             </View>
           </View>
           {/* Modern Description Section */}
           <View style={{ padding: 16, marginTop: 16 }}>
-            <LinearGradient
-              colors={["#3b2f1e", "#4a3728"]}
+            <View
               style={{
                 padding: 20,
                 borderRadius: 20,
                 marginBottom: 16,
+                backgroundColor: "#F9FAFB",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
               }}
             >
               <View
@@ -1191,28 +1193,29 @@ const ProductDetails = () => {
                   marginBottom: 12,
                 }}
               >
-                <MaterialIcons name="description" size={24} color="#fbbf24" />
+                <MaterialIcons name="description" size={24} color="#16A34A" />
                 <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#fbbf24" }}
+                  style={{ fontSize: 20, fontWeight: "bold", color: "#14532D" }}
                 >
                   Description
                 </Text>
               </View>
-              <Text style={{ color: "#e5e7eb", fontSize: 16, lineHeight: 24 }}>
+              <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
                 {product.details ||
                   "Premium African product with authentic craftsmanship and superior quality."}
               </Text>
-            </LinearGradient>
+            </View>
           </View>
-
           {/* Modern Reviews Section */}
           <View style={{ padding: 16, marginTop: 16 }}>
-            <LinearGradient
-              colors={["#1e293b", "#334155"]}
+            <View
               style={{
                 padding: 20,
                 borderRadius: 20,
                 marginBottom: 20,
+                backgroundColor: "#F9FAFB",
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
               }}
             >
               <View
@@ -1226,12 +1229,12 @@ const ProductDetails = () => {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <MaterialIcons name="reviews" size={24} color="#fbbf24" />
+                  <MaterialIcons name="reviews" size={24} color="#D97706" />
                   <Text
                     style={{
                       fontSize: 20,
                       fontWeight: "bold",
-                      color: "#fbbf24",
+                      color: "#14532D",
                     }}
                   >
                     Customer Reviews
@@ -1242,24 +1245,26 @@ const ProductDetails = () => {
                     style={{
                       fontSize: 24,
                       fontWeight: "bold",
-                      color: "#fbbf24",
+                      color: "#D97706",
                     }}
                   >
                     {averageRating.toFixed(1)}
                   </Text>
-                  <Text style={{ color: "#e5e7eb", fontSize: 12 }}>
+                  <Text style={{ color: "#374151", fontSize: 12 }}>
                     Average Rating
                   </Text>
                 </View>
               </View>
 
               {/* Review Form */}
-              <LinearGradient
-                colors={["#374151", "#1f2937"]}
+              <View
                 style={{
                   padding: 16,
                   borderRadius: 16,
                   marginBottom: 16,
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
                 }}
               >
                 <View
@@ -1270,10 +1275,10 @@ const ProductDetails = () => {
                     marginBottom: 12,
                   }}
                 >
-                  <MaterialIcons name="edit" size={20} color="#fbbf24" />
+                  <MaterialIcons name="edit" size={20} color="#D97706" />
                   <Text
                     style={{
-                      color: "#fbbf24",
+                      color: "#14532D",
                       fontSize: 16,
                       fontWeight: "600",
                     }}
@@ -1290,7 +1295,7 @@ const ProductDetails = () => {
                   handleAddReview={handleAddReview}
                   onSubmit={() => {}}
                 />
-              </LinearGradient>
+              </View>
 
               <ReviewList
                 reviews={displayedReviews}
@@ -1299,17 +1304,18 @@ const ProductDetails = () => {
                 setShowAllReviews={setShowAllReviews}
                 initialReviewCount={initialReviewCount}
               />
-            </LinearGradient>
+            </View>
           </View>
-
           {/* Modern Specifications Section */}
           <View style={{ padding: 16 }}>
-            <LinearGradient
-              colors={["#1e3a2a", "#2a4f3a"]}
+            <View
               style={{
                 padding: 20,
                 borderRadius: 20,
                 marginBottom: 16,
+                backgroundColor: "#F0FDF4",
+                borderWidth: 1,
+                borderColor: "#BBF7D0",
               }}
             >
               <View
@@ -1320,29 +1326,30 @@ const ProductDetails = () => {
                   marginBottom: 12,
                 }}
               >
-                <MaterialIcons name="build" size={24} color="#6ee7b7" />
+                <MaterialIcons name="build" size={24} color="#16A34A" />
                 <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#6ee7b7" }}
+                  style={{ fontSize: 20, fontWeight: "bold", color: "#14532D" }}
                 >
                   Specifications
                 </Text>
               </View>
-              <Text style={{ color: "#e5e7eb", fontSize: 16, lineHeight: 24 }}>
+              <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
                 {product.specifications ||
                   "Premium quality materials and craftsmanship. Authentic African design with modern functionality."}
               </Text>
-            </LinearGradient>
+            </View>
           </View>
-
           {/* Modern Rating Section */}
           <View style={{ padding: 16 }}>
-            <LinearGradient
-              colors={["#7c2d12", "#991b1b"]}
+            <View
               style={{
                 padding: 20,
                 borderRadius: 20,
                 marginBottom: 16,
                 alignItems: "center",
+                backgroundColor: "#FEF3C7",
+                borderWidth: 1,
+                borderColor: "#FDE68A",
               }}
             >
               <View
@@ -1353,9 +1360,9 @@ const ProductDetails = () => {
                   marginBottom: 12,
                 }}
               >
-                <MaterialIcons name="star-rate" size={24} color="#fca5a5" />
+                <MaterialIcons name="star-rate" size={24} color="#D97706" />
                 <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#fca5a5" }}
+                  style={{ fontSize: 20, fontWeight: "bold", color: "#B45309" }}
                 >
                   Rate This Product
                 </Text>
@@ -1364,7 +1371,7 @@ const ProductDetails = () => {
               <TouchableOpacity
                 onPress={() => setIsRatingModalVisible(true)}
                 style={{
-                  backgroundColor: "#fca5a5",
+                  backgroundColor: "#D97706",
                   paddingHorizontal: 32,
                   paddingVertical: 16,
                   borderRadius: 16,
@@ -1373,10 +1380,10 @@ const ProductDetails = () => {
                   gap: 8,
                 }}
               >
-                <MaterialIcons name="star" size={20} color="#7c2d12" />
+                <MaterialIcons name="star" size={20} color="#FFF" />
                 <Text
                   style={{
-                    color: "#7c2d12",
+                    color: "#FFF",
                     fontSize: 16,
                     fontWeight: "bold",
                   }}
@@ -1384,7 +1391,7 @@ const ProductDetails = () => {
                   Rate Product
                 </Text>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </View>
           <RatingModal
             visible={isRatingModalVisible}
@@ -1495,7 +1502,6 @@ const ProductDetails = () => {
               )}
             </View>
           </View>
-
           <GroupBuyStarter
             visible={showGroupStarter}
             onClose={() => setShowGroupStarter(false)}
@@ -1507,7 +1513,7 @@ const ProductDetails = () => {
                 params: { orderId: group.$id },
               });
             }}
-          />  */}
+          /> */}
 
           <RelatedProducts
             relatedProducts={relatedProducts}
@@ -1540,8 +1546,7 @@ const ProductDetails = () => {
           }}
           style={{ flex: 1 }}
         >
-          <LinearGradient
-            colors={["#f59e0b", "#d97706"]}
+          <View
             style={{
               paddingVertical: 16,
               borderRadius: 12,
@@ -1549,13 +1554,14 @@ const ProductDetails = () => {
               justifyContent: "center",
               alignItems: "center",
               gap: 8,
+              backgroundColor: "#16A34A",
             }}
           >
             <MaterialIcons name="shopping-bag" size={20} color="#fff" />
             <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
               Let it Flow
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1582,7 +1588,7 @@ const ProductDetails = () => {
             paddingVertical: 16,
             paddingHorizontal: 20,
             borderWidth: 2,
-            borderColor: "#f59e0b",
+            borderColor: "#16A34A",
             borderRadius: 12,
             flexDirection: "row",
             justifyContent: "center",
@@ -1590,13 +1596,13 @@ const ProductDetails = () => {
             gap: 8,
           }}
         >
-          <MaterialIcons name="share" size={20} color="#f59e0b" />
-          <Text style={{ color: "#f59e0b", fontSize: 16, fontWeight: "bold" }}>
+          <MaterialIcons name="share" size={20} color="#16A34A" />
+          <Text style={{ color: "#16A34A", fontSize: 16, fontWeight: "bold" }}>
             Share
           </Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 

@@ -149,28 +149,28 @@ export default function GroupOrderPage() {
   // ── Derived state ───────────────────────────────────────────────────────────
   if (initializing) {
     return (
-      <View className="flex-1 bg-slate-900 items-center justify-center">
+      <View className="flex-1 bg-white items-center justify-center">
         <ActivityIndicator size="large" color="#10b981" />
-        <Text className="text-slate-400 mt-3 text-sm">Loading group deal…</Text>
+        <Text className="text-gray-500 mt-3 text-sm">Loading group deal…</Text>
       </View>
     );
   }
 
   if (!group) {
     return (
-      <View className="flex-1 bg-slate-900 items-center justify-center px-6">
+      <View className="flex-1 bg-white items-center justify-center px-6">
         <Text className="text-4xl mb-4">🔍</Text>
-        <Text className="text-white font-bold text-lg text-center">
+        <Text className="text-gray-900 font-bold text-lg text-center">
           Group deal not found
         </Text>
-        <Text className="text-slate-400 text-sm text-center mt-2">
+        <Text className="text-gray-500 text-sm text-center mt-2">
           It may have been cancelled or expired.
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          className="mt-6 bg-slate-700 rounded-xl px-6 py-3"
+          className="mt-6 bg-gray-100 rounded-xl px-6 py-3"
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text className="text-gray-700 font-semibold">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -200,15 +200,17 @@ export default function GroupOrderPage() {
   const savingsPct = savingsPercent || shareData?.savingsPercent || "";
 
   return (
-    <View className="flex-1 bg-slate-900">
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+    <View className="flex-1 bg-white">
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <View className="flex-row items-center px-4 pt-12 pb-4 bg-slate-900 border-b border-slate-800">
+      <View className="flex-row items-center px-4 pt-12 pb-4 bg-white border-b border-gray-200">
         <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
-          <MaterialIcons name="arrow-back" size={24} color="#e2e8f0" />
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
         </TouchableOpacity>
-        <Text className="text-white font-bold text-lg flex-1">Group Deal</Text>
+        <Text className="text-gray-900 font-bold text-lg flex-1">
+          Group Deal
+        </Text>
         {isPending && (
           <ShareButton
             orderId={orderId}
@@ -252,43 +254,43 @@ export default function GroupOrderPage() {
 
         <View className="px-4 pt-4">
           {/* Product card */}
-          <View className="bg-slate-800 rounded-2xl p-4 border border-slate-700/50">
+          <View className="bg-white rounded-2xl p-4 border border-gray-200">
             <View className="flex-row gap-4">
               {productImage ? (
                 <Image
                   source={{ uri: productImage }}
-                  className="w-20 h-20 rounded-xl bg-slate-700"
+                  className="w-20 h-20 rounded-xl bg-gray-200"
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={200}
                 />
               ) : (
-                <View className="w-20 h-20 rounded-xl bg-slate-700 items-center justify-center">
+                <View className="w-20 h-20 rounded-xl bg-gray-200 items-center justify-center">
                   <Text className="text-4xl">🛍️</Text>
                 </View>
               )}
               <View className="flex-1 justify-center">
                 {productName && (
                   <Text
-                    className="text-white font-bold text-base"
+                    className="text-gray-900 font-bold text-base"
                     numberOfLines={2}
                   >
                     {productName}
                   </Text>
                 )}
                 <View className="flex-row items-baseline gap-2 mt-2">
-                  <Text className="text-emerald-400 font-bold text-2xl">
+                  <Text className="text-emerald-600 font-bold text-2xl">
                     ${Number(currentPrice).toFixed(2)}
                   </Text>
                   {basePrice && Number(currentPrice) < Number(basePrice) && (
-                    <Text className="text-slate-500 line-through text-sm">
+                    <Text className="text-gray-400 line-through text-sm">
                       ${Number(basePrice).toFixed(2)}
                     </Text>
                   )}
                 </View>
                 {savingsPct && savingsPct !== "0%" && (
-                  <View className="bg-emerald-900/50 self-start rounded-full px-2 py-0.5 mt-1">
-                    <Text className="text-emerald-400 text-xs font-bold">
+                  <View className="bg-emerald-50 self-start rounded-full px-2 py-0.5 mt-1">
+                    <Text className="text-emerald-700 text-xs font-bold">
                       Save {savingsPct}
                     </Text>
                   </View>
@@ -310,8 +312,8 @@ export default function GroupOrderPage() {
           )}
 
           {/* Participants */}
-          <View className="mt-4 bg-slate-800 rounded-2xl p-4 border border-slate-700/50">
-            <Text className="text-white font-bold text-base mb-1">
+          <View className="mt-4 bg-white rounded-2xl p-4 border border-gray-200">
+            <Text className="text-gray-900 font-bold text-base mb-1">
               👥 Who's In
             </Text>
             <ParticipantList
@@ -341,8 +343,8 @@ export default function GroupOrderPage() {
 
           {/* Error */}
           {actionError && (
-            <View className="mt-4 bg-red-900/40 border border-red-500/40 rounded-xl p-3">
-              <Text className="text-red-400 text-sm">{actionError}</Text>
+            <View className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+              <Text className="text-red-600 text-sm">{actionError}</Text>
             </View>
           )}
         </View>
@@ -350,23 +352,23 @@ export default function GroupOrderPage() {
 
       {/* Fixed CTA footer */}
       {isPending && (
-        <View className="absolute bottom-0 left-0 right-0 bg-slate-900/95 px-4 pb-8 pt-4 border-t border-slate-800">
+        <View className="absolute bottom-0 left-0 right-0 bg-white px-4 pb-8 pt-4 border-t border-gray-200">
           {isMember ? (
             <View className="gap-2">
-              <View className="bg-emerald-900/50 border border-emerald-500/40 rounded-xl px-4 py-3 items-center">
-                <Text className="text-emerald-300 font-bold">
+              <View className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 items-center">
+                <Text className="text-emerald-700 font-bold">
                   ✅ You're in this group!
                 </Text>
-                <Text className="text-emerald-400/70 text-xs mt-0.5">
+                <Text className="text-emerald-600 text-xs mt-0.5">
                   Share to fill the group faster
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={handleLeave}
                 disabled={leaving}
-                className="bg-slate-700 rounded-xl py-3 items-center"
+                className="bg-gray-100 rounded-xl py-3 items-center"
               >
-                <Text className="text-slate-300 font-semibold text-sm">
+                <Text className="text-gray-700 font-semibold text-sm">
                   {leaving ? "Leaving…" : "Leave Group"}
                 </Text>
               </TouchableOpacity>
@@ -377,7 +379,7 @@ export default function GroupOrderPage() {
               disabled={joining || isFull || isExpired}
               className={`rounded-2xl py-4 items-center ${
                 joining || isFull || isExpired
-                  ? "bg-slate-600"
+                  ? "bg-gray-300"
                   : "bg-emerald-600"
               }`}
             >
@@ -403,7 +405,7 @@ export default function GroupOrderPage() {
 
       {/* Completed CTA */}
       {isFull && isMember && (
-        <View className="absolute bottom-0 left-0 right-0 bg-slate-900/95 px-4 pb-8 pt-4 border-t border-slate-800">
+        <View className="absolute bottom-0 left-0 right-0 bg-white px-4 pb-8 pt-4 border-t border-gray-200">
           <TouchableOpacity
             onPress={() =>
               router.push({

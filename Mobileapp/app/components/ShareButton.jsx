@@ -61,10 +61,10 @@ export default function ShareButton({
     return (
       <TouchableOpacity
         onPress={handleNativeShare}
-        className="flex-row items-center gap-1 bg-emerald-900/40 border border-emerald-500/30 rounded-full px-3 py-1.5"
+        className="flex-row items-center gap-1 bg-emerald-50 border border-emerald-300 rounded-full px-3 py-1.5"
         accessibilityLabel="Share group deal"
       >
-        <Text className="text-emerald-400 text-sm font-semibold">
+        <Text className="text-emerald-700 text-sm font-semibold">
           📤 Share & Save
         </Text>
       </TouchableOpacity>
@@ -73,26 +73,26 @@ export default function ShareButton({
 
   return (
     <View className="mt-4 gap-2">
-      <Text className="text-slate-400 text-xs uppercase tracking-wide font-medium mb-1">
+      <Text className="text-gray-500 text-xs uppercase tracking-wide font-medium mb-1">
         Share this deal
       </Text>
       <View className="flex-row gap-2 flex-wrap">
         <SocialButton
           emoji="💬"
           label="WhatsApp"
-          color="bg-green-900/40 border-green-500/30"
+          color="bg-green-50 border-green-300"
           onPress={handleWhatsApp}
         />
         <SocialButton
           emoji="✈️"
           label="Telegram"
-          color="bg-blue-900/40 border-blue-500/30"
+          color="bg-blue-50 border-blue-300"
           onPress={handleTelegram}
         />
         <SocialButton
           emoji="📤"
           label="More"
-          color="bg-slate-700/60 border-slate-500/30"
+          color="bg-gray-100 border-gray-300"
           onPress={handleNativeShare}
         />
       </View>
@@ -108,7 +108,7 @@ function SocialButton({ emoji, label, color, onPress }) {
       accessibilityLabel={`Share via ${label}`}
     >
       <Text className="text-base">{emoji}</Text>
-      <Text className="text-white font-medium text-sm">{label}</Text>
+      <Text className="text-gray-800 font-medium text-sm">{label}</Text>
     </TouchableOpacity>
   );
 }

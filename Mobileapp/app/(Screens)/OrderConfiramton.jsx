@@ -1,23 +1,34 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 
 const OrderConfiramton = () => {
-    const router = useRouter();
+  const router = useRouter();
 
-    return (
-        <View className="flex-1 bg-gray-100 p-4 items-center justify-center">
-            <Text className="text-2xl font-bold text-gray-800 mb-4">Thank You!</Text>
-            <Text className="text-lg text-gray-600 mb-6">Your order has been placed successfully.</Text>
+  return (
+    <View className="flex-1 bg-nile-white px-6 items-center justify-center">
+      <Text className="text-3xl font-pbold text-nile-green-800 mb-3">
+        Thank You!
+      </Text>
+      <Text className="font-pregular text-base text-gray-500 mb-8 text-center">
+        Your order has been placed successfully.
+      </Text>
 
-            <TouchableOpacity
-                onPress={() => router.push("/")}
-                className="bg-orange-500 rounded-lg p-4"
-            >
-                <Text className="text-white text-lg font-bold">Go to Home</Text>
-            </TouchableOpacity>
-        </View>
-    );
-}
+      <TouchableOpacity
+        onPress={() => router.push("/")}
+        style={{
+          backgroundColor: "#16A34A",
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+        }}
+      >
+        <Text className="text-nile-white text-base font-psemibold">
+          Go to Home
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
-export default OrderConfiramton; 
+export default OrderConfiramton;

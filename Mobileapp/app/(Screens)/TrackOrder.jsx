@@ -63,7 +63,7 @@ const TrackOrder = () => {
   ];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: "#0f172a" }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: "#FFFFFF" }]}>
       <View style={styles.container}>
         <Text style={styles.title}>Track Your Order</Text>
         <Text style={styles.subtitle}>Order ID: {orderId}</Text>
@@ -82,7 +82,7 @@ const TrackOrder = () => {
                   item.completed ? "check-circle" : "radio-button-unchecked"
                 }
                 size={22}
-                color={item.completed ? "#4CAF50" : "#9CA3AF"}
+                color={item.completed ? "#16A34A" : "#D1D5DB"}
                 style={{ marginRight: 10 }}
               />
               <Text
@@ -95,12 +95,7 @@ const TrackOrder = () => {
         />
 
         {/* Order Details */}
-        <View
-          style={[
-            styles.detailsContainer,
-            { backgroundColor: themeStyles.accent2 },
-          ]}
-        >
+        <View style={styles.detailsContainer}>
           <Text style={styles.detailTitle}>Order Details</Text>
           <Text style={styles.detailText}>Order Time: {orderTime}</Text>
           <Text style={styles.detailText}>
@@ -136,53 +131,59 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#14532D",
     marginBottom: 10,
+    fontFamily: "Poppins-Bold",
   },
   subtitle: {
     fontSize: 16,
-    color: "#FFF",
+    color: "#374151",
     marginBottom: 20,
+    fontFamily: "Poppins-Regular",
   },
   stepContainer: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#444",
+    borderBottomColor: "#E5E7EB",
     flexDirection: "row",
     alignItems: "center",
   },
   stepText: {
     fontSize: 16,
-    color: "#fff",
+    color: "#374151",
+    fontFamily: "Poppins-Regular",
   },
   completed: {
-    color: "#4CAF50",
-    fontWeight: "bold",
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
   },
   detailsContainer: {
     marginTop: 20,
-    padding: 15,
-
-    borderRadius: 8,
+    padding: 16,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
   detailTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFF",
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
     marginBottom: 10,
   },
   detailText: {
-    fontSize: 16,
-    color: "#fff",
+    fontSize: 15,
+    color: "#374151",
     marginBottom: 5,
+    fontFamily: "Poppins-Regular",
   },
   statusText: {
-    fontWeight: "bold",
+    fontFamily: "Poppins-SemiBold",
   },
   delivered: {
-    color: "#4CAF50",
+    color: "#16A34A",
   },
   pending: {
-    color: "#FFA500",
+    color: "#D97706",
   },
 });

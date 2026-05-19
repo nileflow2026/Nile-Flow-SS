@@ -21,7 +21,7 @@ const ForgotPassword = () => {
     try {
       await Account.createRecovery(
         email,
-        "http://localhost:8081/reset-password"
+        "http://localhost:8081/reset-password",
       );
       Alert.alert("Success", "Check your email for reset instructions");
       router.replace("/sign-in"); // Navigate back to login
@@ -33,10 +33,10 @@ const ForgotPassword = () => {
   };
 
   return (
-    <SafeAreaView className="h-full" style={{ backgroundColor: "#0f172a" }}>
+    <SafeAreaView className="h-full bg-nile-white">
       <ScrollView>
-        <View className="w-full justify-center min-h-[85vh] px-4 my-6">
-          <Text className="text-2xl text-white text-semibold mt-10 font-psemibold">
+        <View className="w-full justify-center min-h-[85vh] px-6 my-6">
+          <Text className="text-2xl text-nile-green-900 mt-10 font-pbold">
             Reset Your Password
           </Text>
           <FormField

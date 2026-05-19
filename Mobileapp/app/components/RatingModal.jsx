@@ -1,14 +1,11 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { Dimensions, Modal, Text, TouchableOpacity, View } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
 const RatingModal = ({ visible, onClose, onSubmit }) => {
   const [rating, setRating] = useState(0);
-  const { themeStyles } = useTheme();
 
   // Responsive styles
   const modalWidth = width < 350 ? "90%" : "80%";
@@ -23,17 +20,22 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "rgba(0,0,0,0.8)",
+          backgroundColor: "rgba(0,0,0,0.5)",
         }}
       >
-        <LinearGradient
-          colors={["#1e293b", "#334155"]}
+        <View
           style={{
             width: modalWidth,
             borderRadius: 24,
             padding: 24,
             borderWidth: 1,
-            borderColor: "#fbbf24",
+            borderColor: "#BBF7D0",
+            backgroundColor: "#FFFFFF",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 8,
           }}
         >
           <View style={{ alignItems: "center", marginBottom: 20 }}>
@@ -41,14 +43,14 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
               style={{
                 fontSize: 22,
                 fontWeight: "bold",
-                color: "#fbbf24",
+                color: "#14532D",
                 marginBottom: 8,
               }}
             >
               Rate This Product
             </Text>
             <Text
-              style={{ fontSize: 14, color: "#e5e7eb", textAlign: "center" }}
+              style={{ fontSize: 14, color: "#6B7280", textAlign: "center" }}
             >
               Share your experience with this premium product
             </Text>
@@ -74,7 +76,7 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
                 <MaterialIcons
                   name={star <= rating ? "star" : "star-border"}
                   size={starSize}
-                  color={star <= rating ? "#fbbf24" : "#6b7280"}
+                  color={star <= rating ? "#D97706" : "#D1D5DB"}
                 />
               </TouchableOpacity>
             ))}
@@ -82,13 +84,13 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
 
           <View style={{ flexDirection: "row", gap: 12 }}>
             <TouchableOpacity onPress={onClose} style={{ flex: 1 }}>
-              <LinearGradient
-                colors={["#dc2626", "#b91c1c"]}
+              <View
                 style={{
                   paddingHorizontal: buttonPaddingHorizontal,
                   paddingVertical: buttonPaddingVertical + 4,
                   borderRadius: 12,
                   alignItems: "center",
+                  backgroundColor: "#DC2626",
                 }}
               >
                 <Text
@@ -96,7 +98,7 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
                 >
                   Cancel
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -104,15 +106,13 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
               style={{ flex: 1 }}
               disabled={rating === 0}
             >
-              <LinearGradient
-                colors={
-                  rating > 0 ? ["#f59e0b", "#d97706"] : ["#6b7280", "#4b5563"]
-                }
+              <View
                 style={{
                   paddingHorizontal: buttonPaddingHorizontal,
                   paddingVertical: buttonPaddingVertical + 4,
                   borderRadius: 12,
                   alignItems: "center",
+                  backgroundColor: rating > 0 ? "#16A34A" : "#9CA3AF",
                   opacity: rating > 0 ? 1 : 0.5,
                 }}
               >
@@ -121,10 +121,10 @@ const RatingModal = ({ visible, onClose, onSubmit }) => {
                 >
                   Submit Rating
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
       </View>
     </Modal>
   );

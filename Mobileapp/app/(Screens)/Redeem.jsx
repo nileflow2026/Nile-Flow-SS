@@ -2,7 +2,6 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -19,12 +18,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
 import { useGlobalContext } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
 const Redeem = () => {
-  const { theme, themeStyles } = useTheme();
   const { user } = useGlobalContext();
   const [nileMilesData, setNileMilesData] = useState({
     currentMiles: 0,
@@ -35,17 +32,17 @@ const Redeem = () => {
   const [selectedReward, setSelectedReward] = useState(null);
   const [redeeming, setRedeeming] = useState(false);
   const router = useRouter();
-  const isDarkMode = theme === "dark";
+  const isDarkMode = false;
 
   // Premium African marketplace theme
   const premiumColors = {
-    primary: "#fbbf24", // amber-400
-    secondary: "#d97706", // amber-600
-    accent: "#10b981", // emerald-500
-    background: "#0f172a", // slate-900
-    surface: "#1e293b", // slate-800
-    text: "#f8fafc", // slate-50
-    textSecondary: "#cbd5e1", // slate-300
+    primary: "#D97706",
+    secondary: "#B45309",
+    accent: "#16A34A",
+    background: "#FFFFFF",
+    surface: "#F9FAFB",
+    text: "#111827",
+    textSecondary: "#374151",
   };
 
   const REWARDS = [
@@ -122,7 +119,7 @@ const Redeem = () => {
     Alert.alert(
       type === "success" ? "Success!" : type === "error" ? "Error!" : "Info",
       message,
-      [{ text: "OK" }]
+      [{ text: "OK" }],
     );
   };
 
@@ -132,7 +129,7 @@ const Redeem = () => {
       try {
         console.log("📡 Fetching with userId:", user.id);
         const res = await axiosClient.get(
-          `/api/nilemiles/nilemiles/status?userId=${user.id}`
+          `/api/nilemiles/nilemiles/status?userId=${user.id}`,
         );
         console.log("✅ Raw response:", res);
         console.log("📦 Data:", res.data);
@@ -206,10 +203,7 @@ const Redeem = () => {
 
   if (loading) {
     return (
-      <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0f172a"]}
-        style={styles.container}
-      >
+      <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.loadingContainer}>
             <View style={styles.loadingContent}>
@@ -221,24 +215,18 @@ const Redeem = () => {
             </View>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     );
   }
 
   if (!user) {
     return (
-      <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0f172a"]}
-        style={styles.container}
-      >
+      <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.accessContainer}>
-            <LinearGradient
-              colors={["rgba(239, 68, 68, 0.1)", "rgba(217, 119, 6, 0.1)"]}
-              style={styles.accessIcon}
-            >
-              <MaterialIcons name="security" size={40} color="#ef4444" />
-            </LinearGradient>
+            <View style={styles.accessIcon}>
+              <MaterialIcons name="security" size={40} color="#DC2626" />
+            </View>
             <Text style={styles.accessTitle}>Access Required</Text>
             <Text style={styles.accessDescription}>
               Please log in to access premium rewards and redeem your Nile
@@ -248,28 +236,22 @@ const Redeem = () => {
               style={styles.accessButton}
               onPress={() => router.push("/(auth)/sign-in")}
             >
-              <LinearGradient
-                colors={[premiumColors.primary, premiumColors.secondary]}
-                style={styles.accessButtonGradient}
-              >
+              <View style={styles.accessButtonGradient}>
                 <Text style={styles.accessButtonText}>Sign In to Continue</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
     );
   }
 
   const { percent, nextReward, milesLeft } = getProgressToNext(
-    nileMilesData.currentMiles
+    nileMilesData.currentMiles,
   );
 
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0f172a"]}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
@@ -281,30 +263,20 @@ const Redeem = () => {
               style={styles.backButton}
               onPress={() => router.back()}
             >
-              <LinearGradient
-                colors={["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]}
-                style={styles.backButtonGradient}
-              >
+              <View style={styles.backButtonGradient}>
                 <MaterialIcons
                   name="keyboard-arrow-left"
                   size={24}
-                  color={premiumColors.primary}
+                  color="#16A34A"
                 />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <View style={styles.headerContent}>
-              <LinearGradient
-                colors={["rgba(251, 191, 36, 0.1)", "rgba(16, 185, 129, 0.1)"]}
-                style={styles.headerBadge}
-              >
-                <MaterialIcons
-                  name="auto-awesome"
-                  size={16}
-                  color={premiumColors.primary}
-                />
+              <View style={styles.headerBadge}>
+                <MaterialIcons name="auto-awesome" size={16} color="#D97706" />
                 <Text style={styles.headerBadgeText}>Premium Rewards</Text>
-              </LinearGradient>
+              </View>
               <Text style={styles.headerTitle}>
                 Nile <Text style={styles.headerTitleAccent}>Miles</Text>
               </Text>
@@ -313,10 +285,7 @@ const Redeem = () => {
 
           {/* Current Miles Display */}
           <View style={styles.milesSection}>
-            <LinearGradient
-              colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-              style={styles.milesCard}
-            >
+            <View style={styles.milesCard}>
               <View style={styles.milesDisplay}>
                 <Text style={styles.milesLabel}>Your Current Balance</Text>
                 <View style={styles.milesValueContainer}>
@@ -346,12 +315,7 @@ const Redeem = () => {
                   <Text style={styles.progressPercentage}>{percent}%</Text>
                 </View>
                 <View style={styles.progressBarContainer}>
-                  <LinearGradient
-                    colors={[
-                      premiumColors.primary,
-                      "#fde047",
-                      premiumColors.accent,
-                    ]}
+                  <View
                     style={[styles.progressBarFill, { width: `${percent}%` }]}
                   />
                 </View>
@@ -402,7 +366,7 @@ const Redeem = () => {
                   <Text style={styles.statLabel}>Never Expire</Text>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Rewards Grid */}
@@ -437,40 +401,35 @@ const Redeem = () => {
                     onPress={() => canRedeem && setSelectedReward(reward)}
                     disabled={!canRedeem}
                   >
-                    <LinearGradient
-                      colors={[
-                        "rgba(30, 41, 59, 0.9)",
-                        "rgba(15, 23, 42, 0.9)",
-                      ]}
-                      style={styles.rewardCardGradient}
-                    >
+                    <View style={styles.rewardCardGradient}>
                       {/* Quick Win Badge */}
                       {reward.miles <= 100 && (
                         <View style={styles.quickWinBadge}>
-                          <LinearGradient
-                            colors={[premiumColors.accent, "#059669"]}
-                            style={styles.quickWinBadgeGradient}
-                          >
+                          <View style={styles.quickWinBadgeGradient}>
                             <Text style={styles.quickWinBadgeText}>
                               Quick Win
                             </Text>
-                          </LinearGradient>
+                          </View>
                         </View>
                       )}
 
                       {/* Reward Icon */}
-                      <LinearGradient
-                        colors={
-                          canRedeem ? reward.color : ["#6b7280", "#4b5563"]
-                        }
-                        style={styles.rewardIcon}
+                      <View
+                        style={[
+                          styles.rewardIcon,
+                          {
+                            backgroundColor: canRedeem
+                              ? reward.color[0]
+                              : "#9CA3AF",
+                          },
+                        ]}
                       >
                         <MaterialIcons
                           name={reward.icon}
                           size={24}
                           color="white"
                         />
-                      </LinearGradient>
+                      </View>
 
                       <View style={styles.rewardContent}>
                         <Text
@@ -538,13 +497,11 @@ const Redeem = () => {
                         onPress={() => canRedeem && setSelectedReward(reward)}
                         disabled={!canRedeem || redeeming}
                       >
-                        <LinearGradient
-                          colors={
-                            canRedeem
-                              ? [premiumColors.primary, premiumColors.secondary]
-                              : ["#374151", "#1f2937"]
-                          }
-                          style={styles.rewardButtonGradient}
+                        <View
+                          style={[
+                            styles.rewardButtonGradient,
+                            !canRedeem ? { backgroundColor: "#D1D5DB" } : {},
+                          ]}
                         >
                           <MaterialIcons
                             name="card-giftcard"
@@ -554,12 +511,12 @@ const Redeem = () => {
                           <Text style={styles.rewardButtonText}>
                             {canRedeem ? "Redeem Now" : "Insufficient Miles"}
                           </Text>
-                        </LinearGradient>
+                        </View>
                       </TouchableOpacity>
 
                       {/* Hover Effect */}
                       <View style={styles.rewardCardHover} />
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -578,28 +535,19 @@ const Redeem = () => {
                 </Text>
               </View>
 
-              <LinearGradient
-                colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                style={styles.historyContainer}
-              >
+              <View style={styles.historyContainer}>
                 {nileMilesData.redeemed
                   .filter((item) => item?.date && !isNaN(new Date(item.date)))
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
                   .map((item, index) => (
                     <View key={index} style={styles.historyItem}>
-                      <LinearGradient
-                        colors={[
-                          "rgba(251, 191, 36, 0.1)",
-                          "rgba(217, 119, 6, 0.05)",
-                        ]}
-                        style={styles.historyIcon}
-                      >
+                      <View style={styles.historyIcon}>
                         <MaterialIcons
                           name="card-giftcard"
                           size={16}
-                          color={premiumColors.primary}
+                          color="#D97706"
                         />
-                      </LinearGradient>
+                      </View>
                       <View style={styles.historyContent}>
                         <Text style={styles.historyRewardName}>
                           {item.rewardName}
@@ -630,20 +578,13 @@ const Redeem = () => {
                       </View>
                     </View>
                   ))}
-              </LinearGradient>
+              </View>
             </View>
           ) : (
             <View style={styles.noHistoryContainer}>
-              <LinearGradient
-                colors={["rgba(251, 191, 36, 0.1)", "rgba(217, 119, 6, 0.1)"]}
-                style={styles.noHistoryIcon}
-              >
-                <MaterialIcons
-                  name="history"
-                  size={32}
-                  color={premiumColors.primary}
-                />
-              </LinearGradient>
+              <View style={styles.noHistoryIcon}>
+                <MaterialIcons name="history" size={32} color="#D97706" />
+              </View>
               <Text style={styles.noHistoryTitle}>No Redemption History</Text>
               <Text style={styles.noHistoryDescription}>
                 You haven't redeemed any rewards yet. Start by earning miles
@@ -654,65 +595,50 @@ const Redeem = () => {
 
           {/* How to Earn Section */}
           <View style={styles.earnSection}>
-            <LinearGradient
-              colors={["rgba(251, 191, 36, 0.1)", "rgba(16, 185, 129, 0.1)"]}
-              style={styles.earnContainer}
-            >
+            <View style={styles.earnContainer}>
               <Text style={styles.earnTitle}>How to Earn More Miles</Text>
               <View style={styles.earnGrid}>
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]}
-                  style={styles.earnCard}
-                >
-                  <LinearGradient
-                    colors={[premiumColors.primary, premiumColors.secondary]}
-                    style={styles.earnIcon}
+                <View style={[styles.earnCard, { backgroundColor: "#F9FAFB" }]}>
+                  <View
+                    style={[styles.earnIcon, { backgroundColor: "#D97706" }]}
                   >
                     <MaterialIcons
                       name="shopping-bag"
                       size={20}
                       color="white"
                     />
-                  </LinearGradient>
+                  </View>
                   <Text style={styles.earnCardTitle}>Make Purchases</Text>
                   <Text style={styles.earnCardDescription}>
                     Earn 10 miles for every $1 spent
                   </Text>
-                </LinearGradient>
+                </View>
 
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]}
-                  style={styles.earnCard}
-                >
-                  <LinearGradient
-                    colors={[premiumColors.accent, "#059669"]}
-                    style={styles.earnIcon}
+                <View style={[styles.earnCard, { backgroundColor: "#F9FAFB" }]}>
+                  <View
+                    style={[styles.earnIcon, { backgroundColor: "#16A34A" }]}
                   >
                     <MaterialIcons name="star" size={20} color="white" />
-                  </LinearGradient>
+                  </View>
                   <Text style={styles.earnCardTitle}>Write Reviews</Text>
                   <Text style={styles.earnCardDescription}>
                     Get 100 miles per review
                   </Text>
-                </LinearGradient>
+                </View>
 
-                <LinearGradient
-                  colors={["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]}
-                  style={styles.earnCard}
-                >
-                  <LinearGradient
-                    colors={["#3b82f6", "#1d4ed8"]}
-                    style={styles.earnIcon}
+                <View style={[styles.earnCard, { backgroundColor: "#F9FAFB" }]}>
+                  <View
+                    style={[styles.earnIcon, { backgroundColor: "#2563EB" }]}
                   >
                     <MaterialIcons name="group" size={20} color="white" />
-                  </LinearGradient>
+                  </View>
                   <Text style={styles.earnCardTitle}>Refer Friends</Text>
                   <Text style={styles.earnCardDescription}>
                     500 miles per referral
                   </Text>
-                </LinearGradient>
+                </View>
               </View>
-            </LinearGradient>
+            </View>
           </View>
         </ScrollView>
 
@@ -724,43 +650,36 @@ const Redeem = () => {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <LinearGradient
-                colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-                style={styles.modalContent}
-              >
+              <View style={styles.modalContent}>
                 {selectedReward && (
                   <>
                     <View style={styles.modalHeader}>
-                      <LinearGradient
-                        colors={selectedReward.color}
-                        style={styles.modalIcon}
+                      <View
+                        style={[
+                          styles.modalIcon,
+                          { backgroundColor: selectedReward.color[0] },
+                        ]}
                       >
                         <MaterialIcons
                           name={selectedReward.icon}
                           size={32}
                           color="white"
                         />
-                      </LinearGradient>
+                      </View>
                       <Text style={styles.modalTitle}>Confirm Redemption</Text>
                       <Text style={styles.modalSubtitle}>
                         Redeem {selectedReward.miles} miles for
                       </Text>
                     </View>
 
-                    <LinearGradient
-                      colors={[
-                        "rgba(251, 191, 36, 0.1)",
-                        "rgba(217, 119, 6, 0.1)",
-                      ]}
-                      style={styles.modalRewardInfo}
-                    >
+                    <View style={styles.modalRewardInfo}>
                       <Text style={styles.modalRewardName}>
                         {selectedReward.name}
                       </Text>
                       <Text style={styles.modalRewardDescription}>
                         {selectedReward.description}
                       </Text>
-                    </LinearGradient>
+                    </View>
 
                     <View style={styles.modalCalculation}>
                       <View style={styles.modalCalculationRow}>
@@ -804,13 +723,7 @@ const Redeem = () => {
                         onPress={() => handleRedeem(selectedReward.key)}
                         disabled={redeeming}
                       >
-                        <LinearGradient
-                          colors={[
-                            premiumColors.primary,
-                            premiumColors.secondary,
-                          ]}
-                          style={styles.modalConfirmGradient}
-                        >
+                        <View style={styles.modalConfirmGradient}>
                           {redeeming ? (
                             <>
                               <ActivityIndicator size="small" color="white" />
@@ -830,17 +743,17 @@ const Redeem = () => {
                               </Text>
                             </>
                           )}
-                        </LinearGradient>
+                        </View>
                       </TouchableOpacity>
                     </View>
                   </>
                 )}
-              </LinearGradient>
+              </View>
             </View>
           </View>
         </Modal>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -867,13 +780,13 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginTop: 16,
   },
   loadingDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#374151",
     marginTop: 8,
     textAlign: "center",
   },
@@ -892,18 +805,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderColor: "#FCA5A5",
+    backgroundColor: "#FEF2F2",
   },
   accessTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 12,
     textAlign: "center",
   },
   accessDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#374151",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
@@ -917,10 +831,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+    backgroundColor: "#16A34A",
   },
   accessButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   // Header
@@ -943,7 +858,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F0FDF4",
   },
   headerContent: {
     flex: 1,
@@ -956,22 +872,23 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     marginBottom: 8,
+    backgroundColor: "#FEF3C7",
   },
   headerBadgeText: {
-    color: "#fbbf24",
+    color: "#D97706",
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
     marginLeft: 6,
   },
   headerTitle: {
     fontSize: width > 400 ? 32 : 28,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
   },
   headerTitleAccent: {
-    color: "#fbbf24",
+    color: "#D97706",
   },
   // Miles Section
   milesSection: {
@@ -982,7 +899,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   milesDisplay: {
     alignItems: "center",
@@ -990,7 +908,7 @@ const styles = StyleSheet.create({
   },
   milesLabel: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginBottom: 8,
   },
   milesValueContainer: {
@@ -1000,17 +918,17 @@ const styles = StyleSheet.create({
   },
   milesValue: {
     fontSize: 48,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
     marginHorizontal: 8,
   },
   milesUnit: {
     fontSize: 18,
-    color: "#cbd5e1",
+    color: "#6B7280",
   },
   milesDescription: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: "#6B7280",
     textAlign: "center",
   },
   // Progress Section
@@ -1024,17 +942,17 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
     flex: 1,
   },
   progressPercentage: {
     fontSize: 12,
-    color: "#cbd5e1",
-    fontWeight: "600",
+    color: "#6B7280",
+    fontFamily: "Poppins-SemiBold",
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: "rgba(107, 114, 128, 0.3)",
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
     overflow: "hidden",
     marginBottom: 8,
@@ -1042,6 +960,7 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: "100%",
     borderRadius: 4,
+    backgroundColor: "#16A34A",
   },
   progressLabels: {
     flexDirection: "row",
@@ -1049,11 +968,11 @@ const styles = StyleSheet.create({
   },
   progressStart: {
     fontSize: 10,
-    color: "#9ca3af",
+    color: "#6B7280",
   },
   progressEnd: {
     fontSize: 10,
-    color: "#9ca3af",
+    color: "#6B7280",
   },
   // Stats Grid
   statsGrid: {
@@ -1064,23 +983,23 @@ const styles = StyleSheet.create({
   statCard: {
     width: "48%",
     alignItems: "center",
-    backgroundColor: "rgba(30, 41, 59, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginTop: 4,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 10,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
   },
   // Rewards Section
@@ -1096,12 +1015,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginTop: 4,
   },
   sectionBadge: {
@@ -1109,8 +1028,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionBadgeText: {
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     marginLeft: 4,
   },
   rewardsGrid: {
@@ -1130,9 +1049,10 @@ const styles = StyleSheet.create({
   rewardCardGradient: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     position: "relative",
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
   },
   quickWinBadge: {
     position: "absolute",
@@ -1144,11 +1064,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderBottomRightRadius: 12,
+    backgroundColor: "#16A34A",
   },
   quickWinBadgeText: {
     color: "#ffffff",
     fontSize: 10,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   rewardIcon: {
     width: 48,
@@ -1165,8 +1086,8 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 4,
   },
   rewardNameDisabled: {
@@ -1174,7 +1095,7 @@ const styles = StyleSheet.create({
   },
   rewardDescription: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
     lineHeight: 16,
   },
   rewardFooter: {
@@ -1190,8 +1111,8 @@ const styles = StyleSheet.create({
   },
   rewardMilesValue: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
     marginLeft: 4,
   },
   rewardMilesDisabled: {
@@ -1199,7 +1120,7 @@ const styles = StyleSheet.create({
   },
   rewardMilesUnit: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: "#6B7280",
     marginLeft: 4,
   },
   rewardStatus: {
@@ -1210,23 +1131,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   rewardStatusAvailable: {
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
   },
   rewardStatusUnavailable: {
-    backgroundColor: "rgba(107, 114, 128, 0.2)",
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: "rgba(107, 114, 128, 0.3)",
+    borderColor: "#E5E7EB",
   },
   rewardStatusText: {
     fontSize: 10,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#6b7280",
     marginLeft: 4,
   },
   rewardStatusTextAvailable: {
-    color: "#10b981",
+    color: "#16A34A",
   },
   rewardButton: {
     marginHorizontal: 16,
@@ -1244,10 +1165,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
+    backgroundColor: "#16A34A",
   },
   rewardButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     fontSize: 12,
     marginLeft: 6,
   },
@@ -1257,7 +1179,7 @@ const styles = StyleSheet.create({
     left: "25%",
     right: "25%",
     height: 2,
-    backgroundColor: "#fbbf24",
+    backgroundColor: "#D97706",
     borderRadius: 1,
   },
   // History Section
@@ -1270,26 +1192,27 @@ const styles = StyleSheet.create({
   },
   historySectionTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   historySectionSubtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginTop: 4,
   },
   historyContainer: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
   },
   historyItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(251, 191, 36, 0.2)",
+    borderBottomColor: "#E5E7EB",
   },
   historyIcon: {
     width: 32,
@@ -1299,15 +1222,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FEF3C7",
   },
   historyContent: {
     flex: 1,
   },
   historyRewardName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 4,
   },
   historyDetails: {
@@ -1321,8 +1245,8 @@ const styles = StyleSheet.create({
   },
   historyMilesText: {
     fontSize: 12,
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     marginLeft: 4,
   },
   historyDate: {
@@ -1332,17 +1256,17 @@ const styles = StyleSheet.create({
   historyStatus: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "#F0FDF4",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
   },
   historyStatusText: {
     fontSize: 10,
-    fontWeight: "bold",
-    color: "#10b981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
     marginLeft: 4,
   },
   // No History
@@ -1359,18 +1283,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FEF3C7",
   },
   noHistoryTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 8,
     textAlign: "center",
   },
   noHistoryDescription: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#374151",
     textAlign: "center",
     lineHeight: 20,
   },
@@ -1383,12 +1308,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   earnTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     textAlign: "center",
     marginBottom: 16,
   },
@@ -1400,7 +1326,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     marginBottom: 8,
   },
   earnIcon: {
@@ -1413,21 +1339,21 @@ const styles = StyleSheet.create({
   },
   earnCardTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 4,
     textAlign: "center",
   },
   earnCardDescription: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#374151",
     textAlign: "center",
     lineHeight: 16,
   },
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
@@ -1441,7 +1367,8 @@ const styles = StyleSheet.create({
   modalContent: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.5)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   modalHeader: {
     alignItems: "center",
@@ -1457,14 +1384,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 8,
     textAlign: "center",
   },
   modalSubtitle: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
   },
   modalRewardInfo: {
@@ -1472,19 +1399,20 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     marginBottom: 20,
+    backgroundColor: "#FEF3C7",
   },
   modalRewardName: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
     textAlign: "center",
     marginBottom: 8,
   },
   modalRewardDescription: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#374151",
     textAlign: "center",
     lineHeight: 20,
   },
@@ -1499,28 +1427,28 @@ const styles = StyleSheet.create({
   },
   modalCalculationTotal: {
     borderTopWidth: 1,
-    borderTopColor: "rgba(251, 191, 36, 0.3)",
+    borderTopColor: "#E5E7EB",
     marginTop: 8,
     paddingTop: 16,
   },
   modalCalculationLabel: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
   },
   modalCalculationValue: {
     fontSize: 14,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#D97706",
   },
   modalCalculationCost: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     color: "#ef4444",
   },
   modalCalculationRemaining: {
     fontSize: 14,
-    fontWeight: "bold",
-    color: "#10b981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   modalButtons: {
     flexDirection: "row",
@@ -1532,13 +1460,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     alignItems: "center",
   },
   modalCancelText: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   modalConfirmButton: {
@@ -1552,10 +1480,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     borderRadius: 12,
+    backgroundColor: "#16A34A",
   },
   modalConfirmText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
     marginLeft: 8,
   },

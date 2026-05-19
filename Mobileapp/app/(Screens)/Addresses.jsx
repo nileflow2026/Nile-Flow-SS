@@ -1,7 +1,6 @@
 ﻿/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -116,32 +115,26 @@ const Addresses = () => {
   };
 
   const inputStyle = {
-    backgroundColor: "rgba(17, 24, 39, 0.8)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     padding: 12,
-    color: "#fff",
+    color: "#111827",
     marginBottom: 10,
     fontSize: 14,
+    fontFamily: "Poppins-Regular",
   };
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         {/* Header */}
-        <LinearGradient
-          colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Your Addresses</Text>
@@ -149,29 +142,25 @@ const Addresses = () => {
               Manage your delivery addresses
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
           {addresses.length === 0 ? (
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.emptyCard}
-            >
+            <View style={styles.emptyCard}>
               <MaterialIcons
                 name="location-off"
                 size={48}
-                color="rgba(245,158,11,0.4)"
+                color="#BBF7D0"
               />
               <Text style={styles.emptyText}>No addresses saved yet</Text>
               <Text style={styles.emptySubtext}>
                 Tap the + button to add your first address
               </Text>
-            </LinearGradient>
+              </View>
           ) : (
             addresses.map((item) => (
-              <LinearGradient
+              <View
                 key={item.$id}
-                colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
                 style={styles.addressCard}
               >
                 <View style={styles.addressCardRow}>
@@ -179,7 +168,7 @@ const Addresses = () => {
                     <MaterialIcons
                       name="location-on"
                       size={22}
-                      color="#F59E0B"
+                      color="#16A34A"
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -209,7 +198,7 @@ const Addresses = () => {
                     />
                   </TouchableOpacity>
                 </View>
-              </LinearGradient>
+              </View>
             ))
           )}
         </ScrollView>
@@ -220,21 +209,15 @@ const Addresses = () => {
           style={styles.fab}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={["#F59E0B", "#D97706"]}
-            style={styles.fabGradient}
-          >
+          <View style={styles.fabGradient}>
             <Ionicons name="add" size={28} color="#fff" />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         {/* Add Address Modal */}
         <Modal transparent animationType="slide" visible={modalVisible}>
           <View style={styles.modalOverlay}>
-            <LinearGradient
-              colors={["rgba(15, 23, 42, 0.98)", "rgba(30, 41, 59, 0.98)"]}
-              style={styles.modalCard}
-            >
+            <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Add New Address</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -305,31 +288,25 @@ const Addresses = () => {
                   onPress={() => setModalVisible(false)}
                   style={styles.cancelButton}
                 >
-                  <Text style={{ color: "#9CA3AF", fontWeight: "600" }}>
+                  <Text style={{ color: "#9CA3AF", fontFamily: "Poppins-SemiBold" }}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                  <TouchableOpacity
                   onPress={handleAddAddress}
-                  style={{ flex: 1 }}
+                  style={[styles.saveButton, { backgroundColor: "#16A34A", flex: 1 }]}
                 >
-                  <LinearGradient
-                    colors={["#F59E0B", "#D97706"]}
-                    style={styles.saveButton}
-                  >
                     <Text
-                      style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}
+                      style={{ color: "#fff", fontFamily: "Poppins-Bold", fontSize: 15 }}
                     >
                       Save Address
                     </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
           </View>
         </Modal>
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -341,49 +318,54 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   emptyCard: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     padding: 40,
     alignItems: "center",
     marginTop: 40,
     gap: 12,
   },
   emptyText: {
-    color: "#F3F4F6",
+    color: "#111827",
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   emptySubtext: {
     color: "#6B7280",
     fontSize: 13,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   addressCard: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.25)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     padding: 16,
     marginBottom: 12,
   },
@@ -396,31 +378,34 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
   },
   addressName: {
-    color: "#FCD34D",
-    fontWeight: "700",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     fontSize: 15,
     marginBottom: 4,
   },
   addressText: {
-    color: "#F3F4F6",
+    color: "#111827",
     fontSize: 14,
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   addressMeta: {
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 13,
     marginTop: 3,
+    fontFamily: "Poppins-Regular",
   },
   addressPhone: {
-    color: "#6EE7B7",
+    color: "#16A34A",
     fontSize: 13,
     marginTop: 3,
+    fontFamily: "Poppins-Regular",
   },
   deleteButton: {
     padding: 4,
@@ -430,7 +415,7 @@ const styles = StyleSheet.create({
     bottom: 28,
     right: 20,
     borderRadius: 32,
-    shadowColor: "#F59E0B",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -442,10 +427,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#16A34A",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   modalCard: {
@@ -453,7 +439,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     borderTopWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   modalHeader: {
     flexDirection: "row",
@@ -462,15 +449,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
-    color: "#FCD34D",
+    color: "#14532D",
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "rgba(17, 24, 39, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
-import { useEffect, useState } from "react";
+import images from "../../constants/images";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   StyleSheet,
   Text,
@@ -97,6 +99,45 @@ const ProductCard = ({
     toggleFavorite({ ...productData, $id: productId, id: productId });
   };
 
+  const flowScale = useRef(new Animated.Value(1)).current;
+  const rippleScale = useRef(new Animated.Value(0)).current;
+  const rippleOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleAddToCart = () => {
+    rippleScale.setValue(0);
+    rippleOpacity.setValue(0.5);
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(flowScale, {
+          toValue: 0.91,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.spring(flowScale, {
+          toValue: 1,
+          friction: 3,
+          tension: 220,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(rippleScale, {
+          toValue: 3,
+          duration: 480,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rippleOpacity, {
+          toValue: 0,
+          duration: 480,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    addToCart({ ...productData, $id: productId, id: productId }, user?.id);
+  };
+
   const getProductGradient = (id) => {
     const gradients = [
       ["#F59E0B", "#FB923C"],
@@ -131,30 +172,21 @@ const ProductCard = ({
       accessibilityRole="button"
       accessibilityLabel={`View ${productTitle}`}
     >
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.9)", "rgba(0, 0, 0, 0.9)"]}
-        style={styles.card}
-      >
+      <View style={styles.card}>
         {/* Badges Container - Top Left */}
         <View style={styles.badgesContainer}>
           {productData.isOnSale && (
-            <LinearGradient
-              colors={["#DC2626", "#B91C1C"]}
-              style={styles.badge}
-            >
+            <View style={[styles.badge, { backgroundColor: "#DC2626" }]}>
               <Ionicons name="flash" size={10} color="#FFF" />
               <Text style={styles.badgeText}>SALE</Text>
-            </LinearGradient>
+            </View>
           )}
 
           {premium && (
-            <LinearGradient
-              colors={["#F59E0B", "#D97706"]}
-              style={styles.badge}
-            >
+            <View style={[styles.badge, { backgroundColor: "#D97706" }]}>
               <Ionicons name="trophy" size={10} color="#FFF" />
               <Text style={styles.badgeText}>PREMIUM</Text>
-            </LinearGradient>
+            </View>
           )}
         </View>
 
@@ -173,18 +205,20 @@ const ProductCard = ({
           }
           accessibilityState={{ selected: isWishlisted }}
         >
-          <LinearGradient
-            colors={
-              isWishlisted
-                ? ["#DC2626", "#EC4899"]
-                : ["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]
-            }
-            style={StyleSheet.absoluteFill}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: isWishlisted
+                  ? "#DC2626"
+                  : "rgba(249,250,251,0.95)",
+              },
+            ]}
           />
           <Ionicons
             name={isWishlisted ? "heart" : "heart-outline"}
             size={16}
-            color={isWishlisted ? "#FFF" : "#FCD34D"}
+            color={isWishlisted ? "#FFF" : "#9CA3AF"}
           />
         </TouchableOpacity>
 
@@ -192,6 +226,8 @@ const ProductCard = ({
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: image || productData.image }}
+            placeholder={images.Nilelogo}
+            placeholderContentFit="contain"
             style={styles.productImage}
             contentFit="cover"
             cachePolicy="memory-disk"
@@ -204,9 +240,9 @@ const ProductCard = ({
           />
 
           {/* Stock Status Badge */}
-          <LinearGradient colors={stockColor} style={styles.stockBadge}>
+          <View style={[styles.stockBadge, { backgroundColor: stockColor[0] }]}>
             <Text style={styles.stockText}>{stockStatus}</Text>
-          </LinearGradient>
+          </View>
         </View>
 
         {/* Product Info */}
@@ -235,13 +271,10 @@ const ProductCard = ({
               <Text style={styles.ratingCount}>({totalRatings})</Text>
             </View>
 
-            <LinearGradient
-              colors={["rgba(245, 158, 11, 0.4)", "rgba(217, 119, 6, 0.3)"]}
-              style={styles.ratingBadge}
-            >
-              <Ionicons name="star" size={10} color="#FCD34D" />
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={10} color="#D97706" />
               <Text style={styles.ratingScore}>{averageRating.toFixed(1)}</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Price Section */}
@@ -281,73 +314,55 @@ const ProductCard = ({
           {/* Features Badges */}
           {premium && (
             <View style={styles.featuresContainer}>
-              <LinearGradient
-                colors={["rgba(17, 24, 39, 0.5)", "rgba(0, 0, 0, 0.5)"]}
-                style={styles.featureBadge}
-              >
-                <Ionicons name="shield-checkmark" size={10} color="#6EE7B7" />
+              <View style={styles.featureBadge}>
+                <Ionicons name="shield-checkmark" size={10} color="#16A34A" />
                 <Text style={styles.featureText}>Authentic</Text>
-              </LinearGradient>
-              <LinearGradient
-                colors={["rgba(17, 24, 39, 0.5)", "rgba(0, 0, 0, 0.5)"]}
-                style={styles.featureBadge}
-              >
-                <Ionicons name="car" size={10} color="#60A5FA" />
+              </View>
+              <View style={styles.featureBadge}>
+                <Ionicons name="car" size={10} color="#2563EB" />
                 <Text style={styles.featureText}>Fast Ship</Text>
-              </LinearGradient>
-              <LinearGradient
-                colors={["rgba(17, 24, 39, 0.5)", "rgba(0, 0, 0, 0.5)"]}
-                style={styles.featureBadge}
-              >
-                <Ionicons name="sparkles" size={10} color="#FCD34D" />
+              </View>
+              <View style={styles.featureBadge}>
+                <Ionicons name="sparkles" size={10} color="#D97706" />
                 <Text style={styles.featureText}>Premium</Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
 
           {/* Add to Cart Button */}
-          <TouchableOpacity
-            onPress={() =>
-              addToCart(
-                { ...productData, $id: productId, id: productId },
-                user?.id,
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={
+          <TouchableOpacity onPress={handleAddToCart} activeOpacity={0.85}>
+            <Animated.View
+              style={[
+                styles.cartButton,
                 premium
-                  ? ["#F59E0B", "#D97706"]
-                  : ["rgba(31, 41, 55, 1)", "rgba(0, 0, 0, 1)"]
-              }
-              style={[styles.cartButton, !premium && styles.cartButtonBorder]}
+                  ? { backgroundColor: "#D97706" }
+                  : { backgroundColor: "#16A34A" },
+                { transform: [{ scale: flowScale }], overflow: "hidden" },
+              ]}
             >
-              <Ionicons
-                name="bag-handle"
-                size={14}
-                color={premium ? "#FFF" : "#FCD34D"}
-              />
-              <Text
+              <Animated.View
                 style={[
-                  styles.cartButtonText,
-                  !premium && styles.cartButtonTextAlt,
+                  styles.ripple,
+                  {
+                    transform: [{ scale: rippleScale }],
+                    opacity: rippleOpacity,
+                  },
                 ]}
-              >
-                Let It Flow
-              </Text>
-            </LinearGradient>
+              />
+              <Ionicons name="bag-handle" size={14} color="#FFF" />
+              <Text style={styles.cartButtonText}>Let It Flow</Text>
+            </Animated.View>
           </TouchableOpacity>
         </View>
 
         {/* Bottom Accent Line */}
         <LinearGradient
-          colors={["#F59E0B", "#10B981"]}
+          colors={["#16A34A", "#D97706"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.accentLine}
         />
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -361,7 +376,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F9FAFB",
   },
   badgesContainer: {
     position: "absolute",
@@ -394,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
     overflow: "hidden",
   },
   wishlistButtonActive: {
@@ -403,7 +419,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: 180,
     position: "relative",
-    backgroundColor: "rgba(17, 24, 39, 1)",
+    backgroundColor: "#F3F4F6",
   },
   productImage: {
     width: "100%",
@@ -431,13 +447,13 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFF",
+    color: "#111827",
     marginBottom: 4,
     minHeight: 36,
   },
   description: {
     fontSize: 11,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginBottom: 8,
     lineHeight: 16,
   },
@@ -454,7 +470,7 @@ const styles = StyleSheet.create({
   },
   ratingCount: {
     fontSize: 11,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginLeft: 4,
   },
   ratingBadge: {
@@ -464,13 +480,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FEF3C7",
     gap: 3,
   },
   ratingScore: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#FCD34D",
+    color: "#D97706",
   },
   priceSection: {
     marginBottom: 12,
@@ -484,7 +501,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#FCD34D",
+    color: "#16A34A",
   },
   discountContainer: {
     flexDirection: "row",
@@ -509,7 +526,7 @@ const styles = StyleSheet.create({
   },
   shippingText: {
     fontSize: 11,
-    color: "#6EE7B7",
+    color: "#16A34A",
   },
   featuresContainer: {
     flexDirection: "row",
@@ -524,12 +541,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
     gap: 3,
   },
   featureText: {
     fontSize: 9,
-    color: "#F3F4F6",
+    color: "#374151",
   },
   cartButton: {
     flexDirection: "row",
@@ -539,10 +557,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     gap: 6,
+    overflow: "hidden",
+  },
+  ripple: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   cartButtonBorder: {
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#BBF7D0",
   },
   cartButtonText: {
     fontSize: 12,
@@ -550,7 +576,7 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   cartButtonTextAlt: {
-    color: "#FCD34D",
+    color: "#FFF",
   },
   accentLine: {
     height: 2,

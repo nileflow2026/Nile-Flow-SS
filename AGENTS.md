@@ -1100,6 +1100,191 @@ CustomerAuthProvider
 
 ---
 
+# Nile Flow Light Design System (Mobile App)
+
+The Mobileapp uses a **permanent light design system**. Dark mode has been fully removed. All components and screens must follow this system without exception.
+
+> This system was fully implemented across all screens in `Mobileapp/app/(tabs)/`, `Mobileapp/app/(auth)/`, `Mobileapp/app/screens/`, and all components in `Mobileapp/app/components/` including the `Creator/` and `SocialFeed/` subfolders.
+
+---
+
+## Core Color Palette
+
+| Role                    | Color             | Usage                                               |
+| ----------------------- | ----------------- | --------------------------------------------------- |
+| Page background         | `#FFFFFF`         | Every screen root `View`                            |
+| Card background (soft)  | `#F9FAFB`         | Product cards, modals, input containers             |
+| Card background (green) | `#F0FDF4`         | Featured sections, empty states, premium containers |
+| Green accent (CTA)      | `#16A34A`         | Buttons, icons, active states, progress fills, CTAs |
+| Dark green (headings)   | `#14532D`         | Section titles, modal titles, badge text            |
+| Gold (price/stars)      | `#D97706`         | Product prices, active star ratings, premium badges |
+| Body text (primary)     | `#111827`         | Headings, product names, form labels, modal titles  |
+| Body text (default)     | `#374151`         | Paragraph text, descriptions, action labels         |
+| Body text (secondary)   | `#6B7280`         | Timestamps, counts, subtitles, captions             |
+| Border (neutral)        | `#E5E7EB`         | Default card and input borders                      |
+| Border (green tint)     | `#BBF7D0`         | Featured card borders, premium section borders      |
+| Star inactive           | `#D1D5DB`         | Unrated star icons                                  |
+| Handle / divider        | `#D1D5DB`         | Bottom sheet handles, header dividers               |
+| Placeholder text        | `#9CA3AF`         | Input placeholder text                              |
+| Disabled                | `#9CA3AF`         | Disabled buttons and controls                       |
+| Backdrop overlay        | `rgba(0,0,0,0.5)` | Modal backdrops                                     |
+
+---
+
+## Critical Rules
+
+### Page vs Card Backgrounds
+
+- Page root `View` background → **always `#FFFFFF`**
+- Cards must **never** be `#FFFFFF` — use `#F9FAFB` or `#F0FDF4` to visually separate from the page
+- Bottom sheets and modal content → `#FFFFFF` (sits above backdrop, distinct from page)
+
+### What to Keep Dark (Do NOT Lighten)
+
+- Video overlay action buttons in `FeedItem.jsx` (Heart, Comment, Share on video) → keep white for readability on video
+- Full-screen video player container → `#000000` background is correct
+- Image gradient overlays (`transparent → rgba(0,0,0,0.8)`) → keep as-is for text readability on images
+- Hero/banner slides with image backgrounds → overlay gradients are intentional
+- `Creator/MediaPreview.jsx` → camera canvas stays dark (industry standard, like Instagram/TikTok)
+
+### What to Always Keep Colored (Do NOT Neutralize)
+
+- SALE badges → red (`#DC2626` or `bg-red-600`)
+- PREMIUM badges → gold/purple gradient
+- CTA buttons → `#16A34A` green (never gray unless disabled)
+- Emerald group buy action buttons → keep emerald scheme
+- Amber TTL duration selectors in group buy → keep amber scheme
+
+---
+
+## NativeWind Class Mapping (Dark → Light)
+
+When converting NativeWind `className` strings from dark to light:
+
+| Dark class                                     | Light replacement                        |
+| ---------------------------------------------- | ---------------------------------------- |
+| `bg-slate-900`                                 | `bg-white`                               |
+| `bg-slate-800` / `bg-slate-700`                | `bg-gray-50` / `bg-gray-100`             |
+| `text-white`                                   | `text-gray-900`                          |
+| `text-slate-400`                               | `text-gray-500`                          |
+| `text-slate-300`                               | `text-gray-700` or `text-gray-600`       |
+| `border-slate-600` / `border-slate-800`        | `border-gray-200` / `border-gray-100`    |
+| `bg-slate-700/50 border-slate-600`             | `bg-gray-100 border-gray-200`            |
+| `bg-red-900/40 border-red-500/40 text-red-400` | `bg-red-50 border-red-200 text-red-600`  |
+| `bg-emerald-900/40 border-emerald-500/30`      | `bg-emerald-50 border-emerald-300`       |
+| `text-emerald-400`                             | `text-emerald-600` or `text-emerald-700` |
+
+---
+
+## StyleSheet Value Mapping (Dark → Light)
+
+When converting inline `StyleSheet.create()` values:
+
+| Dark value                   | Light replacement      |
+| ---------------------------- | ---------------------- |
+| `#262626` / `#1C1C1E`        | `#FFFFFF` or `#F9FAFB` |
+| `#4A4A4A` (handles)          | `#D1D5DB`              |
+| `#3A3A3A` (dividers/borders) | `#E5E7EB`              |
+| `#F5F5F5` (dark-mode text)   | `#111827` or `#374151` |
+| `#A8A8A8` (dark secondary)   | `#6B7280`              |
+| `'gold'` (star active)       | `'#D97706'`            |
+| `'gray'` (star inactive)     | `'#D1D5DB'`            |
+
+---
+
+## ThemeProvider Removal Rules
+
+The `ThemeProvider` / `useTheme` hook was providing dynamic dark/light styles. This has been **fully removed** from all Mobileapp components. When editing any component:
+
+1. Remove `import { useTheme } from "../../../Context/ThemeProvider"` (adjust relative path as needed)
+2. Remove `const { themeStyles, isDark, theme } = useTheme()` destructure
+3. Replace all `themeStyles.text` → `"#111827"` or `"#374151"` depending on context
+4. Replace all `themeStyles.cardBackground` → `"#F9FAFB"`
+5. Replace all `themeStyles.background` → `"#FFFFFF"`
+6. Replace all `themeStyles.border` → `"#E5E7EB"`
+7. Replace all `themeStyles.secondaryText` → `"#6B7280"`
+8. Replace all `themeStyles.primary` → `"#16A34A"`
+9. Replace all `isDark ? ... : ...` ternaries → use the light-side value directly
+10. Replace all `ActivityIndicator color={themeStyles.text}` → `color="#16A34A"`
+
+---
+
+## LinearGradient Usage Rules
+
+`expo-linear-gradient` is allowed only for:
+
+- Hero/banner slides with image backgrounds
+- CTA button gradients (e.g., green gradient buttons)
+- Accent/highlight lines (can use solid `#16A34A` instead)
+- Image overlay gradients (`transparent → rgba(0,0,0,0.8)`)
+
+**Remove `LinearGradient` from:**
+
+- Card backgrounds (use solid `#F9FAFB`)
+- Premium badge backgrounds (use solid `#D97706`)
+- Any place that was previously a dark-to-dark gradient for aesthetic purposes
+
+---
+
+## HolidayBanner Prop Default
+
+`HolidayBanner` accepts `themeStyles` as a prop for parametric coloring. Always provide a default:
+
+```jsx
+const HolidayBanner = ({ themeStyles = { primary: '#16A34A', text: '#111827' } }) => {
+```
+
+---
+
+## Components Converted (Mobileapp)
+
+All files below have been fully converted to the light design system. **Do not revert these.**
+
+### `app/components/`
+
+- `RelatedProductCard.jsx` — card `#F9FAFB`, premium badge solid `#D97706`, stars `#D97706`/`#D1D5DB`
+- `RatingModal.jsx` — modal `#FFFFFF`, cancel `#DC2626`, submit `#16A34A`
+- `RelatedProducts.jsx` — container `#F0FDF4 border #BBF7D0`, header icon `#16A34A`
+- `FilterModa.jsx` — bg `#FFFFFF`, selected `#16A34A`, apply `#16A34A`
+- `ProductCarousel.jsx` — active dot `#16A34A`, inactive `#D1D5DB`
+- `RatingStars.jsx` — active `#D97706`, inactive `#D1D5DB`
+- `VerificationInput.jsx` — border/color `#16A34A`, bg `rgba(22,163,74,0.08)`
+- `CustomAlert.jsx` — title `#14532D`
+- `ErrorBoundary.jsx` — bg `bg-gray-50`, button `bg-green-600`
+- `CountdownTimer.jsx` — expired `bg-red-50 border-red-200`, time units `bg-amber-50`
+- `ParticipantList.jsx` — progress track `bg-gray-200`, avatar borders `border-white`
+- `GroupBuyCard.jsx` — card `bg-white border-gray-200`, disabled CTA `bg-gray-300`
+- `GroupBuyStarter.jsx` — root `bg-white`, size/TTL selectors `bg-gray-100`, footer `bg-white`
+- `PricingTiersDisplay.jsx` — container `bg-gray-50`, current tier `bg-emerald-50`
+- `ShareButton.jsx` — compact `bg-emerald-50 border-emerald-300`, social buttons light
+- `AddAddressMapModal.jsx` — save `#16A34A`, cancel `#DC2626`, ActivityIndicator `#16A34A`
+- `HolidayBanner.jsx` — default prop `{ primary: '#16A34A', text: '#111827' }`
+
+### `app/components/Creator/`
+
+- `AudiencePickerModal.jsx` — `useTheme` removed, bg `#FFFFFF`, text `#111827`
+- `LocationPickerModal.jsx` — `useTheme` removed, card `#FFFFFF`, all text `#111827`
+- `CaptionInput.jsx` — `useTheme` removed, input color `#111827`, avatar bg `#F3F4F6`
+- `SettingsRow.jsx` — `useTheme` removed, icon `#374151`, label `#111827`
+- `ProductTagSection.jsx` — `useTheme`/`isDark` removed, search border `rgba(0,0,0,0.1)`
+- `MediaPreview.jsx` — camera canvas, kept dark intentionally (camera UI convention)
+
+### `app/components/SocialFeed/`
+
+- `CommentsSheet.jsx` — sheet `#FFFFFF`, handle `#D1D5DB`, text `#111827`, inputs `#F9FAFB`
+- `NileMilesDisplay.jsx` — `useTheme` replaced with hardcoded light object
+- `SocialFeed.jsx` — `useTheme` removed, loading/error states `#FFFFFF`, ActivityIndicator `#16A34A`
+- `FeedItem.jsx` — `useTheme` removed, video container `#000000`, username/caption white (video overlay), non-video cards `#F9FAFB`
+- `MediaPicker.jsx` — `useTheme` removed, borders `#E5E7EB`, icons `#374151`
+- `ProductTagger.jsx` — `useTheme` removed, dropdown `#F9FAFB`, result text `#111827`
+- `SocialShare.jsx` — pure utility, no UI (no changes needed)
+
+### Screens (previously converted)
+
+All screens in `app/(tabs)/`, `app/(auth)/`, and `app/screens/` — fully converted.
+
+---
+
 # Final Principle
 
 Nile Flow is being engineered as foundational digital infrastructure for Africa.

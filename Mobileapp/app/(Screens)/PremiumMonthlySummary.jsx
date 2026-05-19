@@ -1,6 +1,5 @@
 /* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -91,10 +90,7 @@ const PremiumMonthlySummary = () => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-        style={styles.mainCard}
-      >
+      <View style={styles.mainCard}>
         {/* Background Decorations */}
         <View style={[styles.backgroundDecoration, styles.topDecoration]} />
         <View style={[styles.backgroundDecoration, styles.bottomDecoration]} />
@@ -217,7 +213,7 @@ const PremiumMonthlySummary = () => {
             </View>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </ScrollView>
   );
 };
@@ -235,8 +231,9 @@ const styles = StyleSheet.create({
     margin: 16,
     marginBottom: 32,
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   backgroundDecoration: {
     position: "absolute",
@@ -248,25 +245,25 @@ const styles = StyleSheet.create({
     right: -64,
     width: 128,
     height: 128,
-    backgroundColor: "rgba(234, 179, 8, 0.3)",
+    backgroundColor: "#BBF7D0",
   },
   bottomDecoration: {
     bottom: -48,
     left: -48,
     width: 96,
     height: 96,
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#D1FAE5",
   },
   loadingContainer: {
     padding: 16,
   },
   loadingCard: {
-    backgroundColor: "rgba(17, 24, 39, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 24,
     padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   loadingContent: {
     width: "100%",
@@ -274,7 +271,7 @@ const styles = StyleSheet.create({
   },
   loadingHeader: {
     height: 24,
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
     width: "33%",
     marginBottom: 16,
@@ -285,19 +282,19 @@ const styles = StyleSheet.create({
   },
   loadingItem: {
     height: 80,
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#E5E7EB",
     borderRadius: 8,
     width: cardWidth,
   },
   errorContainer: {
-    backgroundColor: "rgba(17, 24, 39, 0.8)",
-    borderColor: "rgba(239, 68, 68, 0.5)",
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FCA5A5",
     borderWidth: 1,
     borderRadius: 24,
     padding: 16,
   },
   errorText: {
-    color: "#F87171",
+    color: "#DC2626",
     fontSize: 14,
   },
   header: {
@@ -317,19 +314,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginLeft: 8,
   },
   subtitle: {
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
     fontSize: 14,
   },
   headerIcon: {
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#FEF3C7",
     borderRadius: 16,
     padding: 16,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#FDE68A",
     borderWidth: 1,
   },
   savingsGrid: {
@@ -339,12 +336,12 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   savingsCard: {
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     width: cardWidth,
     marginBottom: 16,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     borderWidth: 1,
   },
   cardHeader: {
@@ -364,34 +361,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#D97706",
   },
   emeraldIcon: {
-    backgroundColor: "#059669",
+    backgroundColor: "#16A34A",
   },
   cardLabel: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Medium",
+    color: "#374151",
     flex: 1,
   },
   cardValue: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 4,
   },
   currency: {
     fontSize: 14,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
   },
   cardDescription: {
     fontSize: 10,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
   },
   summaryCard: {
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     borderWidth: 1,
   },
   summaryRow: {
@@ -402,46 +399,46 @@ const styles = StyleSheet.create({
   },
   summaryTotal: {
     borderTopWidth: 1,
-    borderTopColor: "rgba(217, 119, 6, 0.3)",
+    borderTopColor: "#E5E7EB",
     paddingTop: 16,
     marginBottom: 0,
   },
   summaryLabel: {
-    color: "#FCD34D",
-    fontWeight: "500",
+    color: "#14532D",
+    fontFamily: "Poppins-Medium",
   },
   summaryValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#10b981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   summarySubLabel: {
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
     fontSize: 14,
   },
   summaryCost: {
-    color: "white",
-    fontWeight: "600",
+    color: "#374151",
+    fontFamily: "Poppins-SemiBold",
     fontSize: 16,
   },
   summaryTotalLabel: {
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     fontSize: 16,
   },
   summaryTotalValue: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   insightCard: {
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
     flexDirection: "row",
     alignItems: "flex-start",
   },
   positiveInsight: {
-    borderColor: "#059669",
+    borderColor: "#16A34A",
     borderWidth: 2,
   },
   neutralInsight: {
@@ -454,7 +451,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   positiveIcon: {
-    backgroundColor: "#059669",
+    backgroundColor: "#16A34A",
   },
   neutralIcon: {
     backgroundColor: "#2563EB",
@@ -463,15 +460,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   insightTitle: {
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
     fontSize: 16,
     marginBottom: 4,
-    color: "#FCD34D",
+    color: "#14532D",
   },
   insightText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#374151",
   },
 });
 

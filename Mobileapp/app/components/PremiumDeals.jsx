@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 import { usePremiumStatus } from "../../hooks/usePremiumStatus";
 import { premiumService } from "../../utils/premiumService";
 
@@ -23,9 +21,7 @@ const PremiumDeals = () => {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { theme } = useTheme();
   const { isPremium, loading: statusLoading } = usePremiumStatus();
-  const isDark = theme === "dark";
 
   const fetchPremiumDeals = async () => {
     if (!isPremium) {
@@ -74,31 +70,28 @@ const PremiumDeals = () => {
         }
         activeOpacity={0.9}
       >
-        <LinearGradient
-          colors={
-            isDark
-              ? ["rgba(15, 23, 42, 0.9)", "rgba(30, 41, 59, 0.9)"]
-              : ["rgba(248, 250, 252, 0.9)", "rgba(241, 245, 249, 0.9)"]
-          }
-          style={styles.dealGradient}
-        >
+        <View style={styles.dealGradient}>
           {/* Premium Badge */}
           <View style={styles.premiumBadge}>
-            <LinearGradient colors={gradient} style={styles.badgeGradient}>
+            <View
+              style={[styles.badgeGradient, { backgroundColor: "#7C3AED" }]}
+            >
               <Ionicons name="diamond" size={12} color="#FFF" />
               <Text style={styles.badgeText}>Premium</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Discount Badge */}
           {item.discount && (
             <View style={styles.discountBadge}>
-              <LinearGradient
-                colors={["#EF4444", "#DC2626"]}
-                style={styles.discountGradient}
+              <View
+                style={[
+                  styles.discountGradient,
+                  { backgroundColor: "#DC2626" },
+                ]}
               >
                 <Text style={styles.discountText}>-{item.discount}%</Text>
-              </LinearGradient>
+              </View>
             </View>
           )}
 
@@ -117,7 +110,7 @@ const PremiumDeals = () => {
           {/* Product Info */}
           <View style={styles.dealInfo}>
             <Text
-              style={[styles.dealName, { color: isDark ? "#FFF" : "#1F2937" }]}
+              style={[styles.dealName, { color: "#111827" }]}
               numberOfLines={2}
             >
               {item.productName || item.name}
@@ -156,7 +149,7 @@ const PremiumDeals = () => {
               </View>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -189,12 +182,9 @@ const PremiumDeals = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <LinearGradient
-            colors={["#A855F7", "#7C3AED"]}
-            style={styles.headerIcon}
-          >
+          <View style={[styles.headerIcon, { backgroundColor: "#7C3AED" }]}>
             <Ionicons name="diamond" size={20} color="#FFF" />
-          </LinearGradient>
+          </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>Premium Deals</Text>
             <Text style={styles.headerSubtitle}>Exclusive member offers</Text>
@@ -211,23 +201,15 @@ const PremiumDeals = () => {
 
       {/* Premium Info Banner */}
       <View style={styles.infoBanner}>
-        <LinearGradient
-          colors={["rgba(168, 85, 247, 0.1)", "rgba(147, 51, 234, 0.1)"]}
-          style={styles.infoBannerGradient}
-        >
+        <View style={styles.infoBannerGradient}>
           <View style={styles.infoBannerIcon}>
             <Ionicons name="sparkles" size={16} color="#A855F7" />
           </View>
-          <Text
-            style={[
-              styles.infoBannerText,
-              { color: isDark ? "#FFF" : "#1F2937" },
-            ]}
-          >
+          <Text style={[styles.infoBannerText, { color: "#1F2937" }]}>
             <Text style={styles.infoBannerHighlight}>Premium Perks:</Text>{" "}
             Priority delivery + 2x Nile Miles on all items
           </Text>
-        </LinearGradient>
+        </View>
       </View>
 
       {/* Deals Grid */}
@@ -274,7 +256,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#4C1D95",
   },
   headerSubtitle: {
     fontSize: 12,
@@ -302,6 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(168, 85, 247, 0.2)",
+    backgroundColor: "#F5F3FF",
   },
   infoBannerIcon: {
     marginRight: 8,
@@ -328,9 +311,10 @@ const styles = StyleSheet.create({
   },
   dealGradient: {
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.2)",
+    borderColor: "#DDD6FE",
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
   },
   premiumBadge: {
     position: "absolute",
@@ -346,7 +330,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
+    borderColor: "rgba(168, 85, 247, 0.4)",
   },
   badgeText: {
     fontSize: 10,
@@ -372,7 +356,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: "100%",
     height: 140,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "#F3F4F6",
   },
   dealImage: {
     width: "100%",
@@ -412,7 +396,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#FEF3C7",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -420,7 +404,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#F59E0B",
+    color: "#D97706",
   },
   perksContainer: {
     flexDirection: "row",
@@ -430,7 +414,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
+    backgroundColor: "#EDE9FE",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -438,7 +422,7 @@ const styles = StyleSheet.create({
   perkText: {
     fontSize: 9,
     fontWeight: "600",
-    color: "#A855F7",
+    color: "#7C3AED",
   },
   loadingContainer: {
     paddingVertical: 60,

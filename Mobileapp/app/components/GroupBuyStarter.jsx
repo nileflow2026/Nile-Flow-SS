@@ -77,10 +77,10 @@ export default function GroupBuyStarter({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         {/* Handle */}
         <View className="items-center pt-3 pb-2">
-          <View className="w-10 h-1 bg-slate-600 rounded-full" />
+          <View className="w-10 h-1 bg-gray-300 rounded-full" />
         </View>
 
         <ScrollView
@@ -88,17 +88,17 @@ export default function GroupBuyStarter({
           showsVerticalScrollIndicator={false}
         >
           {/* Title */}
-          <Text className="text-white text-xl font-bold mt-2">
+          <Text className="text-gray-900 text-xl font-bold mt-2">
             🛒 Start a Group Buy
           </Text>
           {product?.name && (
-            <Text className="text-slate-400 text-sm mt-1" numberOfLines={1}>
+            <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
               {product.name}
             </Text>
           )}
 
           {/* Group size selector */}
-          <Text className="text-slate-300 font-semibold mt-6 mb-2">
+          <Text className="text-gray-700 font-semibold mt-6 mb-2">
             Group size
           </Text>
           <View className="flex-row gap-2 flex-wrap">
@@ -112,14 +112,14 @@ export default function GroupBuyStarter({
                 className={`rounded-xl px-5 py-2.5 border ${
                   selectedSize === sz && !customSize
                     ? "bg-emerald-600 border-emerald-500"
-                    : "bg-slate-700/50 border-slate-600"
+                    : "bg-gray-100 border-gray-200"
                 }`}
               >
                 <Text
                   className={`font-bold text-sm ${
                     selectedSize === sz && !customSize
                       ? "text-white"
-                      : "text-slate-300"
+                      : "text-gray-600"
                   }`}
                 >
                   {sz} people
@@ -129,21 +129,21 @@ export default function GroupBuyStarter({
           </View>
 
           {/* Custom size input */}
-          <Text className="text-slate-400 text-xs mt-3 mb-1">
+          <Text className="text-gray-500 text-xs mt-3 mb-1">
             Or enter a custom size (2–200)
           </Text>
           <TextInput
-            className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white"
+            className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900"
             keyboardType="number-pad"
             placeholder="Custom group size"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#9CA3AF"
             value={customSize}
             onChangeText={setCustomSize}
             maxLength={3}
           />
 
           {/* TTL selector */}
-          <Text className="text-slate-300 font-semibold mt-6 mb-2">
+          <Text className="text-gray-700 font-semibold mt-6 mb-2">
             Deal duration
           </Text>
           <View className="flex-row gap-2">
@@ -154,12 +154,12 @@ export default function GroupBuyStarter({
                 className={`flex-1 rounded-xl py-2.5 border items-center ${
                   ttlHours === hrs
                     ? "bg-amber-600/80 border-amber-500"
-                    : "bg-slate-700/50 border-slate-600"
+                    : "bg-gray-100 border-gray-200"
                 }`}
               >
                 <Text
                   className={`font-bold text-sm ${
-                    ttlHours === hrs ? "text-white" : "text-slate-300"
+                    ttlHours === hrs ? "text-white" : "text-gray-600"
                   }`}
                 >
                   {hrs}h
@@ -180,14 +180,14 @@ export default function GroupBuyStarter({
 
           {/* Error */}
           {error && (
-            <View className="mt-4 bg-red-900/40 border border-red-500/40 rounded-xl p-3">
-              <Text className="text-red-400 text-sm">{error}</Text>
+            <View className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+              <Text className="text-red-600 text-sm">{error}</Text>
             </View>
           )}
         </ScrollView>
 
         {/* CTA */}
-        <View className="px-5 pb-8 pt-4 bg-slate-900 border-t border-slate-800">
+        <View className="px-5 pb-8 pt-4 bg-white border-t border-gray-200">
           <TouchableOpacity
             onPress={handleCreate}
             disabled={loading}
@@ -205,7 +205,7 @@ export default function GroupBuyStarter({
             onPress={onClose}
             className="mt-3 items-center py-2"
           >
-            <Text className="text-slate-400 text-sm">Cancel</Text>
+            <Text className="text-gray-500 text-sm">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>

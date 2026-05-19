@@ -1,5 +1,6 @@
 // verifyJWT.js middleware
 const jwt = require("jsonwebtoken");
+const Sentry = require("@sentry/node");
 const { env } = require("../src/env");
 
 module.exports = function verifyJWT(req, res, next) {
@@ -30,6 +31,9 @@ module.exports = function verifyJWT(req, res, next) {
       role: payload.role,
       ...payload,
     };
+
+    // Attach user to Sentry scope for crash-free user tracking in Release Health
+    Sentry.setUser({ id: payload.sub, email: payload.email });
 
     next();
   } catch (err) {

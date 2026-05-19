@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   ScrollView,
@@ -29,17 +28,14 @@ const TermsOfService = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={["#0f172a", "#1e293b", "#0f172a"]}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#fbbf24" />
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Terms of Service</Text>
           <View style={{ width: 40 }} />
@@ -188,7 +184,7 @@ const TermsOfService = () => {
             </View>
           </Section>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -196,8 +192,8 @@ const TermsOfService = () => {
 export default TermsOfService;
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  gradient: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  gradient: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -205,42 +201,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(251,191,36,0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: "#fbbf24" },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
+  },
   scrollContent: { padding: 20, paddingBottom: 40 },
   updated: {
-    color: "#94a3b8",
+    color: "#9CA3AF",
     fontSize: 13,
     marginBottom: 24,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   section: {
-    marginBottom: 24,
-    backgroundColor: "rgba(30,41,59,0.8)",
+    marginBottom: 20,
+    backgroundColor: "#F0FDF4",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(251,191,36,0.15)",
+    borderColor: "#BBF7D0",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#15803D",
     marginBottom: 10,
   },
-  body: { color: "#cbd5e1", fontSize: 14, lineHeight: 22 },
+  body: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: "Poppins-Regular",
+  },
   bulletRow: { flexDirection: "row", marginTop: 6 },
-  bullet: { color: "#fbbf24", marginRight: 8, fontSize: 14 },
-  bulletText: { color: "#cbd5e1", fontSize: 14, lineHeight: 22, flex: 1 },
+  bullet: { color: "#D97706", marginRight: 8, fontSize: 14 },
+  bulletText: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 22,
+    flex: 1,
+    fontFamily: "Poppins-Regular",
+  },
   contactBox: {
     marginTop: 12,
-    backgroundColor: "rgba(251,191,36,0.08)",
+    backgroundColor: "#FFFBEB",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(251,191,36,0.2)",
+    borderColor: "#FDE68A",
   },
-  contactText: { color: "#cbd5e1", fontSize: 14, lineHeight: 22 },
+  contactText: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: "Poppins-Regular",
+  },
 });

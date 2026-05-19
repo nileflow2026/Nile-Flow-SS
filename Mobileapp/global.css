@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Nile Flow — Global NativeWind Utility Layer
+   Three-tier palette: Green Gradient · Gold/Bronze Gradient · White
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  /* ── Screens & Surfaces ─────────────────────────────────────────────────── */
+  .nile-screen {
+    @apply flex-1 bg-nile-white;
+  }
+  .nile-surface {
+    @apply bg-nile-surface;
+  }
+  .nile-card {
+    @apply bg-nile-white rounded-2xl shadow-sm border border-nile-border;
+  }
+
+  /* ── Typography ─────────────────────────────────────────────────────────── */
+  .nile-heading {
+    @apply font-pbold text-nile-green-900;
+  }
+  .nile-subheading {
+    @apply font-psemibold text-nile-green-800;
+  }
+  .nile-body {
+    @apply font-pregular text-gray-600;
+  }
+  .nile-caption {
+    @apply font-plight text-gray-400 text-xs;
+  }
+  .nile-label {
+    @apply font-pmedium text-nile-gold-700 tracking-widest uppercase text-xs;
+  }
+  .nile-gold-text {
+    @apply font-psemibold text-nile-gold-600;
+  }
+  .nile-green-text {
+    @apply font-psemibold text-nile-green-700;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────────────── */
+  .nile-btn {
+    @apply rounded-xl justify-center items-center py-4 px-6;
+  }
+  .nile-btn-text {
+    @apply font-psemibold text-base text-nile-white;
+  }
+  .nile-btn-outline {
+    @apply rounded-xl justify-center items-center py-4 px-6 border-2 border-nile-green-600;
+  }
+  .nile-btn-outline-text {
+    @apply font-psemibold text-base text-nile-green-700;
+  }
+
+  /* ── Badges & Tags ──────────────────────────────────────────────────────── */
+  .nile-badge-green {
+    @apply bg-nile-green-100 rounded-full px-3 py-1;
+  }
+  .nile-badge-gold {
+    @apply bg-nile-gold-100 rounded-full px-3 py-1;
+  }
+  .nile-badge-text {
+    @apply font-pmedium text-xs;
+  }
+
+  /* ── Divider ────────────────────────────────────────────────────────────── */
+  .nile-divider {
+    @apply border-b border-nile-border my-4;
+  }
+}

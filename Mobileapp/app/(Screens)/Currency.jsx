@@ -1,6 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -82,21 +81,14 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
   };
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         {/* Header */}
-        <LinearGradient
-          colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Currency</Text>
@@ -104,23 +96,20 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
               Choose your preferred currency
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Auto-detect notice */}
-        <LinearGradient
-          colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.6)"]}
-          style={styles.noticeCard}
-        >
+        <View style={styles.noticeCard}>
           <MaterialIcons name="my-location" size={18} color="#10b981" />
           <Text style={styles.noticeText}>
             Currency is auto-detected from your location. You can override it
             below.
           </Text>
-        </LinearGradient>
+          </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#F59E0B" size="large" />
+            <ActivityIndicator color="#16A34A" size="large" />
           </View>
         ) : (
           <FlatList
@@ -134,12 +123,7 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
                   onPress={() => handleCurrencySelect(item.currency_code)}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={
-                      isSelected
-                        ? ["rgba(245, 158, 11, 0.2)", "rgba(217, 119, 6, 0.15)"]
-                        : ["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]
-                    }
+                  <View
                     style={[
                       styles.currencyCard,
                       isSelected && styles.currencyCardSelected,
@@ -165,29 +149,25 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
                     </View>
                     {isSelected && (
                       <View style={styles.checkBadge}>
-                        <MaterialIcons name="check" size={18} color="#F59E0B" />
+                        <MaterialIcons name="check" size={18} color="#16A34A" />
                       </View>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               );
             }}
             ListFooterComponent={
-              <LinearGradient
-                colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.6)"]}
-                style={styles.infoCard}
-              >
+              <View style={styles.infoCard}>
                 <MaterialIcons name="info-outline" size={16} color="#9CA3AF" />
                 <Text style={styles.infoText}>
                   Selecting a currency will update product prices to match the
                   exchange rate.
                 </Text>
-              </LinearGradient>
+              </View>
             }
           />
         )}
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -199,25 +179,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   noticeCard: {
     flexDirection: "row",
@@ -228,13 +210,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.2)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   noticeText: {
     flex: 1,
-    color: "#D1FAE5",
+    color: "#374151",
     fontSize: 13,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
   loadingContainer: {
     flex: 1,
@@ -246,31 +230,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     padding: 16,
     gap: 14,
   },
   currencyCardSelected: {
-    borderColor: "rgba(245, 158, 11, 0.5)",
+    borderColor: "#16A34A",
+    backgroundColor: "#F0FDF4",
   },
   flag: {
     fontSize: 28,
   },
   currencyCode: {
-    color: "#F3F4F6",
-    fontWeight: "700",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     fontSize: width < 350 ? 15 : 16,
   },
   currencyName: {
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 13,
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   checkBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -282,13 +269,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   infoText: {
     flex: 1,
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 13,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
 });
 

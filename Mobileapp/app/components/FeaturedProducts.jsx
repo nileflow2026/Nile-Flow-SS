@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -23,8 +22,6 @@ const FeaturedProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -69,20 +66,18 @@ const FeaturedProducts = () => {
         }
         activeOpacity={0.9}
       >
-        <LinearGradient
-          colors={
-            isDark
-              ? ["rgba(15, 23, 42, 0.9)", "rgba(30, 41, 59, 0.9)"]
-              : ["rgba(248, 250, 252, 0.9)", "rgba(241, 245, 249, 0.9)"]
-          }
-          style={styles.productGradient}
-        >
+        <View style={styles.productGradient}>
           {/* Featured Badge */}
           <View style={styles.featuredBadge}>
-            <LinearGradient colors={gradient} style={styles.badgeGradient}>
-              <Ionicons name="star" size={12} color="#F59E0B" />
+            <View
+              style={[
+                styles.badgeGradient,
+                { backgroundColor: gradient[0].replace("0.2", "0.15") },
+              ]}
+            >
+              <Ionicons name="star" size={12} color="#D97706" />
               <Text style={styles.badgeText}>Featured</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Product Image */}
@@ -100,10 +95,7 @@ const FeaturedProducts = () => {
           {/* Product Info */}
           <View style={styles.productInfo}>
             <Text
-              style={[
-                styles.productName,
-                { color: isDark ? "#FFF" : "#1F2937" },
-              ]}
+              style={[styles.productName, { color: "#111827" }]}
               numberOfLines={2}
             >
               {item.productName || item.name}
@@ -131,24 +123,18 @@ const FeaturedProducts = () => {
             <TouchableOpacity
               style={styles.quickAddButton}
               onPress={() => {
-                // Quick add to cart functionality
                 router.push({
                   pathname: "/(Screens)/ProductDetails",
                   params: { productId: item.$id || item.id },
                 });
               }}
             >
-              <LinearGradient
-                colors={["#F59E0B", "#EAB308"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addButtonGradient}
-              >
+              <View style={styles.addButtonGradient}>
                 <Ionicons name="add" size={16} color="#FFF" />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -157,7 +143,7 @@ const FeaturedProducts = () => {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#F59E0B" />
+          <ActivityIndicator size="large" color="#16A34A" />
           <Text style={styles.loadingText}>Loading Featured Products</Text>
           <Text style={styles.loadingSubtext}>
             Discovering premium selections...
@@ -179,11 +165,11 @@ const FeaturedProducts = () => {
             marginTop: 8,
             paddingHorizontal: 16,
             paddingVertical: 8,
-            backgroundColor: "#F59E0B",
+            backgroundColor: "#16A34A",
             borderRadius: 8,
           }}
         >
-          <Text style={{ color: "#000", fontWeight: "bold" }}>Retry</Text>
+          <Text style={{ color: "#FFFFFF", fontWeight: "bold" }}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -198,7 +184,7 @@ const FeaturedProducts = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="trophy" size={24} color="#F59E0B" />
+          <Ionicons name="trophy" size={24} color="#16A34A" />
           <Text style={styles.headerTitle}>Featured Products</Text>
         </View>
         <TouchableOpacity
@@ -208,7 +194,7 @@ const FeaturedProducts = () => {
         >
           <View style={styles.seeAllButton}>
             <Text style={styles.seeAllText}>See All</Text>
-            <Ionicons name="arrow-forward" size={16} color="#F59E0B" />
+            <Ionicons name="arrow-forward" size={16} color="#16A34A" />
           </View>
         </TouchableOpacity>
       </View>
@@ -249,7 +235,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#14532D",
   },
   seeAllButton: {
     flexDirection: "row",
@@ -258,7 +244,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: "#F59E0B",
+    color: "#16A34A",
     fontWeight: "600",
   },
   listContainer: {
@@ -274,9 +260,10 @@ const styles = StyleSheet.create({
   },
   productGradient: {
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.2)",
+    borderColor: "#E5E7EB",
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#F9FAFB",
   },
   featuredBadge: {
     position: "absolute",
@@ -292,17 +279,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
   },
   badgeText: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#92400E",
   },
   imageContainer: {
     width: "100%",
     height: 140,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "#F3F4F6",
   },
   productImage: {
     width: "100%",
@@ -326,13 +313,13 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#F59E0B",
+    color: "#16A34A",
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#FEF3C7",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -340,7 +327,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#F59E0B",
+    color: "#D97706",
   },
   quickAddButton: {
     alignSelf: "flex-end",
@@ -352,6 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#16A34A",
   },
   loadingContainer: {
     paddingVertical: 60,
@@ -363,7 +351,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#F59E0B",
+    color: "#16A34A",
     marginTop: 16,
   },
   loadingSubtext: {

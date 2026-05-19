@@ -21,8 +21,8 @@ const Favorites = () => {
 
   if (favorites.length === 0) {
     return (
-      <View className="flex-1 justify-center bg-black items-center">
-        <Text className="text-lg text-white font-bold">
+      <View className="flex-1 justify-center bg-nile-white items-center">
+        <Text className="text-lg text-nile-green-800 font-psemibold">
           No Favorites added yet
         </Text>
       </View>
@@ -37,17 +37,17 @@ const Favorites = () => {
   const priceFontSize = width < 350 ? 16 : 18;
 
   return (
-    <SafeAreaView className="h-full" style={{ backgroundColor: "#0f172a" }}>
-      <View className="flex-row items-center mb-5">
+    <SafeAreaView className="h-full bg-nile-white">
+      <View className="flex-row items-center mb-5 px-2 pt-2">
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons
             name="keyboard-arrow-left"
             size={45}
-            color={"#2f9e44"}
+            color={"#16A34A"}
           />
         </TouchableOpacity>
         <View>
-          <Text className="text-white text-3xl font-psemibold items-center">
+          <Text className="text-nile-green-900 text-3xl font-psemibold items-center">
             Your Favorites
           </Text>
         </View>
@@ -55,13 +55,12 @@ const Favorites = () => {
       <View>
         <FlatList
           data={favorites}
-          /* keyExtractor={(item) => item.id  (item.$id ? item.id.toString() : Math.random().toString()) */
           keyExtractor={(item) => item.$id}
           renderItem={({ item }) => {
             console.log("item data:", item);
             return (
               <View
-                className="flex-row items-center border-b border-gray-200"
+                className="flex-row items-center border-b border-nile-border"
                 style={{ padding: itemPadding }}
               >
                 <TouchableOpacity
@@ -71,7 +70,7 @@ const Favorites = () => {
                       params: { item: JSON.stringify(item) },
                     })
                   }
-                  className="bg-white rounded-lg mb-5"
+                  className="bg-nile-surface rounded-lg mb-5"
                 >
                   <Image
                     source={{ uri: item.productImage }}
@@ -85,7 +84,7 @@ const Favorites = () => {
                 </TouchableOpacity>
                 <View className="flex-1 pl-4 ml-5 mb-10">
                   <Text
-                    className="text-white font-semibold"
+                    className="text-nile-green-900 font-psemibold"
                     numberOfLines={3}
                     ellipsizeMode="tail"
                     style={{ fontSize: titleFontSize }}
@@ -93,7 +92,7 @@ const Favorites = () => {
                     {item.productName}
                   </Text>
                   <Text
-                    className="text-yellow-400 mt-5"
+                    className="text-nile-gold-600 mt-5 font-pmedium"
                     style={{ fontSize: priceFontSize }}
                   >
                     SSP : {item.price}.00

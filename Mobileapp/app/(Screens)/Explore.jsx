@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -19,8 +18,8 @@ import {
   getCurrentUser,
   updateCurrencyRates,
 } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 import CurrencyUpdater from "../components/CurrencyUpdater";
+import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import ProductCard from "../components/ProductCard";
 
 const MemoizedProductCard = React.memo(ProductCard);
@@ -28,8 +27,6 @@ const MemoizedProductCard = React.memo(ProductCard);
 const Explore = () => {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
 
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -43,6 +40,7 @@ const Explore = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasError, setHasError] = useState(false);
 
   const spinValue = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef(null);
@@ -134,6 +132,7 @@ const Explore = () => {
       } catch (error) {
         console.error("Error fetching products:", error);
         setLoading(false);
+        if (pageNum === 1) setHasError(true);
       } finally {
         setRefreshing(false);
         setLoadingMore(false);
@@ -260,8 +259,14 @@ const Explore = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setHasError(false);
     await fetchAllData(selectedCategory);
   }, [selectedCategory, fetchAllData]);
+
+  const handleRetry = useCallback(() => {
+    setHasError(false);
+    fetchAllData(selectedCategory, false, 1);
+  }, [fetchAllData, selectedCategory]);
 
   const spin = spinValue.interpolate({
     inputRange: [0, 1],
@@ -285,15 +290,16 @@ const Explore = () => {
             accessibilityState={{ selected: selectedCategory === category.id }}
           >
             {selectedCategory === category.id ? (
-              <LinearGradient
-                colors={["#F59E0B", "#D97706"]}
-                style={styles.categoryChip}
-              >
-                <Text style={styles.categoryText}>{category.name}</Text>
-              </LinearGradient>
+              <View style={[styles.categoryChip, styles.categoryChipActive]}>
+                <Text style={[styles.categoryText, { color: "#FFFFFF" }]}>
+                  {category.name}
+                </Text>
+              </View>
             ) : (
               <View style={[styles.categoryChip, styles.categoryChipInactive]}>
-                <Text style={styles.categoryText}>{category.name}</Text>
+                <Text style={[styles.categoryText, { color: "#374151" }]}>
+                  {category.name}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -303,20 +309,24 @@ const Explore = () => {
     [categories, selectedCategory],
   );
 
+  if (hasError && products.length === 0) {
+    return <NetworkErrorFallback onRetry={handleRetry} />;
+  }
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f172a" }}>
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <CurrencyUpdater />
 
       {/* Fixed Header with Search - Outside FlatList */}
-      <LinearGradient
-        colors={
-          isDark
-            ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-            : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerContainer}
+      <View
+        style={[
+          styles.headerContainer,
+          {
+            backgroundColor: "#FFFFFF",
+            borderBottomWidth: 1,
+            borderBottomColor: "#E5E7EB",
+          },
+        ]}
       >
         <View style={styles.headerRow}>
           <Ionicons name="compass" size={28} color="#F59E0B" />
@@ -352,7 +362,7 @@ const Explore = () => {
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       <FlatList
         data={products}
@@ -440,12 +450,9 @@ const Explore = () => {
                   <TouchableOpacity
                     onPress={() => fetchAllData(selectedCategory, false, 1)}
                   >
-                    <LinearGradient
-                      colors={["#F59E0B", "#D97706"]}
-                      style={styles.retryButton}
-                    >
+                    <View style={styles.retryButton}>
                       <Text style={styles.retryText}>Retry</Text>
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 )}
               </>
@@ -473,18 +480,18 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 12,
   },
   searchIcon: {
@@ -493,7 +500,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#FFF",
+    color: "#111827",
   },
   categoriesContainer: {
     paddingHorizontal: 12,
@@ -505,15 +512,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
+  },
+  categoryChipActive: {
+    backgroundColor: "#16A34A",
+    borderColor: "#16A34A",
   },
   categoryChipInactive: {
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F3F4F6",
   },
   categoryText: {
-    color: "#FFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   emptyContainer: {
     flex: 1,
@@ -523,7 +533,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: "#D1D5DB",
+    color: "#374151",
     marginTop: 16,
     textAlign: "center",
     paddingHorizontal: 32,
@@ -533,10 +543,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 16,
+    backgroundColor: "#16A34A",
   },
   retryText: {
     color: "#FFF",
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
     fontSize: 14,
   },
 });

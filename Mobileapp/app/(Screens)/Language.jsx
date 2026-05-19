@@ -87,7 +87,7 @@ const Language = () => {
   ];
 
   const [availableLanguages, setAvailableLanguages] = useState(
-    languages.slice(0, 3)
+    languages.slice(0, 3),
   );
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const Language = () => {
     Alert.alert(
       "Language Updated",
       `Now browsing in ${langInfo?.label || lang}`,
-      [{ text: "OK" }]
+      [{ text: "OK" }],
     );
   };
 
@@ -167,7 +167,7 @@ const Language = () => {
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <MaterialIcons name="keyboard-arrow-left" size={32} color="#f59e0b" />
+          <MaterialIcons name="keyboard-arrow-left" size={32} color="#16A34A" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { fontSize: titleFontSize }]}>
           Language Settings
@@ -176,10 +176,7 @@ const Language = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Section */}
-        <LinearGradient
-          colors={["#1e293b", "#334155", "#475569"]}
-          style={styles.heroSection}
-        >
+        <View style={styles.heroSection}>
           <View style={styles.premiumBadge}>
             <Text style={styles.badgeText}>🌐 Cultural Experience ✨</Text>
           </View>
@@ -211,13 +208,19 @@ const Language = () => {
               </View>
             ))}
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Current Language Indicator */}
         <View style={styles.currentLanguageSection}>
-          <LinearGradient
-            colors={["rgba(217, 119, 6, 0.3)", "rgba(245, 158, 11, 0.2)"]}
-            style={styles.currentLanguageCard}
+          <View
+            style={[
+              styles.currentLanguageCard,
+              {
+                backgroundColor: "#FFFBEB",
+                borderWidth: 1,
+                borderColor: "#FDE68A",
+              },
+            ]}
           >
             <View style={styles.currentLanguageContent}>
               <View style={styles.currentLanguageHeader}>
@@ -261,7 +264,7 @@ const Language = () => {
                 <Text style={styles.activeText}>Active</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
         {/* Language Selection */}
         <View style={styles.languageSection}>
@@ -449,10 +452,7 @@ const Language = () => {
         </View>
 
         {/* Language Assistance */}
-        <LinearGradient
-          colors={["rgba(5, 150, 105, 0.2)", "rgba(16, 185, 129, 0.1)"]}
-          style={styles.assistanceSection}
-        >
+        <View style={styles.assistanceSection}>
           <View style={styles.assistanceContent}>
             <View style={styles.assistanceHeader}>
               <View style={styles.assistanceIcon}>
@@ -488,7 +488,7 @@ const Language = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -497,7 +497,7 @@ const Language = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   header: {
     flexDirection: "row",
@@ -505,53 +505,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(248, 250, 252, 0.1)",
+    borderBottomColor: "#E5E7EB",
   },
   backButton: {
     padding: 8,
     marginRight: 8,
   },
   headerTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
   },
   heroSection: {
     padding: 24,
     margin: 16,
     borderRadius: 16,
     alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
   premiumBadge: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
+    backgroundColor: "#FFFBEB",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 16,
   },
   badgeText: {
-    color: "#f59e0b",
+    color: "#D97706",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   heroTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 8,
   },
   gradientText: {
-    color: "#f59e0b",
+    color: "#14532D",
   },
   heroSubtitle: {
-    color: "#cbd5e1",
+    color: "#16A34A",
     textAlign: "center",
     marginBottom: 16,
+    fontFamily: "Poppins-SemiBold",
   },
   heroDescription: {
-    color: "#94a3b8",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   statsGrid: {
     flexDirection: "row",
@@ -560,7 +565,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statCard: {
-    backgroundColor: "rgba(248, 250, 252, 0.05)",
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -569,13 +574,14 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   statLabel: {
-    color: "#94a3b8",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   currentLanguageSection: {
     padding: 16,
@@ -598,7 +604,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "rgba(245, 158, 11, 0.3)",
+    backgroundColor: "#DCFCE7",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -607,8 +613,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentLanguageLabel: {
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginBottom: 4,
+    fontFamily: "Poppins-Regular",
   },
   currentLanguageName: {
     flexDirection: "row",
@@ -620,25 +627,26 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   currentLanguageTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
   },
   currentLanguageDescription: {
-    color: "#94a3b8",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   activeIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "#DCFCE7",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   activeText: {
-    color: "#10b981",
+    color: "#16A34A",
     marginLeft: 4,
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   languageSection: {
     padding: 16,
@@ -650,34 +658,35 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   sectionSubtitle: {
-    color: "#94a3b8",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   languagesList: {
     gap: 12,
   },
   languageCard: {
-    backgroundColor: "rgba(248, 250, 252, 0.05)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(248, 250, 252, 0.1)",
+    borderColor: "#E5E7EB",
     position: "relative",
     overflow: "hidden",
   },
   languageCardSelected: {
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
-    borderColor: "#f59e0b",
+    backgroundColor: "#F0FDF4",
+    borderColor: "#16A34A",
   },
   selectionIndicator: {
     position: "absolute",
     top: 12,
     right: 12,
-    backgroundColor: "#f59e0b",
+    backgroundColor: "#16A34A",
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -694,13 +703,13 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "rgba(248, 250, 252, 0.1)",
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
   },
   languageFlagSelected: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
+    backgroundColor: "#DCFCE7",
   },
   flagEmoji: {
     fontSize: 24,
@@ -714,30 +723,31 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   languageName: {
-    color: "#f8fafc",
-    fontWeight: "600",
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
     marginRight: 8,
   },
   languageNameSelected: {
-    color: "#f59e0b",
+    color: "#16A34A",
   },
   defaultBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
+    backgroundColor: "#FFFBEB",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
   },
   defaultBadgeText: {
-    color: "#f59e0b",
+    color: "#D97706",
     fontSize: 10,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
     marginLeft: 2,
   },
   languageDescription: {
-    color: "#94a3b8",
+    color: "#6B7280",
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   languageDetails: {
     flexDirection: "row",
@@ -749,8 +759,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   detailText: {
-    color: "#64748b",
+    color: "#6B7280",
     marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
   arrowIndicator: {
     position: "absolute",
@@ -783,16 +794,16 @@ const styles = StyleSheet.create({
   viewMoreButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(248, 250, 252, 0.05)",
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#E5E7EB",
   },
   viewMoreText: {
-    color: "#f59e0b",
-    fontWeight: "600",
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
     marginRight: 8,
   },
   viewMoreIcon: {
@@ -802,8 +813,8 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   benefitsTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -811,32 +822,36 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   benefitCard: {
-    backgroundColor: "rgba(248, 250, 252, 0.05)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(248, 250, 252, 0.1)",
+    borderColor: "#E5E7EB",
   },
   benefitIcon: {
     fontSize: 32,
     marginBottom: 8,
   },
   benefitTitle: {
-    color: "#f8fafc",
-    fontWeight: "600",
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
     marginBottom: 8,
     textAlign: "center",
   },
   benefitDescription: {
-    color: "#94a3b8",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   assistanceSection: {
     margin: 16,
     borderRadius: 16,
     padding: 20,
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
   assistanceContent: {
     alignItems: "center",
@@ -850,7 +865,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "rgba(16, 185, 129, 0.3)",
+    backgroundColor: "#DCFCE7",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -859,22 +874,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   assistanceTitle: {
-    color: "#f8fafc",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   assistanceDescription: {
-    color: "#94a3b8",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   assistanceButton: {
-    backgroundColor: "#10b981",
+    backgroundColor: "#16A34A",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
   },
   assistanceButtonText: {
     color: "white",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
 });
 

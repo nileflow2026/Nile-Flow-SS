@@ -35,15 +35,15 @@ const Orders = () => {
   const { themeStyles } = useTheme();
   const { user } = useGlobalContext();
 
-  // Premium African marketplace theme
+  // Nile Flow design system theme
   const premiumColors = {
-    primary: "#fbbf24", // amber-400
-    secondary: "#d97706", // amber-600
-    accent: "#10b981", // emerald-500
-    background: "#0f172a", // slate-900
-    surface: "#1e293b", // slate-800
-    text: "#f8fafc", // slate-50
-    textSecondary: "#cbd5e1", // slate-300
+    primary: "#D97706", // nile-gold-600 — gold accent
+    secondary: "#B45309", // nile-gold-700 — bronze
+    accent: "#16A34A", // nile-green-600 — green action
+    background: "#FFFFFF",
+    surface: "#F9FAFB",
+    text: "#111827",
+    textSecondary: "#6B7280",
   };
 
   const CURRENCY_SYMBOLS = {
@@ -276,10 +276,7 @@ const Orders = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b", "#0f172a"]}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
@@ -295,9 +292,11 @@ const Orders = () => {
         >
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <LinearGradient
-              colors={["rgba(251, 191, 36, 0.1)", "rgba(217, 119, 6, 0.05)"]}
-              style={styles.premiumBadge}
+            <View
+              style={[
+                styles.premiumBadge,
+                { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" },
+              ]}
             >
               <MaterialIcons
                 name="inventory"
@@ -305,8 +304,8 @@ const Orders = () => {
                 color={premiumColors.primary}
               />
               <Text style={styles.badgeText}>Your Orders</Text>
-              <MaterialIcons name="auto-awesome" size={16} color="#fde047" />
-            </LinearGradient>
+              <MaterialIcons name="auto-awesome" size={16} color="#D97706" />
+            </View>
 
             <Text style={styles.heroTitle}>
               Your <Text style={styles.heroTitleAccent}>Orders</Text>
@@ -321,10 +320,7 @@ const Orders = () => {
 
             {/* Stats Grid */}
             <View style={styles.statsGrid}>
-              <LinearGradient
-                colors={["rgba(251, 191, 36, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                style={styles.statCard}
-              >
+              <View style={styles.statCard}>
                 <MaterialIcons
                   name="shopping-bag"
                   size={20}
@@ -332,11 +328,13 @@ const Orders = () => {
                 />
                 <Text style={styles.statValue}>{orders.length}</Text>
                 <Text style={styles.statLabel}>Total Orders</Text>
-              </LinearGradient>
+              </View>
 
-              <LinearGradient
-                colors={["rgba(16, 185, 129, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                style={styles.statCard}
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" },
+                ]}
               >
                 <MaterialIcons
                   name="check-circle"
@@ -345,11 +343,13 @@ const Orders = () => {
                 />
                 <Text style={styles.statValue}>{statusCounts.delivered}</Text>
                 <Text style={styles.statLabel}>Delivered</Text>
-              </LinearGradient>
+              </View>
 
-              <LinearGradient
-                colors={["rgba(59, 130, 246, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                style={styles.statCard}
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" },
+                ]}
               >
                 <MaterialIcons
                   name="local-shipping"
@@ -358,16 +358,18 @@ const Orders = () => {
                 />
                 <Text style={styles.statValue}>{statusCounts.shipped}</Text>
                 <Text style={styles.statLabel}>In Transit</Text>
-              </LinearGradient>
+              </View>
 
-              <LinearGradient
-                colors={["rgba(239, 68, 68, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                style={styles.statCard}
+              <View
+                style={[
+                  styles.statCard,
+                  { backgroundColor: "#FEF2F2", borderColor: "#FECACA" },
+                ]}
               >
                 <MaterialIcons name="schedule" size={20} color="#ef4444" />
                 <Text style={styles.statValue}>{statusCounts.pending}</Text>
                 <Text style={styles.statLabel}>Pending</Text>
-              </LinearGradient>
+              </View>
             </View>
           </View>
 
@@ -391,7 +393,7 @@ const Orders = () => {
                     colors={
                       selectedStatus === status
                         ? getStatusColor(status)
-                        : ["rgba(30, 41, 59, 0.5)", "rgba(15, 23, 42, 0.5)"]
+                        : ["#F9FAFB", "#F3F4F6"]
                     }
                     style={styles.filterButtonGradient}
                   >
@@ -494,13 +496,7 @@ const Orders = () => {
 
                     return (
                       <View key={order.$id} style={styles.orderCard}>
-                        <LinearGradient
-                          colors={[
-                            "rgba(30, 41, 59, 0.9)",
-                            "rgba(15, 23, 42, 0.9)",
-                          ]}
-                          style={styles.orderCardGradient}
-                        >
+                        <View style={styles.orderCardGradient}>
                           {/* Order Header */}
                           <View style={styles.orderHeader}>
                             <View style={styles.orderHeaderLeft}>
@@ -706,7 +702,7 @@ const Orders = () => {
                               </LinearGradient>
                             </View>
                           )}
-                        </LinearGradient>
+                        </View>
                       </View>
                     );
                   })}
@@ -714,15 +710,27 @@ const Orders = () => {
               )}
 
               {/* Order Summary */}
-              <LinearGradient
-                colors={["rgba(30, 41, 59, 0.8)", "rgba(15, 23, 42, 0.8)"]}
-                style={styles.summaryContainer}
+              <View
+                style={[
+                  styles.summaryContainer,
+                  {
+                    backgroundColor: "#F0FDF4",
+                    borderColor: "#BBF7D0",
+                    borderWidth: 1,
+                  },
+                ]}
               >
                 <Text style={styles.summaryTitle}>Order Summary</Text>
                 <View style={styles.summaryGrid}>
-                  <LinearGradient
-                    colors={["rgba(251, 191, 36, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                    style={styles.summaryCard}
+                  <View
+                    style={[
+                      styles.summaryCard,
+                      {
+                        backgroundColor: "#FFFBEB",
+                        borderColor: "#FDE68A",
+                        borderWidth: 1,
+                      },
+                    ]}
                   >
                     <MaterialIcons
                       name="security"
@@ -735,11 +743,17 @@ const Orders = () => {
                     <Text style={styles.summaryCardDescription}>
                       All orders are protected
                     </Text>
-                  </LinearGradient>
+                  </View>
 
-                  <LinearGradient
-                    colors={["rgba(16, 185, 129, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                    style={styles.summaryCard}
+                  <View
+                    style={[
+                      styles.summaryCard,
+                      {
+                        backgroundColor: "#F0FDF4",
+                        borderColor: "#BBF7D0",
+                        borderWidth: 1,
+                      },
+                    ]}
                   >
                     <MaterialIcons
                       name="local-shipping"
@@ -752,11 +766,17 @@ const Orders = () => {
                     <Text style={styles.summaryCardDescription}>
                       Fast delivery across Africa
                     </Text>
-                  </LinearGradient>
+                  </View>
 
-                  <LinearGradient
-                    colors={["rgba(59, 130, 246, 0.1)", "rgba(0, 0, 0, 0.1)"]}
-                    style={styles.summaryCard}
+                  <View
+                    style={[
+                      styles.summaryCard,
+                      {
+                        backgroundColor: "#EFF6FF",
+                        borderColor: "#BFDBFE",
+                        borderWidth: 1,
+                      },
+                    ]}
                   >
                     <MaterialIcons
                       name="support-agent"
@@ -769,14 +789,14 @@ const Orders = () => {
                     <Text style={styles.summaryCardDescription}>
                       24/7 order assistance
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </View>
-              </LinearGradient>
+              </View>
             </>
           )}
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -806,38 +826,40 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#FDE68A",
+    backgroundColor: "#FFFBEB",
   },
   badgeText: {
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     marginHorizontal: 8,
     fontSize: 14,
   },
   heroTitle: {
     fontSize: width > 400 ? 36 : 32,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 8,
-    color: "#f8fafc",
+    color: "#14532D",
   },
   heroTitleAccent: {
-    color: "#fbbf24",
+    color: "#D97706",
   },
   heroSubtitle: {
     fontSize: 20,
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#D97706",
+    fontFamily: "Poppins-SemiBold",
     textAlign: "center",
     marginBottom: 16,
   },
   heroDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 32,
     paddingHorizontal: 20,
+    fontFamily: "Poppins-Regular",
   },
   statsGrid: {
     flexDirection: "row",
@@ -852,19 +874,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   statValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginTop: 4,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   // Filter Section
   filterSection: {
@@ -892,14 +916,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   filterButtonText: {
     marginLeft: 8,
     marginRight: 8,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#cbd5e1",
+    fontFamily: "Poppins-Medium",
+    color: "#6B7280",
   },
   filterButtonTextActive: {
     color: "#ffffff",
@@ -927,16 +952,17 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
     marginTop: 20,
     textAlign: "center",
   },
   loadingDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginTop: 8,
     textAlign: "center",
+    fontFamily: "Poppins-Regular",
   },
   // Empty State
   emptyContainer: {
@@ -956,17 +982,18 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     textAlign: "center",
     marginBottom: 12,
   },
   emptyDescription: {
     fontSize: 16,
-    color: "#cbd5e1",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
+    fontFamily: "Poppins-Regular",
   },
   emptyButton: {
     borderRadius: 12,
@@ -1002,7 +1029,8 @@ const styles = StyleSheet.create({
   orderCardGradient: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   // Order Header
   orderHeader: {
@@ -1011,7 +1039,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(251, 191, 36, 0.3)",
+    borderBottomColor: "#E5E7EB",
   },
   orderHeaderLeft: {
     flexDirection: "row",
@@ -1031,25 +1059,27 @@ const styles = StyleSheet.create({
   },
   orderTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginBottom: 2,
   },
   orderDate: {
     fontSize: 14,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   statusBadgeText: {
     fontSize: 12,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#374151",
   },
   // Progress Bar
   progressContainer: {
@@ -1063,16 +1093,17 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   progressPercentage: {
     fontSize: 12,
-    color: "#cbd5e1",
-    fontWeight: "600",
+    color: "#6B7280",
+    fontFamily: "Poppins-SemiBold",
   },
   progressBar: {
     height: 6,
-    backgroundColor: "rgba(107, 114, 128, 0.5)",
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
   },
@@ -1100,12 +1131,13 @@ const styles = StyleSheet.create({
   },
   orderDetailLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   orderDetailValue: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
     marginTop: 2,
   },
   deliveryInfo: {
@@ -1114,19 +1146,21 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   deliveryInfoText: {
     marginLeft: 8,
   },
   deliveryInfoLabel: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   deliveryInfoValue: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#fbbf24",
+    fontFamily: "Poppins-SemiBold",
+    color: "#D97706",
     marginTop: 2,
   },
   // Order Actions
@@ -1182,7 +1216,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "rgba(251, 191, 36, 0.5)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   // Premium Badge
   premiumOrderBadge: {
@@ -1214,12 +1249,13 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   summaryTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -1232,20 +1268,22 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#E5E7EB",
     marginBottom: 8,
+    backgroundColor: "#FFFFFF",
   },
   summaryCardTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#f8fafc",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
     marginLeft: 12,
     flex: 1,
   },
   summaryCardDescription: {
     fontSize: 12,
-    color: "#cbd5e1",
+    color: "#6B7280",
     marginLeft: 12,
     flex: 1,
+    fontFamily: "Poppins-Regular",
   },
 });

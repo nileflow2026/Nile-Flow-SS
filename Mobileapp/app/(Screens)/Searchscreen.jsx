@@ -89,7 +89,7 @@ const Searchscreen = () => {
     // This will likely move the item to the top of the list
     if (user && user.id) {
       saveRecentSearch(user.id, query).catch((err) =>
-        console.error("Failed to re-save recent search:", err.message)
+        console.error("Failed to re-save recent search:", err.message),
       );
     }
   };
@@ -198,7 +198,7 @@ const Searchscreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#0f172a" }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
       <View style={styles.searchBarContainer}>
         <View
           style={[

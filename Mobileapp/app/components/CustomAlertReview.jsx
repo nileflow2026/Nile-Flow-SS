@@ -23,18 +23,23 @@ const CustomAlertReview = ({ isVisible, onClose, onSignUp }) => {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
         }}
       >
-        <LinearGradient
-          colors={["#1e293b", "#334155"]}
+        <View
           style={{
             borderRadius: 24,
             padding: 24,
             alignItems: "center",
             width: "85%",
+            backgroundColor: "#FFFFFF",
             borderWidth: 1,
-            borderColor: "#fbbf24",
+            borderColor: "#BBF7D0",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.12,
+            shadowRadius: 16,
+            elevation: 8,
           }}
         >
           <View style={{ alignItems: "center", marginBottom: 20 }}>
@@ -44,7 +49,7 @@ const CustomAlertReview = ({ isVisible, onClose, onSignUp }) => {
                 fontWeight: "bold",
                 marginBottom: 8,
                 textAlign: "center",
-                color: "#fbbf24",
+                color: "#14532D",
               }}
             >
               Sign Up Required
@@ -53,7 +58,7 @@ const CustomAlertReview = ({ isVisible, onClose, onSignUp }) => {
               style={{
                 fontSize: 16,
                 textAlign: "center",
-                color: "#e5e7eb",
+                color: "#374151",
                 lineHeight: 22,
               }}
             >
@@ -92,7 +97,7 @@ const CustomAlertReview = ({ isVisible, onClose, onSignUp }) => {
 
             <TouchableOpacity onPress={handleSignUp} style={{ flex: 1 }}>
               <LinearGradient
-                colors={["#f59e0b", "#d97706"]}
+                colors={["#16A34A", "#15803D"]}
                 style={{
                   paddingVertical: 16,
                   borderRadius: 12,
@@ -111,7 +116,7 @@ const CustomAlertReview = ({ isVisible, onClose, onSignUp }) => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
       </View>
     </Modal>
   );

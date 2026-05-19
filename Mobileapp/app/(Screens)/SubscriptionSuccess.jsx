@@ -41,7 +41,7 @@ const SubscriptionSuccess = () => {
       console.log(
         `[Stripe Success] Polling subscription status... (${
           pollCount + 1
-        }/${maxPolls})`
+        }/${maxPolls})`,
       );
 
       try {
@@ -62,7 +62,7 @@ const SubscriptionSuccess = () => {
         clearInterval(checkStatus);
         if (!isPremium) {
           console.log(
-            "[Stripe Success] Still not premium, showing failed state"
+            "[Stripe Success] Still not premium, showing failed state",
           );
           setStatus("failed");
         }
@@ -78,11 +78,11 @@ const SubscriptionSuccess = () => {
       "[Stripe Success] isPremium changed:",
       isPremium,
       "status:",
-      status
+      status,
     );
     if (isPremium && status === "checking") {
       console.log(
-        "[Stripe Success] Premium activated! Showing success message"
+        "[Stripe Success] Premium activated! Showing success message",
       );
       setStatus("success");
 
@@ -295,7 +295,7 @@ const SubscriptionSuccess = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   content: {
     flex: 1,

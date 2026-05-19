@@ -60,7 +60,7 @@ export default function GamificationHub({ userId = "123" }) {
     } catch (err) {
       Alert.alert(
         "Error",
-        err.response?.data?.message || "Failed to send referral"
+        err.response?.data?.message || "Failed to send referral",
       );
     } finally {
       setLoading(false);
@@ -68,86 +68,105 @@ export default function GamificationHub({ userId = "123" }) {
   };
 
   return (
-    <ScrollView className="flex-1 p-4" style={{ backgroundColor: "#0f172a" }}>
-      <Text className="text-2xl font-bold mb-4">🎮 Gamification Hub</Text>
+    <ScrollView className="flex-1 p-4 bg-nile-white">
+      <Text className="text-2xl font-pbold mb-4 text-nile-green-900">
+        🎮 Gamification Hub
+      </Text>
 
-      {loading && <ActivityIndicator size="large" color="orange" />}
+      {loading && <ActivityIndicator size="large" color="#16A34A" />}
 
       {/* Daily Check-In */}
-      <View className="bg-white rounded-2xl p-4 mb-4 shadow">
+      <View className="bg-nile-surface rounded-2xl p-4 mb-4 border border-nile-border">
         <View className="flex-row items-center mb-2">
-          <Gift size={20} color="orange" />
-          <Text className="ml-2 text-lg font-semibold">Daily Check-In</Text>
+          <Gift size={20} color="#D97706" />
+          <Text className="ml-2 text-lg font-psemibold text-nile-green-900">
+            Daily Check-In
+          </Text>
         </View>
-        <Text className="text-gray-500 mb-2">
+        <Text className="text-gray-500 mb-3 font-pregular">
           Current streak: {streak} days 🔥
         </Text>
         <TouchableOpacity
-          className="bg-orange-500 py-2 px-4 rounded-2xl"
+          className="py-2 px-4 rounded-xl"
+          style={{ backgroundColor: "#16A34A" }}
           onPress={handleCheckIn}
           disabled={loading}
         >
-          <Text className="text-white text-center font-bold">
+          <Text className="text-nile-white text-center font-psemibold">
             Check In Today
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Spin the Wheel */}
-      <View className="bg-white rounded-2xl p-4 mb-4 shadow">
+      <View className="bg-nile-surface rounded-2xl p-4 mb-4 border border-nile-border">
         <View className="flex-row items-center mb-2">
-          <RefreshCw size={20} color="purple" />
-          <Text className="ml-2 text-lg font-semibold">Spin the Wheel</Text>
+          <RefreshCw size={20} color="#B45309" />
+          <Text className="ml-2 text-lg font-psemibold text-nile-green-900">
+            Spin the Wheel
+          </Text>
         </View>
-        <Text className="text-gray-500 mb-2">
+        <Text className="text-gray-500 mb-3 font-pregular">
           Try your luck once per day 🎡
         </Text>
         <TouchableOpacity
-          className="bg-purple-600 py-2 px-4 rounded-2xl"
+          className="py-2 px-4 rounded-xl"
+          style={{ backgroundColor: "#B45309" }}
           onPress={handleSpin}
           disabled={loading}
         >
-          <Text className="text-white text-center font-bold">Spin Now</Text>
+          <Text className="text-nile-white text-center font-psemibold">
+            Spin Now
+          </Text>
         </TouchableOpacity>
         {spinResult && (
-          <Text className="mt-2 text-green-600 font-bold text-center">
+          <Text className="mt-2 text-nile-green-600 font-psemibold text-center">
             You won: {spinResult}
           </Text>
         )}
       </View>
 
       {/* Referrals */}
-      <View className="bg-white rounded-2xl p-4 mb-4 shadow">
+      <View className="bg-nile-surface rounded-2xl p-4 mb-4 border border-nile-border">
         <View className="flex-row items-center mb-2">
-          <Users size={20} color="blue" />
-          <Text className="ml-2 text-lg font-semibold">Invite Friends</Text>
+          <Users size={20} color="#16A34A" />
+          <Text className="ml-2 text-lg font-psemibold text-nile-green-900">
+            Invite Friends
+          </Text>
         </View>
-        <Text className="text-gray-500 mb-2">
+        <Text className="text-gray-500 mb-3 font-pregular">
           Earn rewards for every friend who joins Nile Mart 🎁
         </Text>
         <TouchableOpacity
-          className="bg-blue-600 py-2 px-4 rounded-2xl"
+          className="py-2 px-4 rounded-xl"
+          style={{ backgroundColor: "#16A34A" }}
           onPress={handleReferral}
           disabled={loading}
         >
-          <Text className="text-white text-center font-bold">Invite Now</Text>
+          <Text className="text-nile-white text-center font-psemibold">
+            Invite Now
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Challenges (static mock for now) */}
-      <View className="bg-white rounded-2xl p-4 mb-4 shadow">
+      {/* Challenges */}
+      <View className="bg-nile-surface rounded-2xl p-4 mb-4 border border-nile-border">
         <View className="flex-row items-center mb-2">
-          <Target size={20} color="green" />
-          <Text className="ml-2 text-lg font-semibold">Active Challenges</Text>
+          <Target size={20} color="#16A34A" />
+          <Text className="ml-2 text-lg font-psemibold text-nile-green-900">
+            Active Challenges
+          </Text>
         </View>
         <View className="mb-3">
-          <Text className="text-gray-700 font-medium">
+          <Text className="text-gray-700 font-pmedium">
             🛒 Buy 3 Beauty items → Get 20% off
           </Text>
           <View className="h-2 bg-gray-200 rounded-full mt-1">
-            <View className="h-2 bg-green-500 rounded-full w-2/3" />
+            <View className="h-2 bg-nile-green-500 rounded-full w-2/3" />
           </View>
-          <Text className="text-xs text-gray-500 mt-1">2/3 completed</Text>
+          <Text className="text-xs text-gray-500 mt-1 font-plight">
+            2/3 completed
+          </Text>
         </View>
       </View>
     </ScrollView>

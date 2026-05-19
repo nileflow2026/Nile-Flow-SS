@@ -48,9 +48,9 @@ const VerificationInput = ({ code, setCode, length = 6 }) => {
           ref={(ref) => (inputs.current[index] = ref)}
           className="w-14 h-14 rounded-xl border-2 text-center text-2xl font-bold"
           style={{
-            backgroundColor: "rgba(251, 191, 36, 0.1)",
-            borderColor: "#fbbf24",
-            color: "#fbbf24",
+            backgroundColor: "rgba(22,163,74,0.08)",
+            borderColor: "#16A34A",
+            color: "#14532D",
           }}
           value={digit}
           onChangeText={(text) => handleChange(text, index)}

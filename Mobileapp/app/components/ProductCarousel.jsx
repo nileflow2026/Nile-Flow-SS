@@ -67,8 +67,7 @@ const ProductCarousel = ({ images }) => {
                 borderRadius: 32,
               },
               {
-                backgroundColor:
-                  index === activeSlide ? "#AF6432" : "lightgray",
+                backgroundColor: index === activeSlide ? "#16A34A" : "#D1D5DB",
               },
             ]}
           />
@@ -86,6 +85,6 @@ const styles = StyleSheet.create({
     width: 10,
     borderRadius: 5,
     marginHorizontal: 12,
-    backgroundColor: "#AF6432",
+    backgroundColor: "#16A34A",
   },
 });

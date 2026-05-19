@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -62,25 +61,18 @@ const EditProfile = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.container}
         >
           {/* Header */}
-          <LinearGradient
-            colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-            style={styles.header}
-          >
+          <View style={styles.header}>
             <TouchableOpacity
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>Edit Profile</Text>
@@ -88,7 +80,7 @@ const EditProfile = () => {
                 Update your personal information
               </Text>
             </View>
-          </LinearGradient>
+          </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -96,10 +88,7 @@ const EditProfile = () => {
             keyboardShouldPersistTaps="handled"
           >
             {/* Form Card */}
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {/* Full Name */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Full Name</Text>
@@ -107,7 +96,7 @@ const EditProfile = () => {
                   <MaterialIcons
                     name="person"
                     size={20}
-                    color="#F59E0B"
+                    color="#16A34A"
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -156,7 +145,7 @@ const EditProfile = () => {
                   <MaterialIcons
                     name="phone"
                     size={20}
-                    color="#F59E0B"
+                    color="#16A34A"
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -170,20 +159,15 @@ const EditProfile = () => {
                   />
                 </View>
               </View>
-            </LinearGradient>
+            </View>
 
             {/* Save Button */}
             <TouchableOpacity
               onPress={handleSave}
               activeOpacity={0.8}
               disabled={saving}
+              style={[styles.saveButton, saving && { backgroundColor: "#D1D5DB" }]}
             >
-              <LinearGradient
-                colors={
-                  saving ? ["#78350F", "#451A03"] : ["#D97706", "#B45309"]
-                }
-                style={styles.saveButton}
-              >
                 {saving ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
@@ -192,12 +176,10 @@ const EditProfile = () => {
                     <Text style={styles.saveText}>Save Changes</Text>
                   </>
                 )}
-              </LinearGradient>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -212,25 +194,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   scrollContent: {
     padding: 16,
@@ -240,7 +224,8 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     padding: 20,
     gap: 20,
   },
@@ -249,40 +234,42 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#FCD34D",
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(17, 24, 39, 0.6)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.4)",
+    borderColor: "#E5E7EB",
     paddingHorizontal: 12,
     height: 52,
   },
   inputDisabled: {
-    borderColor: "rgba(75, 85, 99, 0.4)",
-    backgroundColor: "rgba(17, 24, 39, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F3F4F6",
   },
   inputIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    color: "white",
+    color: "#111827",
     fontSize: 15,
+    fontFamily: "Poppins-Regular",
   },
   inputTextDisabled: {
-    color: "#6B7280",
+    color: "#9CA3AF",
   },
   fieldHint: {
     fontSize: 11,
-    color: "#6B7280",
+    color: "#9CA3AF",
     marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
   saveButton: {
     borderRadius: 14,
@@ -291,11 +278,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    backgroundColor: "#16A34A",
   },
   saveText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
   },
 });
 

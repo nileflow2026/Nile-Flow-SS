@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
   Alert,
@@ -14,7 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Config, databases, fetchUserName, ID } from "../../Appwrite";
 import { useGlobalContext } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -25,8 +23,6 @@ const ReportaProblem = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { user } = useGlobalContext();
-  const { theme, themeStyles } = useTheme();
-  const isDark = theme === "dark";
 
   const problemTypes = [
     {
@@ -102,7 +98,7 @@ const ReportaProblem = () => {
           createdAt: new Date().toISOString(),
           userName,
           email,
-        }
+        },
       );
 
       Alert.alert(
@@ -118,7 +114,7 @@ const ReportaProblem = () => {
               setPriority("medium");
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error("❌ Failed to submit report:", error);
@@ -152,10 +148,7 @@ const ReportaProblem = () => {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           {/* Success Hero */}
-          <LinearGradient
-            colors={["#064e3b", "#065f46", "#047857"]}
-            style={styles.successHero}
-          >
+          <View style={[styles.successHero, { backgroundColor: "#F0FDF4" }]}>
             <View style={styles.successIcon}>
               <MaterialIcons name="check-circle" size={80} color="#10b981" />
             </View>
@@ -170,7 +163,7 @@ const ReportaProblem = () => {
               Thank you for helping us improve Nile Flow. Our premium support
               team has received your report and will contact you within 1 hour.
             </Text>
-          </LinearGradient>
+          </View>
 
           {/* Success Stats */}
           <View style={styles.successStats}>
@@ -241,10 +234,7 @@ const ReportaProblem = () => {
               style={styles.primarySuccessButton}
               onPress={handleReportAnother}
             >
-              <LinearGradient
-                colors={["#d97706", "#b45309"]}
-                style={styles.primarySuccessButtonGradient}
-              >
+              <View style={styles.primarySuccessButtonGradient}>
                 <Text
                   style={[
                     styles.primarySuccessButtonText,
@@ -254,7 +244,7 @@ const ReportaProblem = () => {
                   Report Another Issue
                 </Text>
                 <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -281,10 +271,7 @@ const ReportaProblem = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Section */}
-        <LinearGradient
-          colors={["#1e293b", "#334155", "#475569"]}
-          style={styles.heroSection}
-        >
+        <View style={[styles.heroSection, { backgroundColor: "#F9FAFB" }]}>
           <View style={styles.premiumBadge}>
             <Text style={styles.badgeText}>⚠️ Premium Support 🛡️</Text>
           </View>
@@ -315,7 +302,7 @@ const ReportaProblem = () => {
               </View>
             ))}
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Form Section */}
         <View style={styles.formSection}>
@@ -526,11 +513,13 @@ const ReportaProblem = () => {
             onPress={handleReportProblem}
             disabled={isSubmitting}
           >
-            <LinearGradient
-              colors={
-                isSubmitting ? ["#6b7280", "#4b5563"] : ["#d97706", "#b45309"]
-              }
-              style={styles.submitButtonGradient}
+            <View
+              style={[
+                styles.submitButtonGradient,
+                isSubmitting
+                  ? { backgroundColor: "#6B7280" }
+                  : { backgroundColor: "#16A34A" },
+              ]}
             >
               {isSubmitting ? (
                 <>
@@ -562,15 +551,12 @@ const ReportaProblem = () => {
                   <Text style={styles.sparkles}>✨</Text>
                 </>
               )}
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Contact Support Section */}
-        <LinearGradient
-          colors={["rgba(5, 150, 105, 0.2)", "rgba(16, 185, 129, 0.1)"]}
-          style={styles.contactSection}
-        >
+        <View style={[styles.contactSection, { backgroundColor: "#F0FDF4" }]}>
           <View style={styles.contactContent}>
             <View style={styles.contactHeader}>
               <View style={styles.contactIcon}>
@@ -596,19 +582,16 @@ const ReportaProblem = () => {
               style={styles.contactButton}
               onPress={handleContactSupport}
             >
-              <LinearGradient
-                colors={["#059669", "#047857"]}
-                style={styles.contactButtonGradient}
-              >
+              <View style={styles.contactButtonGradient}>
                 <Text
                   style={[styles.contactButtonText, { fontSize: bodyFontSize }]}
                 >
                   Contact Support Team
                 </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Bottom Stats */}
         <View style={styles.bottomStats}>
@@ -641,7 +624,7 @@ export default ReportaProblem;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: "#FFFFFF",
   },
   // Hero Section Styles
   heroSection: {
@@ -649,37 +632,39 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     alignItems: "center",
     marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   premiumBadge: {
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
+    backgroundColor: "#FFFBEB",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#FDE68A",
     marginBottom: 20,
   },
   badgeText: {
-    color: "#fbbf24",
+    color: "#D97706",
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   heroTitle: {
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   gradientText: {
-    color: "#fbbf24",
+    color: "#14532D",
   },
   heroSubtitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#374151",
+    fontFamily: "Poppins-Bold",
     marginBottom: 16,
     textAlign: "center",
   },
   heroDescription: {
-    color: "#d1d5db",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 30,
@@ -692,7 +677,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 16,
     padding: 16,
     width: "48%",
@@ -702,35 +687,35 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   statLabel: {
-    color: "#d1d5db",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
   },
   // Form Section Styles
   formSection: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 24,
     margin: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   formHeader: {
     flexDirection: "row",
     alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(217, 119, 6, 0.3)",
+    borderBottomColor: "#E5E7EB",
   },
   formHeaderIcon: {
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: "rgba(217, 119, 6, 0.8)",
+    backgroundColor: "#16A34A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -739,33 +724,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formHeaderTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   formHeaderDescription: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
   },
   // User Info Styles
   userInfo: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(217, 119, 6, 0.3)",
+    borderBottomColor: "#E5E7EB",
   },
   userInfoContent: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   userIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "rgba(245, 158, 11, 0.8)",
+    backgroundColor: "#16A34A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -774,12 +759,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userInfoLabel: {
-    color: "#fbbf24",
+    color: "#6B7280",
     marginBottom: 4,
   },
   userName: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   userEmailContainer: {
@@ -787,7 +772,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   userEmail: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     marginLeft: 4,
   },
   // Section Container Styles
@@ -795,12 +780,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionLabel: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     marginBottom: 8,
   },
   sectionDescription: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -813,39 +798,39 @@ const styles = StyleSheet.create({
   },
   problemTypeCard: {
     width: "48%",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     marginBottom: 8,
   },
   problemTypeCardSelected: {
-    backgroundColor: "rgba(217, 119, 6, 0.2)",
-    borderColor: "rgba(245, 158, 11, 0.5)",
+    backgroundColor: "#F0FDF4",
+    borderColor: "#16A34A",
   },
   problemTypeIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(55, 65, 81, 0.8)",
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   problemTypeIconText: {
     fontSize: 20,
   },
   problemTypeLabel: {
-    color: "#fbbf24",
+    color: "#374151",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
   problemTypeLabelSelected: {
-    color: "#f59e0b",
+    color: "#14532D",
   },
   // Priority Styles
   priorityGrid: {
@@ -855,55 +840,55 @@ const styles = StyleSheet.create({
   },
   priorityCard: {
     flex: 1,
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   priorityCardSelected: {
-    backgroundColor: "rgba(217, 119, 6, 0.2)",
+    backgroundColor: "#F0FDF4",
   },
   priorityCardHigh: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-    borderColor: "rgba(239, 68, 68, 0.5)",
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FCA5A5",
   },
   priorityCardMedium: {
-    backgroundColor: "rgba(245, 158, 11, 0.2)",
-    borderColor: "rgba(245, 158, 11, 0.5)",
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FDE68A",
   },
   priorityCardLow: {
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
-    borderColor: "rgba(16, 185, 129, 0.5)",
+    backgroundColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
   },
   priorityLabel: {
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#374151",
+    fontFamily: "Poppins-SemiBold",
   },
   priorityLabelSelected: {
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   priorityLabelHigh: {
-    color: "#ef4444",
+    color: "#DC2626",
   },
   priorityLabelMedium: {
-    color: "#f59e0b",
+    color: "#D97706",
   },
   priorityLabelLow: {
-    color: "#10b981",
+    color: "#16A34A",
   },
   // Input Styles
   inputContainer: {
     position: "relative",
   },
   input: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.5)",
+    borderColor: "#E5E7EB",
     borderRadius: 16,
     padding: 16,
-    color: "#fbbf24",
+    color: "#111827",
     textAlignVertical: "top",
     minHeight: 200,
   },
@@ -914,14 +899,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   characterCount: {
-    color: "rgba(251, 191, 36, 0.5)",
+    color: "#9CA3AF",
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   dateText: {
-    color: "rgba(251, 191, 36, 0.5)",
+    color: "#9CA3AF",
     marginLeft: 4,
   },
   // Submit Button Styles
@@ -943,7 +928,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   sparkles: {
     color: "#fef3c7",
@@ -955,7 +940,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "#BBF7D0",
   },
   contactContent: {
     alignItems: "center",
@@ -969,7 +954,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: "rgba(16, 185, 129, 0.8)",
+    backgroundColor: "#16A34A",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -978,25 +963,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     marginBottom: 4,
   },
   contactDescription: {
-    color: "rgba(16, 185, 129, 0.7)",
+    color: "#16A34A",
   },
   contactButton: {
     borderRadius: 12,
     overflow: "hidden",
   },
   contactButtonGradient: {
+    backgroundColor: "#16A34A",
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: "center",
   },
   contactButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   // Bottom Stats Styles
   bottomStats: {
@@ -1008,23 +994,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   bottomStatCard: {
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 16,
     padding: 20,
     width: "48%",
     marginBottom: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   bottomStatValue: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginBottom: 4,
   },
   bottomStatLabel: {
-    color: "#d1d5db",
+    color: "#6B7280",
     fontSize: 12,
     textAlign: "center",
   },
@@ -1032,18 +1018,20 @@ const styles = StyleSheet.create({
   successHero: {
     padding: 40,
     alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BBF7D0",
   },
   successIcon: {
     marginBottom: 20,
   },
   successTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
     marginBottom: 16,
   },
   successDescription: {
-    color: "#d1d5db",
+    color: "#374151",
     textAlign: "center",
     lineHeight: 24,
     paddingHorizontal: 20,
@@ -1052,29 +1040,29 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   successStatsGrid: {
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 20,
   },
   successStatCard: {
     alignItems: "center",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   successStatTitle: {
-    color: "#ffffff",
-    fontWeight: "bold",
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
     marginTop: 12,
     marginBottom: 4,
   },
   successStatValue: {
-    color: "rgba(251, 191, 36, 0.7)",
+    color: "#6B7280",
   },
   successActions: {
     paddingHorizontal: 20,
@@ -1090,24 +1078,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     gap: 8,
+    backgroundColor: "#16A34A",
   },
   primarySuccessButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   secondarySuccessButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     borderRadius: 16,
     paddingVertical: 16,
     gap: 8,
   },
   secondarySuccessButtonText: {
-    color: "#f59e0b",
-    fontWeight: "bold",
+    color: "#D97706",
+    fontFamily: "Poppins-Bold",
   },
 });

@@ -3,13 +3,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { usePremiumContext } from "../../Context/PremiumContext";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const PremiumBanner = () => {
   const router = useRouter();
-  const { theme } = useTheme();
   const { isPremium, loading } = usePremiumContext();
-  const isDark = theme === "dark";
 
   // Don't show the banner to premium users
   if (loading || isPremium) {
@@ -18,16 +15,7 @@ const PremiumBanner = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={
-          isDark
-            ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-            : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientContainer}
-      >
+      <View style={styles.gradientContainer}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
@@ -43,26 +31,14 @@ const PremiumBanner = () => {
 
           <View style={styles.headerText}>
             <View style={styles.titleRow}>
-              <Text
-                style={[
-                  styles.title,
-                  { color: isDark ? "#FCD34D" : "#D97706" },
-                ]}
-              >
-                Unlock Nile Premium
-              </Text>
+              <Text style={styles.title}>Unlock Nile Premium</Text>
               <MaterialCommunityIcons
                 name="star-four-points"
                 size={16}
                 color="#F59E0B"
               />
             </View>
-            <Text
-              style={[
-                styles.subtitle,
-                { color: isDark ? "#E5E7EB" : "#4B5563" },
-              ]}
-            >
+            <Text style={styles.subtitle}>
               Get 2x Nile Miles & exclusive benefits
             </Text>
           </View>
@@ -71,36 +47,48 @@ const PremiumBanner = () => {
         {/* Benefits Grid */}
         <View style={styles.benefitsGrid}>
           <View style={styles.benefitCard}>
-            <LinearGradient
-              colors={["rgba(16, 185, 129, 0.2)", "rgba(5, 150, 105, 0.2)"]}
-              style={styles.benefitGradient}
+            <View
+              style={[
+                styles.benefitGradient,
+                { backgroundColor: "#DCFCE7", borderColor: "#BBF7D0" },
+              ]}
             >
-              <MaterialCommunityIcons name="trophy" size={20} color="#10B981" />
-              <Text style={styles.benefitValue}>2x Miles</Text>
+              <MaterialCommunityIcons name="trophy" size={20} color="#16A34A" />
+              <Text style={[styles.benefitValue, { color: "#14532D" }]}>
+                2x Miles
+              </Text>
               <Text style={styles.benefitLabel}>Per Purchase</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           <View style={styles.benefitCard}>
-            <LinearGradient
-              colors={["rgba(245, 158, 11, 0.2)", "rgba(217, 119, 6, 0.2)"]}
-              style={styles.benefitGradient}
+            <View
+              style={[
+                styles.benefitGradient,
+                { backgroundColor: "#FEF3C7", borderColor: "#FDE68A" },
+              ]}
             >
-              <Ionicons name="flash" size={20} color="#F59E0B" />
-              <Text style={styles.benefitValue}>1-2 Days</Text>
+              <Ionicons name="flash" size={20} color="#D97706" />
+              <Text style={[styles.benefitValue, { color: "#92400E" }]}>
+                1-2 Days
+              </Text>
               <Text style={styles.benefitLabel}>Fast Delivery</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           <View style={styles.benefitCard}>
-            <LinearGradient
-              colors={["rgba(168, 85, 247, 0.2)", "rgba(147, 51, 234, 0.2)"]}
-              style={styles.benefitGradient}
+            <View
+              style={[
+                styles.benefitGradient,
+                { backgroundColor: "#EDE9FE", borderColor: "#DDD6FE" },
+              ]}
             >
-              <Ionicons name="star" size={20} color="#A855F7" />
-              <Text style={styles.benefitValue}>VIP</Text>
+              <Ionicons name="star" size={20} color="#7C3AED" />
+              <Text style={[styles.benefitValue, { color: "#4C1D95" }]}>
+                VIP
+              </Text>
               <Text style={styles.benefitLabel}>Access</Text>
-            </LinearGradient>
+            </View>
           </View>
         </View>
 
@@ -120,7 +108,7 @@ const PremiumBanner = () => {
             <Ionicons name="arrow-forward" size={20} color="#FFF" />
           </LinearGradient>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -135,8 +123,9 @@ const styles = StyleSheet.create({
   gradientContainer: {
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
+    borderColor: "#FDE68A",
     borderRadius: 20,
+    backgroundColor: "#FFFBEB",
   },
   header: {
     flexDirection: "row",
@@ -165,10 +154,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#D97706",
   },
   subtitle: {
     fontSize: 13,
     opacity: 0.8,
+    color: "#4B5563",
   },
   benefitsGrid: {
     flexDirection: "row",
@@ -183,17 +174,15 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.2)",
   },
   benefitValue: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#FFF",
     marginTop: 6,
   },
   benefitLabel: {
     fontSize: 10,
-    color: "#D1D5DB",
+    color: "#6B7280",
     marginTop: 2,
   },
   ctaButton: {

@@ -30,18 +30,18 @@ export default function PricingTiersDisplay({
   );
 
   return (
-    <View className="mt-4 bg-slate-800/60 rounded-2xl p-4 border border-slate-700/50">
-      <Text className="text-white font-bold text-base mb-3">
+    <View className="mt-4 bg-gray-50 rounded-2xl p-4 border border-gray-200">
+      <Text className="text-gray-900 font-bold text-base mb-3">
         💰 Group Pricing — the more, the cheaper
       </Text>
 
       {/* Header row */}
       <View className="flex-row mb-2 px-1">
-        <Text className="text-slate-400 text-xs flex-1">People</Text>
-        <Text className="text-slate-400 text-xs w-24 text-right">
+        <Text className="text-gray-500 text-xs flex-1">People</Text>
+        <Text className="text-gray-500 text-xs w-24 text-right">
           Price each
         </Text>
-        <Text className="text-slate-400 text-xs w-16 text-right">Save</Text>
+        <Text className="text-gray-500 text-xs w-16 text-right">Save</Text>
       </View>
 
       {sorted.map((tier, idx) => {
@@ -66,20 +66,20 @@ export default function PricingTiersDisplay({
             key={`tier-${idx}`}
             className={`flex-row items-center rounded-xl px-3 py-2.5 mb-1.5 ${
               isCurrentTier
-                ? "bg-emerald-900/50 border border-emerald-500/50"
+                ? "bg-emerald-50 border border-emerald-300"
                 : isActive
-                  ? "bg-slate-700/40 border border-slate-600/30"
-                  : "bg-slate-800/30 border border-slate-700/20"
+                  ? "bg-gray-100 border border-gray-200"
+                  : "bg-white border border-gray-100"
             }`}
           >
             {/* People count */}
             <View className="flex-1 flex-row items-center gap-2">
               {isCurrentTier && (
-                <Text className="text-emerald-400 text-xs font-bold">▶</Text>
+                <Text className="text-emerald-700 text-xs font-bold">▶</Text>
               )}
               <Text
                 className={`text-sm font-semibold ${
-                  isCurrentTier ? "text-emerald-300" : "text-slate-300"
+                  isCurrentTier ? "text-emerald-700" : "text-gray-700"
                 }`}
               >
                 {tier.label ?? `${threshold}+ people`}
@@ -89,7 +89,7 @@ export default function PricingTiersDisplay({
             {/* Price */}
             <Text
               className={`w-24 text-right text-sm font-bold ${
-                isCurrentTier ? "text-emerald-300" : "text-white"
+                isCurrentTier ? "text-emerald-700" : "text-gray-900"
               }`}
             >
               {formatPrice(price, currency)}
@@ -98,13 +98,13 @@ export default function PricingTiersDisplay({
             {/* Savings badge */}
             <View className="w-16 items-end">
               {savings > 0 ? (
-                <View className="bg-emerald-900/60 rounded-full px-2 py-0.5">
-                  <Text className="text-emerald-400 text-xs font-bold">
+                <View className="bg-emerald-100 rounded-full px-2 py-0.5">
+                  <Text className="text-emerald-700 text-xs font-bold">
                     -{savings}%
                   </Text>
                 </View>
               ) : (
-                <Text className="text-slate-500 text-xs">—</Text>
+                <Text className="text-gray-400 text-xs">—</Text>
               )}
             </View>
           </View>
@@ -112,11 +112,11 @@ export default function PricingTiersDisplay({
       })}
 
       {/* Current price callout */}
-      <View className="mt-2 pt-3 border-t border-slate-700/50">
-        <Text className="text-slate-400 text-xs">
+      <View className="mt-2 pt-3 border-t border-gray-200">
+        <Text className="text-gray-500 text-xs">
           Current group price with {currentSize}{" "}
           {currentSize === 1 ? "person" : "people"}:{" "}
-          <Text className="text-emerald-400 font-bold">
+          <Text className="text-emerald-600 font-bold">
             {formatPrice(
               (() => {
                 const match = [...sorted]

@@ -1,6 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Dimensions, Image, Platform, Text, View } from "react-native";
 import Animated, {
@@ -20,13 +19,12 @@ import MyNotificationsScreen from "../(Screens)/MyNotificationsScreen";
 import { icons } from "../../constants";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useNotification } from "../../Context/NotificationContext";
-import { useTheme } from "../../Context/ThemeProvider";
 import i18n, { useLanguage } from "../../i18n";
 
 const BottomTab = createBottomTabNavigator();
 const { width } = Dimensions.get("window");
 
-const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
+const TabIcon = ({ focused, icon, title, notificationCount = 0 }) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0);
   const badgeScale = useSharedValue(notificationCount > 0 ? 1 : 0);
@@ -80,7 +78,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
             width: 24,
             height: 4,
             borderRadius: 2,
-            backgroundColor: "#F59E0B",
+            backgroundColor: "#16A34A",
           }}
         />
       </Animated.View>
@@ -96,7 +94,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
                 position: "absolute",
                 inset: -8,
                 borderRadius: 20,
-                backgroundColor: "rgba(245, 158, 11, 0.2)",
+                backgroundColor: "rgba(22, 163, 74, 0.12)",
               },
             ]}
           />
@@ -105,9 +103,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
         {/* Icon */}
         <Image
           source={icon}
-          tintColor={
-            focused ? "#F59E0B" : theme === "dark" ? "#9CA3AF" : "#6B7280"
-          }
+          tintColor={focused ? "#16A34A" : "#6B7280"}
           resizeMode="contain"
           style={{ width: iconSize, height: iconSize }}
         />
@@ -120,10 +116,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
               { position: "absolute", top: -8, right: -8 },
             ]}
           >
-            <LinearGradient
-              colors={["#DC2626", "#F59E0B"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <View
               style={{
                 borderRadius: badgeSize / 2,
                 alignItems: "center",
@@ -131,6 +124,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
                 width: badgeSize,
                 height: badgeSize,
                 minWidth: badgeSize,
+                backgroundColor: "#DC2626",
               }}
             >
               <Text
@@ -138,7 +132,7 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
               >
                 {notificationCount > 9 ? "9+" : notificationCount}
               </Text>
-            </LinearGradient>
+            </View>
           </Animated.View>
         )}
       </Animated.View>
@@ -148,20 +142,13 @@ const TabIcon = ({ focused, icon, title, theme, notificationCount = 0 }) => {
 
 const BottomTabs = () => {
   useLanguage(); // re-render when locale changes
-  const { theme } = useTheme();
   const { cart } = useCart();
   const { notificationCount } = useNotification();
   const cartCount = cart?.length ?? 0;
   const tabBarHeight = width < 350 ? 60 : 70;
-  const isDark = theme === "dark";
 
   return (
-    <LinearGradient
-      colors={isDark ? ["#0f172a", "#1e293b"] : ["#f8fafc", "#f1f5f9"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <BottomTab.Navigator
         screenOptions={{
           headerShown: false,
@@ -178,25 +165,18 @@ const BottomTabs = () => {
           },
           tabBarBackground: () => (
             <BlurView
-              intensity={isDark ? 80 : 40}
-              tint={isDark ? "dark" : "light"}
+              intensity={40}
+              tint="light"
               style={{ flex: 1, overflow: "hidden" }}
             >
-              <LinearGradient
-                colors={["#F59E0B", "#10B981", "#F59E0B"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ height: 2, width: "100%" }}
+              <View
+                style={{ height: 2, backgroundColor: "#16A34A", width: "100%" }}
               />
-              <LinearGradient
-                colors={
-                  isDark
-                    ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-                    : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={{ flex: 1 }}
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(255, 255, 255, 0.97)",
+                }}
               />
             </BlurView>
           ),
@@ -213,7 +193,6 @@ const BottomTabs = () => {
                 icon={icons.home}
                 focused={focused}
                 title={i18n.t("Home")}
-                theme={theme}
               />
             ),
           }}
@@ -246,7 +225,6 @@ const BottomTabs = () => {
                 icon={icons.search}
                 focused={focused}
                 title={i18n.t("Discover")}
-                theme={theme}
               />
             ),
           }}
@@ -264,7 +242,6 @@ const BottomTabs = () => {
                 icon={icons.cart}
                 focused={focused}
                 title={i18n.t("Cart")}
-                theme={theme}
                 notificationCount={cartCount}
               />
             ),
@@ -282,7 +259,6 @@ const BottomTabs = () => {
                 icon={icons.upload}
                 focused={focused}
                 title={i18n.t("Create")}
-                theme={theme}
               />
             ),
           }}
@@ -302,7 +278,6 @@ const BottomTabs = () => {
                 icon={icons.notifications}
                 focused={focused}
                 title={i18n.t("Notifications")}
-                theme={theme}
                 notificationCount={notificationCount}
               />
             ),
@@ -320,7 +295,6 @@ const BottomTabs = () => {
                 icon={icons.profile}
                 focused={focused}
                 title={i18n.t("Profile")}
-                theme={theme}
               />
             ),
           }}
@@ -342,7 +316,7 @@ const BottomTabs = () => {
           }}
         /> */}
       </BottomTab.Navigator>
-    </LinearGradient>
+    </View>
   );
 };
 

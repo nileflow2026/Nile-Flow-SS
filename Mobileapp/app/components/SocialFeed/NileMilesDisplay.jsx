@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { useSocial } from "../../../Context/SocialContext";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 /**
  * NileMilesDisplay - Shows user's Miles, level, and rewards
@@ -25,7 +24,16 @@ export default function NileMilesDisplay({ style, showDetails = false }) {
     dailyActions,
     DAILY_LIMITS,
   } = useSocial();
-  const { themeStyles, theme } = useTheme();
+  const { themeStyles, theme } = {
+    themeStyles: {
+      cardBackground: "#F9FAFB",
+      text: "#111827",
+      border: "#E5E7EB",
+      secondaryText: "#6B7280",
+      background: "#FFFFFF",
+    },
+    theme: "light",
+  };
   const [showModal, setShowModal] = useState(false);
   const [animValue] = useState(new Animated.Value(1));
 
@@ -225,8 +233,8 @@ export default function NileMilesDisplay({ style, showDetails = false }) {
 const ActionProgress = ({ icon, label, current, max, theme }) => (
   <View style={styles.actionItem}>
     <Text style={styles.actionIcon}>{icon}</Text>
-    <Text style={[styles.actionLabel, { color: theme.text }]}>{label}</Text>
-    <Text style={[styles.actionCount, { color: theme.secondaryText }]}>
+    <Text style={[styles.actionLabel, { color: "#374151" }]}>{label}</Text>
+    <Text style={[styles.actionCount, { color: "#6B7280" }]}>
       {current}/{max}
     </Text>
   </View>

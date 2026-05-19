@@ -3,7 +3,6 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Award,
@@ -48,9 +47,9 @@ import {
   getCustomerOrders,
   useGlobalContext,
 } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 import { usePremiumStatus } from "../../hooks/usePremiumStatus";
 import i18n, { useLanguage } from "../../i18n";
+import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import PremiumMonthlySummary from "./PremiumMonthlySummary";
 
 const { width, height } = Dimensions.get("window");
@@ -59,13 +58,14 @@ const ProfilePage = () => {
   useLanguage(); // re-render when locale changes
   const { user, setUser, isLogged, setIsLogged } = useGlobalContext();
   const { favorites } = useFavorites();
-  const { theme, themeStyles } = useTheme();
   const { isPremium } = usePremiumStatus();
   const [profileImage, setProfileImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [nileMilesData, setNileMilesData] = useState({
     currentMiles: 0,
     earnedHistory: [],
@@ -105,7 +105,14 @@ const ProfilePage = () => {
 
   useEffect(() => {
     fetchNileMiles();
-  }, [fetchNileMiles]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchNileMiles, retryKey]);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setOrdersLoading(true);
+    setRetryKey((k) => k + 1);
+  };
 
   // Fetch actual orders data
   useEffect(() => {
@@ -123,17 +130,15 @@ const ProfilePage = () => {
       } catch (error) {
         console.error("Error fetching customer orders:", error);
         setOrders([]);
-        Alert.alert(
-          "Error",
-          "Failed to load your orders. Please try again later.",
-        );
+        setHasError(true);
       } finally {
         setOrdersLoading(false);
       }
     };
 
     fetchOrders();
-  }, [isLogged]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLogged, retryKey]);
 
   const handleImagePicker = async () => {
     try {
@@ -342,19 +347,18 @@ const ProfilePage = () => {
 
   const TabButton = ({ title, isActive, onPress, icon: Icon }) => (
     <TouchableOpacity onPress={onPress} style={styles.tabContainer}>
-      <LinearGradient
-        colors={
-          isActive
-            ? ["#D97706", "#B45309"]
-            : ["rgba(17, 24, 39, 0.5)", "rgba(0, 0, 0, 0.5)"]
-        }
-        style={[styles.tabButton, isActive && styles.activeTab]}
+      <View
+        style={[
+          styles.tabButton,
+          isActive && styles.activeTab,
+          { backgroundColor: isActive ? "#16A34A" : "#F3F4F6" },
+        ]}
       >
-        {Icon && <Icon size={16} color={isActive ? "white" : "#9CA3AF"} />}
+        {Icon && <Icon size={16} color={isActive ? "white" : "#6B7280"} />}
         <Text style={[styles.tabText, isActive && styles.activeTabText]}>
           {title}
         </Text>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -455,18 +459,16 @@ const ProfilePage = () => {
       </LinearGradient> */}
 
       {/* Order History */}
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <LinearGradient
-              colors={["#7C3AED", "#6D28D9"]}
-              style={styles.iconContainer}
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#7C3AED" }]}
             >
               <History size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View>
               <Text style={styles.cardTitle}>Order History</Text>
               <Text style={styles.cardSubtitle}>Recent premium orders</Text>
@@ -488,7 +490,7 @@ const ProfilePage = () => {
               >
                 <View style={styles.orderHeader}>
                   <View style={styles.orderIdContainer}>
-                    <Package size={16} color="#EAB308" />
+                    <Package size={16} color="#D97706" />
                     <Text style={styles.orderId}>
                       {(order.$id || order.id || `order_${index}`)
                         .toString()
@@ -563,10 +565,9 @@ const ProfilePage = () => {
                 style={styles.startShoppingButton}
                 onPress={() => router.push(isLogged ? "/" : "/sign-in")}
               >
-                <LinearGradient
-                  colors={["#D97706", "#B45309"]}
-                  style={styles.startShoppingGradient}
-                >
+              <View
+                style={styles.startShoppingGradient}
+              >
                   {isLogged ? (
                     <Sparkles size={20} color="white" />
                   ) : (
@@ -575,29 +576,27 @@ const ProfilePage = () => {
                   <Text style={styles.startShoppingText}>
                     {isLogged ? "Start Shopping" : "Sign In"}
                   </Text>
-                </LinearGradient>
+              </View>
               </TouchableOpacity>
             </View>
           )}
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 
   const renderWishlistTab = () => (
     <View style={styles.tabContent}>
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <LinearGradient
-              colors={["#DC2626", "#B91C1C"]}
-              style={styles.iconContainer}
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#DC2626" }]}
             >
               <Heart size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View>
               <Text style={styles.cardTitle}>My Wishlist</Text>
               <Text style={styles.cardSubtitle}>
@@ -645,35 +644,32 @@ const ProfilePage = () => {
               style={styles.startShoppingButton}
               onPress={() => router.push("/")}
             >
-              <LinearGradient
-                colors={["#D97706", "#B45309"]}
+              <View
                 style={styles.startShoppingGradient}
               >
                 <ShoppingBag size={20} color="white" />
                 <Text style={styles.startShoppingText}>Start Shopping</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         )}
-      </LinearGradient>
+      </View>
     </View>
-  );
+  )
 
   const renderOrdersTab = () => (
     <View style={styles.tabContent}>
       {/* Order History */}
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <LinearGradient
-              colors={["#7C3AED", "#6D28D9"]}
-              style={styles.iconContainer}
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#7C3AED" }]}
             >
               <History size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View>
               <Text style={styles.cardTitle}>My Orders</Text>
               <Text style={styles.cardSubtitle}>Complete order history</Text>
@@ -695,7 +691,7 @@ const ProfilePage = () => {
               >
                 <View style={styles.orderHeader}>
                   <View style={styles.orderIdContainer}>
-                    <Package size={16} color="#EAB308" />
+                    <Package size={16} color="#D97706" />
                     <Text style={styles.orderId}>
                       {(order.$id || order.id || `order_${index}`)
                         .toString()
@@ -770,8 +766,7 @@ const ProfilePage = () => {
                 style={styles.startShoppingButton}
                 onPress={() => router.push(isLogged ? "/" : "/sign-in")}
               >
-                <LinearGradient
-                  colors={["#D97706", "#B45309"]}
+                <View
                   style={styles.startShoppingGradient}
                 >
                   {isLogged ? (
@@ -782,12 +777,12 @@ const ProfilePage = () => {
                   <Text style={styles.startShoppingText}>
                     {isLogged ? "Start Shopping" : "Sign In"}
                   </Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           )}
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 
@@ -993,8 +988,7 @@ const ProfilePage = () => {
 
   const renderSettingsTab = () => (
     <View style={styles.tabContent}>
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <View style={{ marginBottom: 32 }}>
@@ -1003,7 +997,7 @@ const ProfilePage = () => {
               style={{
                 fontSize: sectionTitleFontSize,
                 fontWeight: "600",
-                color: "#FCD34D",
+                color: "#14532D",
                 marginBottom: 16,
               }}
             >
@@ -1035,9 +1029,9 @@ const ProfilePage = () => {
                   flexDirection: "row",
                   alignItems: "center",
                   padding: itemPadding,
-                  backgroundColor: "rgba(17, 24, 39, 0.5)",
+                  backgroundColor: "#F9FAFB",
                   borderWidth: 1,
-                  borderColor: "rgba(217, 119, 6, 0.3)",
+                  borderColor: "#E5E7EB",
                 }}
               >
                 <Image
@@ -1046,13 +1040,13 @@ const ProfilePage = () => {
                     width: 24,
                     height: 24,
                     marginRight: 12,
-                    tintColor: "white",
+                    tintColor: "#374151",
                   }}
                 />
                 <Text
                   style={{
                     fontSize: itemTextFontSize,
-                    color: "white",
+                    color: "#374151",
                   }}
                 >
                   {title}
@@ -1066,7 +1060,7 @@ const ProfilePage = () => {
               style={{
                 fontSize: sectionTitleFontSize,
                 fontWeight: "600",
-                color: "#FCD34D",
+                color: "#14532D",
                 marginBottom: 16,
               }}
             >
@@ -1098,21 +1092,21 @@ const ProfilePage = () => {
                   flexDirection: "row",
                   alignItems: "center",
                   padding: itemPadding,
-                  backgroundColor: "rgba(17, 24, 39, 0.5)",
+                  backgroundColor: "#F9FAFB",
                   borderWidth: 1,
-                  borderColor: "rgba(217, 119, 6, 0.3)",
+                  borderColor: "#E5E7EB",
                 }}
               >
                 <MaterialIcons
                   name={icon}
                   size={iconSize}
-                  color="white"
+                  color="#374151"
                   style={{ marginRight: 16 }}
                 />
                 <Text
                   style={{
                     fontSize: itemTextFontSize,
-                    color: "white",
+                    color: "#374151",
                   }}
                 >
                   {title}
@@ -1126,7 +1120,7 @@ const ProfilePage = () => {
               style={{
                 fontSize: sectionTitleFontSize,
                 fontWeight: "600",
-                color: "#FCD34D",
+                color: "#14532D",
                 marginBottom: 16,
               }}
             >
@@ -1154,21 +1148,21 @@ const ProfilePage = () => {
                   flexDirection: "row",
                   alignItems: "center",
                   padding: itemPadding,
-                  backgroundColor: "rgba(17, 24, 39, 0.5)",
+                  backgroundColor: "#F9FAFB",
                   borderWidth: 1,
-                  borderColor: "rgba(217, 119, 6, 0.3)",
+                  borderColor: "#E5E7EB",
                 }}
               >
                 <FontAwesome5
                   name={icon}
                   size={iconSize}
-                  color="white"
+                  color="#374151"
                   style={{ marginRight: 16 }}
                 />
                 <Text
                   style={{
                     fontSize: itemTextFontSize,
-                    color: "white",
+                    color: "#374151",
                   }}
                 >
                   {title}
@@ -1201,15 +1195,14 @@ const ProfilePage = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 
   const renderProfileInfo = () => (
     <View style={styles.rightColumn}>
       {/* Profile Info Card */}
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <View style={styles.cardHeader}>
@@ -1218,12 +1211,11 @@ const ProfilePage = () => {
 
         <View style={styles.profileInfoContainer}>
           <View style={styles.profileInfoItem}>
-            <LinearGradient
-              colors={["#D97706", "#B45309"]}
-              style={styles.profileInfoIcon}
+            <View
+              style={[styles.profileInfoIcon, { backgroundColor: "#D97706" }]}
             >
               <User size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View style={styles.profileInfoText}>
               <Text style={styles.profileInfoLabel}>Full Name</Text>
               <Text style={styles.profileInfoValue}>{demoUser.name}</Text>
@@ -1231,12 +1223,11 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.profileInfoItem}>
-            <LinearGradient
-              colors={["#059669", "#047857"]}
-              style={styles.profileInfoIcon}
+            <View
+              style={[styles.profileInfoIcon, { backgroundColor: "#059669" }]}
             >
               <Mail size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View style={styles.profileInfoText}>
               <Text style={styles.profileInfoLabel}>Email Address</Text>
               <Text style={styles.profileInfoValue}>{demoUser.email}</Text>
@@ -1244,12 +1235,11 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.profileInfoItem}>
-            <LinearGradient
-              colors={["#2563EB", "#1D4ED8"]}
-              style={styles.profileInfoIcon}
+            <View
+              style={[styles.profileInfoIcon, { backgroundColor: "#2563EB" }]}
             >
               <Phone size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View style={styles.profileInfoText}>
               <Text style={styles.profileInfoLabel}>Phone Number</Text>
               <Text style={styles.profileInfoValue}>{demoUser.phone}</Text>
@@ -1257,12 +1247,11 @@ const ProfilePage = () => {
           </View>
 
           <View style={styles.profileInfoItem}>
-            <LinearGradient
-              colors={["#DC2626", "#B91C1C"]}
-              style={styles.profileInfoIcon}
+            <View
+              style={[styles.profileInfoIcon, { backgroundColor: "#DC2626" }]}
             >
               <MapPin size={24} color="white" />
-            </LinearGradient>
+            </View>
             <View style={styles.profileInfoText}>
               <Text style={styles.profileInfoLabel}>Location</Text>
               <Text style={styles.profileInfoValue}>{demoUser.address}</Text>
@@ -1274,19 +1263,17 @@ const ProfilePage = () => {
           style={styles.editProfileButton}
           onPress={() => router.push("/EditProfile")}
         >
-          <LinearGradient
-            colors={["rgba(17, 24, 39, 0.5)", "rgba(0, 0, 0, 0.5)"]}
+          <View
             style={styles.editProfileGradient}
           >
-            <Settings size={20} color="#EAB308" />
+            <Settings size={20} color="#16A34A" />
             <Text style={styles.editProfileText}>Edit Profile Information</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {/* Quick Actions */}
-      <LinearGradient
-        colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
+      <View
         style={styles.card}
       >
         <Text style={styles.cardTitle}>Quick Actions</Text>
@@ -1297,15 +1284,14 @@ const ProfilePage = () => {
             onPress={() => setActiveTab("wishlist")}
           >
             <View style={styles.quickActionLeft}>
-              <LinearGradient
-                colors={["#DC2626", "#B91C1C"]}
-                style={styles.quickActionIcon}
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: "#DC2626" }]}
               >
                 <Heart size={20} color="white" />
-              </LinearGradient>
+              </View>
               <Text style={styles.quickActionText}>Wishlist</Text>
             </View>
-            <ChevronRight size={20} color="#EAB308" />
+            <ChevronRight size={20} color="#D97706" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1313,12 +1299,11 @@ const ProfilePage = () => {
             onPress={() => router.push("/PaymentMethods")}
           >
             <View style={styles.quickActionLeft}>
-              <LinearGradient
-                colors={["#2563EB", "#1D4ED8"]}
-                style={styles.quickActionIcon}
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: "#2563EB" }]}
               >
                 <CreditCard size={20} color="white" />
-              </LinearGradient>
+              </View>
               <Text style={styles.quickActionText}>Payment Methods</Text>
             </View>
             <ChevronRight size={20} color="#60A5FA" />
@@ -1329,12 +1314,11 @@ const ProfilePage = () => {
             onPress={() => router.push("/Security")}
           >
             <View style={styles.quickActionLeft}>
-              <LinearGradient
-                colors={["#059669", "#047857"]}
-                style={styles.quickActionIcon}
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: "#059669" }]}
               >
                 <Shield size={20} color="white" />
-              </LinearGradient>
+              </View>
               <Text style={styles.quickActionText}>Security</Text>
             </View>
             <ChevronRight size={20} color="#10B981" />
@@ -1345,25 +1329,27 @@ const ProfilePage = () => {
             onPress={() => router.push("/AccountSettings")}
           >
             <View style={styles.quickActionLeft}>
-              <LinearGradient
-                colors={["#7C3AED", "#6D28D9"]}
-                style={styles.quickActionIcon}
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: "#7C3AED" }]}
               >
                 <Settings size={20} color="white" />
-              </LinearGradient>
+              </View>
               <Text style={styles.quickActionText}>Account Settings</Text>
             </View>
             <ChevronRight size={20} color="#A855F7" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 
+  if (!ordersLoading && hasError) {
+    return <NetworkErrorFallback onRetry={handleRetry} />;
+  }
+
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={styles.container}
+    <View
+      style={[styles.container, { backgroundColor: "#FFFFFF" }]}
     >
       <SafeAreaView style={styles.container}>
         <ScrollView
@@ -1374,19 +1360,13 @@ const ProfilePage = () => {
           }
         >
           {/* Hero Section */}
-          <LinearGradient
-            colors={[
-              "rgba(146, 64, 14, 0.2)",
-              "rgba(17, 24, 39, 0.2)",
-              "rgba(5, 150, 105, 0.2)",
-            ]}
+          <View
             style={styles.heroSection}
           >
             <View style={styles.profileHeader}>
               <View style={styles.profileImageContainer}>
-                <LinearGradient
-                  colors={["#EAB308", "#10B981"]}
-                  style={styles.profileImageGlow}
+                <View
+                  style={[styles.profileImageGlow, { backgroundColor: "#16A34A", opacity: 0.2 }]}
                 />
                 <ExpoImage
                   source={{ uri: demoUser.profileImage }}
@@ -1401,17 +1381,16 @@ const ProfilePage = () => {
                     isLogged ? handleImagePicker : () => router.push("/sign-in")
                   }
                 >
-                  <LinearGradient
-                    colors={["#D97706", "#B45309"]}
-                    style={styles.cameraGradient}
+                  <View
+                    style={[styles.cameraGradient, { backgroundColor: "#16A34A" }]}
                   >
                     <Camera size={20} color="white" />
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
                 {isUploading && (
                   <ActivityIndicator
                     style={{ position: "absolute", top: "40%", left: "40%" }}
-                    color="#f59e0b"
+                    color="#16A34A"
                   />
                 )}
               </View>
@@ -1420,20 +1399,18 @@ const ProfilePage = () => {
                 <View style={styles.nameContainer}>
                   <Text style={styles.userName}>{demoUser.name}</Text>
                   {isLogged ? (
-                    <LinearGradient
-                      colors={["#059669", "#047857"]}
-                      style={styles.premiumBadge}
+                    <View
+                      style={[styles.premiumBadge, { backgroundColor: "#16A34A" }]}
                     >
                       <Text style={styles.premiumText}>PREMIUM</Text>
-                    </LinearGradient>
+                    </View>
                   ) : (
                     <TouchableOpacity onPress={() => router.push("/sign-in")}>
-                      <LinearGradient
-                        colors={["#DC2626", "#B91C1C"]}
-                        style={styles.premiumBadge}
+                      <View
+                        style={[styles.premiumBadge, { backgroundColor: "#DC2626" }]}
                       >
                         <Text style={styles.premiumText}>SIGN IN</Text>
-                      </LinearGradient>
+                      </View>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1449,33 +1426,30 @@ const ProfilePage = () => {
 
             {/* Stats */}
             <View style={styles.statsContainer}>
-              <LinearGradient
-                colors={["rgba(217, 119, 6, 0.2)", "transparent"]}
+              <View
                 style={styles.statItem}
               >
                 <Text style={styles.statNumber}>
                   {isLogged ? orders?.length || 0 : "-"}
                 </Text>
                 <Text style={styles.statLabel}>Orders</Text>
-              </LinearGradient>
-              <LinearGradient
-                colors={["rgba(5, 150, 105, 0.2)", "transparent"]}
+              </View>
+              <View
                 style={styles.statItem}
               >
                 <Text style={styles.statNumber}>
                   {isLogged ? nileMilesData?.currentMiles || 0 : "-"}
                 </Text>
                 <Text style={styles.statLabel}>Miles</Text>
-              </LinearGradient>
-              <LinearGradient
-                colors={["rgba(37, 99, 235, 0.2)", "transparent"]}
+              </View>
+              <View
                 style={styles.statItem}
               >
                 <Text style={styles.statNumber}>{isLogged ? "100%" : "-"}</Text>
                 <Text style={styles.statLabel}>Verified</Text>
-              </LinearGradient>
+              </View>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Tabs */}
           <ScrollView
@@ -1574,7 +1548,7 @@ const ProfilePage = () => {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -1595,6 +1569,7 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 48,
     paddingHorizontal: 16,
+    backgroundColor: "#F0FDF4",
   },
   profileHeader: {
     flexDirection: "row",
@@ -1616,7 +1591,7 @@ const styles = StyleSheet.create({
     height: 128,
     borderRadius: 64,
     borderWidth: 4,
-    borderColor: "#111827",
+    borderColor: "#FFFFFF",
   },
   cameraButton: {
     position: "absolute",
@@ -1644,7 +1619,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "white",
+    color: "#111827",
   },
   premiumBadge: {
     paddingHorizontal: 12,
@@ -1658,12 +1633,12 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 18,
-    color: "#D1D5DB",
+    color: "#374151",
     marginBottom: 4,
   },
   memberSince: {
     fontSize: 14,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
   },
   statsContainer: {
     flexDirection: "row",
@@ -1674,18 +1649,18 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     alignItems: "center",
   },
   statNumber: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#FCD34D",
+    color: "#D97706",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "rgba(254, 243, 199, 0.8)",
+    color: "#6B7280",
   },
   tabsContainer: {
     marginBottom: 32,
@@ -1705,11 +1680,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 8,
   },
   activeTab: {
-    borderColor: "#EAB308",
+    borderColor: "#16A34A",
   },
   tabText: {
     fontSize: 14,
@@ -1718,7 +1693,7 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
   activeTabText: {
-    color: "white",
+    color: "#FFFFFF",
   },
   mainContent: {
     paddingHorizontal: 16,
@@ -1739,7 +1714,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     padding: 24,
   },
   cardHeader: {
@@ -1763,12 +1738,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#FCD34D",
+    color: "#14532D",
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
   },
   tierBadge: {
     flexDirection: "row",
@@ -1792,7 +1767,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     alignItems: "center",
   },
   progressContainer: {
@@ -1805,17 +1780,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressTitle: {
-    color: "#FCD34D",
+    color: "#D97706",
     fontSize: 16,
   },
   progressPercent: {
-    color: "#FCD34D",
+    color: "#D97706",
     fontSize: 16,
     fontWeight: "bold",
   },
   progressBar: {
     height: 12,
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    backgroundColor: "#F3F4F6",
     borderRadius: 6,
     overflow: "hidden",
   },
@@ -1905,7 +1880,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   uploadText: {
     color: "white",
@@ -1915,7 +1890,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
   },
   orderCount: {
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
     fontSize: 16,
   },
   ordersContainer: {
@@ -1924,7 +1899,7 @@ const styles = StyleSheet.create({
   orderItem: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(146, 64, 14, 0.1)",
+    backgroundColor: "#F9FAFB",
     gap: 12,
   },
   orderHeader: {
@@ -1938,7 +1913,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   orderId: {
-    color: "#FCD34D",
+    color: "#D97706",
     fontFamily: "monospace",
     fontSize: 14,
   },
@@ -1949,24 +1924,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   deliveredBadge: {
-    backgroundColor: "rgba(5, 150, 105, 0.3)",
-    borderColor: "rgba(4, 120, 87, 0.3)",
+    backgroundColor: "#DCFCE7",
+    borderColor: "#86EFAC",
   },
   shippedBadge: {
-    backgroundColor: "rgba(37, 99, 235, 0.3)",
-    borderColor: "rgba(29, 78, 216, 0.3)",
+    backgroundColor: "#DBEAFE",
+    borderColor: "#93C5FD",
   },
   processingBadge: {
-    backgroundColor: "rgba(217, 119, 6, 0.3)",
-    borderColor: "rgba(180, 83, 9, 0.3)",
+    backgroundColor: "#FEF3C7",
+    borderColor: "#FDE68A",
   },
   statusText: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "white",
+    color: "#374151",
   },
   orderDate: {
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 14,
   },
   orderFooter: {
@@ -1977,7 +1952,7 @@ const styles = StyleSheet.create({
   orderAmount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#FCD34D",
+    color: "#D97706",
   },
   orderStatusContainer: {
     flexDirection: "row",
@@ -1985,7 +1960,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   orderStatus: {
-    color: "rgba(96, 165, 250, 0.7)",
+    color: "#6B7280",
     fontSize: 14,
   },
   emptyOrdersContainer: {
@@ -1996,7 +1971,7 @@ const styles = StyleSheet.create({
   emptyOrdersTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "white",
+    color: "#111827",
   },
   emptyOrdersText: {
     color: "#9CA3AF",
@@ -2012,9 +1987,7 @@ const styles = StyleSheet.create({
   startShoppingGradient: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    gap: 8,
+    backgroundColor: "#16A34A",
   },
   startShoppingText: {
     color: "white",
@@ -2027,7 +2000,7 @@ const styles = StyleSheet.create({
   wishlistItem: {
     width: 160,
     marginRight: 16,
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     padding: 12,
   },
@@ -2038,13 +2011,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   wishlistTitle: {
-    color: "white",
+    color: "#111827",
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 4,
   },
   wishlistPrice: {
-    color: "#EAB308",
+    color: "#D97706",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -2056,7 +2029,7 @@ const styles = StyleSheet.create({
   emptyWishlistTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "white",
+    color: "#111827",
   },
   emptyWishlistText: {
     color: "#9CA3AF",
@@ -2072,10 +2045,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 16,
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 16,
   },
   profileInfoIcon: {
@@ -2091,12 +2064,12 @@ const styles = StyleSheet.create({
   profileInfoLabel: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#FCD34D",
+    color: "#14532D",
     marginBottom: 4,
   },
   profileInfoValue: {
     fontSize: 14,
-    color: "rgba(254, 243, 199, 0.7)",
+    color: "#6B7280",
   },
   editProfileButton: {
     borderRadius: 12,
@@ -2109,11 +2082,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
     gap: 8,
   },
   editProfileText: {
-    color: "#EAB308",
+    color: "#16A34A",
     fontWeight: "600",
   },
   quickActionsContainer: {
@@ -2124,10 +2097,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    backgroundColor: "rgba(17, 24, 39, 0.5)",
+    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
   },
   quickActionLeft: {
     flexDirection: "row",
@@ -2142,7 +2115,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quickActionText: {
-    color: "#FCD34D",
+    color: "#14532D",
     fontWeight: "600",
   },
   settingsIconButton: {

@@ -1,15 +1,14 @@
 /* eslint-disable no-unused-vars */
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import axiosClient from "../../api";
 import {
   getCurrentUser,
   updateCurrencyRates,
 } from "../../Context/GlobalProvider";
-import { useTheme } from "../../Context/ThemeProvider";
 import i18n, { useLanguage } from "../../i18n";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
@@ -19,17 +18,281 @@ import HeroCarousel from "../components/HeroCarousel";
 import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+};
+
+const TAGLINES = [
+  "Africa's Commerce, Reimagined 🌍",
+  "Earn Nile Miles on Every Order ✨",
+  "Fast Delivery Across the Continent 🚀",
+  "Shop Local. Think Continental. 💪",
+  "Exclusive Deals for Premium Members 🎁",
+  "Empowering African Commerce 💸",
+  "Quality Products, Trusted Sellers ✔️",
+];
+
+const HomeErrorFallback = ({ onRetry }) => (
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "#FFFFFF",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 32,
+    }}
+  >
+    <View
+      style={{
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: "#F0FDF4",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: "#BBF7D0",
+      }}
+    >
+      <Text style={{ fontSize: 38 }}>📡</Text>
+    </View>
+    <Text
+      style={{
+        fontSize: 20,
+        fontFamily: "Poppins-Bold",
+        color: "#111827",
+        textAlign: "center",
+        marginBottom: 10,
+      }}
+    >
+      Connection Issue
+    </Text>
+    <Text
+      style={{
+        fontSize: 14,
+        color: "#6B7280",
+        textAlign: "center",
+        lineHeight: 22,
+        marginBottom: 36,
+      }}
+    >
+      We couldn’t reach Nile Flow right now.{"\ "}
+      Check your connection and try again.
+    </Text>
+    <TouchableOpacity
+      onPress={onRetry}
+      activeOpacity={0.8}
+      style={{
+        backgroundColor: "#16A34A",
+        borderRadius: 12,
+        paddingVertical: 14,
+        width: "100%",
+        alignItems: "center",
+        marginBottom: 4,
+      }}
+    >
+      <Text
+        style={{
+          color: "#FFFFFF",
+          fontSize: 16,
+          fontFamily: "Poppins-Bold",
+        }}
+      >
+        Try Again
+      </Text>
+    </TouchableOpacity>
+    <Text
+      style={{
+        fontSize: 12,
+        color: "#9CA3AF",
+        textAlign: "center",
+        marginTop: 18,
+      }}
+    >
+      If the problem continues, our team is on it.
+    </Text>
+  </View>
+);
+
+const HomeSkeleton = () => (
+  <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    {/* Header skeleton — green tint to match actual header */}
+    <View
+      style={{
+        paddingHorizontal: 16,
+        paddingTop: (StatusBar.currentHeight ?? 24) + 16,
+        paddingBottom: 24,
+        backgroundColor: "#D1FAE5",
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          columnGap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: "#A7F3D0",
+          }}
+        />
+        <View>
+          <View
+            style={{
+              width: 80,
+              height: 11,
+              borderRadius: 6,
+              backgroundColor: "#A7F3D0",
+              marginBottom: 6,
+            }}
+          />
+          <View
+            style={{
+              width: 130,
+              height: 16,
+              borderRadius: 6,
+              backgroundColor: "#A7F3D0",
+            }}
+          />
+        </View>
+      </View>
+      <View
+        style={{
+          width: 190,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: "#A7F3D0",
+        }}
+      />
+    </View>
+
+    {/* Carousel placeholder */}
+    <View
+      style={{
+        marginHorizontal: 16,
+        marginVertical: 16,
+        height: 180,
+        borderRadius: 16,
+        backgroundColor: "#E5E7EB",
+      }}
+    />
+
+    {/* Categories pills */}
+    <View
+      style={{
+        flexDirection: "row",
+        paddingHorizontal: 16,
+        columnGap: 10,
+        marginBottom: 20,
+      }}
+    >
+      {[70, 88, 60, 94].map((w, i) => (
+        <View
+          key={i}
+          style={{
+            width: w,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+      ))}
+    </View>
+
+    {/* Section label + two product card placeholders */}
+    <View style={{ paddingHorizontal: 16 }}>
+      <View
+        style={{
+          width: 150,
+          height: 18,
+          borderRadius: 6,
+          backgroundColor: "#E5E7EB",
+          marginBottom: 14,
+        }}
+      />
+      <View style={{ flexDirection: "row", columnGap: 12 }}>
+        {[1, 2].map((i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 210,
+              borderRadius: 12,
+              backgroundColor: "#F9FAFB",
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              padding: 10,
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 8,
+                backgroundColor: "#E5E7EB",
+                marginBottom: 10,
+              }}
+            />
+            <View
+              style={{
+                width: "70%",
+                height: 12,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+                marginBottom: 6,
+              }}
+            />
+            <View
+              style={{
+                width: "40%",
+                height: 14,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          </View>
+        ))}
+      </View>
+    </View>
+  </View>
+);
+
 const Home = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const { themeStyles, theme } = useTheme();
-  const isDark = theme === "dark";
 
   const [categories, setCategories] = useState([i18n.t("All")]);
   const [categoryData, setCategoryData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(i18n.t("All"));
   const [selectedLanguageLabel, setSelectedLanguageLabel] = useState("English");
+  const [taglineIndex, setTaglineIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setIsLoading(true);
+    setRetryKey((k) => k + 1);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaglineIndex((prev) => (prev + 1) % TAGLINES.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,11 +301,15 @@ const Home = () => {
         setUser(currentUser);
       } catch (error) {
         console.error("Error fetching user:", error);
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchUser();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryKey]);
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -80,6 +347,7 @@ const Home = () => {
       } catch (err) {
         console.error("Error fetching categories:", err);
         console.error("Error details:", err.response?.data);
+        setHasError(true);
         setCategories(["All"]);
       }
     };
@@ -89,13 +357,22 @@ const Home = () => {
 
     const interval = setInterval(updateCurrencyRates, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryKey]);
+
+  if (isLoading) {
+    return <HomeSkeleton />;
+  }
+
+  if (hasError) {
+    return <HomeErrorFallback onRetry={handleRetry} />;
+  }
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: isDark ? "#0f172a" : "#f8fafc",
+        backgroundColor: "#FFFFFF",
       }}
     >
       <CurrencyUpdater />
@@ -105,39 +382,46 @@ const Home = () => {
       >
         {/* Header Section */}
         <LinearGradient
-          colors={
-            isDark
-              ? ["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]
-              : ["rgba(248, 250, 252, 0.95)", "rgba(241, 245, 249, 0.95)"]
-          }
+          colors={["#16A34A", "#14532D"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerContainer}
         >
+          {/* Decorative background circles */}
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.decorCircle3} />
+
           <View style={styles.greetingRow}>
             <View style={styles.profileContainer}>
-              <Image
-                source={{
-                  uri:
-                    user?.avatarUrl &&
-                    typeof user.avatarUrl === "string" &&
-                    user.avatarUrl.trim() !== ""
-                      ? user.avatarUrl
-                      : "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94",
-                }}
-                style={styles.avatar}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={150}
-              />
+              <View style={styles.avatarWrapper}>
+                <Image
+                  source={{
+                    uri:
+                      user?.avatarUrl &&
+                      typeof user.avatarUrl === "string" &&
+                      user.avatarUrl.trim() !== ""
+                        ? user.avatarUrl
+                        : "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94",
+                  }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={150}
+                />
+              </View>
               <View>
-                <Text
-                  style={[styles.greetingText, { color: themeStyles.text }]}
-                >
-                  Welcome, {user?.username || "Guest"}
+                <Text style={styles.greetingSubText}>{getGreeting()} 👋</Text>
+                <Text style={styles.greetingText}>
+                  {user?.username || "Guest"}
                 </Text>
               </View>
             </View>
+          </View>
+
+          {/* Rotating tagline pill */}
+          <View style={styles.taglinePill}>
+            <Text style={styles.taglineText}>{TAGLINES[taglineIndex]}</Text>
           </View>
         </LinearGradient>
 
@@ -163,7 +447,7 @@ const Home = () => {
         <PremiumDeals />
       </ScrollView>
       {/* AI Chat Assistant - Overlay on top */}
-      {/* <AIChat /> */}
+      {/*  <AIChat /> */}
     </View>
   );
 };
@@ -181,6 +465,58 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    overflow: "hidden",
+  },
+  decorCircle1: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -50,
+    right: -30,
+  },
+  decorCircle2: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    top: 30,
+    right: 70,
+  },
+  decorCircle3: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    bottom: 10,
+    right: 20,
+  },
+  avatarWrapper: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.4)",
+    padding: 2,
+  },
+  greetingSubText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.8)",
+    fontFamily: "Poppins-Regular",
+  },
+  taglinePill: {
+    marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    alignSelf: "flex-start",
+  },
+  taglineText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontFamily: "Poppins-Bold",
   },
   greetingRow: {
     flexDirection: "row",
@@ -202,13 +538,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
   },
   greetingText: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontFamily: "Poppins-Bold",
+    color: "#FFFFFF",
   },
   languageButton: {
     paddingHorizontal: 16,

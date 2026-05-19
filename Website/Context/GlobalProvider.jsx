@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import * as Sentry from "@sentry/react";
 import axiosClient from "../api";
 import { account } from "../appwrite";
 import { getCurrentUser } from "../authServices";
@@ -53,7 +54,7 @@ const GlobalProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem(
       "assistantMessages",
-      JSON.stringify(assistantMessages)
+      JSON.stringify(assistantMessages),
     );
   }, [assistantMessages]);
 
@@ -82,9 +83,12 @@ const GlobalProvider = ({ children }) => {
             setUser(currentUser);
           }
           setIsGuest(false);
+          // Identify user in Sentry for crash-free user tracking
+          Sentry.setUser({ id: currentUser.$id, email: currentUser.email });
         } else {
           setIsLogged(false);
           setUser(null);
+          Sentry.setUser(null);
         }
       } catch (error) {
         setIsLogged(false);
@@ -109,6 +113,7 @@ const GlobalProvider = ({ children }) => {
       setUser(null);
       setIsGuest(false);
       setAssistantMessages([]); // reset on logout
+      Sentry.setUser(null); // clear user from Release Health session
 
       console.log("User logged out successfully.");
     } catch (error) {
@@ -133,7 +138,7 @@ const GlobalProvider = ({ children }) => {
       assistantOpen,
       setAssistantOpen,
     }),
-    [isLogged, user, loading, isGuest, assistantMessages, assistantOpen]
+    [isLogged, user, loading, isGuest, assistantMessages, assistantOpen],
   );
 
   return (

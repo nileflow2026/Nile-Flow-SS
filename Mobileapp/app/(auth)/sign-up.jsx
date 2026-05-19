@@ -2,7 +2,6 @@
 /* eslint-disable no-unused-vars */
 import { images } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -177,15 +176,12 @@ const SignUp = () => {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: "#1a1a2e", flex: 1 }}>
+    <SafeAreaView style={{ backgroundColor: "#FFFFFF", flex: 1 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <LinearGradient
-          colors={["#1a1a2e", "#16213e", "#0f3460"]}
-          style={{ flex: 1 }}
-        >
+        <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             {step === "signup" ? (
               <View className="flex-1 justify-center px-6 py-10">
@@ -200,13 +196,13 @@ const SignUp = () => {
                 {/* Title */}
                 <Text
                   className="text-3xl font-bold mb-2 text-center"
-                  style={{ color: "#fbbf24" }}
+                  style={{ color: "#14532D" }}
                 >
                   Join Nile Flow
                 </Text>
                 <Text
                   className="text-lg mb-8 text-center"
-                  style={{ color: "white" }}
+                  style={{ color: "#16A34A" }}
                 >
                   African Marketplace
                 </Text>
@@ -217,10 +213,10 @@ const SignUp = () => {
                       <Ionicons
                         name="person-outline"
                         size={16}
-                        color="#fbbf24"
+                        color="#16A34A"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={{ color: "#fbbf24", fontWeight: "600" }}>
+                      <Text style={{ color: "#374151", fontWeight: "600" }}>
                         Full Name
                       </Text>
                     </View>
@@ -239,10 +235,10 @@ const SignUp = () => {
                       <Ionicons
                         name="call-outline"
                         size={16}
-                        color="#fbbf24"
+                        color="#16A34A"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={{ color: "#fbbf24", fontWeight: "600" }}>
+                      <Text style={{ color: "#374151", fontWeight: "600" }}>
                         Phone Number
                       </Text>
                     </View>
@@ -259,10 +255,10 @@ const SignUp = () => {
                       <Ionicons
                         name="mail-outline"
                         size={16}
-                        color="#fbbf24"
+                        color="#16A34A"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={{ color: "#fbbf24", fontWeight: "600" }}>
+                      <Text style={{ color: "#374151", fontWeight: "600" }}>
                         Email Address
                       </Text>
                     </View>
@@ -279,10 +275,10 @@ const SignUp = () => {
                       <Ionicons
                         name="lock-closed-outline"
                         size={16}
-                        color="#fbbf24"
+                        color="#16A34A"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={{ color: "#fbbf24", fontWeight: "600" }}>
+                      <Text style={{ color: "#374151", fontWeight: "600" }}>
                         Password
                       </Text>
                     </View>
@@ -311,16 +307,15 @@ const SignUp = () => {
                             showPassword ? "eye-off-outline" : "eye-outline"
                           }
                           size={20}
-                          color="#fbbf24"
+                          color="#6B7280"
                         />
                       </TouchableOpacity>
                     </View>
                     <Text
                       style={{
-                        color: "#fbbf24",
+                        color: "#6B7280",
                         fontSize: 12,
                         marginTop: 4,
-                        opacity: 0.7,
                       }}
                     >
                       Use at least 8 characters with letters, numbers, and
@@ -337,20 +332,20 @@ const SignUp = () => {
                     onPress={() => setTermsAccepted(!termsAccepted)}
                     className="w-4 h-4 mr-3 mt-1 rounded border-2 items-center justify-center"
                     style={{
-                      borderColor: "#fbbf24",
+                      borderColor: "#16A34A",
                       backgroundColor: termsAccepted
-                        ? "rgba(251, 191, 36, 0.2)"
-                        : "rgba(251, 191, 36, 0.1)",
+                        ? "#DCFCE7"
+                        : "transparent",
                     }}
                   >
                     {termsAccepted && (
-                      <Ionicons name="checkmark" size={12} color="#fbbf24" />
+                      <Ionicons name="checkmark" size={12} color="#16A34A" />
                     )}
                   </TouchableOpacity>
                   <View className="flex-1">
                     <Text
                       style={{
-                        color: "rgba(251, 191, 36, 0.7)",
+                        color: "#6B7280",
                         fontSize: 14,
                         lineHeight: 20,
                       }}
@@ -359,7 +354,7 @@ const SignUp = () => {
                       <Text
                         onPress={() => router.push("/(Screens)/TermsOfService")}
                         style={{
-                          color: "#fbbf24",
+                          color: "#16A34A",
                           textDecorationLine: "underline",
                         }}
                       >
@@ -369,7 +364,7 @@ const SignUp = () => {
                       <Text
                         onPress={() => router.push("/(Screens)/PrivacyPolicy")}
                         style={{
-                          color: "#fbbf24",
+                          color: "#16A34A",
                           textDecorationLine: "underline",
                         }}
                       >
@@ -393,14 +388,14 @@ const SignUp = () => {
                 <View className="flex-row justify-center gap-1">
                   <Text
                     className="text-sm font-pregular"
-                    style={{ color: "white" }}
+                    style={{ color: "#374151" }}
                   >
                     {i18n.t("Have an account already?")}
                   </Text>
                   <Link
                     href={"/sign-in"}
                     className="text-sm font-psemibold"
-                    style={{ color: "#fbbf24" }}
+                    style={{ color: "#16A34A" }}
                   >
                     {i18n.t("Sign-In")}
                   </Link>
@@ -417,32 +412,36 @@ const SignUp = () => {
                   <Ionicons
                     name="arrow-back"
                     size={20}
-                    color="#fbbf24"
+                    color="#16A34A"
                     style={{ marginRight: 8 }}
                   />
-                  <Text style={{ color: "#fbbf24", fontWeight: "600" }}>
+                  <Text style={{ color: "#16A34A", fontWeight: "600" }}>
                     Back to Signup
                   </Text>
                 </TouchableOpacity>
 
                 {/* Verification Header */}
                 <View className="items-center mb-8">
-                  <LinearGradient
-                    colors={["#fbbf24", "#f59e0b"]}
-                    className="w-20 h-20 rounded-full items-center justify-center mb-4"
+                  <View
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 40,
+                      backgroundColor: "#16A34A",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 16,
+                    }}
                   >
                     <Ionicons name="mail" size={32} color="white" />
-                  </LinearGradient>
+                  </View>
                   <Text
                     className="text-2xl font-bold text-center mb-2"
-                    style={{ color: "#fbbf24" }}
+                    style={{ color: "#14532D" }}
                   >
                     Verify Your Email
                   </Text>
-                  <Text
-                    className="text-center"
-                    style={{ color: "white", opacity: 0.8 }}
-                  >
+                  <Text className="text-center" style={{ color: "#374151" }}>
                     Enter the 6-digit code sent to {form.email}
                   </Text>
                 </View>
@@ -468,7 +467,7 @@ const SignUp = () => {
                 <View className="text-center">
                   <Text
                     className="text-sm text-center mb-2"
-                    style={{ color: "white", opacity: 0.7 }}
+                    style={{ color: "#374151" }}
                   >
                     Didn't receive the code?
                   </Text>
@@ -476,16 +475,13 @@ const SignUp = () => {
                     <TouchableOpacity onPress={handleResendCode}>
                       <Text
                         className="text-sm font-semibold"
-                        style={{ color: "#fbbf24" }}
+                        style={{ color: "#16A34A" }}
                       >
                         Resend Code
                       </Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text
-                      className="text-sm"
-                      style={{ color: "white", opacity: 0.5 }}
-                    >
+                    <Text className="text-sm" style={{ color: "#6B7280" }}>
                       Resend in {timeLeft}s
                     </Text>
                   )}
@@ -493,7 +489,7 @@ const SignUp = () => {
               </View>
             )}
           </ScrollView>
-        </LinearGradient>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

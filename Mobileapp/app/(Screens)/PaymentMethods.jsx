@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -81,21 +80,14 @@ const PaymentMethods = () => {
   };
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         {/* Header */}
-        <LinearGradient
-          colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Payment Methods</Text>
@@ -103,7 +95,7 @@ const PaymentMethods = () => {
               Manage how you pay on NileFlow
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -112,16 +104,13 @@ const PaymentMethods = () => {
           {/* Saved Methods */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Saved Payment Methods</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {!isLogged ? (
                 <View style={styles.emptyContainer}>
                   <MaterialIcons
                     name="lock-outline"
                     size={48}
-                    color="rgba(245, 158, 11, 0.4)"
+                    color="#BBF7D0"
                   />
                   <Text style={styles.emptyTitle}>Sign In Required</Text>
                   <Text style={styles.emptySubtitle}>
@@ -129,14 +118,9 @@ const PaymentMethods = () => {
                   </Text>
                   <TouchableOpacity
                     onPress={() => router.push("/sign-in")}
-                    style={styles.signInButton}
+                    style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
                   >
-                    <LinearGradient
-                      colors={["#D97706", "#B45309"]}
-                      style={styles.signInGradient}
-                    >
                       <Text style={styles.signInText}>Sign In</Text>
-                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               ) : savedMethods.length === 0 ? (
@@ -144,7 +128,7 @@ const PaymentMethods = () => {
                   <MaterialIcons
                     name="credit-card-off"
                     size={48}
-                    color="rgba(245, 158, 11, 0.4)"
+                    color="#BBF7D0"
                   />
                   <Text style={styles.emptyTitle}>No Saved Methods</Text>
                   <Text style={styles.emptySubtitle}>
@@ -153,14 +137,9 @@ const PaymentMethods = () => {
                   </Text>
                   <TouchableOpacity
                     onPress={handleGoToCheckout}
-                    style={styles.signInButton}
+                    style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
                   >
-                    <LinearGradient
-                      colors={["#D97706", "#B45309"]}
-                      style={styles.signInGradient}
-                    >
                       <Text style={styles.signInText}>Go to Checkout</Text>
-                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -173,16 +152,15 @@ const PaymentMethods = () => {
                     ]}
                   >
                     <View style={styles.menuItemLeft}>
-                      <LinearGradient
-                        colors={method.iconColors}
-                        style={styles.menuIconContainer}
+                      <View
+                        style={[styles.menuIconContainer, { backgroundColor: method.iconColors[0] }]}
                       >
                         <MaterialIcons
                           name={method.icon}
                           size={20}
                           color="white"
                         />
-                      </LinearGradient>
+                      </View>
                       <View style={styles.menuTextContainer}>
                         <Text style={styles.menuTitle}>{method.title}</Text>
                         <Text style={styles.menuSubtitle}>
@@ -200,16 +178,13 @@ const PaymentMethods = () => {
                   </View>
                 ))
               )}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Accepted Payment Methods */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Accepted Payment Methods</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {paymentOptions.map((option, index) => (
                 <TouchableOpacity
                   key={index}
@@ -220,16 +195,15 @@ const PaymentMethods = () => {
                   ]}
                 >
                   <View style={styles.menuItemLeft}>
-                    <LinearGradient
-                      colors={option.iconColors}
-                      style={styles.menuIconContainer}
+                    <View
+                      style={[styles.menuIconContainer, { backgroundColor: option.iconColors[0] }]}
                     >
                       <MaterialIcons
                         name={option.icon}
                         size={20}
                         color="white"
                       />
-                    </LinearGradient>
+                    </View>
                     <View style={styles.menuTextContainer}>
                       <Text style={styles.menuTitle}>{option.title}</Text>
                       <Text style={styles.menuSubtitle}>{option.subtitle}</Text>
@@ -238,18 +212,15 @@ const PaymentMethods = () => {
                   <MaterialIcons
                     name="chevron-right"
                     size={24}
-                    color="#F59E0B"
+                    color="#16A34A"
                   />
                 </TouchableOpacity>
               ))}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Security Notice */}
-          <LinearGradient
-            colors={["rgba(5, 150, 105, 0.15)", "rgba(4, 120, 87, 0.08)"]}
-            style={styles.noticeBanner}
-          >
+          <View style={styles.noticeBanner}>
             <MaterialIcons name="verified-user" size={24} color="#10B981" />
             <View style={styles.noticeTextContainer}>
               <Text style={styles.noticeTitle}>Secure Payments</Text>
@@ -258,10 +229,9 @@ const PaymentMethods = () => {
                 and M-Pesa
               </Text>
             </View>
-          </LinearGradient>
+          </View>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -276,25 +246,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   scrollContent: {
     padding: 16,
@@ -306,14 +278,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: width < 350 ? 14 : 16,
-    fontWeight: "600",
-    color: "#FCD34D",
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
     paddingHorizontal: 4,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     overflow: "hidden",
   },
   menuItem: {
@@ -322,6 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
   },
   savedMethodItem: {
     flexDirection: "row",
@@ -329,10 +303,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: "#E5E7EB",
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -352,13 +327,14 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: width < 350 ? 14 : 15,
-    fontWeight: "600",
-    color: "#F1F5F9",
+    fontFamily: "Poppins-SemiBold",
+    color: "#111827",
   },
   menuSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   emptyContainer: {
     alignItems: "center",
@@ -368,19 +344,22 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#F1F5F9",
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
     marginTop: 8,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: "#9CA3AF",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   signInButton: {
     marginTop: 12,
     borderRadius: 12,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
     overflow: "hidden",
   },
   signInGradient: {
@@ -390,7 +369,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     color: "white",
-    fontWeight: "700",
+    fontFamily: "Poppins-Bold",
     fontSize: 14,
   },
   noticeBanner: {
@@ -399,7 +378,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.25)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
     gap: 12,
   },
   noticeTextContainer: {
@@ -407,14 +387,15 @@ const styles = StyleSheet.create({
   },
   noticeTitle: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#10B981",
+    fontFamily: "Poppins-Bold",
+    color: "#16A34A",
   },
   noticeSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#374151",
     marginTop: 3,
     lineHeight: 18,
+    fontFamily: "Poppins-Regular",
   },
 });
 

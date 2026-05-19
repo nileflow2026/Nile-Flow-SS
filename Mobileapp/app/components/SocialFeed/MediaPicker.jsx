@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../../Context/ThemeProvider";
 
 export default function MediaPicker({
   mediaItems,
@@ -21,8 +20,6 @@ export default function MediaPicker({
   onPickCamera,
   onRemove,
 }) {
-  const { themeStyles } = useTheme();
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -57,28 +54,20 @@ export default function MediaPicker({
         {mediaItems.length < maxMedia && (
           <View style={styles.addButtons}>
             <TouchableOpacity
-              style={[
-                styles.addBtn,
-                { borderColor: themeStyles.border || "#333" },
-              ]}
+              style={[styles.addBtn, { borderColor: "#E5E7EB" }]}
               onPress={() => onPickLibrary("library")}
             >
-              <Images size={22} color={themeStyles.text} />
-              <Text style={[styles.addText, { color: themeStyles.text }]}>
+              <Images size={22} color="#374151" />
+              <Text style={[styles.addText, { color: "#374151" }]}>
                 Gallery
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.addBtn,
-                { borderColor: themeStyles.border || "#333" },
-              ]}
+              style={[styles.addBtn, { borderColor: "#E5E7EB" }]}
               onPress={() => onPickCamera("camera")}
             >
-              <Camera size={22} color={themeStyles.text} />
-              <Text style={[styles.addText, { color: themeStyles.text }]}>
-                Camera
-              </Text>
+              <Camera size={22} color="#374151" />
+              <Text style={[styles.addText, { color: "#374151" }]}>Camera</Text>
             </TouchableOpacity>
           </View>
         )}

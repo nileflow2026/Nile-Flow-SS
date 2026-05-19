@@ -21,7 +21,6 @@ import {
 } from "react-native";
 import { useCart } from "../../../Context/CartContext_NEW";
 import { useSocial } from "../../../Context/SocialContext";
-import { useTheme } from "../../../Context/ThemeProvider";
 import CommentsSheet from "./CommentsSheet";
 import socialShare from "./SocialShare";
 
@@ -43,7 +42,6 @@ export default function FeedItem({
   onAddToCart,
   index,
 }) {
-  const { themeStyles, theme } = useTheme();
   const { addToCart } = useCart();
   const { earnMiles } = useSocial();
   const isFocused = useIsFocused();
@@ -206,7 +204,7 @@ export default function FeedItem({
             style={[
               styles.contentContainer,
               styles.dealCard,
-              { backgroundColor: themeStyles.cardBackground },
+              { backgroundColor: "#F9FAFB" },
             ]}
           >
             <Image
@@ -217,7 +215,7 @@ export default function FeedItem({
               transition={200}
               recyclingKey={`feed-deal-${item.id}`}
             />
-            <Text style={[styles.dealTitle, { color: themeStyles.text }]}>
+            <Text style={[styles.dealTitle, { color: "#111827" }]}>
               {item.product.name}
             </Text>
             <Text style={styles.dealPrice}>${item.product.price}</Text>
@@ -230,12 +228,9 @@ export default function FeedItem({
       default:
         return (
           <View
-            style={[
-              styles.contentContainer,
-              { backgroundColor: themeStyles.cardBackground },
-            ]}
+            style={[styles.contentContainer, { backgroundColor: "#F9FAFB" }]}
           >
-            <Text style={[styles.textContent, { color: themeStyles.text }]}>
+            <Text style={[styles.textContent, { color: "#374151" }]}>
               {item.text}
             </Text>
           </View>
@@ -244,9 +239,7 @@ export default function FeedItem({
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: themeStyles.background }]}
-    >
+    <View style={[styles.container, { backgroundColor: "#000000" }]}>
       {renderTrendingBadge()}
 
       {renderContent()}
@@ -276,11 +269,11 @@ export default function FeedItem({
           recyclingKey={`feed-avatar-${item.id}`}
         />
         <View style={styles.userDetails}>
-          <Text style={[styles.username, { color: themeStyles.text }]}>
+          <Text style={[styles.username, { color: "#FFFFFF" }]}>
             @{item.user?.username || item.username}
           </Text>
           <Text
-            style={[styles.caption, { color: themeStyles.text }]}
+            style={[styles.caption, { color: "rgba(255,255,255,0.9)" }]}
             numberOfLines={captionExpanded ? undefined : 2}
           >
             {item.caption}

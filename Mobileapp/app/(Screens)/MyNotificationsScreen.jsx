@@ -1,6 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -19,10 +18,12 @@ import {
   useGlobalContext,
 } from "../../Context/GlobalProvider";
 import { useNotification } from "../../Context/NotificationContext";
+import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import {
   applyMuteSetting,
   MUTE_SOUND_KEY,
 } from "../../hooks/usePushNotifications";
+import { min } from "moment";
 
 export default function MyNotificationsScreen() {
   const [notifications, setNotifications] = useState([]);
@@ -30,6 +31,8 @@ export default function MyNotificationsScreen() {
   const { user } = useGlobalContext();
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, unread, important, promotions
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [muteSound, setMuteSound] = useState(false);
 
@@ -87,6 +90,7 @@ export default function MyNotificationsScreen() {
         setNotificationCount(notificationsData.length);
       } catch (error) {
         console.error("❌ Failed to fetch notifications:", error.message);
+        setHasError(true);
         setNotifications([]);
       } finally {
         setLoading(false);
@@ -94,7 +98,14 @@ export default function MyNotificationsScreen() {
     };
 
     initNotifications();
-  }, [user, setNotificationCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, setNotificationCount, retryKey]);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setLoading(true);
+    setRetryKey((k) => k + 1);
+  };
 
   // Helper functions
   const handleMarkAsRead = async (notificationId) => {
@@ -199,346 +210,322 @@ export default function MyNotificationsScreen() {
     return ["#059669", "#047857"];
   };
 
+  if (!loading && hasError) {
+    return <NetworkErrorFallback onRetry={handleRetry} />;
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={["#111827", "#000000", "#111827"]}
-        style={styles.gradient}
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Controls Bar */}
-          <LinearGradient
-            colors={["#1f2937", "#000000", "#1f2937"]}
-            style={styles.controlsBar}
-          >
-            <View style={styles.filterButtons}>
-              <TouchableOpacity
-                onPress={() => setFilter("all")}
+        {/* Controls Bar */}
+        <View style={styles.controlsBar}>
+          <View style={styles.filterButtons}>
+            <TouchableOpacity
+              onPress={() => setFilter("all")}
+              style={[
+                styles.filterButton,
+                filter === "all" && styles.activeFilterButton,
+              ]}
+            >
+              <Text
                 style={[
-                  styles.filterButton,
-                  filter === "all" && styles.activeFilterButton,
+                  styles.filterButtonText,
+                  filter === "all" && styles.activeFilterButtonText,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    filter === "all" && styles.activeFilterButtonText,
-                  ]}
-                >
-                  All Notifications
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setFilter("unread")}
-                style={[
-                  styles.filterButton,
-                  filter === "unread" && styles.activeFilterButtonUnread,
-                ]}
-              >
-                <MaterialIcons
-                  name="visibility"
-                  size={16}
-                  color={filter === "unread" ? "#ffffff" : "#9ca3af"}
-                  style={styles.filterIcon}
-                />
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    filter === "unread" && styles.activeFilterButtonText,
-                  ]}
-                >
-                  Unread
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setFilter("important")}
-                style={[
-                  styles.filterButton,
-                  filter === "important" && styles.activeFilterButtonImportant,
-                ]}
-              >
-                <MaterialIcons
-                  name="stars"
-                  size={16}
-                  color={filter === "important" ? "#ffffff" : "#9ca3af"}
-                  style={styles.filterIcon}
-                />
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    filter === "important" && styles.activeFilterButtonText,
-                  ]}
-                >
-                  Important
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                onPress={() => setShowSettings(!showSettings)}
-                style={styles.settingsButton}
-              >
-                <MaterialIcons name="settings" size={20} color="#fbbf24" />
-                <Text style={styles.settingsButtonText}>Settings</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleMarkAllAsRead}
-                style={styles.markAllButton}
-              >
-                <MaterialIcons name="done-all" size={20} color="#ffffff" />
-                <Text style={styles.markAllButtonText}>Mark All Read</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Settings Panel */}
-            {showSettings && (
-              <View style={styles.settingsPanel}>
-                <View style={styles.settingsGrid}>
-                  <LinearGradient
-                    colors={["#1f2937", "#000000"]}
-                    style={styles.settingCard}
-                  >
-                    <View style={styles.settingHeader}>
-                      <Text style={styles.settingTitle}>
-                        Notification Sound
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => handleToggleMute(!muteSound)}
-                        style={[
-                          styles.soundToggle,
-                          muteSound
-                            ? styles.soundToggleMuted
-                            : styles.soundToggleActive,
-                        ]}
-                      >
-                        <MaterialIcons
-                          name={muteSound ? "volume-off" : "volume-up"}
-                          size={20}
-                          color={muteSound ? "#ef4444" : "#10b981"}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.settingDescription}>
-                      {muteSound ? "Sounds are muted" : "Sounds are enabled"}
-                    </Text>
-                  </LinearGradient>
-
-                  <LinearGradient
-                    colors={["#1f2937", "#000000"]}
-                    style={styles.settingCard}
-                  >
-                    <Text style={styles.settingTitle}>Quick Actions</Text>
-                    <TouchableOpacity
-                      onPress={handleClearAll}
-                      style={styles.clearButton}
-                    >
-                      <MaterialIcons
-                        name="delete-sweep"
-                        size={16}
-                        color="#fca5a5"
-                      />
-                      <Text style={styles.clearButtonText}>
-                        Clear All Notifications
-                      </Text>
-                    </TouchableOpacity>
-                  </LinearGradient>
-                </View>
-              </View>
-            )}
-          </LinearGradient>
-
-          {/* Loading State */}
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <View style={styles.loadingSpinner}>
-                <ActivityIndicator size="large" color="#fbbf24" />
-                <MaterialIcons
-                  name="notifications"
-                  size={40}
-                  color="#fbbf24"
-                  style={styles.loadingIcon}
-                />
-              </View>
-              <Text style={styles.loadingTitle}>Loading Notifications</Text>
-              <Text style={styles.loadingDescription}>
-                Fetching your premium alerts...
+                All Notifications
               </Text>
-            </View>
-          ) : (
-            <View style={styles.notificationsContainer}>
-              {/* Notifications List */}
-              <View style={styles.notificationsList}>
-                {filteredNotifications.length > 0 ? (
-                  filteredNotifications.map((notification) => (
-                    <LinearGradient
-                      key={notification.$id}
-                      colors={getNotificationColor(
-                        notification.type,
-                        notification.priority,
-                      )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setFilter("unread")}
+              style={[
+                styles.filterButton,
+                filter === "unread" && styles.activeFilterButtonUnread,
+              ]}
+            >
+              <MaterialIcons
+                name="visibility"
+                size={16}
+                color={filter === "unread" ? "#ffffff" : "#6B7280"}
+                style={styles.filterIcon}
+              />
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  filter === "unread" && styles.activeFilterButtonText,
+                ]}
+              >
+                Unread
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setFilter("important")}
+              style={[
+                styles.filterButton,
+                filter === "important" && styles.activeFilterButtonImportant,
+              ]}
+            >
+              <MaterialIcons
+                name="stars"
+                size={16}
+                color={filter === "important" ? "#ffffff" : "#6B7280"}
+                style={styles.filterIcon}
+              />
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  filter === "important" && styles.activeFilterButtonText,
+                ]}
+              >
+                Important
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              onPress={() => setShowSettings(!showSettings)}
+              style={styles.settingsButton}
+            >
+              <MaterialIcons name="settings" size={20} color="#16A34A" />
+              <Text style={styles.settingsButtonText}>Settings</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleMarkAllAsRead}
+              style={styles.markAllButton}
+            >
+              <MaterialIcons name="done-all" size={20} color="#ffffff" />
+              <Text style={styles.markAllButtonText}>Mark All Read</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Settings Panel */}
+          {showSettings && (
+            <View style={styles.settingsPanel}>
+              <View style={styles.settingsGrid}>
+                <View style={styles.settingCard}>
+                  <View style={styles.settingHeader}>
+                    <Text style={styles.settingTitle}>Notification Sound</Text>
+                    <TouchableOpacity
+                      onPress={() => handleToggleMute(!muteSound)}
                       style={[
-                        styles.notificationCard,
-                        !notification.read && styles.unreadNotificationCard,
+                        styles.soundToggle,
+                        muteSound
+                          ? styles.soundToggleMuted
+                          : styles.soundToggleActive,
                       ]}
                     >
-                      <View style={styles.notificationContent}>
-                        {/* Notification Icon */}
-                        <View
-                          style={[
-                            styles.notificationIcon,
-                            notification.read
-                              ? styles.readNotificationIcon
-                              : styles.unreadNotificationIcon,
-                          ]}
-                        >
-                          <MaterialIcons
-                            name={getNotificationIcon(
-                              notification.type,
-                              notification.priority,
-                            )}
-                            size={24}
-                            color={notification.read ? "#9ca3af" : "#ffffff"}
-                          />
-                        </View>
-
-                        {/* Message Content */}
-                        <View style={styles.messageContent}>
-                          <View style={styles.messageHeader}>
-                            <Text
-                              style={[
-                                styles.messageText,
-                                notification.read
-                                  ? styles.readMessageText
-                                  : styles.unreadMessageText,
-                              ]}
-                            >
-                              {notification.message}
-                            </Text>
-                            <View style={styles.messageTimestamp}>
-                              <MaterialIcons
-                                name="access-time"
-                                size={12}
-                                color="#9ca3af"
-                              />
-                              <Text style={styles.timestampText}>
-                                {new Date(
-                                  notification.timestamp ||
-                                    notification.$createdAt,
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <Text style={styles.messageDescription}>
-                            {notification.description ||
-                              "Premium African marketplace update"}
-                          </Text>
-
-                          {!notification.read && (
-                            <View style={styles.newBadge}>
-                              <Text style={styles.newBadgeText}>NEW</Text>
-                            </View>
-                          )}
-
-                          {/* Action Buttons */}
-                          <View style={styles.notificationActions}>
-                            {!notification.read && (
-                              <TouchableOpacity
-                                onPress={() =>
-                                  handleMarkAsRead(notification.$id)
-                                }
-                                style={styles.markReadButton}
-                              >
-                                <MaterialIcons
-                                  name="done"
-                                  size={16}
-                                  color="#ffffff"
-                                />
-                                <Text style={styles.markReadButtonText}>
-                                  Mark as Read
-                                </Text>
-                              </TouchableOpacity>
-                            )}
-
-                            <TouchableOpacity
-                              onPress={() =>
-                                handleDeleteNotification(notification.$id)
-                              }
-                              style={styles.deleteButton}
-                            >
-                              <MaterialIcons
-                                name="delete"
-                                size={16}
-                                color="#fca5a5"
-                              />
-                              <Text style={styles.deleteButtonText}>
-                                Delete
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-
-                        {/* Status Indicator */}
-                        <View
-                          style={[
-                            styles.statusIndicator,
-                            notification.read
-                              ? styles.readStatusIndicator
-                              : styles.unreadStatusIndicator,
-                          ]}
-                        />
-                      </View>
-                    </LinearGradient>
-                  ))
-                ) : (
-                  <View style={styles.emptyState}>
-                    <LinearGradient
-                      colors={["#92400e", "#059669"]}
-                      style={styles.emptyIcon}
-                    >
                       <MaterialIcons
-                        name="notifications"
-                        size={48}
-                        color="#fbbf24"
+                        name={muteSound ? "volume-off" : "volume-up"}
+                        size={20}
+                        color={muteSound ? "#ef4444" : "#10b981"}
                       />
-                    </LinearGradient>
-                    <Text style={styles.emptyTitle}>No Notifications</Text>
-                    <Text style={styles.emptyDescription}>
-                      {filter === "all"
-                        ? "You're all caught up! Check back later for updates on your orders and exclusive African product deals."
-                        : `No ${filter} notifications at the moment.`}
-                    </Text>
-                    {filter !== "all" && (
-                      <TouchableOpacity
-                        onPress={() => setFilter("all")}
-                        style={styles.viewAllButton}
-                      >
-                        <Text style={styles.viewAllButtonText}>
-                          View All Notifications
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    </TouchableOpacity>
                   </View>
-                )}
+                  <Text style={styles.settingDescription}>
+                    {muteSound ? "Sounds are muted" : "Sounds are enabled"}
+                  </Text>
+                </View>
+
+                <View style={styles.settingCard}>
+                  <Text style={styles.settingTitle}>Quick Actions</Text>
+                  <TouchableOpacity
+                    onPress={handleClearAll}
+                    style={styles.clearButton}
+                  >
+                    <MaterialIcons
+                      name="delete-sweep"
+                      size={16}
+                      color="#fca5a5"
+                    />
+                    <Text style={styles.clearButtonText}>
+                      Clear All Notifications
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
-        </ScrollView>
-      </LinearGradient>
+        </View>
 
-      {/* Settings Modal */}
+        {/* Loading State */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingSpinner}>
+              <ActivityIndicator size="large" color="#16A34A" />
+              <MaterialIcons
+                name="notifications"
+                size={40}
+                color="#16A34A"
+                style={styles.loadingIcon}
+              />
+            </View>
+            <Text style={styles.loadingTitle}>Loading Notifications</Text>
+            <Text style={styles.loadingDescription}>
+              Fetching your premium alerts...
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.notificationsContainer}>
+            {/* Notifications List */}
+            <View style={styles.notificationsList}>
+              {filteredNotifications.length > 0 ? (
+                filteredNotifications.map((notification) => (
+                  <View
+                    key={notification.$id}
+                    style={[
+                      styles.notificationCard,
+                      !notification.read && styles.unreadNotificationCard,
+                    ]}
+                  >
+                    <View style={styles.notificationContent}>
+                      {/* Notification Icon */}
+                      <View
+                        style={[
+                          styles.notificationIcon,
+                          notification.read
+                            ? styles.readNotificationIcon
+                            : styles.unreadNotificationIcon,
+                        ]}
+                      >
+                        <MaterialIcons
+                          name={getNotificationIcon(
+                            notification.type,
+                            notification.priority,
+                          )}
+                          size={24}
+                          color={notification.read ? "#6B7280" : "#ffffff"}
+                        />
+                      </View>
+
+                      {/* Message Content */}
+                      <View style={styles.messageContent}>
+                        <View style={styles.messageHeader}>
+                          <Text
+                            style={[
+                              styles.messageText,
+                              notification.read
+                                ? styles.readMessageText
+                                : styles.unreadMessageText,
+                            ]}
+                          >
+                            {notification.message}
+                          </Text>
+                          <View style={styles.messageTimestamp}>
+                            <MaterialIcons
+                              name="access-time"
+                              size={12}
+                              color="#9ca3af"
+                            />
+                            <Text style={styles.timestampText}>
+                              {new Date(
+                                notification.timestamp ||
+                                  notification.$createdAt,
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.messageDescription}>
+                          {notification.description ||
+                            "Premium African marketplace update"}
+                        </Text>
+
+                        {!notification.read && (
+                          <View style={styles.newBadge}>
+                            <Text style={styles.newBadgeText}>NEW</Text>
+                          </View>
+                        )}
+
+                        {/* Action Buttons */}
+                        <View style={styles.notificationActions}>
+                          {!notification.read && (
+                            <TouchableOpacity
+                              onPress={() => handleMarkAsRead(notification.$id)}
+                              style={styles.markReadButton}
+                            >
+                              <MaterialIcons
+                                name="done"
+                                size={16}
+                                color="#ffffff"
+                              />
+                              <Text style={styles.markReadButtonText}>
+                                Mark as Read
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+
+                          <TouchableOpacity
+                            onPress={() =>
+                              handleDeleteNotification(notification.$id)
+                            }
+                            style={styles.deleteButton}
+                          >
+                            <MaterialIcons
+                              name="delete"
+                              size={16}
+                              color="#fca5a5"
+                            />
+                            <Text style={styles.deleteButtonText}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Status Indicator */}
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          notification.read
+                            ? styles.readStatusIndicator
+                            : styles.unreadStatusIndicator,
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <View style={styles.emptyIcon}>
+                    <MaterialIcons
+                      name="notifications"
+                      size={48}
+                      color="#16A34A"
+                    />
+                  </View>
+                  <Text style={styles.emptyTitle}>No Notifications</Text>
+                  <Text style={styles.emptyDescription}>
+                    {filter === "all"
+                      ? "You're all caught up! Check back later for updates on your orders and exclusive African product deals."
+                      : `No ${filter} notifications at the moment.`}
+                  </Text>
+                  {filter !== "all" && (
+                    <TouchableOpacity
+                      onPress={() => setFilter("all")}
+                      style={styles.viewAllButton}
+                    >
+                      <Text style={styles.viewAllButtonText}>
+                        View All Notifications
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
       <Modal
         visible={showSettings}
         transparent={true}
@@ -546,17 +533,14 @@ export default function MyNotificationsScreen() {
         onRequestClose={() => setShowSettings(false)}
       >
         <View style={styles.modalOverlay}>
-          <LinearGradient
-            colors={["#1f2937", "#000000"]}
-            style={styles.modalContent}
-          >
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Notification Settings</Text>
               <TouchableOpacity
                 onPress={() => setShowSettings(false)}
                 style={styles.modalCloseButton}
               >
-                <MaterialIcons name="close" size={24} color="#9ca3af" />
+                <MaterialIcons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
@@ -585,7 +569,7 @@ export default function MyNotificationsScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -595,10 +579,7 @@ export default function MyNotificationsScreen() {
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: "#000000",
-  },
-  gradient: {
-    flex: 1,
+    marginBottom: 50,
   },
   scrollView: {
     flex: 1,
@@ -609,7 +590,8 @@ const styles = {
     padding: 24,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   filterButtons: {
     flexDirection: "row",
@@ -622,34 +604,34 @@ const styles = {
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
-    backgroundColor: "rgba(31, 41, 55, 0.5)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
   },
   activeFilterButton: {
-    backgroundColor: "#d97706",
-    borderColor: "#fbbf24",
+    backgroundColor: "#D97706",
+    borderColor: "#D97706",
   },
   activeFilterButtonUnread: {
-    backgroundColor: "#059669",
-    borderColor: "#10b981",
+    backgroundColor: "#16A34A",
+    borderColor: "#16A34A",
   },
   activeFilterButtonImportant: {
-    backgroundColor: "#dc2626",
-    borderColor: "#ef4444",
+    backgroundColor: "#DC2626",
+    borderColor: "#DC2626",
   },
   filterIcon: {
     marginRight: 8,
   },
   filterButtonText: {
-    color: "#d1d5db",
+    color: "#374151",
     fontSize: 14,
-    fontWeight: "500",
+    fontFamily: "Poppins-Medium",
   },
   activeFilterButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   actionButtons: {
     flexDirection: "row",
@@ -662,14 +644,14 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    backgroundColor: "rgba(146, 64, 14, 0.3)",
+    backgroundColor: "#F0FDF4",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.4)",
+    borderColor: "#BBF7D0",
   },
   settingsButtonText: {
-    color: "#fbbf24",
-    fontWeight: "600",
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
     marginLeft: 8,
   },
   markAllButton: {
@@ -678,19 +660,19 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    backgroundColor: "#059669",
+    backgroundColor: "#16A34A",
     borderRadius: 12,
   },
   markAllButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
     marginLeft: 8,
   },
   settingsPanel: {
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: "rgba(251, 191, 36, 0.2)",
+    borderTopColor: "#E5E7EB",
   },
   settingsGrid: {
     gap: 16,
@@ -699,7 +681,8 @@ const styles = {
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   settingHeader: {
     flexDirection: "row",
@@ -708,8 +691,8 @@ const styles = {
     marginBottom: 16,
   },
   settingTitle: {
-    color: "#fbbf24",
-    fontWeight: "bold",
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
     fontSize: 16,
   },
   soundToggle: {
@@ -720,14 +703,15 @@ const styles = {
     justifyContent: "center",
   },
   soundToggleMuted: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    backgroundColor: "#FEF2F2",
   },
   soundToggleActive: {
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "#F0FDF4",
   },
   settingDescription: {
-    color: "#d1d5db",
+    color: "#374151",
     fontSize: 14,
+    fontFamily: "Poppins-Regular",
   },
   clearButton: {
     flexDirection: "row",
@@ -735,16 +719,17 @@ const styles = {
     justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(220, 38, 38, 0.2)",
+    backgroundColor: "#FEF2F2",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderColor: "#FECACA",
     marginTop: 12,
   },
   clearButtonText: {
-    color: "#fca5a5",
+    color: "#DC2626",
     marginLeft: 8,
     fontSize: 14,
+    fontFamily: "Poppins-Regular",
   },
   loadingContainer: {
     flex: 1,
@@ -762,13 +747,14 @@ const styles = {
   },
   loadingTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
     marginTop: 32,
   },
   loadingDescription: {
-    color: "#9ca3af",
+    color: "#6B7280",
     marginTop: 8,
+    fontFamily: "Poppins-Regular",
   },
   notificationsContainer: {
     paddingHorizontal: 16,
@@ -777,43 +763,37 @@ const styles = {
     gap: 16,
   },
   notificationCard: {
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   unreadNotificationCard: {
-    borderColor: "rgba(251, 191, 36, 0.5)",
-    shadowColor: "#fbbf24",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   notificationContent: {
     flexDirection: "row",
-    padding: 24,
-    gap: 24,
+    padding: 16,
+    gap: 16,
     position: "relative",
   },
   notificationIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-start",
   },
   readNotificationIcon: {
-    backgroundColor: "rgba(31, 41, 55, 1)",
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
   },
   unreadNotificationIcon: {
-    backgroundColor: "#d97706",
+    backgroundColor: "#16A34A",
   },
   messageContent: {
     flex: 1,
@@ -822,19 +802,19 @@ const styles = {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   messageText: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontFamily: "Poppins-Bold",
     flex: 1,
-    marginRight: 16,
+    marginRight: 8,
   },
   readMessageText: {
-    color: "#d1d5db",
+    color: "#6B7280",
   },
   unreadMessageText: {
-    color: "#ffffff",
+    color: "#111827",
   },
   messageTimestamp: {
     flexDirection: "row",
@@ -842,127 +822,124 @@ const styles = {
     gap: 4,
   },
   timestampText: {
-    color: "#9ca3af",
+    color: "#6B7280",
     fontSize: 12,
+    fontFamily: "Poppins-Regular",
   },
   messageDescription: {
-    color: "#9ca3af",
-    fontSize: 14,
-    marginBottom: 16,
+    color: "#6B7280",
+    fontSize: 13,
+    marginBottom: 10,
     lineHeight: 20,
+    fontFamily: "Poppins-Regular",
   },
   newBadge: {
-    backgroundColor: "rgba(251, 191, 36, 0.4)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
     alignSelf: "flex-start",
-    marginBottom: 16,
+    marginBottom: 10,
   },
   newBadgeText: {
-    color: "#fbbf24",
-    fontSize: 12,
-    fontWeight: "bold",
+    color: "#16A34A",
+    fontSize: 11,
+    fontFamily: "Poppins-Bold",
   },
   notificationActions: {
     flexDirection: "row",
-    gap: 16,
+    gap: 10,
   },
   markReadButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "#059669",
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#16A34A",
+    borderRadius: 8,
   },
   markReadButtonText: {
     color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 8,
+    fontSize: 13,
+    fontFamily: "Poppins-SemiBold",
+    marginLeft: 6,
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "rgba(220, 38, 38, 0.2)",
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(239, 68, 68, 0.3)",
+    borderColor: "#FECACA",
   },
   deleteButtonText: {
-    color: "#fca5a5",
-    fontSize: 14,
-    marginLeft: 8,
+    color: "#DC2626",
+    fontSize: 13,
+    marginLeft: 6,
+    fontFamily: "Poppins-Regular",
   },
   statusIndicator: {
     position: "absolute",
-    top: 24,
-    right: 24,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    top: 16,
+    right: 16,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   readStatusIndicator: {
-    backgroundColor: "#4b5563",
+    backgroundColor: "#D1D5DB",
   },
   unreadStatusIndicator: {
-    backgroundColor: "#fbbf24",
-    shadowColor: "#fbbf24",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 4,
+    backgroundColor: "#16A34A",
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 128,
+    paddingVertical: 80,
   },
   emptyIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.3)",
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
   },
   emptyTitle: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 16,
+    fontSize: 24,
+    fontFamily: "Poppins-Bold",
+    color: "#111827",
+    marginBottom: 12,
   },
   emptyDescription: {
-    color: "#9ca3af",
+    color: "#6B7280",
     textAlign: "center",
     maxWidth: 320,
-    marginBottom: 32,
+    marginBottom: 24,
     lineHeight: 22,
+    fontFamily: "Poppins-Regular",
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#d97706",
+    backgroundColor: "#16A34A",
     borderRadius: 12,
   },
   viewAllButtonText: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -972,7 +949,8 @@ const styles = {
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   modalHeader: {
     flexDirection: "row",
@@ -981,9 +959,9 @@ const styles = {
     marginBottom: 24,
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fbbf24",
+    fontSize: 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   modalCloseButton: {
     width: 40,
@@ -991,7 +969,7 @@ const styles = {
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(156, 163, 175, 0.1)",
+    backgroundColor: "#F3F4F6",
   },
   modalBody: {
     gap: 20,
@@ -1006,14 +984,15 @@ const styles = {
     marginRight: 16,
   },
   modalSettingTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: "#111827",
+    fontSize: 16,
+    fontFamily: "Poppins-SemiBold",
     marginBottom: 4,
   },
   modalSettingDescription: {
-    color: "#9ca3af",
-    fontSize: 14,
+    color: "#6B7280",
+    fontSize: 13,
+    fontFamily: "Poppins-Regular",
   },
   modalToggle: {
     width: 48,
@@ -1023,9 +1002,9 @@ const styles = {
     justifyContent: "center",
   },
   modalToggleOff: {
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    backgroundColor: "#FEF2F2",
   },
   modalToggleOn: {
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    backgroundColor: "#F0FDF4",
   },
 };

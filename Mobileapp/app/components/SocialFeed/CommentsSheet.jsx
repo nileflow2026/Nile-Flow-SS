@@ -154,7 +154,7 @@ export default function CommentsSheet({ postId, visible, onClose }) {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Comments</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={20} color="#F5F5F5" />
+              <X size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
           <View style={styles.headerDivider} />
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: Platform.OS === "ios" ? 34 : 8,
-    backgroundColor: "#262626",
+    backgroundColor: "#FFFFFF",
   },
   handleContainer: {
     alignItems: "center",
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#4A4A4A",
+    backgroundColor: "#D1D5DB",
   },
   header: {
     alignItems: "center",
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     textAlign: "center",
-    color: "#F5F5F5",
+    color: "#111827",
   },
   closeButton: {
     position: "absolute",
@@ -288,9 +288,7 @@ const styles = StyleSheet.create({
   },
   headerDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#3A3A3A",
-  },
-  commentList: {
+    backgroundColor: "#E5E7EB",
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
@@ -313,12 +311,12 @@ const styles = StyleSheet.create({
   commentTextWrap: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#F5F5F5",
+    color: "#111827",
   },
   commentUsername: {
     fontWeight: "700",
     fontSize: 14,
-    color: "#F5F5F5",
+    color: "#111827",
   },
   commentMeta: {
     flexDirection: "row",
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#F5F5F5",
+    color: "#111827",
     marginBottom: 8,
   },
   emptySubtitle: {
@@ -363,7 +361,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#3A3A3A",
+    borderTopColor: "#E5E7EB",
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 10,
@@ -381,9 +379,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#3A3A3A",
-    color: "#F5F5F5",
-    backgroundColor: "#1C1C1E",
+    borderColor: "#E5E7EB",
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
   },
   postButton: {
     fontSize: 14,
@@ -394,7 +392,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#3A3A3A",
+    borderTopColor: "#E5E7EB",
   },
   signInText: {
     fontSize: 14,

@@ -1,6 +1,5 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
   Alert,
@@ -120,14 +119,14 @@ const AccountSettings = () => {
       {type === "image" && (
         <Image
           source={icon}
-          style={{ width: 24, height: 24, marginRight: 12, tintColor: "white" }}
+          style={{ width: 24, height: 24, marginRight: 12, tintColor: "#16A34A" }}
         />
       )}
       {type === "material" && (
         <MaterialIcons
           name={icon}
           size={iconSize}
-          color="white"
+          color="#16A34A"
           style={{ marginRight: 16 }}
         />
       )}
@@ -135,7 +134,7 @@ const AccountSettings = () => {
         <FontAwesome5
           name={icon}
           size={iconSize}
-          color="white"
+          color="#16A34A"
           style={{ marginRight: 16 }}
         />
       )}
@@ -143,28 +142,21 @@ const AccountSettings = () => {
       <MaterialIcons
         name="chevron-right"
         size={22}
-        color="rgba(245, 158, 11, 0.6)"
+        color="#16A34A"
         style={{ marginLeft: "auto" }}
       />
     </Pressable>
   );
 
   return (
-    <LinearGradient
-      colors={["#111827", "#000000", "#111827"]}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
         {/* Header */}
-        <LinearGradient
-          colors={["rgba(15, 23, 42, 0.95)", "rgba(30, 41, 59, 0.95)"]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#F59E0B" />
+              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>Account Settings</Text>
@@ -172,7 +164,7 @@ const AccountSettings = () => {
               Manage your account preferences
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -181,40 +173,31 @@ const AccountSettings = () => {
           {/* Account Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {accountItems.map((item, index) =>
                 renderItem(item, index, index === accountItems.length - 1),
               )}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Preferences Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferences</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {preferenceItems.map((item, index) =>
                 renderItem(item, index, index === preferenceItems.length - 1),
               )}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Support Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{i18n.t("Support")}</Text>
-            <LinearGradient
-              colors={["rgba(17, 24, 39, 0.8)", "rgba(0, 0, 0, 0.8)"]}
-              style={styles.card}
-            >
+            <View style={styles.card}>
               {supportItems.map((item, index) =>
                 renderItem(item, index, index === supportItems.length - 1),
               )}
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Logout */}
@@ -227,7 +210,6 @@ const AccountSettings = () => {
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
-    </LinearGradient>
   );
 };
 
@@ -242,25 +224,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 158, 11, 0.2)",
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: width < 350 ? 18 : 20,
-    fontWeight: "bold",
-    color: "#FCD34D",
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
     marginTop: 2,
+    fontFamily: "Poppins-Regular",
   },
   scrollContent: {
     padding: 16,
@@ -272,14 +256,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: sectionTitleFontSize,
-    fontWeight: "600",
-    color: "#FCD34D",
+    fontFamily: "Poppins-SemiBold",
+    color: "#14532D",
     paddingHorizontal: 4,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(217, 119, 6, 0.3)",
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
     overflow: "hidden",
   },
   menuItem: {
@@ -287,15 +272,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: itemPadding,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(17, 24, 39, 0.3)",
+    backgroundColor: "#FFFFFF",
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
+    borderBottomColor: "#E5E7EB",
   },
   menuText: {
     fontSize: itemTextFontSize,
-    color: "white",
+    color: "#111827",
+    fontFamily: "Poppins-Regular",
   },
   logoutButton: {
     backgroundColor: "#DC2626",
@@ -305,7 +291,7 @@ const styles = StyleSheet.create({
   logoutText: {
     color: "white",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
     fontSize: logoutFontSize,
   },
 });

@@ -444,13 +444,18 @@ const getProducts = async (req, res) => {
 
 const getProductsForMobile = async (req, res) => {
   try {
-    const { category, search, limit = 20, cursor } = req.query;
+    const { category, search, limit = 20, cursor, subcategoryId } = req.query;
 
     let queries = [];
 
     // Category filter (use categoryId for consistency)
     if (category && category !== "all") {
       queries.push(Query.contains("categoryId", category));
+    }
+
+    // Subcategory filter
+    if (subcategoryId) {
+      queries.push(Query.equal("subcategoryId", subcategoryId));
     }
 
     // Search filter
@@ -500,6 +505,7 @@ const getProductsForMobile = async (req, res) => {
             stock: doc.stock,
             category: doc.category,
             categoryId: doc.categoryId,
+            subcategoryId: doc.subcategoryId || "",
             vendorId: doc.vendorId,
             isFeatured: doc.isFeatured || false,
             // ✅ Include review data
@@ -524,6 +530,7 @@ const getProductsForMobile = async (req, res) => {
             stock: doc.stock,
             category: doc.category,
             categoryId: doc.categoryId,
+            subcategoryId: doc.subcategoryId || "",
             vendorId: doc.vendorId,
             isFeatured: doc.isFeatured || false,
             reviewCount: 0,
@@ -1309,17 +1316,49 @@ const getHeroProducts = async (req, res) => {
     const { documents: featured } = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
-      [Query.limit(3), Query.orderDesc("$createdAt")], // Limit to a few slides
+      [Query.limit(3), Query.orderDesc("$createdAt")],
     );
 
     const { documents: deals } = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
-      [Query.limit(3), Query.orderDesc("$createdAt")], // Limit to a few slides
+      [Query.limit(3), Query.orderDesc("$createdAt")],
     );
 
-    // Combine the two lists and send to the frontend
-    res.status(200).json({ featured, deals });
+    // Enrich each hero document with the full product so that ProductDetails
+    // receives the correct product $id (not the featured/deal doc id) plus all
+    // fields like description, category, subcategoryId and vendorId.
+    const enrichWithProduct = async (docs, type) =>
+      Promise.all(
+        docs.map(async (doc) => {
+          if (!doc.productId) return { ...doc, type };
+          try {
+            const product = await db.getDocument(
+              env.APPWRITE_DATABASE_ID,
+              env.APPWRITE_PRODUCT_COLLECTION_ID,
+              doc.productId,
+            );
+            return {
+              ...product, // full product fields (description, category, etc.)
+              ...doc, // featured/deal-specific fields (discount, tag, etc.)
+              $id: product.$id, // ensure the correct product $id wins
+              id: product.$id,
+              type,
+            };
+          } catch {
+            // If the product fetch fails, still return the hero doc so the
+            // slide renders — just without the enriched fields.
+            return { ...doc, type };
+          }
+        }),
+      );
+
+    const [enrichedFeatured, enrichedDeals] = await Promise.all([
+      enrichWithProduct(featured, "featured"),
+      enrichWithProduct(deals, "deal"),
+    ]);
+
+    res.status(200).json({ featured: enrichedFeatured, deals: enrichedDeals });
   } catch (error) {
     console.error("Failed to fetch hero products:", error);
     res.status(500).json({ error: "Failed to fetch hero products." });

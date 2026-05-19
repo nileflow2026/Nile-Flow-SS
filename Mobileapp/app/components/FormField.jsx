@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -21,9 +20,6 @@ const FormField = ({
   ...props
 }) => {
   const [showpassword, setShowpassword] = useState(false);
-  const { theme, themeStyles } = useTheme();
-  const isDarkMode = theme === "dark";
-  const themedText = isDarkMode ? "text-white" : "text-black";
   const isPasswordField = title === "Password";
 
   // Determine responsive styles based on screen width
@@ -32,24 +28,21 @@ const FormField = ({
 
   return (
     <View className={`space-y-2 ${otherStyles}`}>
-      <Text
-        className={`${themedText} font-pmedium ${responsiveTextSize}`}
-        style={{ color: "white" }}
-      >
+      <Text className={`text-gray-700 font-pmedium ${responsiveTextSize}`}>
         {title}
       </Text>
       <View
-        className={`border-2  border-black-200 w-full px-4   rounded-2xl items-center flex-row`}
+        className={`border-2 border-gray-200 w-full px-4 rounded-2xl items-center flex-row`}
         style={{
-          backgroundColor: themeStyles.accent,
+          backgroundColor: "#F9FAFB",
           height: responsiveHeight,
         }}
       >
         <TextInput
-          className={`flex-1 ${themedText} font-psemibold ${responsiveTextSize}`}
+          className={`flex-1 text-gray-800 font-psemibold ${responsiveTextSize}`}
           value={value}
           placeholder={placeholder}
-          placeholderTextColor={isDarkMode ? "#9CA3AF" : "#6B7280"}
+          placeholderTextColor="#9CA3AF"
           onChangeText={handleChangeText}
           secureTextEntry={isPasswordField && !showpassword}
           accessibilityLabel={title}
