@@ -282,23 +282,14 @@ class TOTReportingService {
    */
   async getCompletedOrdersForMonth(startDate, endDate) {
     try {
-      // Build query for completed orders with commission data
-      const queries = [
-        // Order status filter (completed orders only)
+      // Build base query for completed orders with commission data
+      const baseQueries = [
         Query.equal("orderStatus", "Completed"),
-
-        // Date range filter (created_at field)
         Query.greaterThanEqual("$createdAt", startDate.toISOString()),
         Query.lessThan("$createdAt", endDate.toISOString()),
-
-        // Must have valid commission data (greater than or equal to 0)
         Query.greaterThanEqual("commission_earned", 0),
-
-        // Order by creation date for consistent processing
         Query.orderAsc("$createdAt"),
-
-        // Limit to prevent memory issues (process in batches if needed)
-        Query.limit(5000),
+        Query.limit(100),
       ];
 
       console.log(`🔎 Querying orders with filters:`, {
@@ -308,11 +299,25 @@ class TOTReportingService {
         hasCommission: true,
       });
 
-      const ordersResult = await db.listDocuments(
-        this.databaseId,
-        this.ordersCollectionId,
-        queries,
-      );
+      // Paginate — tax reporting can span months with thousands of orders
+      let allDocuments = [];
+      let offset = 0;
+      let total = null;
+      while (total === null || offset < total) {
+        const batch = await db.listDocuments(
+          this.databaseId,
+          this.ordersCollectionId,
+          [...baseQueries, Query.offset(offset)],
+        );
+        if (total === null) total = batch.total;
+        allDocuments = allDocuments.concat(batch.documents);
+        offset += batch.documents.length;
+        if (batch.documents.length < 100) break;
+      }
+      const ordersResult = {
+        documents: allDocuments,
+        total: allDocuments.length,
+      };
 
       console.log(
         `📊 Found ${ordersResult.documents.length} completed orders with commission data`,

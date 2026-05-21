@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import moment from "moment";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -53,6 +53,15 @@ const Payments = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [mpesaLoading, setMpesaLoading] = useState(false);
   const [paymentPolling, setPaymentPolling] = useState(false);
+  // Ref to cancel M-Pesa polling when the component unmounts
+  const cancelPollRef = useRef(false);
+
+  // Cancel any in-progress M-Pesa polling on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      cancelPollRef.current = true;
+    };
+  }, []);
 
   // Debug router on component mount
   useEffect(() => {
@@ -479,7 +488,7 @@ const Payments = () => {
 
         // Continue polling if payment is still pending
         attempts++;
-        if (attempts < maxAttempts) {
+        if (!cancelPollRef.current && attempts < maxAttempts) {
           setTimeout(poll, 10000); // Poll every 10 seconds
         } else {
           setPaymentPolling(false);
@@ -509,7 +518,7 @@ const Payments = () => {
         }
       } catch (error) {
         console.error("Error polling M-Pesa status:", error);
-        if (attempts < maxAttempts) {
+        if (!cancelPollRef.current && attempts < maxAttempts) {
           attempts++;
           setTimeout(poll, 10000);
         } else {

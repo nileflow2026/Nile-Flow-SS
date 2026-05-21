@@ -292,6 +292,8 @@ try {
         "X-CSRF-Token",
         "X-Transaction-ID",
         "X-Currency",
+        "X-Correlation-ID",
+        "X-Request-ID",
         "Cache-Control",
         "Pragma",
       ],
@@ -427,7 +429,30 @@ try {
   console.log("✅ Request parsing middleware configured");
 } catch (parsingError) {
   console.error("⚠️  Request parsing middleware failed:", parsingError.message);
-} // ========== LOGGING ==========
+} // ========== REQUEST TRACING (Correlation IDs + structured logging) ==========
+try {
+  const requestTracing = require("../middleware/requestTracing");
+  app.use(requestTracing);
+  console.log("✅ Request tracing middleware configured");
+} catch (tracingError) {
+  console.warn("⚠️  Request tracing middleware failed:", tracingError.message);
+}
+
+// ========== PROMETHEUS HTTP METRICS ==========
+try {
+  const {
+    requestMetricsMiddleware,
+  } = require("./observability/requestMetrics");
+  app.use(requestMetricsMiddleware);
+  console.log("✅ Prometheus HTTP metrics middleware configured");
+} catch (metricsError) {
+  console.warn(
+    "⚠️  Prometheus metrics middleware failed:",
+    metricsError.message,
+  );
+}
+
+// ========== LOGGING ==========
 try {
   if (morgan) {
     app.use(
@@ -863,6 +888,33 @@ try {
 
 console.log("🎯 All routes mounted successfully!");
 
+// ========== V1 API GATEWAY ROUTES ==========
+try {
+  const v1Router = require("../routes/v1");
+  app.use("/api/v1", v1Router);
+  console.log("✅ Mounted: API v1 Gateway at /api/v1");
+} catch (v1Error) {
+  console.warn("⚠️  API v1 router failed to load:", v1Error.message);
+}
+
+// ========== PROMETHEUS METRICS SCRAPE ENDPOINT ==========
+// Restricted: localhost only, or requires INTERNAL_METRICS_KEY header in production
+app.get("/metrics", async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === "production") {
+      const key = req.headers["x-metrics-key"];
+      if (!key || key !== process.env.INTERNAL_METRICS_KEY) {
+        return res.status(403).end();
+      }
+    }
+    const { registry } = require("./observability/metrics");
+    res.set("Content-Type", registry.contentType);
+    res.end(await registry.metrics());
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
 // ========== ERROR HANDLING MIDDLEWARE ==========
 // Sentry must come before any other error handler so it captures all errors
 Sentry.setupExpressErrorHandler(app);
@@ -994,6 +1046,37 @@ async function startServer() {
         "⚠️  Exchange rate cache warm-up skipped:",
         exchangeErr.message,
       );
+    }
+
+    // Start BullMQ workers (non-critical — server runs without them)
+    console.log("Initializing BullMQ job workers...");
+    try {
+      if (
+        process.env.NODE_ENV === "production" ||
+        process.env.START_WORKERS === "true"
+      ) {
+        require("./jobs/workers/notificationWorker");
+        require("./jobs/workers/nileMilesWorker");
+        require("./jobs/workers/orderEventsWorker");
+        console.log("✅ BullMQ workers started (notifications, miles, orders)");
+      } else {
+        console.log(
+          "ℹ️  BullMQ workers skipped (set START_WORKERS=true to enable in dev)",
+        );
+      }
+    } catch (workerError) {
+      console.warn("⚠️  BullMQ workers failed to start:", workerError.message);
+    }
+
+    // Start queue depth poller for Prometheus (non-critical)
+    try {
+      const {
+        startQueueMetricsPoller,
+      } = require("./observability/queueMetrics");
+      startQueueMetricsPoller();
+      console.log("✅ Queue metrics poller started (15s interval)");
+    } catch (pollerError) {
+      console.warn("⚠️  Queue metrics poller failed:", pollerError.message);
     }
 
     // Initialize newsletter scheduled campaigns processor

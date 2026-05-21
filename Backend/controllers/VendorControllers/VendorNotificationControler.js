@@ -4,10 +4,16 @@ const { env } = require("../../src/env");
 
 const getVendorNotifications = async (req, res) => {
   try {
-    const vendorId = req.user.userId; // Get vendor ID from authenticated user
+    const vendorId = req.user.userId;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
     const query = [
       Query.orderDesc("$createdAt"),
       Query.equal("userId", vendorId),
+      Query.limit(limit),
+      Query.offset(offset),
     ];
 
     const typeParam = req.query.type;
@@ -37,7 +43,13 @@ const getVendorNotifications = async (req, res) => {
       query,
     );
 
-    res.status(200).json({ notifications: notifications.documents });
+    res.status(200).json({
+      notifications: notifications.documents,
+      total: notifications.total,
+      page,
+      limit,
+      totalPages: Math.ceil(notifications.total / limit),
+    });
   } catch (error) {
     console.error("Fetching notifications failed:", error.message);
     res.status(500).json({ error: "Failed to fetch notifications." });

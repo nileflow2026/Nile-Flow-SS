@@ -19,9 +19,6 @@ const getCancelledOrders = async (req, res) => {
 
     const { userId, role } = req.user;
 
-    console.log("Authenticated userId:", userId);
-    console.log("User role:", role);
-
     if (!userId) {
       return res.status(404).json({ error: "User not found." });
     }
@@ -30,15 +27,25 @@ const getCancelledOrders = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Admins only" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+    const offset = (page - 1) * limit;
+
     const response = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CANCELLED_ORDERS_COLLECTION_ID,
-      [Query.orderDesc("$createdAt")],
+      [Query.orderDesc("$createdAt"), Query.limit(limit), Query.offset(offset)],
     );
 
-    res.status(200).json({ response: response.documents });
+    res.status(200).json({
+      response: response.documents,
+      total: response.total,
+      page,
+      limit,
+      totalPages: Math.ceil(response.total / limit),
+    });
   } catch (error) {
-    console.error("Fetching orders failed:", error.message);
+    console.error("Fetching cancelled orders failed:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -64,13 +71,31 @@ const getOrders = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Admins only" });
     }
 
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+    const offset = (page - 1) * limit;
+    const statusFilter = req.query.status;
+
+    const queries = [
+      Query.orderDesc("$createdAt"),
+      Query.limit(limit),
+      Query.offset(offset),
+    ];
+    if (statusFilter) queries.push(Query.equal("status", statusFilter));
+
     const response = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
-      [Query.orderDesc("$createdAt")],
+      queries,
     );
 
-    res.status(200).json({ response: response.documents });
+    res.status(200).json({
+      response: response.documents,
+      total: response.total,
+      page,
+      limit,
+      totalPages: Math.ceil(response.total / limit),
+    });
   } catch (error) {
     console.error("Fetching orders failed:", error.message);
     res.status(500).json({ error: "Internal server error" });

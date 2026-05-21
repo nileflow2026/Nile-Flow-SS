@@ -3,7 +3,14 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import axiosClient from "../../api";
 import {
   getCurrentUser,
@@ -80,8 +87,8 @@ const HomeErrorFallback = ({ onRetry }) => (
         marginBottom: 36,
       }}
     >
-      We couldn’t reach Nile Flow right now.{"\ "}
-      Check your connection and try again.
+      We couldn’t reach Nile Flow right now. Check your connection and try
+      again.
     </Text>
     <TouchableOpacity
       onPress={onRetry}
@@ -308,7 +315,7 @@ const Home = () => {
     };
 
     fetchUser();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryKey]);
 
   // Fetch categories on component mount
@@ -357,7 +364,7 @@ const Home = () => {
 
     const interval = setInterval(updateCurrencyRates, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryKey]);
 
   if (isLoading) {

@@ -5,9 +5,9 @@ const { Query, ID } = require("node-appwrite");
 
 /**
  * Vendor Payout Service
- * 
+ *
  * CFO-grade vendor payout system with complete audit trail and reconciliation.
- * 
+ *
  * Key Features:
  * - Deterministic payout calculations stored per order (never re-calculated)
  * - Batch processing with complete audit trail
@@ -15,7 +15,7 @@ const { Query, ID } = require("node-appwrite");
  * - Support for partial failures without data corruption
  * - Complete reconciliation reporting for finance team
  * - M-Pesa and Bank transfer support
- * 
+ *
  * Financial Principles:
  * - Orders table is the single source of truth
  * - Payout amounts are calculated once and stored forever
@@ -39,9 +39,9 @@ class VendorPayoutService {
 
   /**
    * Calculate vendor payout amount for an order (called once per order)
-   * 
+   *
    * Formula: vendor_payout = order_total - transaction_fees - commission_earned
-   * 
+   *
    * @param {Object} order - Order document
    * @returns {Promise<Object>} Payout calculation result
    */
@@ -53,7 +53,7 @@ class VendorPayoutService {
       const order = await db.getDocument(
         this.databaseId,
         this.ordersCollectionId,
-        orderId
+        orderId,
       );
 
       // Check if payout already calculated
@@ -64,13 +64,15 @@ class VendorPayoutService {
           orderId,
           vendor_payout: order.vendor_payout,
           already_calculated: true,
-          calculated_at: order.payout_calculated_at
+          calculated_at: order.payout_calculated_at,
         };
       }
 
       // Validate order is eligible for payout
       if (order.status !== "COMPLETED") {
-        throw new Error(`Order ${orderId} is not completed (status: ${order.status})`);
+        throw new Error(
+          `Order ${orderId} is not completed (status: ${order.status})`,
+        );
       }
 
       if (!order.commission_earned) {
@@ -84,12 +86,13 @@ class VendorPayoutService {
       // Extract order financial data
       const orderTotal = parseFloat(order.amount || 0);
       const commissionEarned = parseFloat(order.commission_earned || 0);
-      
+
       // Calculate transaction fees (if not already stored)
       let transactionFees = parseFloat(order.transaction_fees || 0);
       if (transactionFees === 0) {
         // Fallback: calculate based on order total and default rate
-        transactionFees = orderTotal * this.platformSettings.defaultTransactionFeeRate;
+        transactionFees =
+          orderTotal * this.platformSettings.defaultTransactionFeeRate;
       }
 
       // Calculate vendor payout: order_total - transaction_fees - commission_earned
@@ -101,16 +104,18 @@ class VendorPayoutService {
           orderTotal,
           transactionFees,
           commissionEarned,
-          calculatedPayout: vendorPayout
+          calculatedPayout: vendorPayout,
         });
-        throw new Error(`Invalid payout calculation results in negative amount: ${vendorPayout}`);
+        throw new Error(
+          `Invalid payout calculation results in negative amount: ${vendorPayout}`,
+        );
       }
 
       // Store payout calculation in order (permanent record)
       const payoutData = {
         vendor_payout: this.roundToPrecision(vendorPayout),
         transaction_fees: this.roundToPrecision(transactionFees),
-        payout_calculated_at: new Date().toISOString()
+        payout_calculated_at: new Date().toISOString(),
       };
 
       // Update order with payout data atomically
@@ -118,7 +123,7 @@ class VendorPayoutService {
         this.databaseId,
         this.ordersCollectionId,
         orderId,
-        payoutData
+        payoutData,
       );
 
       // Create audit log
@@ -133,11 +138,13 @@ class VendorPayoutService {
           order_total: orderTotal,
           transaction_fees: transactionFees,
           commission_earned: commissionEarned,
-          vendor_payout: vendorPayout
-        })
+          vendor_payout: vendorPayout,
+        }),
       });
 
-      console.log(`✅ Vendor payout calculated for order ${orderId}: ${vendorPayout}`);
+      console.log(
+        `✅ Vendor payout calculated for order ${orderId}: ${vendorPayout}`,
+      );
 
       return {
         success: true,
@@ -147,18 +154,20 @@ class VendorPayoutService {
         transaction_fees: transactionFees,
         commission_earned: commissionEarned,
         vendor_payout: vendorPayout,
-        calculated_at: payoutData.payout_calculated_at
+        calculated_at: payoutData.payout_calculated_at,
       };
-
     } catch (error) {
-      console.error(`❌ Error calculating vendor payout for order ${orderId}:`, error);
+      console.error(
+        `❌ Error calculating vendor payout for order ${orderId}:`,
+        error,
+      );
       throw error;
     }
   }
 
   /**
    * Get unpaid orders for a specific vendor
-   * 
+   *
    * @param {string} vendorId - Vendor ID
    * @param {Object} options - Query options
    * @returns {Promise<Array>} Unpaid orders
@@ -175,12 +184,14 @@ class VendorPayoutService {
         Query.equal("status", "COMPLETED"),
         Query.equal("paid_out", false),
         Query.isNotNull("vendor_payout"), // Must have payout calculated
-        Query.limit(limit)
+        Query.limit(limit),
       ];
 
       // Add date range if specified
       if (startDate) {
-        filters.push(Query.greaterThanEqual("$createdAt", startDate.toISOString()));
+        filters.push(
+          Query.greaterThanEqual("$createdAt", startDate.toISOString()),
+        );
       }
       if (endDate) {
         filters.push(Query.lessThanEqual("$createdAt", endDate.toISOString()));
@@ -190,22 +201,26 @@ class VendorPayoutService {
       const result = await db.listDocuments(
         this.databaseId,
         this.ordersCollectionId,
-        filters
+        filters,
       );
 
-      console.log(`✅ Found ${result.documents.length} unpaid orders for vendor ${vendorId}`);
+      console.log(
+        `✅ Found ${result.documents.length} unpaid orders for vendor ${vendorId}`,
+      );
 
       return result.documents;
-
     } catch (error) {
-      console.error(`❌ Error getting unpaid orders for vendor ${vendorId}:`, error);
+      console.error(
+        `❌ Error getting unpaid orders for vendor ${vendorId}:`,
+        error,
+      );
       throw error;
     }
   }
 
   /**
    * Generate payout batch for a vendor
-   * 
+   *
    * @param {string} vendorId - Vendor ID
    * @param {Object} options - Batch options
    * @returns {Promise<Object>} Batch creation result
@@ -217,7 +232,7 @@ class VendorPayoutService {
         startDate,
         endDate,
         maxAmount,
-        description = "Automated payout batch"
+        description = "Automated payout batch",
       } = options;
 
       console.log(`🎯 Generating payout batch for vendor ${vendorId}...`);
@@ -226,14 +241,14 @@ class VendorPayoutService {
       const unpaidOrders = await this.getUnpaidOrdersForVendor(vendorId, {
         startDate,
         endDate,
-        limit: 1000
+        limit: 1000,
       });
 
       if (unpaidOrders.length === 0) {
         return {
           success: false,
           message: "No unpaid orders found for vendor",
-          vendorId
+          vendorId,
         };
       }
 
@@ -244,9 +259,9 @@ class VendorPayoutService {
 
       for (const order of unpaidOrders) {
         const orderPayout = parseFloat(order.vendor_payout || 0);
-        
+
         // Apply max amount limit if specified
-        if (maxAmount && (totalAmount + orderPayout) > maxAmount) {
+        if (maxAmount && totalAmount + orderPayout > maxAmount) {
           break;
         }
 
@@ -254,7 +269,7 @@ class VendorPayoutService {
         selectedOrders.push({
           orderId: order.$id,
           amount: orderPayout,
-          createdAt: order.$createdAt
+          createdAt: order.$createdAt,
         });
         orderIds.push(order.$id);
       }
@@ -263,7 +278,7 @@ class VendorPayoutService {
         return {
           success: false,
           message: "No orders selected for payout batch",
-          vendorId
+          vendorId,
         };
       }
 
@@ -279,31 +294,30 @@ class VendorPayoutService {
         total_amount: this.roundToPrecision(totalAmount),
         order_ids: JSON.stringify(orderIds),
         order_count: selectedOrders.length,
-        period_start: startDate ? startDate.toISOString() : selectedOrders[selectedOrders.length - 1].createdAt,
-        period_end: endDate ? endDate.toISOString() : selectedOrders[0].createdAt,
+        period_start: startDate
+          ? startDate.toISOString()
+          : selectedOrders[selectedOrders.length - 1].createdAt,
+        period_end: endDate
+          ? endDate.toISOString()
+          : selectedOrders[0].createdAt,
         status: "PENDING",
         created_at: new Date().toISOString(),
-        created_by: adminUserId || "SYSTEM"
+        created_by: adminUserId || "SYSTEM",
       };
 
       const batch = await db.createDocument(
         this.databaseId,
         this.batchesCollectionId,
         ID.unique(),
-        batchData
+        batchData,
       );
 
       // Mark orders as assigned to this batch (but not yet paid)
-      const updatePromises = orderIds.map(orderId =>
-        db.updateDocument(
-          this.databaseId,
-          this.ordersCollectionId,
-          orderId,
-          {
-            payout_batch_id: batchId,
-            updatedAt: new Date().toISOString()
-          }
-        )
+      const updatePromises = orderIds.map((orderId) =>
+        db.updateDocument(this.databaseId, this.ordersCollectionId, orderId, {
+          payout_batch_id: batchId,
+          updatedAt: new Date().toISOString(),
+        }),
       );
 
       await Promise.all(updatePromises);
@@ -320,11 +334,13 @@ class VendorPayoutService {
           order_count: selectedOrders.length,
           period_start: batchData.period_start,
           period_end: batchData.period_end,
-          description
-        })
+          description,
+        }),
       });
 
-      console.log(`✅ Payout batch created: ${batchId} (${selectedOrders.length} orders, ${totalAmount})`);
+      console.log(
+        `✅ Payout batch created: ${batchId} (${selectedOrders.length} orders, ${totalAmount})`,
+      );
 
       return {
         success: true,
@@ -334,18 +350,20 @@ class VendorPayoutService {
         order_count: selectedOrders.length,
         order_ids: orderIds,
         selected_orders: selectedOrders,
-        batch_document: batch
+        batch_document: batch,
       };
-
     } catch (error) {
-      console.error(`❌ Error generating payout batch for vendor ${vendorId}:`, error);
+      console.error(
+        `❌ Error generating payout batch for vendor ${vendorId}:`,
+        error,
+      );
       throw error;
     }
   }
 
   /**
    * Execute payout for a batch
-   * 
+   *
    * @param {string} batchId - Batch ID to execute
    * @param {Object} paymentInfo - Payment execution details
    * @returns {Promise<Object>} Payout execution result
@@ -357,7 +375,7 @@ class VendorPayoutService {
         vendor_payment_details, // Vendor's payment information
         adminUserId,
         external_reference, // Optional: external transaction reference
-        notes
+        notes,
       } = paymentInfo;
 
       console.log(`💳 Executing payout batch ${batchId}...`);
@@ -366,7 +384,7 @@ class VendorPayoutService {
       const batchResult = await db.listDocuments(
         this.databaseId,
         this.batchesCollectionId,
-        [Query.equal("batch_id", batchId)]
+        [Query.equal("batch_id", batchId)],
       );
 
       if (batchResult.documents.length === 0) {
@@ -377,7 +395,9 @@ class VendorPayoutService {
 
       // Validate batch status
       if (batch.status !== "PENDING") {
-        throw new Error(`Batch ${batchId} is not in PENDING status (current: ${batch.status})`);
+        throw new Error(
+          `Batch ${batchId} is not in PENDING status (current: ${batch.status})`,
+        );
       }
 
       // Update batch status to PROCESSING
@@ -387,14 +407,16 @@ class VendorPayoutService {
         batch.$id,
         {
           status: "PROCESSING",
-          updated_at: new Date().toISOString()
-        }
+          updated_at: new Date().toISOString(),
+        },
       );
 
       // Generate payout transaction ID
       const payoutId = `PO_${Date.now().toString().slice(-8)}_${Math.random().toString(36).substr(2, 6)}`;
 
-      console.log(`Generated payout ID: ${payoutId} (length: ${payoutId.length})`);
+      console.log(
+        `Generated payout ID: ${payoutId} (length: ${payoutId.length})`,
+      );
 
       // Create payout record
       const payoutData = {
@@ -407,14 +429,14 @@ class VendorPayoutService {
         vendor_payment_details: JSON.stringify(vendor_payment_details),
         status: "PENDING",
         initiated_at: new Date().toISOString(),
-        initiated_by: adminUserId || "SYSTEM"
+        initiated_by: adminUserId || "SYSTEM",
       };
 
       const payout = await db.createDocument(
         this.databaseId,
         this.payoutsCollectionId,
         ID.unique(),
-        payoutData
+        payoutData,
       );
 
       // Create audit log for payout initiation
@@ -429,8 +451,8 @@ class VendorPayoutService {
           batch_id: batchId,
           payment_method,
           order_count: batch.order_count,
-          notes
-        })
+          notes,
+        }),
       });
 
       console.log(`✅ Payout initiated: ${payoutId} for batch ${batchId}`);
@@ -444,18 +466,17 @@ class VendorPayoutService {
         payment_method,
         status: "PENDING",
         initiated_at: payoutData.initiated_at,
-        payout_document: payout
+        payout_document: payout,
       };
-
     } catch (error) {
       console.error(`❌ Error executing payout batch ${batchId}:`, error);
-      
+
       // Try to revert batch status to PENDING
       try {
         const batchResult = await db.listDocuments(
           this.databaseId,
           this.batchesCollectionId,
-          [Query.equal("batch_id", batchId)]
+          [Query.equal("batch_id", batchId)],
         );
 
         if (batchResult.documents.length > 0) {
@@ -465,8 +486,8 @@ class VendorPayoutService {
             batchResult.documents[0].$id,
             {
               status: "PENDING",
-              updated_at: new Date().toISOString()
-            }
+              updated_at: new Date().toISOString(),
+            },
           );
         }
       } catch (revertError) {
@@ -479,7 +500,7 @@ class VendorPayoutService {
 
   /**
    * Mark payout as completed (called after successful external payment)
-   * 
+   *
    * @param {string} payoutId - Payout ID
    * @param {Object} completionInfo - Completion details
    * @returns {Promise<Object>} Completion result
@@ -489,7 +510,7 @@ class VendorPayoutService {
       const {
         external_reference, // Final transaction reference from payment provider
         adminUserId,
-        notes
+        notes,
       } = completionInfo;
 
       console.log(`✅ Marking payout ${payoutId} as completed...`);
@@ -498,7 +519,7 @@ class VendorPayoutService {
       const payoutResult = await db.listDocuments(
         this.databaseId,
         this.payoutsCollectionId,
-        [Query.equal("payout_id", payoutId)]
+        [Query.equal("payout_id", payoutId)],
       );
 
       if (payoutResult.documents.length === 0) {
@@ -508,7 +529,9 @@ class VendorPayoutService {
       const payout = payoutResult.documents[0];
 
       if (payout.status !== "PENDING") {
-        throw new Error(`Payout ${payoutId} is not in PENDING status (current: ${payout.status})`);
+        throw new Error(
+          `Payout ${payoutId} is not in PENDING status (current: ${payout.status})`,
+        );
       }
 
       // Update payout status to SUCCESS
@@ -519,15 +542,15 @@ class VendorPayoutService {
         {
           status: "SUCCESS",
           completed_at: new Date().toISOString(),
-          external_reference: external_reference || payout.external_reference
-        }
+          external_reference: external_reference || payout.external_reference,
+        },
       );
 
       // Get batch details
       const batchResult = await db.listDocuments(
         this.databaseId,
         this.batchesCollectionId,
-        [Query.equal("batch_id", payout.batch_id)]
+        [Query.equal("batch_id", payout.batch_id)],
       );
 
       const batch = batchResult.documents[0];
@@ -539,22 +562,17 @@ class VendorPayoutService {
         batch.$id,
         {
           status: "COMPLETED",
-          updated_at: new Date().toISOString()
-        }
+          updated_at: new Date().toISOString(),
+        },
       );
 
       // Mark all orders in the batch as paid out
       const orderIds = JSON.parse(batch.order_ids);
-      const orderUpdatePromises = orderIds.map(orderId =>
-        db.updateDocument(
-          this.databaseId,
-          this.ordersCollectionId,
-          orderId,
-          {
-            paid_out: true,
-            updatedAt: new Date().toISOString()
-          }
-        )
+      const orderUpdatePromises = orderIds.map((orderId) =>
+        db.updateDocument(this.databaseId, this.ordersCollectionId, orderId, {
+          paid_out: true,
+          updatedAt: new Date().toISOString(),
+        }),
       );
 
       await Promise.all(orderUpdatePromises);
@@ -571,12 +589,12 @@ class VendorPayoutService {
           batch_id: payout.batch_id,
           external_reference,
           order_count: orderIds.length,
-          notes
-        })
+          notes,
+        }),
       });
 
       // Create audit logs for each paid order
-      const orderAuditPromises = orderIds.map(orderId =>
+      const orderAuditPromises = orderIds.map((orderId) =>
         this.createAuditLog({
           event_type: "ORDER_MARKED_PAID",
           entity_id: orderId,
@@ -586,14 +604,16 @@ class VendorPayoutService {
           performed_by: adminUserId || "SYSTEM",
           details: JSON.stringify({
             payout_id: payoutId,
-            batch_id: payout.batch_id
-          })
-        })
+            batch_id: payout.batch_id,
+          }),
+        }),
       );
 
       await Promise.all(orderAuditPromises);
 
-      console.log(`✅ Payout completed: ${payoutId}, ${orderIds.length} orders marked as paid`);
+      console.log(
+        `✅ Payout completed: ${payoutId}, ${orderIds.length} orders marked as paid`,
+      );
 
       return {
         success: true,
@@ -602,9 +622,8 @@ class VendorPayoutService {
         vendor_id: payout.vendor_id,
         amount: payout.amount,
         orders_paid: orderIds.length,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       };
-
     } catch (error) {
       console.error(`❌ Error completing payout ${payoutId}:`, error);
       throw error;
@@ -613,7 +632,7 @@ class VendorPayoutService {
 
   /**
    * Mark payout as failed
-   * 
+   *
    * @param {string} payoutId - Payout ID
    * @param {Object} failureInfo - Failure details
    * @returns {Promise<Object>} Failure processing result
@@ -623,7 +642,7 @@ class VendorPayoutService {
       const {
         failure_reason,
         adminUserId,
-        retry_possible = false
+        retry_possible = false,
       } = failureInfo;
 
       console.log(`❌ Marking payout ${payoutId} as failed...`);
@@ -632,7 +651,7 @@ class VendorPayoutService {
       const payoutResult = await db.listDocuments(
         this.databaseId,
         this.payoutsCollectionId,
-        [Query.equal("payout_id", payoutId)]
+        [Query.equal("payout_id", payoutId)],
       );
 
       if (payoutResult.documents.length === 0) {
@@ -649,15 +668,15 @@ class VendorPayoutService {
         {
           status: "FAILED",
           failure_reason,
-          completed_at: new Date().toISOString()
-        }
+          completed_at: new Date().toISOString(),
+        },
       );
 
       // Update batch status
       const batchResult = await db.listDocuments(
         this.databaseId,
         this.batchesCollectionId,
-        [Query.equal("batch_id", payout.batch_id)]
+        [Query.equal("batch_id", payout.batch_id)],
       );
 
       const batch = batchResult.documents[0];
@@ -669,23 +688,18 @@ class VendorPayoutService {
         batch.$id,
         {
           status: retry_possible ? "PENDING" : "FAILED",
-          updated_at: new Date().toISOString()
-        }
+          updated_at: new Date().toISOString(),
+        },
       );
 
       // If not retrying, reset order batch assignments
       if (!retry_possible) {
         const orderIds = JSON.parse(batch.order_ids);
-        const orderUpdatePromises = orderIds.map(orderId =>
-          db.updateDocument(
-            this.databaseId,
-            this.ordersCollectionId,
-            orderId,
-            {
-              payout_batch_id: null,
-              updatedAt: new Date().toISOString()
-            }
-          )
+        const orderUpdatePromises = orderIds.map((orderId) =>
+          db.updateDocument(this.databaseId, this.ordersCollectionId, orderId, {
+            payout_batch_id: null,
+            updatedAt: new Date().toISOString(),
+          }),
         );
 
         await Promise.all(orderUpdatePromises);
@@ -702,8 +716,8 @@ class VendorPayoutService {
         details: JSON.stringify({
           batch_id: payout.batch_id,
           failure_reason,
-          retry_possible
-        })
+          retry_possible,
+        }),
       });
 
       console.log(`❌ Payout failed: ${payoutId} (${failure_reason})`);
@@ -715,9 +729,8 @@ class VendorPayoutService {
         vendor_id: payout.vendor_id,
         status: "FAILED",
         failure_reason,
-        retry_possible
+        retry_possible,
       };
-
     } catch (error) {
       console.error(`❌ Error marking payout as failed ${payoutId}:`, error);
       throw error;
@@ -726,26 +739,28 @@ class VendorPayoutService {
 
   /**
    * Create audit log entry
-   * 
+   *
    * @param {Object} logData - Audit log data
    */
   async createAuditLog(logData) {
     try {
       // Temporarily disabled for testing - would need to recreate collection with correct event types
-      console.log(`📋 Audit log (disabled): ${logData.event_type} for ${logData.entity_id}`);
+      console.log(
+        `📋 Audit log (disabled): ${logData.event_type} for ${logData.entity_id}`,
+      );
       return;
-      
+
       const auditData = {
         audit_id: `AUDIT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toISOString(),
-        ...logData
+        ...logData,
       };
 
       await db.createDocument(
         this.databaseId,
         this.auditLogsCollectionId,
         ID.unique(),
-        auditData
+        auditData,
       );
     } catch (error) {
       console.error("Error creating audit log:", error);
@@ -763,7 +778,7 @@ class VendorPayoutService {
 
   /**
    * Get vendor payout summary for reconciliation
-   * 
+   *
    * @param {string} vendorId - Vendor ID
    * @param {Object} options - Query options
    * @returns {Promise<Object>} Vendor payout summary
@@ -777,41 +792,65 @@ class VendorPayoutService {
       // Build date filter
       const dateFilters = [];
       if (startDate) {
-        dateFilters.push(Query.greaterThanEqual("$createdAt", startDate.toISOString()));
+        dateFilters.push(
+          Query.greaterThanEqual("$createdAt", startDate.toISOString()),
+        );
       }
       if (endDate) {
-        dateFilters.push(Query.lessThanEqual("$createdAt", endDate.toISOString()));
+        dateFilters.push(
+          Query.lessThanEqual("$createdAt", endDate.toISOString()),
+        );
       }
 
-      // Get all completed orders for vendor
-      const allOrdersQuery = [
+      // Get all completed orders for vendor (paginated — financial data, no hard cap)
+      const allOrderBaseQuery = [
         Query.equal("vendor_id", vendorId),
         Query.equal("status", "COMPLETED"),
         Query.isNotNull("vendor_payout"),
         ...dateFilters,
-        Query.limit(10000)
+        Query.limit(100),
       ];
 
-      const allOrders = await db.listDocuments(
-        this.databaseId,
-        this.ordersCollectionId,
-        allOrdersQuery
-      );
+      let allOrderDocs = [];
+      let allOrderOffset = 0;
+      let allOrderTotal = null;
+      while (allOrderTotal === null || allOrderOffset < allOrderTotal) {
+        const batch = await db.listDocuments(
+          this.databaseId,
+          this.ordersCollectionId,
+          [...allOrderBaseQuery, Query.offset(allOrderOffset)],
+        );
+        if (allOrderTotal === null) allOrderTotal = batch.total;
+        allOrderDocs = allOrderDocs.concat(batch.documents);
+        allOrderOffset += batch.documents.length;
+        if (batch.documents.length < 100) break;
+      }
+      const allOrders = { documents: allOrderDocs };
 
-      // Get paid orders
-      const paidOrdersQuery = [
+      // Get paid orders (paginated)
+      const paidOrderBaseQuery = [
         Query.equal("vendor_id", vendorId),
         Query.equal("status", "COMPLETED"),
         Query.equal("paid_out", true),
         ...dateFilters,
-        Query.limit(10000)
+        Query.limit(100),
       ];
 
-      const paidOrders = await db.listDocuments(
-        this.databaseId,
-        this.ordersCollectionId,
-        paidOrdersQuery
-      );
+      let paidOrderDocs = [];
+      let paidOrderOffset = 0;
+      let paidOrderTotal = null;
+      while (paidOrderTotal === null || paidOrderOffset < paidOrderTotal) {
+        const batch = await db.listDocuments(
+          this.databaseId,
+          this.ordersCollectionId,
+          [...paidOrderBaseQuery, Query.offset(paidOrderOffset)],
+        );
+        if (paidOrderTotal === null) paidOrderTotal = batch.total;
+        paidOrderDocs = paidOrderDocs.concat(batch.documents);
+        paidOrderOffset += batch.documents.length;
+        if (batch.documents.length < 100) break;
+      }
+      const paidOrders = { documents: paidOrderDocs };
 
       // Calculate totals
       let totalGMV = 0;
@@ -822,7 +861,7 @@ class VendorPayoutService {
       let outstandingBalance = 0;
 
       // Process all completed orders
-      allOrders.documents.forEach(order => {
+      allOrders.documents.forEach((order) => {
         totalGMV += parseFloat(order.amount || 0);
         totalCommission += parseFloat(order.commission_earned || 0);
         totalTransactionFees += parseFloat(order.transaction_fees || 0);
@@ -830,7 +869,7 @@ class VendorPayoutService {
       });
 
       // Process paid orders
-      paidOrders.documents.forEach(order => {
+      paidOrders.documents.forEach((order) => {
         totalPaidOut += parseFloat(order.vendor_payout || 0);
       });
 
@@ -842,7 +881,7 @@ class VendorPayoutService {
         vendor_id: vendorId,
         period: {
           start: startDate?.toISOString(),
-          end: endDate?.toISOString()
+          end: endDate?.toISOString(),
         },
         summary: {
           total_orders: allOrders.documents.length,
@@ -852,13 +891,15 @@ class VendorPayoutService {
           total_transaction_fees: this.roundToPrecision(totalTransactionFees),
           total_vendor_payout: this.roundToPrecision(totalVendorPayout),
           total_paid_out: this.roundToPrecision(totalPaidOut),
-          outstanding_balance: this.roundToPrecision(outstandingBalance)
+          outstanding_balance: this.roundToPrecision(outstandingBalance),
         },
-        last_updated: new Date().toISOString()
+        last_updated: new Date().toISOString(),
       };
-
     } catch (error) {
-      console.error(`❌ Error getting vendor payout summary for ${vendorId}:`, error);
+      console.error(
+        `❌ Error getting vendor payout summary for ${vendorId}:`,
+        error,
+      );
       throw error;
     }
   }

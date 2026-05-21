@@ -7,6 +7,7 @@ const {
   Storage,
 } = require("node-appwrite");
 const { env } = require("../src/env");
+const { createInstrumentedDb } = require("../src/observability/appwriteMetrics");
 // console.log("Appwrite Key Loaded:", env.APPWRITE_API_KEY ? "Loaded" : "FAILED/UNDEFINED"); // 👈 Check this!
 const client = new Client()
   .setEndpoint(process.env.APPWRITE_ENDPOINT)
@@ -14,6 +15,7 @@ const client = new Client()
   .setKey(process.env.APPWRITE_API_KEY); // secret server key
 
 const db = new Databases(client);
+const instrumentedDb = createInstrumentedDb(db);
 const users = new Users(client);
 const avatars = new Avatars(client);
 const functions = new Functions(client);
@@ -36,6 +38,7 @@ async function getOrderById(orderId) {
 module.exports = {
   client,
   db,
+  instrumentedDb,
   users,
   avatars,
   functions,

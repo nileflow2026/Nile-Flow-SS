@@ -60,6 +60,10 @@ const OAuthCallback = lazy(() => import("./Pages/OAuthCallback"));
 // Lazy load heavy components
 const ApplicationForm = lazy(() => import("../components/ApplicationForm"));
 
+// React Query
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+
 // Keep essential components synchronous
 import { CartProvider } from "../components/CartContext";
 // slick-carousel CSS is deferred in main.jsx — do NOT re-import here
@@ -308,24 +312,26 @@ const App = () => {
       showDialog
     >
       <ThemeProvider>
-        <Router>
-          <CustomerAuthProvider>
-            <CurrencyProvider>
-              <PremiumProvider>
-                <FavoritesProvider>
-                  <NotificationProvider>
-                    <CartProvider>
-                      <GroupBuyProvider>
-                        <AppContent />
-                      </GroupBuyProvider>
-                    </CartProvider>
-                  </NotificationProvider>
-                </FavoritesProvider>
-              </PremiumProvider>
-            </CurrencyProvider>
-          </CustomerAuthProvider>
-          <UpdateNotifier />
-        </Router>
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <CustomerAuthProvider>
+              <CurrencyProvider>
+                <PremiumProvider>
+                  <FavoritesProvider>
+                    <NotificationProvider>
+                      <CartProvider>
+                        <GroupBuyProvider>
+                          <AppContent />
+                        </GroupBuyProvider>
+                      </CartProvider>
+                    </NotificationProvider>
+                  </FavoritesProvider>
+                </PremiumProvider>
+              </CurrencyProvider>
+            </CustomerAuthProvider>
+            <UpdateNotifier />
+          </Router>
+        </QueryClientProvider>
       </ThemeProvider>
     </Sentry.ErrorBoundary>
   );

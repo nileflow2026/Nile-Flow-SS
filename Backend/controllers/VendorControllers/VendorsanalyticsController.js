@@ -30,16 +30,32 @@ const getSalesAnalytics = async (req, res) => {
         startDate.setMonth(now.getMonth() - 6);
     }
 
-    // Get vendor's products
-    const vendorProducts = await db.listDocuments(
+    // Get vendor's products (paginated to handle large catalogs)
+    const vendorProductsResult = await db.listDocuments(
       env.VENDOR_DATABASE_ID,
       env.VENDOR_PRODUCTS_COLLECTION_ID,
-      [Query.equal("vendorId", vendorId)]
+      [Query.equal("vendorId", vendorId), Query.limit(100)],
     );
 
-    const vendorProductIds = vendorProducts.documents.map(
-      (product) => product.$id
-    );
+    // If vendor has more than 100 products, fetch remaining pages
+    let allVendorProductDocs = [...vendorProductsResult.documents];
+    if (vendorProductsResult.total > 100) {
+      const extraPages = Math.ceil((vendorProductsResult.total - 100) / 100);
+      for (let i = 1; i <= extraPages; i++) {
+        const page = await db.listDocuments(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_PRODUCTS_COLLECTION_ID,
+          [
+            Query.equal("vendorId", vendorId),
+            Query.limit(100),
+            Query.offset(i * 100),
+          ],
+        );
+        allVendorProductDocs.push(...page.documents);
+      }
+    }
+
+    const vendorProductIds = allVendorProductDocs.map((product) => product.$id);
 
     // Get all orders within date range
     const allOrders = await db.listDocuments(
@@ -48,7 +64,7 @@ const getSalesAnalytics = async (req, res) => {
       [
         Query.greaterThanEqual("createdAt", startDate.toISOString()),
         Query.limit(1000),
-      ]
+      ],
     );
 
     // Process orders to get vendor's data
@@ -65,14 +81,14 @@ const getSalesAnalytics = async (req, res) => {
 
         const items = JSON.parse(order.items || "[]");
         const vendorItems = items.filter((item) =>
-          vendorProductIds.includes(item.productId)
+          vendorProductIds.includes(item.productId),
         );
 
         if (vendorItems.length > 0) {
           // Calculate order metrics for vendor
           const orderRevenue = vendorItems.reduce(
             (sum, item) => sum + item.price * (item.quantity || 1),
-            0
+            0,
           );
           const orderCount = 1;
           const orderCustomers = new Set([order.users]);
@@ -110,7 +126,7 @@ const getSalesAnalytics = async (req, res) => {
           monthlyData[monthYear].revenue += orderRevenue;
           monthlyData[monthYear].orders += orderCount;
           orderCustomers.forEach((customer) =>
-            monthlyData[monthYear].customers.add(customer)
+            monthlyData[monthYear].customers.add(customer),
           );
 
           // Update overall totals
@@ -256,36 +272,36 @@ const generateInsights = (salesData, productCount) => {
 
   if (recentGrowth > 20) {
     insights.push(
-      "Your revenue growth is excellent! You're outperforming industry averages by a significant margin."
+      "Your revenue growth is excellent! You're outperforming industry averages by a significant margin.",
     );
     recommendations.push(
-      "Consider expanding your best-selling product lines to capitalize on current momentum."
+      "Consider expanding your best-selling product lines to capitalize on current momentum.",
     );
   } else if (recentGrowth > 0) {
     insights.push(
-      "Your business is growing steadily. Maintain your current strategies for continued growth."
+      "Your business is growing steadily. Maintain your current strategies for continued growth.",
     );
     recommendations.push(
-      "Focus on customer retention to boost repeat purchases."
+      "Focus on customer retention to boost repeat purchases.",
     );
   } else {
     insights.push(
-      "Revenue growth has slowed. Consider reviewing your pricing or marketing strategies."
+      "Revenue growth has slowed. Consider reviewing your pricing or marketing strategies.",
     );
     recommendations.push(
-      "Analyze customer feedback and consider promotional campaigns."
+      "Analyze customer feedback and consider promotional campaigns.",
     );
   }
 
   if (productCount < 10) {
     recommendations.push(
-      "Diversify your product offerings to reach more customers."
+      "Diversify your product offerings to reach more customers.",
     );
   }
 
   if (salesData.length > 0 && salesData[salesData.length - 1].customers > 50) {
     insights.push(
-      "You have a strong customer base. Leverage this for repeat business."
+      "You have a strong customer base. Leverage this for repeat business.",
     );
   }
 
@@ -310,7 +326,7 @@ const exportAnalyticsData = async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=analytics-export.csv"
+        "attachment; filename=analytics-export.csv",
       );
       return res.send(csvData);
     }

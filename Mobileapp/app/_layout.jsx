@@ -1,5 +1,7 @@
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "../lib/queryClient";
 import GlobalProvider from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
@@ -21,6 +23,7 @@ import { initCurrency } from "../api";
 import { initializeLanguage } from "../i18n";
 import { SocialProvider } from "../Context/SocialContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { PostHogProvider } from "posthog-react-native";
 import "../global.css";
 
 // Initialize Sentry as early as possible — before any navigation or providers
@@ -98,32 +101,39 @@ function AppContent() {
 
 function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <ThemeProvider>
-          <StripeProvider publishableKey={STRIPE_PUBLISH_KEY}>
-            <GlobalProvider>
-              <PremiumProvider>
-                <NotificationProvider>
-                  <SocialProvider>
-                    <CartProvider>
-                      <GroupBuyProvider>
-                        <FavoritesProvider>
-                          <AppContent />
-                        </FavoritesProvider>
-                      </GroupBuyProvider>
-                      <StatusBar style="auto" />
-                    </CartProvider>
-                  </SocialProvider>
-                </NotificationProvider>
-              </PremiumProvider>
-            </GlobalProvider>
-          </StripeProvider>
-        </ThemeProvider>
-      </ErrorBoundary>
+    <PostHogProvider
+      apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
+      options={{ host: process.env.EXPO_PUBLIC_POSTHOG_HOST }}
+    >
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <StripeProvider publishableKey={STRIPE_PUBLISH_KEY}>
+                <GlobalProvider>
+                  <PremiumProvider>
+                    <NotificationProvider>
+                      <SocialProvider>
+                        <CartProvider>
+                          <GroupBuyProvider>
+                            <FavoritesProvider>
+                              <AppContent />
+                            </FavoritesProvider>
+                          </GroupBuyProvider>
+                          <StatusBar style="auto" />
+                        </CartProvider>
+                      </SocialProvider>
+                    </NotificationProvider>
+                  </PremiumProvider>
+                </GlobalProvider>
+              </StripeProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
 
-      <StatusBar backgroundColor="auto" style="dark" />
-    </GestureHandlerRootView>
+        <StatusBar backgroundColor="auto" style="dark" />
+      </GestureHandlerRootView>
+    </PostHogProvider>
   );
 }
 

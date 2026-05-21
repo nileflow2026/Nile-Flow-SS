@@ -22,11 +22,19 @@ export const NotificationProvider = ({ children }) => {
   const [pushSubscription, setPushSubscription] = useState(null);
   const [lastNotificationTime, setLastNotificationTime] = useState(null);
 
+  // Keep a stable ref to the current user ID so the realtime callback
+  // never needs to call getCurrentUser() on every event.
+  const currentUserIdRef = React.useRef(null);
+
   // Initialize notification service and check permissions
   const initializeNotifications = useCallback(async () => {
     try {
       const user = await getCurrentUser();
       if (!user || !user.$id) return;
+
+      // Cache user ID in a ref — used by the realtime callback so it never
+      // needs to call getCurrentUser() on every WebSocket event.
+      currentUserIdRef.current = user.$id;
 
       // Initialize push notification service
       const initialized = await notificationService.initialize();
@@ -43,14 +51,10 @@ export const NotificationProvider = ({ children }) => {
         (n) => !n.read,
       ).length;
       setNotificationCount(unreadCount);
-
-      console.log(
-        `🔔 Loaded ${notificationsData?.length || 0} notifications, ${unreadCount} unread`,
-      );
     } catch (err) {
       console.error("❌ Error initializing notifications:", err);
     }
-  }, []);
+  }, []); // ← no deps: stable reference, runs once on mount
 
   // Request notification permission and setup push notifications
   const enableNotifications = useCallback(async () => {
@@ -175,39 +179,38 @@ export const NotificationProvider = ({ children }) => {
     setNotificationCount(0);
   }, []);
 
-  // Setup real-time subscription
+  // Setup real-time subscription — deliberately NOT in the same effect as
+  // initializeNotifications to prevent the double-init loop where
+  // handleNewNotification's reference change caused the effect to re-run.
   useEffect(() => {
     initializeNotifications();
+  }, []); // runs once on mount
 
+  useEffect(() => {
     const unsubscribe = client.subscribe(
       `databases.${Config.databaseId}.collections.${Config.NOTIFICATIONS_COLLECTION_ID}.documents`,
-      async (response) => {
+      (response) => {
         const { payload, events } = response;
-        const user = await getCurrentUser();
 
-        if (!user || !user.$id) return;
+        // Use the cached ref — no API call needed per event.
+        const uid = currentUserIdRef.current;
+        if (!uid) return;
+        if (payload.userId !== uid) return; // ignore other users' events
 
         // Handle new notification creation
         if (events.includes("databases.*.documents.*.create")) {
-          if (
-            payload.userId === user.$id &&
-            payload.type === "userNotification"
-          ) {
+          if (payload.type === "userNotification") {
             handleNewNotification(payload);
           }
         }
 
         // Handle notification updates (e.g., marked as read)
         if (events.includes("databases.*.documents.*.update")) {
-          if (payload.userId === user.$id) {
-            setNotifications((prev) =>
-              prev.map((n) => (n.$id === payload.$id ? payload : n)),
-            );
-
-            // Update count if read status changed
-            if (payload.read) {
-              setNotificationCount((prev) => Math.max(0, prev - 1));
-            }
+          setNotifications((prev) =>
+            prev.map((n) => (n.$id === payload.$id ? payload : n)),
+          );
+          if (payload.read) {
+            setNotificationCount((prev) => Math.max(0, prev - 1));
           }
         }
 
@@ -231,7 +234,7 @@ export const NotificationProvider = ({ children }) => {
       unsubscribe();
       notificationService.removeListener(notificationListener);
     };
-  }, [initializeNotifications, handleNewNotification]);
+  }, []); // subscription set up once; handleNewNotification updates via closure over state setters
 
   // Memoize context value — NotificationContext is consumed by Header on every render;
   // without this, every notification state change triggers a full Header re-render.

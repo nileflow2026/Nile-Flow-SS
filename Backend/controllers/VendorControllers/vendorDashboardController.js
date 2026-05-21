@@ -8,27 +8,62 @@ const getVendorDashboard = async (req, res) => {
   try {
     const vendorId = req.user.userId; // Get vendor ID from authenticated user
 
-    // 1. Get vendor's products count
-    const vendorProducts = await db.listDocuments(
+    // 1. Get vendor's products count (paginated to handle large catalogs)
+    const vendorProductsFirst = await db.listDocuments(
       env.VENDOR_DATABASE_ID,
       env.VENDOR_PRODUCTS_COLLECTION_ID,
-      [Query.equal("vendorId", vendorId)]
+      [Query.equal("vendorId", vendorId), Query.limit(100)],
     );
 
-    const totalProducts = vendorProducts.total;
+    let allVendorProductDocs = [...vendorProductsFirst.documents];
+    if (vendorProductsFirst.total > 100) {
+      const extraPages = Math.ceil((vendorProductsFirst.total - 100) / 100);
+      for (let i = 1; i <= extraPages; i++) {
+        const page = await db.listDocuments(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_PRODUCTS_COLLECTION_ID,
+          [
+            Query.equal("vendorId", vendorId),
+            Query.limit(100),
+            Query.offset(i * 100),
+          ],
+        );
+        allVendorProductDocs.push(...page.documents);
+      }
+    }
+
+    const totalProducts = vendorProductsFirst.total;
 
     // 2. Get orders that contain vendor's products
-    // First, get all product IDs for this vendor
-    const vendorProductIds = vendorProducts.documents.map(
-      (product) => product.$id
-    );
+    const vendorProductIds = allVendorProductDocs.map((product) => product.$id);
 
-    // Get all orders
-    const allOrders = await db.listDocuments(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_ORDERS_COLLECTION,
-      [Query.limit(1000)] // Adjust limit as needed
-    );
+    // Get recent orders (last 90 days) with cursor pagination to avoid memory spikes
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    let allOrderDocs = [];
+    let cursor = null;
+    const PAGE_SIZE = 100;
+
+    while (true) {
+      const queries = [
+        Query.greaterThanEqual("$createdAt", ninetyDaysAgo.toISOString()),
+        Query.limit(PAGE_SIZE),
+        Query.orderDesc("$createdAt"),
+        ...(cursor ? [Query.cursorAfter(cursor)] : []),
+      ];
+      const batch = await db.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_ORDERS_COLLECTION,
+        queries,
+      );
+      allOrderDocs.push(...batch.documents);
+      if (batch.documents.length < PAGE_SIZE) break;
+      cursor = batch.documents[batch.documents.length - 1].$id;
+    }
+
+    // Use local alias so rest of controller is unchanged
+    const allOrders = { documents: allOrderDocs };
 
     // Filter orders that contain vendor's products
     let vendorOrders = [];
@@ -39,14 +74,14 @@ const getVendorDashboard = async (req, res) => {
       try {
         const items = JSON.parse(order.items || "[]");
         const vendorItems = items.filter((item) =>
-          vendorProductIds.includes(item.productId)
+          vendorProductIds.includes(item.productId),
         );
 
         if (vendorItems.length > 0) {
           // Calculate revenue for vendor's items
           const orderRevenue = vendorItems.reduce(
             (sum, item) => sum + item.price * (item.quantity || 1),
-            0
+            0,
           );
 
           totalRevenue += orderRevenue;
@@ -199,16 +234,16 @@ const getVendorPayments = async (req, res) => {
     const vendorProducts = await db.listDocuments(
       env.VENDOR_DATABASE_ID,
       env.VENDOR_PRODUCTS_COLLECTION_ID,
-      [Query.equal("vendorId", vendorId)]
+      [Query.equal("vendorId", vendorId)],
     );
 
     const vendorProductIds = vendorProducts.documents.map(
-      (product) => product.$id
+      (product) => product.$id,
     );
     const allOrders = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
-      [Query.limit(1000)]
+      [Query.limit(1000)],
     );
 
     const payments = [];
@@ -221,13 +256,13 @@ const getVendorPayments = async (req, res) => {
       try {
         const items = JSON.parse(order.items || "[]");
         const vendorItems = items.filter((item) =>
-          vendorProductIds.includes(item.productId)
+          vendorProductIds.includes(item.productId),
         );
 
         if (vendorItems.length > 0) {
           const orderAmount = vendorItems.reduce(
             (sum, item) => sum + item.price * (item.quantity || 1),
-            0
+            0,
           );
 
           const orderDate = new Date(order.createdAt || order.date);
