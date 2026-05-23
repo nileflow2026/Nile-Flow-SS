@@ -84,6 +84,47 @@ import SeoHead from "./components/SeoHead";
 import { ThemeProvider } from "../Context/ThemeProvider";
 import UpdateNotifier from "./components/UpdateNotifier";
 
+// ============================================================
+// Chunk Loading Error Handler — handles failed dynamic imports
+// ============================================================
+// Listen for chunk loading errors and trigger page refresh
+window.addEventListener("error", (event) => {
+  if (
+    event.message &&
+    event.message.includes("Failed to fetch dynamically imported module")
+  ) {
+    console.error("🔴 Chunk loading failed:", event.message);
+
+    // Log to Sentry for monitoring
+    Sentry.captureException(new Error(`Chunk load failed: ${event.message}`), {
+      level: "error",
+      contexts: {
+        chunk: {
+          url: event.filename,
+          message: event.message,
+        },
+      },
+    });
+
+    // Show user-friendly error and suggest refresh
+    const isUserInteracting = sessionStorage.getItem("_nf_chunk_retry");
+    if (!isUserInteracting) {
+      sessionStorage.setItem("_nf_chunk_retry", "1");
+      setTimeout(() => {
+        if (
+          confirm(
+            "A resource failed to load. Would you like to refresh the page?",
+          )
+        ) {
+          // Hard refresh to clear stale cache
+          window.location.reload(true);
+        }
+        sessionStorage.removeItem("_nf_chunk_retry");
+      }, 100);
+    }
+  }
+});
+
 // Loading component for lazy routes
 const PageLoader = () => (
   <div
@@ -189,7 +230,7 @@ const AppContent = () => {
   return (
     <>
       <SeoHead />
-      <ErrorButton />
+      {/* <ErrorButton /> */}
       <ScrollToTop />
       <PostHogPageView />
       <div
@@ -279,74 +320,88 @@ const App = () => {
   return (
     <PostHogProvider client={posthog}>
       <Sentry.ErrorBoundary
-      fallback={({ error, resetError }) => (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: "100vh",
-            padding: "2rem",
-            background: "#0a0a0a",
-            color: "#fff",
-            fontFamily: "sans-serif",
-          }}
-        >
-          <h1 style={{ color: "#f59e0b", marginBottom: "1rem" }}>
-            Something went wrong
-          </h1>
-          <p
-            style={{
-              color: "#9ca3af",
-              marginBottom: "1.5rem",
-              textAlign: "center",
-            }}
-          >
-            We&apos;ve been notified and are looking into it. Please try
-            refreshing the page.
-          </p>
-          <button
-            onClick={resetError}
-            style={{
-              background: "#b45309",
-              color: "#fff",
-              border: "none",
-              padding: "0.75rem 1.5rem",
-              borderRadius: "0.5rem",
-              cursor: "pointer",
-              fontSize: "1rem",
-            }}
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-      showDialog
-    >
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <Router>
-            <CustomerAuthProvider>
-              <CurrencyProvider>
-                <PremiumProvider>
-                  <FavoritesProvider>
-                    <NotificationProvider>
-                      <CartProvider>
-                        <GroupBuyProvider>
-                          <AppContent />
-                        </GroupBuyProvider>
-                      </CartProvider>
-                    </NotificationProvider>
-                  </FavoritesProvider>
-                </PremiumProvider>
-              </CurrencyProvider>
-            </CustomerAuthProvider>
-            <UpdateNotifier />
-          </Router>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </Sentry.ErrorBoundary>
+        fallback={({ error, resetError }) => {
+          const isChunkError =
+            error?.message?.includes("Failed to fetch") ||
+            error?.message?.includes("dynamically imported");
+
+          return (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "100vh",
+                padding: "2rem",
+                background: "#0a0a0a",
+                color: "#fff",
+                fontFamily: "sans-serif",
+              }}
+            >
+              <h1 style={{ color: "#f59e0b", marginBottom: "1rem" }}>
+                {isChunkError ? "Loading Error" : "Something went wrong"}
+              </h1>
+              <p
+                style={{
+                  color: "#9ca3af",
+                  marginBottom: "1.5rem",
+                  textAlign: "center",
+                }}
+              >
+                {isChunkError
+                  ? "A resource failed to load. This usually happens after updates. A refresh should fix it."
+                  : "We've been notified and are looking into it. Please try refreshing the page."}
+              </p>
+              <button
+                onClick={() => {
+                  if (isChunkError) {
+                    // Hard refresh to clear cache
+                    window.location.reload(true);
+                  } else {
+                    resetError();
+                  }
+                }}
+                style={{
+                  background: "#b45309",
+                  color: "#fff",
+                  border: "none",
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "0.5rem",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                }}
+              >
+                {isChunkError ? "Refresh Page" : "Try Again"}
+              </button>
+            </div>
+          );
+        }}
+        showDialog
+      >
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <Router>
+              <CustomerAuthProvider>
+                <CurrencyProvider>
+                  <PremiumProvider>
+                    <FavoritesProvider>
+                      <NotificationProvider>
+                        <CartProvider>
+                          <GroupBuyProvider>
+                            <AppContent />
+                          </GroupBuyProvider>
+                        </CartProvider>
+                      </NotificationProvider>
+                    </FavoritesProvider>
+                  </PremiumProvider>
+                </CurrencyProvider>
+              </CustomerAuthProvider>
+              <UpdateNotifier />
+            </Router>
+          </QueryClientProvider>
+        </ThemeProvider>
+      </Sentry.ErrorBoundary>
     </PostHogProvider>
   );
 };
