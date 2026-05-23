@@ -24,6 +24,7 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import HeroCarousel from "../components/HeroCarousel";
 import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
+import { usePostHog } from "posthog-react-native";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -278,6 +279,7 @@ const Home = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const posthog = usePostHog();
 
   const [categories, setCategories] = useState([i18n.t("All")]);
   const [categoryData, setCategoryData] = useState([]);
@@ -315,7 +317,6 @@ const Home = () => {
     };
 
     fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryKey]);
 
   // Fetch categories on component mount
@@ -323,7 +324,7 @@ const Home = () => {
     const fetchCats = async () => {
       try {
         const res = await axiosClient.get("/api/customerprofile/categories");
-        console.log("Categories API response:", res.data);
+        /* console.log("Categories API response:", res.data); */
 
         // Backend returns array of category objects directly
         if (Array.isArray(res.data)) {
@@ -333,8 +334,8 @@ const Home = () => {
 
           setCategories(cats);
           setCategoryData(res.data); // Store full data with images
-          console.log("Categories set:", cats);
-          console.log("Category data with images:", res.data);
+          /* console.log("Categories set:", cats);
+              console.log("Category data with images:", res.data); */
         } else if (res.data.success && Array.isArray(res.data.categories)) {
           // Alternative format: { success: true, categories: [...] }
           const categoryNames = res.data.categories.map((cat) =>
@@ -346,7 +347,7 @@ const Home = () => {
           if (res.data.categories[0]?.img) {
             setCategoryData(res.data.categories);
           }
-          console.log("Categories set:", cats);
+          /* console.log("Categories set:", cats); */
         } else {
           console.warn("Unexpected category response format");
           setCategories(["All"]);

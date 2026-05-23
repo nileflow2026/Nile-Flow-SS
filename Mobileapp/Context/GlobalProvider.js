@@ -31,9 +31,9 @@ export const getCurrentUser = async () => {
   /* console.log('➡️ getCurrentUser called...'); */
 
   try {
-    console.log(
+    /* console.log(
       "➡️ Making GET request to /api/customerauth/getCustomerProfile...",
-    );
+    ); */
 
     // Use the cookie-based endpoint that matches your backend
     const response = await axiosClient.get(
@@ -42,10 +42,10 @@ export const getCurrentUser = async () => {
 
     // Adjust here depending on your API's response structure:
     const user = response.data?.user || response.data;
-    console.log("⬅️ User data received:", user);
+    /* console.log("⬅️ User data received:", user); */
 
     if (!user || typeof user !== "object") {
-      console.warn("Invalid user data received");
+      /* console.warn("Invalid user data received"); */
       return null; // Return null instead of throwing error
     }
 
@@ -64,7 +64,7 @@ export const getCurrentUser = async () => {
         : user.avatarUrl,
     };
 
-    console.log("✅ Sanitized user data:", sanitizedUser);
+    /* console.log("✅ Sanitized user data:", sanitizedUser); */
     return sanitizedUser;
   } catch (error) {
     console.log(
@@ -84,7 +84,7 @@ export const signUp = async (
 ) => {
   // Note: If you want to include phone number in signup, add it to parameters and req.body
   try {
-    console.log("Signing up user:", { email, username, phone });
+    /* console.log("Signing up user:", { email, username, phone }); */
 
     // Generate deviceId for mobile tracking
     let deviceId = await AsyncStorage.getItem("deviceId");
@@ -140,7 +140,7 @@ export const signUp = async (
 
 export const signIn = async (email, password) => {
   try {
-    console.log("Attempting to sign in user:", email);
+    /*  console.log("Attempting to sign in user:", email); */
 
     // Generate deviceId for mobile tracking
     let deviceId = await AsyncStorage.getItem("deviceId");
@@ -323,27 +323,27 @@ export const clearRecentSearches = async () => {
 };
 
 export const getCustomerNotification = async () => {
-  console.log("➡️ getCustomerNotification called...");
+  /* console.log("➡️ getCustomerNotification called..."); */
 
   try {
-    console.log(
+    /* console.log(
       "➡️ Making GET request to /api/customernotifications/customernotification...",
-    );
+    ); */
 
     const response = await axiosClient.get(
       "/api/customernotifications/customernotification",
     );
 
-    console.log("⬅️ Notification response received:", response.data);
+    /* console.log("⬅️ Notification response received:", response.data); */
 
     const notifications = response.data?.result;
 
     if (!Array.isArray(notifications)) {
-      console.warn("⚠️ Invalid notifications data received:", notifications);
+      /* console.warn("⚠️ Invalid notifications data received:", notifications); */
       throw new Error("Invalid notifications data received");
     }
 
-    console.log("✅ Notifications processed:", notifications.length, "items");
+    /* console.log("✅ Notifications processed:", notifications.length, "items"); */
     return notifications; // ✅ Return just the array
   } catch (error) {
     console.error("❌ Error fetching userNotifications:", {

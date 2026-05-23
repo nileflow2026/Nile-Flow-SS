@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import * as Sentry from "@sentry/react";
+import posthog from "posthog-js";
+import { PostHogProvider } from "posthog-js/react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -173,6 +175,15 @@ function ErrorButton() {
   );
 }
 
+// Captures a pageview on every route change
+const PostHogPageView = () => {
+  const location = useLocation();
+  useEffect(() => {
+    posthog.capture("$pageview");
+  }, [location.pathname]);
+  return null;
+};
+
 // Separate component to use auth hooks
 const AppContent = () => {
   return (
@@ -180,6 +191,7 @@ const AppContent = () => {
       <SeoHead />
       <ErrorButton />
       <ScrollToTop />
+      <PostHogPageView />
       <div
         className="font-sans min-h-screen relative"
         style={{
@@ -265,7 +277,8 @@ const App = () => {
   }
 
   return (
-    <Sentry.ErrorBoundary
+    <PostHogProvider client={posthog}>
+      <Sentry.ErrorBoundary
       fallback={({ error, resetError }) => (
         <div
           style={{
@@ -334,6 +347,7 @@ const App = () => {
         </QueryClientProvider>
       </ThemeProvider>
     </Sentry.ErrorBoundary>
+    </PostHogProvider>
   );
 };
 

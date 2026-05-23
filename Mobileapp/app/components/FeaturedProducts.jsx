@@ -34,7 +34,10 @@ const FeaturedProducts = () => {
       const response = await axiosClient.get(
         "/api/customerprofile/featured-products",
       );
-      setProducts(response.data || []);
+      const items = Array.isArray(response.data)
+        ? response.data.filter(Boolean)
+        : [];
+      setProducts(items);
     } catch (err) {
       console.error("Failed to fetch featured products:", err);
       setError(true);
@@ -44,6 +47,10 @@ const FeaturedProducts = () => {
   };
 
   const renderProduct = ({ item, index }) => {
+    if (!item) {
+      return null;
+    }
+
     const productGradients = [
       ["rgba(245, 158, 11, 0.2)", "rgba(251, 191, 36, 0.2)"],
       ["rgba(16, 185, 129, 0.2)", "rgba(5, 150, 105, 0.2)"],
@@ -58,12 +65,14 @@ const FeaturedProducts = () => {
     return (
       <TouchableOpacity
         style={[styles.productCard, { width: cardWidth }]}
-        onPress={() =>
-          router.push({
-            pathname: "/(Screens)/ProductDetails",
-            params: { productId: item.$id || item.id },
-          })
-        }
+        onPress={() => {
+          if (item) {
+            router.push({
+              pathname: "/(Screens)/ProductDetails",
+              params: { item: JSON.stringify(item) },
+            });
+          }
+        }}
         activeOpacity={0.9}
       >
         <View style={styles.productGradient}>
@@ -125,7 +134,7 @@ const FeaturedProducts = () => {
               onPress={() => {
                 router.push({
                   pathname: "/(Screens)/ProductDetails",
-                  params: { productId: item.$id || item.id },
+                  params: { item: JSON.stringify(item) },
                 });
               }}
             >
@@ -203,7 +212,9 @@ const FeaturedProducts = () => {
       <FlatList
         data={products.slice(0, 6)} // Show first 6 products
         renderItem={renderProduct}
-        keyExtractor={(item, index) => item.$id || item.id || index.toString()}
+        keyExtractor={(item, index) =>
+          item?.$id || item?.id || index.toString()
+        }
         numColumns={2}
         columnWrapperStyle={styles.row}
         scrollEnabled={false}

@@ -69,7 +69,7 @@ const PremiumDeals = () => {
       onPress={() =>
         router.push({
           pathname: "/(Screens)/ProductDetails",
-          params: { productId: item.$id || item.id },
+          params: { item: JSON.stringify(item) },
         })
       }
       activeOpacity={0.9}
@@ -149,7 +149,7 @@ const PremiumDeals = () => {
             onPress={() =>
               router.push({
                 pathname: "/(Screens)/ProductDetails",
-                params: { productId: item.$id || item.id },
+                params: { item: JSON.stringify(item) },
               })
             }
           >

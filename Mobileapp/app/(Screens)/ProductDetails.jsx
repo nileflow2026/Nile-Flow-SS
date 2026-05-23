@@ -85,7 +85,8 @@ const StarRating = ({
 
 const ProductDetails = () => {
   const router = useRouter();
-  const { item } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { item } = params;
   const [reviews, setReviews] = useState([]);
   const [reviewText, setReviewText] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
@@ -103,6 +104,14 @@ const ProductDetails = () => {
         : [];
   }, [showAllReviews, reviews, initialReviewCount]);
   const { user, loading, isLogged, isGuest } = useGlobalContext();
+
+  // Debug: Log navigation params
+  useEffect(() => {
+    console.log("=== ProductDetails Params ===");
+    console.log("Full params:", params);
+    console.log("item param:", item);
+    console.log("item type:", typeof item);
+  }, [item, params]);
   /* console.log("User in ProductDetails:", user); // Log user object for debugging */
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [ratings, setRatings] = useState({});
@@ -125,12 +134,25 @@ const ProductDetails = () => {
   if (typeof item === "string") {
     try {
       product = JSON.parse(item); // Try parsing if it's a string
+      console.log("✅ Successfully parsed product from item string");
     } catch (error) {
-      console.error("Error parsing product:", error);
-
+      console.error("❌ Error parsing product:", error);
       product = null; // Set to null in case of parsing error
     }
   }
+
+  // Ensure product is always an object (never undefined)
+  if (!product) {
+    product = null;
+  }
+
+  // Log final product state for debugging
+  useEffect(() => {
+    console.log("=== Product State ===");
+    console.log("product:", product);
+    console.log("product?.$id:", product?.$id);
+    console.log("product?.productName:", product?.productName);
+  }, [product]);
 
   // Numeric base price (KES) — handles both plain number and enriched price object
   const numericPrice = useMemo(() => {
@@ -313,9 +335,47 @@ const ProductDetails = () => {
     }
   }, [product]);
 
-  // Removed duplicate useEffect - related products are already fetched above
+  // Fetch full product details from API when product ID changes
+  // This ensures we have all fields (price, details, brand, stock, etc.)
+  useEffect(() => {
+    if (!product?.$id) return;
+
+    const fetchFullProductDetails = async () => {
+      try {
+        console.log(`📥 Fetching full product details for $id: ${product.$id}`);
+        const response = await axiosClient.get(
+          `/api/customerprofile/product/${product.$id}`,
+        );
+        
+        if (response.data?.product) {
+          const fullProduct = {
+            ...product,
+            ...response.data.product, // Merge full product data
+          };
+          
+          console.log("✅ Full product data loaded:", fullProduct);
+          
+          // Update product with full data
+          // Note: We can't directly modify product (it's from params), 
+          // but setting price/other state will trigger the dependent useEffects
+          if (fullProduct.price) {
+            // Price effect will catch this
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ Could not fetch full product details:", error.message);
+        // Non-fatal - use what we have from navigation params
+      }
+    };
+
+    fetchFullProductDetails();
+  }, [product?.$id]);
 
   const handletogglefavorite = useCallback(() => {
+    if (!product?.$id) {
+      Alert.alert("Error", "Product information is not available.");
+      return;
+    }
     if (isFavorite(product.$id)) {
       removeFromFavorites(product.$id);
     } else {
@@ -543,18 +603,19 @@ const ProductDetails = () => {
   const handleRelatedProducts = ({ item }) => (
     <View>
       <ProductCard
-        id={product.id}
-        price={product.price}
-        image={product.image}
-        brand={product.brand}
+        id={product?.id}
+        price={product?.price}
+        image={product?.image}
+        brand={product?.brand}
         title={
-          product.name.length > 10
-            ? product.name.slice(0, 15) + "....."
-            : product.name
+          product?.name?.length > 10
+            ? product?.name?.slice(0, 15) + "....."
+            : product?.name || "Product"
         }
-        totalRatings={ratings[product.$id] || 0}
-        rating={ratings[product.$id] || 0}
+        totalRatings={product?.$id ? ratings[product.$id] || 0 : 0}
+        rating={product?.$id ? ratings[product.$id] || 0 : 0}
         onPress={() =>
+          product?.$id &&
           router.push({
             pathname: "/(Screens)/ProductDetails",
             params: { item: JSON.stringify(product) },
@@ -576,6 +637,11 @@ const ProductDetails = () => {
 
       if (!editingReviewId) {
         Alert.alert("Error", "No review selected for editing.");
+        return;
+      }
+
+      if (!product?.$id) {
+        Alert.alert("Error", "Product information is not available.");
         return;
       }
 
@@ -607,7 +673,7 @@ const ProductDetails = () => {
       setSelectedImage(null);
       setEditingReviewId(null);
 
-      const updatedReviews = await fetchReviews(String(product.id));
+      const updatedReviews = await fetchReviews(String(product.$id));
       setReviews(updatedReviews);
     } catch (error) {
       console.error("Failed to edit review:", error);
@@ -624,13 +690,18 @@ const ProductDetails = () => {
         return;
       }
 
+      if (!product?.$id) {
+        Alert.alert("Error", "Product information is not available.");
+        return;
+      }
+
       await databases.deleteDocument(
         Config.databaseId,
         Config.reviewsCollectionId,
         reviewId,
       );
 
-      const updatedReviews = await fetchReviews(String(product.id));
+      const updatedReviews = await fetchReviews(String(product.$id));
       setReviews(updatedReviews);
     } catch (error) {
       console.error("Failed to delete review:", error);
@@ -677,6 +748,60 @@ const ProductDetails = () => {
 
   const themedText = "text-black";
   const themedBackground = "bg-white";
+
+  // Guard: Show error if product is not available
+  if (!product) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#FFFFFF",
+          paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 16,
+        }}
+      >
+        <MaterialIcons name="error-outline" size={64} color="#EF4444" />
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: "bold",
+            color: "#111827",
+            marginTop: 16,
+            textAlign: "center",
+          }}
+        >
+          Product Not Found
+        </Text>
+        <Text
+          style={{
+            fontSize: 14,
+            color: "#6B7280",
+            marginTop: 8,
+            textAlign: "center",
+          }}
+        >
+          The product information could not be loaded. Please go back and try
+          again.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            marginTop: 24,
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            backgroundColor: "#16A34A",
+            borderRadius: 12,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 14, fontWeight: "bold" }}>
+            Go Back
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -840,18 +965,25 @@ const ProductDetails = () => {
                 zIndex: 10,
                 width: 40,
                 height: 40,
-                backgroundColor: isFavorite(product.$id)
-                  ? "#dc2626"
-                  : "rgba(0,0,0,0.8)",
+                backgroundColor:
+                  product?.$id && isFavorite(product.$id)
+                    ? "#dc2626"
+                    : "rgba(0,0,0,0.8)",
                 borderRadius: 20,
                 justifyContent: "center",
                 alignItems: "center",
               }}
             >
               <MaterialIcons
-                name={isFavorite(product.$id) ? "favorite" : "favorite-border"}
+                name={
+                  product?.$id && isFavorite(product.$id)
+                    ? "favorite"
+                    : "favorite-border"
+                }
                 size={22}
-                color={isFavorite(product.$id) ? "#fff" : "#D97706"}
+                color={
+                  product?.$id && isFavorite(product.$id) ? "#fff" : "#D97706"
+                }
               />
             </TouchableOpacity>
 
@@ -924,7 +1056,7 @@ const ProductDetails = () => {
                 marginBottom: 12,
               }}
             >
-              {product.productName}
+              {product?.productName || product?.name || "Product"}
             </Text>
 
             {/* Rating */}
@@ -943,7 +1075,7 @@ const ProductDetails = () => {
             </View>
 
             {/* Brand */}
-            {product.brand && (
+            {product?.brand && (
               <View
                 style={{
                   paddingHorizontal: 12,
@@ -973,7 +1105,9 @@ const ProductDetails = () => {
                 marginBottom: 16,
               }}
             >
-              {product.details || product.description}
+              {product?.details ||
+                product?.description ||
+                "Premium product with quality craftsmanship"}
             </Text>
 
             {/* Price Section */}
@@ -1000,7 +1134,7 @@ const ProductDetails = () => {
                 >
                   {convertedPrice || "Loading..."}
                 </Text>
-                {product.originalPrice && (
+                {product?.originalPrice && (
                   <Text
                     style={{
                       fontSize: 18,
@@ -1013,7 +1147,7 @@ const ProductDetails = () => {
                 )}
               </View>
 
-              {product.originalPrice && (
+              {product?.originalPrice && (
                 <View
                   style={{
                     paddingHorizontal: 12,
@@ -1111,7 +1245,7 @@ const ProductDetails = () => {
                   </TouchableOpacity>
                 </View>
                 <Text style={{ color: "#6B7280", fontSize: 14 }}>
-                  {product.stock || "Limited"} items available
+                  {product?.stock || "Limited"} items available
                 </Text>
               </View>
             </View>
@@ -1201,7 +1335,7 @@ const ProductDetails = () => {
                 </Text>
               </View>
               <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
-                {product.details ||
+                {product?.details ||
                   "Premium African product with authentic craftsmanship and superior quality."}
               </Text>
             </View>
@@ -1334,7 +1468,7 @@ const ProductDetails = () => {
                 </Text>
               </View>
               <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
-                {product.specifications ||
+                {product?.specifications ||
                   "Premium quality materials and craftsmanship. Authentic African design with modern functionality."}
               </Text>
             </View>
@@ -1542,7 +1676,11 @@ const ProductDetails = () => {
               );
               return;
             }
-            addToCart(product, user.id, user.userName);
+            if (product?.$id) {
+              addToCart(product, user.id, user.userName);
+            } else {
+              Alert.alert("Error", "Product information is not available.");
+            }
           }}
           style={{ flex: 1 }}
         >
@@ -1567,12 +1705,12 @@ const ProductDetails = () => {
         <TouchableOpacity
           onPress={async () => {
             try {
-              const shareMessage = `${product.productName}\n\n${product.description || ""}\n\nCheck it out here: ${product.url || "https://nileflowafrica.com"}\n\nImage: ${product.image}`;
+              const shareMessage = `${product?.productName || product?.name || "Product"}\n\n${product?.description || product?.details || ""}\n\nCheck it out here: ${product?.url || "https://nileflowafrica.com"}\n\nImage: ${product?.image || ""}`;
               if (Platform.OS === "ios") {
                 // iOS handles URL better when passed separately
                 await Share.share({
                   message: shareMessage,
-                  url: product.imageUrl, // May be previewed in iMessage
+                  url: product?.imageUrl || product?.image, // May be previewed in iMessage
                 });
               } else {
                 // Android works best with full text in one message

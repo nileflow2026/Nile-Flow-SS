@@ -1,18 +1,19 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
-import GlobalProvider from "@/Context/GlobalProvider";
+import GlobalProvider, { getCurrentUser } from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
 import { ThemeProvider } from "@/Context/ThemeProvider";
 import { GroupBuyProvider } from "../Context/GroupBuyContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -23,7 +24,7 @@ import { initCurrency } from "../api";
 import { initializeLanguage } from "../i18n";
 import { SocialProvider } from "../Context/SocialContext";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { PostHogProvider } from "posthog-react-native";
+import { PostHogProvider, usePostHog } from "posthog-react-native";
 import "../global.css";
 
 // Initialize Sentry as early as possible — before any navigation or providers
@@ -54,7 +55,50 @@ SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
   const router = useRouter();
+  const posthog = usePostHog();
+  const pathname = usePathname(); // ✅ Track current screen path
+  const [user, setUser] = useState(null);
+  console.log("user in AppContent:", user);
+  posthog.capture("user_identified_test");
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
 
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    posthog.identify(user.id, {
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      phone: user.phone,
+    });
+
+    console.log("PostHog user identified:", user.id);
+  }, [user]);
+
+  // Track screen views automatically on every navigation
+  useEffect(() => {
+    if (pathname) {
+      posthog.screen(pathname, {});
+      posthog.flush();
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    posthog.debug(true);
+    posthog.capture("app_opened"); // ✅ This will work
+    posthog.flush();
+  }, [posthog]);
   const [fontsLoaded, fontError] = useFonts({
     "Poppins-Thin": require("../assets/fonts/Poppins-Thin.ttf"),
     "Poppins-ExtraLight": require("../assets/fonts/Poppins-ExtraLight.ttf"),
@@ -100,10 +144,31 @@ function AppContent() {
 }
 
 function RootLayout() {
+  const posthogApiKey =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_POSTHOG_API_KEY ||
+    process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
+  const posthogHost =
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_POSTHOG_HOST ||
+    process.env.EXPO_PUBLIC_POSTHOG_HOST;
+  console.log("POSTHOG KEY:", posthogApiKey);
+  console.log("POSTHOG HOST:", posthogHost);
+
   return (
     <PostHogProvider
-      apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
-      options={{ host: process.env.EXPO_PUBLIC_POSTHOG_HOST }}
+      apiKey={posthogApiKey}
+      options={{
+        host: posthogHost,
+        // Analytics
+        flushAt: 1,
+        flushInterval: 0,
+        captureDeepLinks: true,
+        captureAppLifecycleEvents: false,
+
+        // Error Tracking
+        captureExceptions: true,
+
+        debug: __DEV__,
+      }}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ErrorBoundary>

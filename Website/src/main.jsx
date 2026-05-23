@@ -2,8 +2,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import * as Sentry from "@sentry/react";
+import posthog from "posthog-js";
 import App from "./App";
 import "./index.css";
+
+// Initialize PostHog
+posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  capture_pageview: false, // Handled manually via PostHogPageView in App.jsx
+});
 
 // Initialize Sentry synchronously so it's ready before any user interaction
 Sentry.init({
