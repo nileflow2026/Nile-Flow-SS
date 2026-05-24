@@ -67,6 +67,13 @@ const ROUTE_SEO = [
     noindex: true,
   },
   {
+    pattern: "/products",
+    title: "Products | Nile Flow Africa",
+    description: "Browse our collection of authentic African products.",
+    canonicalPath: "/products",
+    noindex: true,
+  },
+  {
     pattern: "/about-us",
     title: "About Nile Flow Africa",
     description:

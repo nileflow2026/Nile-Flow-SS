@@ -1,6 +1,10 @@
 # robots.txt for https://nileflowafrica.com
+# Last updated: 2026-05-24
+# This is the authoritative robots.txt for the Nile Flow Africa domain
 
 User-agent: *
+Allow: /
+Disallow: /favicon
 Disallow: /cart
 Disallow: /checkout
 Disallow: /profile
@@ -27,11 +31,35 @@ Disallow: /group/
 Disallow: /admin
 Disallow: /report-issue
 Disallow: /account-deletion
-Allow: /
+Disallow: /products
 
-# Allow external resources for SEO
+# Block access to static files that shouldn't be indexed
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /*.md$
+
+# Crawl delays to prevent overloading
+Crawl-delay: 2
+
+# Allow all major search engines
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
-# Sitemap
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 2
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+# Sitemap location (Google will use HTTPS version)
 Sitemap: https://nileflowafrica.com/sitemap.xml
