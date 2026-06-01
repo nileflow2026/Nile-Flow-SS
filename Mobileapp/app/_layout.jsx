@@ -116,7 +116,10 @@ function AppContent() {
     // singleton — subsequent calls from screens return the same promise.
     initCurrency();
     initializeLanguage();
-    // Only hide splash once fonts are ready (or errored out)
+    // Hide splash once fonts are ready (or errored out)
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
   }, [fontsLoaded, fontError]);
 
   // Keep splash visible until fonts resolve
