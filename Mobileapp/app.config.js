@@ -1,22 +1,102 @@
 const { config } = require("dotenv");
-const appJson = require("./app.json");
 
 config({ path: ".env" });
 
 module.exports = () => ({
-  ...appJson,
   expo: {
-    ...appJson.expo,
+    name: "Nile Flow",
+    slug: "nile-flow",
+    version: "1.1.0",
+    orientation: "default",
+    icon: "./assets/images/icon.png",
+    scheme: "nileflowapp",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
     extra: {
-      ...appJson.expo.extra,
-      API_URL: process.env.API_BASE_URL || appJson.expo.extra.API_URL,
-      STRIPE_KEY: process.env.STRIPE_KEY || appJson.expo.extra.STRIPE_KEY,
+      API_URL: process.env.API_BASE_URL || "https://api.nileflow.africa",
+      STRIPE_KEY: process.env.STRIPE_KEY || "",
       EXPO_PUBLIC_POSTHOG_API_KEY:
-        process.env.EXPO_PUBLIC_POSTHOG_API_KEY ||
-        appJson.expo.extra.EXPO_PUBLIC_POSTHOG_API_KEY,
-      EXPO_PUBLIC_POSTHOG_HOST:
-        process.env.EXPO_PUBLIC_POSTHOG_HOST ||
-        appJson.expo.extra.EXPO_PUBLIC_POSTHOG_HOST,
+        process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "",
+      EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST || "",
+      eas: {
+        projectId: "ca39cda3-b6fc-4a8a-a0ed-9d8a280862a4",
+      },
+    },
+    ios: {
+      bundleIdentifier: "com.nileflowafrica",
+      supportsTablet: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
+    },
+    android: {
+      adaptiveIcon: {
+        backgroundColor: "#E6F4FE",
+        foregroundImage: "./assets/images/android-icon-foreground.png",
+        backgroundImage: "./assets/images/android-icon-background.png",
+        monochromeImage: "./assets/images/android-icon-monochrome.png",
+      },
+      // Edge-to-edge is mandatory in Android 16 - removed from config
+      enableOnBackInvokedCallback: true,
+      predictiveBackGestureEnabled: true,
+      package: "com.nileflowafrica",
+      supportsRtl: true,
+    },
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png",
+    },
+    notification: {
+      icon: "./assets/images/icon.png",
+      color: "#F59E0B",
+      androidMode: "default",
+      androidCollapsedTitle: "#{unread_notifications} new notifications",
+    },
+    plugins: [
+      "expo-router",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/android-icon-monochrome.png",
+          color: "#F59E0B",
+          defaultChannel: "default",
+          sounds: [],
+        },
+      ],
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/splash-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
+          dark: {
+            backgroundColor: "#000000",
+          },
+        },
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          merchantIdentifier: "merchant.com.nileflow",
+          enableStripeSdk: true,
+        },
+      ],
+      "expo-video",
+      "expo-web-browser",
+      [
+        "@sentry/react-native",
+        {
+          organization: "nile-flow-holidings",
+          project: "nileflowapp",
+        },
+      ],
+    ],
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: true,
     },
   },
 });

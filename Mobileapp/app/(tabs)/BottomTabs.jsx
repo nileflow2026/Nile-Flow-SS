@@ -1,7 +1,13 @@
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
-import React from "react";
-import { Dimensions, Image, Platform, Text, View } from "react-native";
+import React, { useState, useCallback } from "react";
+import {
+  Dimensions,
+  Image,
+  Platform,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -20,8 +26,8 @@ import { icons } from "../../constants";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useNotification } from "../../Context/NotificationContext";
 import i18n, { useLanguage } from "../../i18n";
+import { useFocusEffect } from "expo-router";
 
-const BottomTab = createBottomTabNavigator();
 const { width } = Dimensions.get("window");
 
 const TabIcon = ({ focused, icon, title, notificationCount = 0 }) => {
@@ -140,182 +146,107 @@ const TabIcon = ({ focused, icon, title, notificationCount = 0 }) => {
   );
 };
 
+const TABS = [
+  { id: "Toptabs", name: "Home", icon: icons.home, Component: Home },
+  { id: "Explore", name: "Discover", icon: icons.search, Component: Explore },
+  { id: "Cart", name: "Cart", icon: icons.cart, Component: Cart },
+  {
+    id: "Notifications",
+    name: "Notifications",
+    icon: icons.notifications,
+    Component: MyNotificationsScreen,
+  },
+  { id: "Profile", name: "Profile", icon: icons.profile, Component: Profile },
+];
+
 const BottomTabs = () => {
   useLanguage(); // re-render when locale changes
   const { cart } = useCart();
   const { notificationCount } = useNotification();
   const cartCount = cart?.length ?? 0;
   const tabBarHeight = width < 350 ? 60 : 70;
+  const [activeTab, setActiveTab] = useState(0);
+  const [isFocused, setIsFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+
+  const ActiveComponent = TABS[activeTab].Component;
+
+  const renderTabBar = () => {
+    return (
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: tabBarHeight,
+          paddingTop: 4,
+          paddingBottom: Platform.OS === "ios" ? 20 : 12,
+          backgroundColor: "transparent",
+        }}
+      >
+        <BlurView
+          intensity={40}
+          tint="light"
+          style={{ flex: 1, overflow: "hidden" }}
+        >
+          <View
+            style={{ height: 2, backgroundColor: "#16A34A", width: "100%" }}
+          />
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(255, 255, 255, 0.97)",
+              flexDirection: "row",
+              justifyContent: "space-around",
+              alignItems: "center",
+            }}
+          >
+            {TABS.map((tab, index) => (
+              <Pressable
+                key={tab.id}
+                onPress={() => setActiveTab(index)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                accessibilityLabel={`${tab.name} tab`}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === index }}
+              >
+                <TabIcon
+                  icon={tab.icon}
+                  focused={activeTab === index}
+                  title={i18n.t(tab.name)}
+                  notificationCount={
+                    tab.id === "Cart"
+                      ? cartCount
+                      : tab.id === "Notifications"
+                        ? notificationCount
+                        : 0
+                  }
+                />
+              </Pressable>
+            ))}
+          </View>
+        </BlurView>
+      </View>
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <BottomTab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: {
-            position: "absolute",
-            borderTopWidth: 0,
-            height: tabBarHeight,
-            paddingTop: 4,
-            paddingBottom: Platform.OS === "ios" ? 20 : 12,
-            backgroundColor: "transparent",
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          tabBarBackground: () => (
-            <BlurView
-              intensity={40}
-              tint="light"
-              style={{ flex: 1, overflow: "hidden" }}
-            >
-              <View
-                style={{ height: 2, backgroundColor: "#16A34A", width: "100%" }}
-              />
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: "rgba(255, 255, 255, 0.97)",
-                }}
-              />
-            </BlurView>
-          ),
-        }}
-      >
-        <BottomTab.Screen
-          name="Toptabs"
-          component={Home}
-          options={{
-            title: "Home",
-            tabBarAccessibilityLabel: "Home tab",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.home}
-                focused={focused}
-                title={i18n.t("Home")}
-              />
-            ),
-          }}
-        />
-
-        {/* <BottomTab.Screen
-          name="Feed"
-          component={Feed}
-          options={{
-            title: "Feed",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.feed}
-                focused={focused}
-                title={i18n.t("Feed")}
-                theme={theme}
-              />
-            ),
-          }}
-        /> */}
-
-        <BottomTab.Screen
-          name="Explore"
-          component={Explore}
-          options={{
-            title: "Discover",
-            tabBarAccessibilityLabel: "Discover tab",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.search}
-                focused={focused}
-                title={i18n.t("Discover")}
-              />
-            ),
-          }}
-        />
-
-        <BottomTab.Screen
-          name="Cart"
-          component={Cart}
-          options={{
-            title: "Cart",
-            tabBarAccessibilityLabel:
-              cartCount > 0 ? `Cart, ${cartCount} items` : "Cart tab",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.cart}
-                focused={focused}
-                title={i18n.t("Cart")}
-                notificationCount={cartCount}
-              />
-            ),
-          }}
-        />
-
-        {/* {isPremium && ( */}
-        {/* <BottomTab.Screen
-          name="Create"
-          component={CreatorMode}
-          options={{
-            title: "Create",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.upload}
-                focused={focused}
-                title={i18n.t("Create")}
-              />
-            ),
-          }}
-        /> */}
-
-        <BottomTab.Screen
-          name="Notifications"
-          component={MyNotificationsScreen}
-          options={{
-            title: "Notifications",
-            tabBarAccessibilityLabel:
-              notificationCount > 0
-                ? `Notifications, ${notificationCount} unread`
-                : "Notifications tab",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.notifications}
-                focused={focused}
-                title={i18n.t("Notifications")}
-                notificationCount={notificationCount}
-              />
-            ),
-          }}
-        />
-
-        <BottomTab.Screen
-          name="Profile"
-          component={Profile}
-          options={{
-            title: "Profile",
-            tabBarAccessibilityLabel: "Profile tab",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.profile}
-                focused={focused}
-                title={i18n.t("Profile")}
-              />
-            ),
-          }}
-        />
-
-        {/* <BottomTab.Screen
-          name="Settings"
-          component={Settings}
-          options={{
-            title: "Settings",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon
-                icon={icons.settings}
-                focused={focused}
-                title={i18n.t("Settings")}
-                theme={theme}
-              />
-            ),
-          }}
-        /> */}
-      </BottomTab.Navigator>
+      <View style={{ flex: 1, paddingBottom: tabBarHeight }}>
+        {isFocused && <ActiveComponent />}
+      </View>
+      {renderTabBar()}
     </View>
   );
 };

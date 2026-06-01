@@ -4,7 +4,7 @@ import { Share } from "react-native";
  * SocialShare - Handles sharing content with Nile Mart branding
  * Returns a promise that resolves to true if shared successfully
  */
-export default async function socialShare(item) {
+async function socialShare(item) {
   const shareText = generateShareText(item);
   const result = await Share.share({
     message: shareText,
@@ -60,3 +60,11 @@ export const SocialShareUtils = {
     url: `https://nileflow.app/share/${item.id}`,
   }),
 };
+
+export default function SocialShareComponent() {
+  // This component must be exported as default for expo-router
+  // But it's actually just a utility module, not a screen
+  return null;
+}
+
+export { socialShare };

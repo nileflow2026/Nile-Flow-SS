@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useIsFocused } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { Image } from "expo-image";
 import {
@@ -44,7 +44,14 @@ export default function FeedItem({
 }) {
   const { addToCart } = useCart();
   const { earnMiles } = useSocial();
-  const isFocused = useIsFocused();
+  const [screenFocused, setScreenFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setScreenFocused(true);
+      return () => setScreenFocused(false);
+    }, []),
+  );
 
   const [isLiked, setIsLiked] = useState(item.isLiked || false);
   const [likeCount, setLikeCount] = useState(
@@ -67,7 +74,7 @@ export default function FeedItem({
 
   useEffect(() => {
     if (player && item.type === "video") {
-      if (isVisible && isFocused) {
+      if (isVisible && screenFocused) {
         player.currentTime = 0;
         player.play();
         setIsPlaying(true);
@@ -76,7 +83,7 @@ export default function FeedItem({
         setIsPlaying(false);
       }
     }
-  }, [isVisible, isFocused, item.type, player]);
+  }, [isVisible, screenFocused, item.type, player]);
 
   const handleLike = () => {
     const newLikedState = !isLiked;

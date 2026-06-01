@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { getCurrentUser, getCustomerNotification } from "./GlobalProvider";
-import { usePushNotifications } from "../hooks/usePushNotifications";
 
 const NotificationContext = createContext();
+
+// Check if running in Expo Go (push notifications not supported)
+const isExpoGo = Constants.appOwnership === "expo";
 
 export const NotificationProvider = ({ children }) => {
   const [notificationCount, setNotificationCount] = useState(0);
@@ -27,7 +30,34 @@ export const NotificationProvider = ({ children }) => {
     } catch (_) {}
   };
 
-  usePushNotifications(handleNotificationReceived, handleNotificationResponse);
+  // Only load push notifications if NOT in Expo Go
+  useEffect(() => {
+    if (isExpoGo) {
+      console.log(
+        "[NotificationContext] Push notifications not available in Expo Go. Use a development build instead.",
+      );
+      return;
+    }
+
+    // Dynamically import usePushNotifications only when NOT in Expo Go
+    const initializePushNotifications = async () => {
+      try {
+        const { usePushNotifications } =
+          await import("../hooks/usePushNotifications");
+        usePushNotifications(
+          handleNotificationReceived,
+          handleNotificationResponse,
+        );
+      } catch (error) {
+        console.warn(
+          "[NotificationContext] Failed to initialize push notifications:",
+          error?.message,
+        );
+      }
+    };
+
+    initializePushNotifications();
+  }, []);
 
   useEffect(() => {
     const init = async () => {

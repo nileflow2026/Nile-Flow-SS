@@ -1,6 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
@@ -8,19 +6,32 @@ import axiosClient from "../api";
 
 export const MUTE_SOUND_KEY = "nileflow_notifications_muted";
 
-// Configure how notifications appear when the app is in the foreground.
-// Reads the persisted mute preference so the handler always reflects current setting.
-Notifications.setNotificationHandler({
-  handleNotification: async () => {
-    const muted = await AsyncStorage.getItem(MUTE_SOUND_KEY);
-    const shouldPlaySound = muted !== "true";
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound,
-      shouldSetBadge: true,
-    };
-  },
-});
+// Check if running in Expo Go (where push notifications are not supported)
+const isExpoGo = Constants.appOwnership === "expo";
+
+// Only import expo-notifications if NOT in Expo Go
+let Notifications = null;
+let Device = null;
+
+if (!isExpoGo) {
+  Notifications = require("expo-notifications");
+  Device = require("expo-device");
+}
+
+// Configure how notifications appear when the app is in the foreground (only if available)
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => {
+      const muted = await AsyncStorage.getItem(MUTE_SOUND_KEY);
+      const shouldPlaySound = muted !== "true";
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound,
+        shouldSetBadge: true,
+      };
+    },
+  });
+}
 
 /**
  * Apply mute/unmute setting immediately:
@@ -28,6 +39,11 @@ Notifications.setNotificationHandler({
  * - Updates Android notification channels (sound on/off)
  */
 export async function applyMuteSetting(muted) {
+  if (!Notifications) {
+    console.log("[Notifications] Mute setting not available in Expo Go");
+    return;
+  }
+
   await AsyncStorage.setItem(MUTE_SOUND_KEY, muted ? "true" : "false");
 
   if (Platform.OS === "android") {
@@ -72,11 +88,26 @@ export async function applyMuteSetting(muted) {
 const PROJECT_ID = "ca39cda3-b6fc-4a8a-a0ed-9d8a280862a4";
 
 async function registerForPushNotificationsAsync() {
+  if (!Notifications) {
+    console.log(
+      "[PushNotifications] Not available in Expo Go. Use a development build instead.",
+    );
+    return null;
+  }
+
   if (!Device.isDevice) {
     console.warn(
       "[PushNotifications] Push notifications require a physical device.",
     );
     return null;
+  }
+
+  // Expo Go doesn't support push notifications in SDK 53+
+  // This hook requires a development build or production build
+  if (__DEV__) {
+    console.info(
+      "[PushNotifications] Push notifications available in development/production builds, not Expo Go.",
+    );
   }
 
   // Set up Android notification channels (respecting persisted mute preference)
@@ -99,13 +130,20 @@ async function registerForPushNotificationsAsync() {
     return null;
   }
 
-  // Get the Expo push token
+  // Get the Expo push token - wrapped in try/catch for Expo Go compatibility
   const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? PROJECT_ID;
 
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     return tokenData.data;
   } catch (error) {
+    // In Expo Go, this will fail - not an actual error
+    if (error?.message?.includes("Push notifications")) {
+      console.warn(
+        "[PushNotifications] Push notifications not available in Expo Go. Use a development or production build.",
+      );
+      return null;
+    }
     console.error("[PushNotifications] Failed to get push token:", error);
     return null;
   }

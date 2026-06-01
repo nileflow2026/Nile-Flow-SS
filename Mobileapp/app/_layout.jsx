@@ -10,7 +10,6 @@ import { ThemeProvider } from "@/Context/ThemeProvider";
 import { GroupBuyProvider } from "../Context/GroupBuyContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack, useRouter, usePathname } from "expo-router";
-import * as Notifications from "expo-notifications";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -118,19 +117,7 @@ function AppContent() {
     initCurrency();
     initializeLanguage();
     // Only hide splash once fonts are ready (or errored out)
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
   }, [fontsLoaded, fontError]);
-
-  // Handle case where app is opened from a killed state via notification tap
-  useEffect(() => {
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        router.push("/(Screens)/MyNotificationsScreen");
-      }
-    });
-  }, []);
 
   // Keep splash visible until fonts resolve
   if (!fontsLoaded && !fontError) return null;

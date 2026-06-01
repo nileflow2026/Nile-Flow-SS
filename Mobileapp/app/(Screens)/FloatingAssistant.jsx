@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useRef, useState } from "react";
 import {
@@ -23,7 +23,7 @@ const FloatingAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState("");
   const { user } = useGlobalContext();
-  const navigation = useNavigation();
+  const router = useRouter();
   const flatListRef = useRef(null);
 
   const handleSend = async () => {
@@ -46,7 +46,7 @@ const FloatingAssistant = () => {
         {
           userId: user.userId,
           question: userMessage.content,
-        }
+        },
       );
 
       const aiAnswer =
@@ -76,7 +76,7 @@ const FloatingAssistant = () => {
       setLoading(false);
       setTimeout(
         () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100
+        100,
       );
     }
   };
@@ -143,21 +143,21 @@ const FloatingAssistant = () => {
           {/* Predefined help buttons */}
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Searchscreen")}
+            onPress={() => router.push("/Searchscreen")}
           >
             <Text style={styles.optionText}>🔍 Search Products</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Cart")}
+            onPress={() => router.push("/(tabs)/BottomTabs?tab=Cart")}
           >
             <Text style={styles.optionText}>🛒 View Cart</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("OrdersScreen")}
+            onPress={() => router.push("/OrdersScreen")}
           >
             <Text style={styles.optionText}>📦 Track Orders</Text>
           </TouchableOpacity>
