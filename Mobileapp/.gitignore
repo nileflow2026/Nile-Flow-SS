@@ -42,3 +42,6 @@ app-example
 /ios
 /android
 .env
+
+# Play Console service account key
+nile-flow-app-3ad669df2cd0.json
