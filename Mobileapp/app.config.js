@@ -6,7 +6,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow",
-    version: "1.1.3",
+    version: "1.1.4",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
@@ -77,6 +77,8 @@ module.exports = () => ({
           },
         },
       ],
+      // Explicitly declare expo-av to ensure VideoViewModule is linked in release builds
+      "expo-av",
       [
         "@stripe/stripe-react-native",
         {
