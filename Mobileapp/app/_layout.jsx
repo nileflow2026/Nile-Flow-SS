@@ -129,6 +129,13 @@ function AppContent() {
     <>
       <Stack screenOptions={{ headerShown: false }} />
       <Toast />
+      {/* 
+        StatusBar: Use minimal config compatible with Android 15+ edge-to-edge.
+        backgroundColor="auto" and the deprecated setStatusBarColor/setNavigationBarColor
+        methods have been replaced with the WindowInsets API in gradle.properties.
+        Using style="dark" for light-theme compatibility.
+      */}
+      <StatusBar style="dark" />
     </>
   );
 }
@@ -175,7 +182,6 @@ function RootLayout() {
                               <AppContent />
                             </FavoritesProvider>
                           </GroupBuyProvider>
-                          <StatusBar style="auto" />
                         </CartProvider>
                       </SocialProvider>
                     </NotificationProvider>
@@ -185,8 +191,6 @@ function RootLayout() {
             </ThemeProvider>
           </QueryClientProvider>
         </ErrorBoundary>
-
-        <StatusBar backgroundColor="auto" style="dark" />
       </GestureHandlerRootView>
     </PostHogProvider>
   );

@@ -201,7 +201,8 @@ export default function GroupOrderPage() {
 
   return (
     <View className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      {/* StatusBar: Removed backgroundColor to avoid deprecated Window.setStatusBarColor API (Android 15+) */}
+      <StatusBar style="dark" />
 
       {/* Header */}
       <View className="flex-row items-center px-4 pt-12 pb-4 bg-white border-b border-gray-200">

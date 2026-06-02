@@ -6,7 +6,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow",
-    version: "1.1.0",
+    version: "1.1.3",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
@@ -36,7 +36,7 @@ module.exports = () => ({
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
-      // Edge-to-edge is mandatory in Android 16 - removed from config
+      // Android 15+ edge-to-edge display — uses WindowInsets API instead of deprecated Window methods
       enableOnBackInvokedCallback: true,
       predictiveBackGestureEnabled: true,
       package: "com.nileflowafrica",

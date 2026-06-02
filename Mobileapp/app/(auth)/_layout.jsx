@@ -4,7 +4,11 @@ import { StatusBar } from "expo-status-bar";
 const _layout = () => {
   return (
     <>
-      <StatusBar style="dark" backgroundColor="#FFFFFF" />
+      {/* 
+        StatusBar: Removed backgroundColor attribute to avoid deprecated Window.setStatusBarColor API.
+        Edge-to-edge display is now handled by the new WindowInsets API in gradle.properties.
+      */}
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerShown: false,
