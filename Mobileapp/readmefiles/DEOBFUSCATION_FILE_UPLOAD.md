@@ -11,12 +11,13 @@
 When you use R8/ProGuard minification (which we do to prevent VideoViewModule crashes), the build:
 
 1. ✅ **Reduces app size** by minifying code
-2. ✅ **Protects code** by obfuscating class/method names  
+2. ✅ **Protects code** by obfuscating class/method names
 3. ❌ **Breaks crash stack traces** — original names are lost
 
 The `mapping.txt` file maps obfuscated names back to original names so Google Play can decode crash logs.
 
 **Example**:
+
 - Obfuscated: `a.b.c$1 → com.nileflowafrica.LoginScreen`
 - Readable: Users see the real class name in crashes
 
@@ -119,6 +120,7 @@ head -20 mapping.txt
 **Cause**: Minification might not be enabled
 
 **Check**:
+
 ```bash
 # Verify R8 is enabled in build.gradle
 grep -n "minifyEnabled\|enableMinifyInRelease" android/app/build.gradle
@@ -127,6 +129,7 @@ grep -n "minifyEnabled\|enableMinifyInRelease" android/app/build.gradle
 ```
 
 **Solution**:
+
 ```gradle
 // In android/app/build.gradle, release block:
 release {
@@ -140,11 +143,13 @@ release {
 **Problem**: Upload fails or Play Store says "Invalid format"
 
 **Causes**:
+
 1. Wrong file format (not mapping.txt)
 2. File is empty
 3. Version code mismatch
 
 **Solution**:
+
 1. Verify file has content: `wc -l mapping.txt` (should be 1000+)
 2. Confirm you're uploading for correct version code (13 for v1.1.4)
 3. Try downloading from Play Console to see expected format
@@ -182,9 +187,10 @@ After uploading mapping file:
 ✅ **Crash Stack Traces** — Human-readable, not obfuscated  
 ✅ **Better Debugging** — See exact method names where crashes occur  
 ✅ **Faster Issue Resolution** — Understand root causes faster  
-✅ **ANR Analysis** — More detailed ANR stack traces  
+✅ **ANR Analysis** — More detailed ANR stack traces
 
 **Example Before**:
+
 ```
 java.lang.NullPointerException
   at a.b.c.d (Unknown Source:118)
@@ -192,6 +198,7 @@ java.lang.NullPointerException
 ```
 
 **Example After**:
+
 ```
 java.lang.NullPointerException
   at com.nileflowafrica.services.PaymentService.processTransaction (PaymentService.kt:118)
