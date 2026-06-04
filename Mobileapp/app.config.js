@@ -2,10 +2,15 @@ const { config } = require("dotenv");
 
 config({ path: ".env" });
 
+// Pre-build hook to fix netinfo paths on Windows
+if (process.env.EAS_BUILD || process.env.EXPO_PUBLIC_EAS_BUILD) {
+  require("./scripts/fix-netinfo-paths.js");
+}
+
 module.exports = () => ({
   expo: {
     name: "Nile Flow",
-    slug: "nile-flow",
+    slug: "nile-flow-app",
     version: "1.1.4",
     orientation: "default",
     icon: "./assets/images/icon.png",
@@ -13,13 +18,15 @@ module.exports = () => ({
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     extra: {
-      API_URL: process.env.API_BASE_URL || "https://api.nileflow.africa",
+      API_URL:
+        process.env.API_BASE_URL || "https://nile-flow-backend.onrender.com",
       STRIPE_KEY: process.env.STRIPE_KEY || "",
       EXPO_PUBLIC_POSTHOG_API_KEY:
         process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "",
       EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST || "",
       eas: {
-        projectId: "ca39cda3-b6fc-4a8a-a0ed-9d8a280862a4",
+        projectId:
+          "f832f869-d5a3-472c-a6e6-8b098d9d45c9" /* "ca39cda3-b6fc-4a8a-a0ed-9d8a280862a4" */,
       },
     },
     ios: {
@@ -40,6 +47,7 @@ module.exports = () => ({
       enableOnBackInvokedCallback: true,
       predictiveBackGestureEnabled: true,
       package: "com.nileflowafrica",
+      proguardRule: "./android/app/proguard-rules.pro",
       supportsRtl: true,
     },
     web: {
@@ -77,8 +85,6 @@ module.exports = () => ({
           },
         },
       ],
-      // Explicitly declare expo-av to ensure VideoViewModule is linked in release builds
-      "expo-av",
       [
         "@stripe/stripe-react-native",
         {
