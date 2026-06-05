@@ -53,7 +53,7 @@ module.exports = () => ({
       enableOnBackInvokedCallback: true,
       predictiveBackGestureEnabled: true,
       package: "com.nileflowafrica",
-      proguardRule: "./android/app/proguard-rules.pro",
+      /* proguardRule: "./android/app/proguard-rules.pro", */
       supportsRtl: true,
     },
     web: {
