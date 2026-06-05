@@ -17,6 +17,12 @@ module.exports = () => ({
     scheme: "nileflowapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    updates: {
+      url: "https://u.expo.dev/f832f869-d5a3-472c-a6e6-8b098d9d45c9",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     extra: {
       API_URL:
         process.env.API_BASE_URL || "https://nile-flow-backend.onrender.com",
@@ -47,7 +53,6 @@ module.exports = () => ({
       enableOnBackInvokedCallback: true,
       predictiveBackGestureEnabled: true,
       package: "com.nileflowafrica",
-      versionCode: 27,
       proguardRule: "./android/app/proguard-rules.pro",
       supportsRtl: true,
     },
