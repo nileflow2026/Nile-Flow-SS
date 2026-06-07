@@ -70,6 +70,7 @@ module.exports = () => ({
     plugins: [
       "expo-router",
       "expo-localization",
+      "expo-image",
       [
         "expo-notifications",
         {
