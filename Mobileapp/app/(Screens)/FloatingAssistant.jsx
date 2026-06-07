@@ -36,7 +36,6 @@ const FloatingAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState("");
   const { user } = useGlobalContext();
-  const router = useRouter();
   const flatListRef = useRef(null);
 
   const handleSend = async () => {
