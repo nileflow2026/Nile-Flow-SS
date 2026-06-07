@@ -8,6 +8,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   Pressable,
@@ -32,6 +33,17 @@ const getFileViewUrl = (bucketId, fileId) =>
 const Settings = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const { user, setUser, setIsLogged } = useGlobalContext();

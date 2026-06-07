@@ -1,6 +1,9 @@
+/* eslint-disable react/no-unescaped-entities */
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,6 +28,17 @@ const BulletItem = ({ text }) => (
 
 const TermsOfService = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -177,7 +191,7 @@ const TermsOfService = () => {
               <Text style={styles.contactText}>
                 Email: legal@nileflowafrica.com
               </Text>
-              <Text style={styles.contactText}>Phone: +254 XXX XXX XXX</Text>
+              <Text style={styles.contactText}>Phone: +254 713 637 104</Text>
               <Text style={styles.contactText}>
                 Address: Kilimani, Nairobi, Kenya
               </Text>

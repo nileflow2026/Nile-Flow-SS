@@ -21,6 +21,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -38,6 +39,17 @@ import ShareButton from "../components/ShareButton";
 export default function GroupOrderPage() {
   const { orderId } = useLocalSearchParams();
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const {
     fetchGroup,
     joinGroupBuy,

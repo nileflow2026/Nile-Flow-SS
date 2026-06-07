@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   Modal,
   ScrollView,
@@ -23,6 +24,18 @@ const { width } = Dimensions.get("window");
 
 const Redeem = () => {
   const { user } = useGlobalContext();
+  const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [nileMilesData, setNileMilesData] = useState({
     currentMiles: 0,
     earnedHistory: [],

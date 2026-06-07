@@ -7,6 +7,7 @@ import axiosClient from "../../api";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   RefreshControl,
   ScrollView,
@@ -27,6 +28,17 @@ const { width } = Dimensions.get("window");
 
 const Orders = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [orders, setOrders] = useState([]);
   const [userId, setUserId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);

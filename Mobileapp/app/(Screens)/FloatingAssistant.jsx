@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-vars */
 import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +18,18 @@ import axiosClient from "../../api";
 import { useGlobalContext } from "../../Context/GlobalProvider";
 
 const FloatingAssistant = () => {
+  const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);

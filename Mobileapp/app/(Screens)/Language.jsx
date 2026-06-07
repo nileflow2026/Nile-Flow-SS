@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   Pressable,
   ScrollView,
@@ -22,6 +23,17 @@ const { width } = Dimensions.get("window");
 
 const Language = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [showAllLanguages, setShowAllLanguages] = useState(false);
   const { theme, themeStyles } = useTheme();

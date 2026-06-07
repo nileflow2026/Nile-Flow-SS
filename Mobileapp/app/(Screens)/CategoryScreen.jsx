@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   Text,
   TouchableOpacity,
@@ -14,6 +15,17 @@ import ProductCard from "../components/ProductCard";
 
 const CategoryScreen = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { category, categoryId } = useLocalSearchParams();
   const [products, setProducts] = useState([]);
   const [sortedData, setSortedData] = useState([]);

@@ -2,11 +2,29 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useRouter, useSearchParams } from "expo-router/build/hooks";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { account } from "../../Appwrite";
 
 const Verify = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const params = useSearchParams();
   const { userId, secret } = params;
 

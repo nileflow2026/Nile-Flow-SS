@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   RefreshControl,
@@ -27,6 +28,17 @@ const cardWidth = (width - 48) / 2;
  */
 const PremiumDeals = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { isPremium, loading: statusLoading } = usePremiumStatus();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);

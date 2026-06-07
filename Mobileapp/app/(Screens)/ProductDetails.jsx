@@ -17,6 +17,7 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
+  BackHandler,
   View,
 } from "react-native";
 import axiosClient from "../../api";
@@ -85,6 +86,19 @@ const StarRating = ({
 
 const ProductDetails = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true; // prevent default behavior (exit app)
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+
+    return () => subscription.remove();
+  }, [router]);
   const params = useLocalSearchParams();
   const { item } = params;
   const [reviews, setReviews] = useState([]);
@@ -346,17 +360,17 @@ const ProductDetails = () => {
         const response = await axiosClient.get(
           `/api/customerprofile/product/${product.$id}`,
         );
-        
+
         if (response.data?.product) {
           const fullProduct = {
             ...product,
             ...response.data.product, // Merge full product data
           };
-          
+
           console.log("✅ Full product data loaded:", fullProduct);
-          
+
           // Update product with full data
-          // Note: We can't directly modify product (it's from params), 
+          // Note: We can't directly modify product (it's from params),
           // but setting price/other state will trigger the dependent useEffects
           if (fullProduct.price) {
             // Price effect will catch this

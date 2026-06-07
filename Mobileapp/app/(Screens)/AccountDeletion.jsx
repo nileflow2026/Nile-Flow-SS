@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -125,6 +126,17 @@ const StatusBadge = ({ status }) => {
 // ─────────────────────────────────────────────
 const AccountDeletionScreen = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { user, setUser, setIsLogged } = useGlobalContext();
   const { theme, themeStyles } = useTheme();
   const isDark = theme === "dark";

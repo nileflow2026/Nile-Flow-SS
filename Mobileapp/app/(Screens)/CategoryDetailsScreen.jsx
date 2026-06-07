@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   ScrollView,
@@ -31,6 +32,18 @@ const CategoryDetailsScreen = () => {
   const [viewMode, setViewMode] = useState("grid");
 
   const router = useRouter();
+
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   useEffect(() => {
     if (categoryId) {

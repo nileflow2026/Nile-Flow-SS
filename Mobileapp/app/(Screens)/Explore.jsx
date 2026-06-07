@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  BackHandler,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,17 @@ const MemoizedProductCard = React.memo(ProductCard);
 
 const Explore = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [user, setUser] = useState(null);
 
   const [products, setProducts] = useState([]);
