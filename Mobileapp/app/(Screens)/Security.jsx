@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -24,6 +25,17 @@ const PREF_LOGIN_ALERTS = "@security_login_alerts";
 
 const Security = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { user, isLogged } = useGlobalContext();
 
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -259,196 +271,210 @@ const Security = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Security & Privacy</Text>
-            <Text style={styles.headerSubtitle}>
-              Manage your account security
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Security & Privacy</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your account security
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Security Status Banner */}
+        <View style={styles.statusBanner}>
+          <View style={styles.statusIconContainer}>
+            <MaterialIcons name="verified-user" size={32} color="#10B981" />
+          </View>
+          <View style={styles.statusTextContainer}>
+            <Text style={styles.statusTitle}>Account Secure</Text>
+            <Text style={styles.statusSubtitle}>
+              {isLogged
+                ? `Signed in as ${user?.email || "your account"}`
+                : "Sign in to manage security settings"}
             </Text>
           </View>
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Security Status Banner */}
-          <View style={styles.statusBanner}>
-            <View style={styles.statusIconContainer}>
-              <MaterialIcons name="verified-user" size={32} color="#10B981" />
-            </View>
-            <View style={styles.statusTextContainer}>
-              <Text style={styles.statusTitle}>Account Secure</Text>
-              <Text style={styles.statusSubtitle}>
-                {isLogged
-                  ? `Signed in as ${user?.email || "your account"}`
-                  : "Sign in to manage security settings"}
-              </Text>
-            </View>
-          </View>
-
-          {/* Account Security Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account Security</Text>
-            <View style={styles.card}>
-              {securityItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={item.onPress}
-                  style={[
-                    styles.menuItem,
-                    index < securityItems.length - 1 && styles.menuItemBorder,
-                  ]}
-                >
-                  <View style={styles.menuItemLeft}>
-                    <View
-                      style={[styles.menuIconContainer, { backgroundColor: item.iconColors[0] }]}
-                    >
-                      <MaterialIcons name={item.icon} size={20} color="white" />
-                    </View>
-                    <View style={styles.menuTextContainer}>
-                      <Text
-                        style={[
-                          styles.menuTitle,
-                          item.danger && styles.dangerText,
-                        ]}
-                      >
-                        {item.title}
-                      </Text>
-                      <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                    </View>
-                  </View>
-                  {item.showArrow && (
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={item.danger ? "#DC2626" : "#16A34A"}
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Preferences Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Security Preferences</Text>
-            <View style={styles.card}>
-              {/* Biometric Toggle */}
-              <View style={[styles.menuItem, styles.menuItemBorder]}>
+        {/* Account Security Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Security</Text>
+          <View style={styles.card}>
+            {securityItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={item.onPress}
+                style={[
+                  styles.menuItem,
+                  index < securityItems.length - 1 && styles.menuItemBorder,
+                ]}
+              >
                 <View style={styles.menuItemLeft}>
                   <View
-                    style={[styles.menuIconContainer, { backgroundColor: biometricSupported ? "#7C3AED" : "#E5E7EB" }]}
+                    style={[
+                      styles.menuIconContainer,
+                      { backgroundColor: item.iconColors[0] },
+                    ]}
                   >
-                    <MaterialIcons
-                      name="fingerprint"
-                      size={20}
-                      color={biometricSupported ? "white" : "#6B7280"}
-                    />
+                    <MaterialIcons name={item.icon} size={20} color="white" />
                   </View>
                   <View style={styles.menuTextContainer}>
                     <Text
                       style={[
                         styles.menuTitle,
-                        !biometricSupported && styles.disabledText,
+                        item.danger && styles.dangerText,
                       ]}
                     >
-                      Biometric Login
+                      {item.title}
                     </Text>
-                    <Text style={styles.menuSubtitle}>
-                      {biometricSupported
-                        ? "Use fingerprint or face ID to sign in"
-                        : "Not available on this device"}
-                    </Text>
+                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
                   </View>
                 </View>
-                <Switch
-                  value={biometricEnabled}
-                  onValueChange={handleBiometricToggle}
-                  disabled={!biometricSupported || togglingBiometric}
-                  trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
-                  thumbColor={
-                    biometricEnabled && biometricSupported
-                      ? "#16A34A"
-                      : "#9CA3AF"
-                  }
-                />
-              </View>
-
-              {/*  Login Alerts Toggle*/}
-              <View style={styles.menuItem}>
-                <View style={styles.menuItemLeft}>
-                  <View
-                    style={[styles.menuIconContainer, { backgroundColor: "#2563EB" }]}
-                  >
-                    <MaterialIcons
-                      name="notifications-active"
-                      size={20}
-                      color="white"
-                    />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Login Alerts</Text>
-                    <Text style={styles.menuSubtitle}>
-                      Get notified of new sign-ins to your account
-                    </Text>
-                  </View>
-                </View>
-                <Switch
-                  value={loginAlerts}
-                  onValueChange={handleLoginAlertsToggle}
-                  disabled={togglingAlerts}
-                  trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
-                  thumbColor={loginAlerts ? "#16A34A" : "#9CA3AF"}
-                />
-              </View>
-            </View>
+                {item.showArrow && (
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={24}
+                    color={item.danger ? "#DC2626" : "#16A34A"}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          {/* Privacy Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Privacy</Text>
-            <View style={styles.card}>
-              {privacyItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={item.onPress}
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Security Preferences</Text>
+          <View style={styles.card}>
+            {/* Biometric Toggle */}
+            <View style={[styles.menuItem, styles.menuItemBorder]}>
+              <View style={styles.menuItemLeft}>
+                <View
                   style={[
-                    styles.menuItem,
-                    index < privacyItems.length - 1 && styles.menuItemBorder,
+                    styles.menuIconContainer,
+                    {
+                      backgroundColor: biometricSupported
+                        ? "#7C3AED"
+                        : "#E5E7EB",
+                    },
                   ]}
                 >
-                  <View style={styles.menuItemLeft}>
-                    <View
-                      style={[styles.menuIconContainer, { backgroundColor: item.iconColors[0] }]}
-                    >
-                      <MaterialIcons name={item.icon} size={20} color="white" />
-                    </View>
-                    <View style={styles.menuTextContainer}>
-                      <Text style={styles.menuTitle}>{item.title}</Text>
-                      <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                    </View>
-                  </View>
-                  {item.showArrow && (
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color="#16A34A"
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
+                  <MaterialIcons
+                    name="fingerprint"
+                    size={20}
+                    color={biometricSupported ? "white" : "#6B7280"}
+                  />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text
+                    style={[
+                      styles.menuTitle,
+                      !biometricSupported && styles.disabledText,
+                    ]}
+                  >
+                    Biometric Login
+                  </Text>
+                  <Text style={styles.menuSubtitle}>
+                    {biometricSupported
+                      ? "Use fingerprint or face ID to sign in"
+                      : "Not available on this device"}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                disabled={!biometricSupported || togglingBiometric}
+                trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
+                thumbColor={
+                  biometricEnabled && biometricSupported ? "#16A34A" : "#9CA3AF"
+                }
+              />
+            </View>
+
+            {/*  Login Alerts Toggle*/}
+            <View style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <View
+                  style={[
+                    styles.menuIconContainer,
+                    { backgroundColor: "#2563EB" },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="notifications-active"
+                    size={20}
+                    color="white"
+                  />
+                </View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuTitle}>Login Alerts</Text>
+                  <Text style={styles.menuSubtitle}>
+                    Get notified of new sign-ins to your account
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={loginAlerts}
+                onValueChange={handleLoginAlertsToggle}
+                disabled={togglingAlerts}
+                trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
+                thumbColor={loginAlerts ? "#16A34A" : "#9CA3AF"}
+              />
             </View>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+
+        {/* Privacy Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Privacy</Text>
+          <View style={styles.card}>
+            {privacyItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={item.onPress}
+                style={[
+                  styles.menuItem,
+                  index < privacyItems.length - 1 && styles.menuItemBorder,
+                ]}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View
+                    style={[
+                      styles.menuIconContainer,
+                      { backgroundColor: item.iconColors[0] },
+                    ]}
+                  >
+                    <MaterialIcons name={item.icon} size={20} color="white" />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                  </View>
+                </View>
+                {item.showArrow && (
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={24}
+                    color="#16A34A"
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

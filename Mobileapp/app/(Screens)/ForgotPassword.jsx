@@ -1,7 +1,7 @@
 import { Account } from "appwrite";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, BackHandler, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "../../app/components/FormField";
 import CusttomButton from "../components/CusttomButton";
@@ -9,6 +9,17 @@ import CusttomButton from "../components/CusttomButton";
 
 const ForgotPassword = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [email, setEmail] = useState("");
   const [isSubmitting, setSubmitting] = useState(false);
 

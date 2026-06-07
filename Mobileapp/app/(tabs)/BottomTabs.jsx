@@ -23,6 +23,7 @@ import CreatorMode from "../(Screens)/CreatorMode";
 import Profile from "../(Screens)/Profile";
 import MyNotificationsScreen from "../(Screens)/MyNotificationsScreen";
 import { icons } from "../../constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useNotification } from "../../Context/NotificationContext";
 import i18n, { useLanguage } from "../../i18n";
@@ -167,6 +168,9 @@ const BottomTabs = () => {
   const tabBarHeight = width < 350 ? 60 : 70;
   const [activeTab, setActiveTab] = useState(0);
   const [isFocused, setIsFocused] = useState(true);
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets?.bottom || (Platform.OS === "ios" ? 20 : 12);
+  const totalTabBarHeight = tabBarHeight + bottomInset;
 
   useFocusEffect(
     useCallback(() => {
@@ -185,9 +189,9 @@ const BottomTabs = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          height: tabBarHeight,
+          height: totalTabBarHeight,
           paddingTop: 4,
-          paddingBottom: Platform.OS === "ios" ? 20 : 12,
+          paddingBottom: bottomInset,
           backgroundColor: "transparent",
         }}
       >
@@ -243,7 +247,7 @@ const BottomTabs = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View style={{ flex: 1, paddingBottom: tabBarHeight }}>
+      <View style={{ flex: 1, paddingBottom: totalTabBarHeight }}>
         {isFocused && <ActiveComponent />}
       </View>
       {renderTabBar()}

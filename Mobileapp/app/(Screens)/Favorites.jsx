@@ -2,7 +2,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
+  BackHandler,
   Dimensions,
   FlatList,
   Text,
@@ -18,6 +20,17 @@ const Favorites = () => {
   const { favorites, toggleFavorite } = useFavorites();
   console.log("Favorites data:", favorites);
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   if (favorites.length === 0) {
     return (

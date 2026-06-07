@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
+import { useEffect } from "react";
 import {
+  BackHandler,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,17 @@ import {
 
 const OrdersScreen = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   const {
     orderId,
@@ -153,10 +166,20 @@ const OrdersScreen = () => {
             <Text style={styles.detailValue}>{orderTime || "N/A"}</Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Time:</Text>
-            <Text style={styles.detailValue}>{paymentTime || "N/A"}</Text>
-          </View>
+          {paymentTime && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Time:</Text>
+              <Text style={styles.detailValue}>{paymentTime}</Text>
+            </View>
+          )}
+          {!paymentTime && paymentMethod === "Payment on Delivery" && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Time:</Text>
+              <Text style={[styles.detailValue, { color: "#D97706" }]}>
+                Pending (POD)
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Items Purchased */}
@@ -259,7 +282,9 @@ const OrdersScreen = () => {
             style={styles.continueButton}
             onPress={() => router.push("/(tabs)/BottomTabs")}
           >
-            <Text style={[styles.buttonText, { color: "#16A34A" }]}>🛍️ Continue Shopping</Text>
+            <Text style={[styles.buttonText, { color: "#16A34A" }]}>
+              🛍️ Continue Shopping
+            </Text>
           </TouchableOpacity>
         </View>
 

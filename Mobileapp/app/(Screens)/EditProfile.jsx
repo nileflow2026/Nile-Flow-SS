@@ -1,9 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +23,17 @@ const { width } = Dimensions.get("window");
 
 const EditProfile = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { user, setUser } = useGlobalContext();
 
   const [username, setUsername] = useState(user?.username || "");
@@ -62,124 +74,127 @@ const EditProfile = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.container}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.container}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Edit Profile</Text>
+            <Text style={styles.headerSubtitle}>
+              Update your personal information
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-            >
-              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-            </TouchableOpacity>
-            <View>
-              <Text style={styles.headerTitle}>Edit Profile</Text>
-              <Text style={styles.headerSubtitle}>
-                Update your personal information
+          {/* Form Card */}
+          <View style={styles.card}>
+            {/* Full Name */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons
+                  name="person"
+                  size={20}
+                  color="#16A34A"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#6B7280"
+                  autoCorrect={false}
+                  maxLength={128}
+                />
+              </View>
+            </View>
+
+            {/* Email (read-only) */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <View style={[styles.inputWrapper, styles.inputDisabled]}>
+                <MaterialIcons
+                  name="email"
+                  size={20}
+                  color="#4B5563"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[styles.input, styles.inputTextDisabled]}
+                  value={user?.email || ""}
+                  editable={false}
+                />
+                <MaterialIcons
+                  name="lock"
+                  size={16}
+                  color="#4B5563"
+                  style={{ marginLeft: 4 }}
+                />
+              </View>
+              <Text style={styles.fieldHint}>
+                Email cannot be changed here.
               </Text>
+            </View>
+
+            {/* Phone */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons
+                  name="phone"
+                  size={20}
+                  color="#16A34A"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor="#6B7280"
+                  keyboardType="phone-pad"
+                  maxLength={20}
+                />
+              </View>
             </View>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
+          {/* Save Button */}
+          <TouchableOpacity
+            onPress={handleSave}
+            activeOpacity={0.8}
+            disabled={saving}
+            style={[
+              styles.saveButton,
+              saving && { backgroundColor: "#D1D5DB" },
+            ]}
           >
-            {/* Form Card */}
-            <View style={styles.card}>
-              {/* Full Name */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons
-                    name="person"
-                    size={20}
-                    color="#16A34A"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Enter your name"
-                    placeholderTextColor="#6B7280"
-                    autoCorrect={false}
-                    maxLength={128}
-                  />
-                </View>
-              </View>
-
-              {/* Email (read-only) */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={[styles.inputWrapper, styles.inputDisabled]}>
-                  <MaterialIcons
-                    name="email"
-                    size={20}
-                    color="#4B5563"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={[styles.input, styles.inputTextDisabled]}
-                    value={user?.email || ""}
-                    editable={false}
-                  />
-                  <MaterialIcons
-                    name="lock"
-                    size={16}
-                    color="#4B5563"
-                    style={{ marginLeft: 4 }}
-                  />
-                </View>
-                <Text style={styles.fieldHint}>
-                  Email cannot be changed here.
-                </Text>
-              </View>
-
-              {/* Phone */}
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputWrapper}>
-                  <MaterialIcons
-                    name="phone"
-                    size={20}
-                    color="#16A34A"
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#6B7280"
-                    keyboardType="phone-pad"
-                    maxLength={20}
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Save Button */}
-            <TouchableOpacity
-              onPress={handleSave}
-              activeOpacity={0.8}
-              disabled={saving}
-              style={[styles.saveButton, saving && { backgroundColor: "#D1D5DB" }]}
-            >
-                {saving ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <>
-                    <MaterialIcons name="check" size={20} color="white" />
-                    <Text style={styles.saveText}>Save Changes</Text>
-                  </>
-                )}
-            </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            {saving ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <>
+                <MaterialIcons name="check" size={20} color="white" />
+                <Text style={styles.saveText}>Save Changes</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

@@ -1,9 +1,10 @@
 /* eslint-disable no-unused-vars */
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   StyleSheet,
@@ -22,6 +23,17 @@ import RecentSearches from "./RecentSearches";
 const width = Dimensions.get("window").width;
 const Searchscreen = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { user } = useGlobalContext();
   const { themeStyles } = useTheme();
   // State to manage search-related data and UI

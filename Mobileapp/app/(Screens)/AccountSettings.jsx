@@ -1,8 +1,10 @@
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   Image,
   Pressable,
@@ -28,6 +30,17 @@ const logoutFontSize = width < 350 ? 14 : 16;
 const AccountSettings = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { user, setUser, setIsLogged } = useGlobalContext();
 
   const logout = async () => {
@@ -119,7 +132,12 @@ const AccountSettings = () => {
       {type === "image" && (
         <Image
           source={icon}
-          style={{ width: 24, height: 24, marginRight: 12, tintColor: "#16A34A" }}
+          style={{
+            width: 24,
+            height: 24,
+            marginRight: 12,
+            tintColor: "#16A34A",
+          }}
         />
       )}
       {type === "material" && (
@@ -150,66 +168,66 @@ const AccountSettings = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Account Settings</Text>
-            <Text style={styles.headerSubtitle}>
-              Manage your account preferences
-            </Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Account Settings</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your account preferences
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <View style={styles.card}>
+            {accountItems.map((item, index) =>
+              renderItem(item, index, index === accountItems.length - 1),
+            )}
           </View>
         </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          <View style={styles.card}>
+            {preferenceItems.map((item, index) =>
+              renderItem(item, index, index === preferenceItems.length - 1),
+            )}
+          </View>
+        </View>
+
+        {/* Support Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{i18n.t("Support")}</Text>
+          <View style={styles.card}>
+            {supportItems.map((item, index) =>
+              renderItem(item, index, index === supportItems.length - 1),
+            )}
+          </View>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity
+          onPress={logout}
+          style={styles.logoutButton}
+          activeOpacity={0.8}
         >
-          {/* Account Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account</Text>
-            <View style={styles.card}>
-              {accountItems.map((item, index) =>
-                renderItem(item, index, index === accountItems.length - 1),
-              )}
-            </View>
-          </View>
-
-          {/* Preferences Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Preferences</Text>
-            <View style={styles.card}>
-              {preferenceItems.map((item, index) =>
-                renderItem(item, index, index === preferenceItems.length - 1),
-              )}
-            </View>
-          </View>
-
-          {/* Support Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{i18n.t("Support")}</Text>
-            <View style={styles.card}>
-              {supportItems.map((item, index) =>
-                renderItem(item, index, index === supportItems.length - 1),
-              )}
-            </View>
-          </View>
-
-          {/* Logout */}
-          <TouchableOpacity
-            onPress={logout}
-            style={styles.logoutButton}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.logoutText}>Log out</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
+          <Text style={styles.logoutText}>Log out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

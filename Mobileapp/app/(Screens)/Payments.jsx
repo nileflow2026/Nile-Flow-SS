@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -46,6 +47,17 @@ const Payments = () => {
   const [orderId, setOrderId] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [createdAt, setCreatedAt] = useState(null);
   const [estimatedDelivery, setEstimatedDelivery] = useState(null);
   const [currency, setCurrency] = useState("KES");
@@ -55,6 +67,8 @@ const Payments = () => {
   const [paymentPolling, setPaymentPolling] = useState(false);
   // Ref to cancel M-Pesa polling when the component unmounts
   const cancelPollRef = useRef(false);
+  // Ref to track if we've already processed the current navigation trigger
+  const navigationProcessedRef = useRef(false);
 
   // Cancel any in-progress M-Pesa polling on unmount to prevent memory leaks
   useEffect(() => {
@@ -74,10 +88,15 @@ const Payments = () => {
 
   // Handle navigation in useEffect to avoid async context issues
   useEffect(() => {
-    if (navigationTrigger) {
+    if (navigationTrigger && !navigationProcessedRef.current) {
+      navigationProcessedRef.current = true;
       console.log("🧭 Navigation triggered:", navigationTrigger);
       try {
         if (router && router.push) {
+          // For COD orders, paymentTime should be null/empty since no payment has been made
+          // For actual payment methods (M-Pesa, card, etc.), paymentTime is the current time
+          const isActualPayment = navigationTrigger.type !== "pod";
+
           // Pass order data as parameters - use captured data from navigation trigger
           router.push({
             pathname: "/(Screens)/OrdersScreen",
@@ -87,7 +106,7 @@ const Payments = () => {
               paymentMethod:
                 navigationTrigger.paymentMethod || "Cash on Delivery",
               orderTime: new Date().toLocaleString(),
-              paymentTime: new Date().toLocaleString(),
+              paymentTime: isActualPayment ? new Date().toLocaleString() : null,
               productsAmount:
                 navigationTrigger.productsAmount ||
                 navigationTrigger.totalAmount ||
@@ -95,7 +114,7 @@ const Payments = () => {
                 0,
               orderStatus: navigationTrigger.orderStatus || "Processing",
               estimatedDelivery: new Date(
-                Date.now() + 5 * 24 * 60 * 60 * 1000,
+                Date.now() + 3 * 24 * 60 * 60 * 1000,
               ).toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
@@ -118,10 +137,18 @@ const Payments = () => {
           "Success",
           "Order completed successfully! Please check your orders in the profile section.",
         );
+      } finally {
+        setNavigationTrigger(null); // Reset trigger after navigation attempt
       }
-      setNavigationTrigger(null); // Reset trigger
     }
   }, [navigationTrigger, router, totalAmount, cart]);
+
+  // Reset the ref when navigationTrigger becomes null to allow next navigation
+  useEffect(() => {
+    if (!navigationTrigger) {
+      navigationProcessedRef.current = false;
+    }
+  }, [navigationTrigger]);
 
   useEffect(() => {
     if (cart.length > 0) {
@@ -155,8 +182,8 @@ const Payments = () => {
       features: ["Secure", "Fast", "3D Secure"],
     }, */
     {
-      id: "cod",
-      name: "Cash on Delivery",
+      id: "pod",
+      name: "Payment on Delivery",
       icon: DollarSign,
       gradient: ["#10B981", "#059669"],
       description: "Pay when you receive your order",
@@ -179,7 +206,7 @@ const Payments = () => {
   const handleCashOnDelivery = async (user, token) => {
     const now = new Date();
     const deliveryDate = new Date(now);
-    deliveryDate.setDate(now.getDate() + 5);
+    deliveryDate.setDate(now.getDate() + 3);
     const options = {
       weekday: "long",
       year: "numeric",
@@ -195,7 +222,7 @@ const Payments = () => {
       const username = user?.username || user?.email;
       const orderCurrency = currency || "KES";
 
-      console.log("=== COD PAYMENT VALIDATION ===");
+      console.log("=== POD PAYMENT VALIDATION ===");
       console.log("User object:", JSON.stringify(user, null, 2));
       console.log("User ID:", userId);
       console.log("Customer Email:", customerEmail);
@@ -229,18 +256,21 @@ const Payments = () => {
         return;
       }
 
+      // Capture order creation timestamp right before API call
+      const orderTimestamp = Date.now();
+
       const payload = {
         cart,
         userId: userId,
         customerEmail: customerEmail,
         username: username,
-        paymentMethod: "Cash on Delivery",
+        paymentMethod: "Payment on Delivery",
         totalAmount: parseFloat(totalAmount).toFixed(2),
         currency: orderCurrency,
-        status: "Pending", // Set a status for COD orders
+        status: "Pending", // Set a status for POD orders
       };
 
-      console.log("=== SENDING COD PAYLOAD ===");
+      console.log("=== SENDING POD PAYLOAD ===");
       console.log("Payload:", JSON.stringify(payload, null, 2));
 
       const apiResponse = await axiosClient.post(
@@ -248,7 +278,7 @@ const Payments = () => {
         payload,
       );
 
-      console.log("=== COD API RESPONSE ===");
+      console.log("=== POD API RESPONSE ===");
       console.log("Response:", JSON.stringify(apiResponse.data, null, 2));
 
       const result = apiResponse.data;
@@ -258,7 +288,7 @@ const Payments = () => {
       }
 
       if (!result.orderId) {
-        throw new Error("Failed to create COD order.");
+        throw new Error("Failed to create POD order.");
       }
 
       // Ensure totalAmount is a valid number before using .toFixed()
@@ -277,7 +307,7 @@ const Payments = () => {
 
       try {
         await createNotification({
-          message: `🛍️ New COD order #${result.orderId} placed by ${customerEmail} for ${orderCurrency} ${Math.round(validTotalAmount)}.`,
+          message: `🛍️ New POD order #${result.orderId} placed by ${customerEmail} for ${orderCurrency} ${Math.round(validTotalAmount)}.`,
           type: "userNotification",
           username: username,
           userId: userId,
@@ -301,19 +331,19 @@ const Payments = () => {
       // Trigger navigation via state to avoid async context issues
       console.log("🧭 Triggering navigation via state...");
       setNavigationTrigger({
-        type: "cod",
+        type: "pod",
         orderId: result.orderId,
-        paymentMethod: "Cash on Delivery",
+        paymentMethod: "Payment on Delivery",
         orderStatus: "Pending",
-        paymentRef: `COD-${result.orderId}`,
+        paymentRef: `POD-${result.orderId}`,
         totalAmount: totalAmount, // Capture amount before cart is cleared
         productsAmount: totalAmount,
         cartItems: JSON.stringify(cart), // Capture cart before it's cleared
-        timestamp: Date.now(),
+        timestamp: orderTimestamp,
       });
       return true;
     } catch (error) {
-      console.error("=== COD CHECKOUT ERROR ===");
+      console.error("=== POD CHECKOUT ERROR ===");
       console.error("Full error:", error);
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
@@ -325,7 +355,7 @@ const Payments = () => {
         error.message ||
         "An unexpected error occurred during checkout";
 
-      Alert.alert("COD Checkout Error", errorMessage);
+      Alert.alert("POD Checkout Error", errorMessage);
       return false;
     }
   };

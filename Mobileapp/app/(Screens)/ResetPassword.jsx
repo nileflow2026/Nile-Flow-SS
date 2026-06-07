@@ -1,6 +1,6 @@
 import { useRouter, useSearchParams } from "expo-router";
-import { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, BackHandler, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "../../app/components/FormField";
 import { account } from "../../Appwrite";
@@ -8,6 +8,17 @@ import CusttomButton from "../components/CusttomButton";
 
 const ResetPassword = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { userId, secret } = useSearchParams(); // Get reset token from URL
   const [newPassword, setNewPassword] = useState("");
   const [isSubmitting, setSubmitting] = useState(false);

@@ -1,9 +1,20 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import React, { useEffect } from "react";
+import { BackHandler, View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 
 const OrderConfiramton = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   return (
     <View className="flex-1 bg-nile-white px-6 items-center justify-center">

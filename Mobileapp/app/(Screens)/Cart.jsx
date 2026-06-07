@@ -2,8 +2,9 @@
 
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,17 @@ const Cart = () => {
   const { cart, removeFromCart, updateQuantity, fetchCartItems } = useCart();
 
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   // Mirror cart into a ref so useFocusEffect can read the current length
   // without adding `cart` to its deps (which would re-run the effect on

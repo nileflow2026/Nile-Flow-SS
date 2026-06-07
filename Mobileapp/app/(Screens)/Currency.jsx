@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   FlatList,
   StyleSheet,
@@ -39,6 +40,18 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
   const [loading, setLoading] = useState(true);
   const { user } = useGlobalContext();
   const router = useRouter();
+
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   useEffect(() => {
     const fetchCurrencies = async () => {
@@ -82,92 +95,92 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Currency</Text>
-            <Text style={styles.headerSubtitle}>
-              Choose your preferred currency
-            </Text>
-          </View>
-        </View>
-
-        {/* Auto-detect notice */}
-        <View style={styles.noticeCard}>
-          <MaterialIcons name="my-location" size={18} color="#10b981" />
-          <Text style={styles.noticeText}>
-            Currency is auto-detected from your location. You can override it
-            below.
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Currency</Text>
+          <Text style={styles.headerSubtitle}>
+            Choose your preferred currency
           </Text>
-          </View>
+        </View>
+      </View>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#16A34A" size="large" />
-          </View>
-        ) : (
-          <FlatList
-            data={currencies}
-            keyExtractor={(item) => item.currency_code}
-            contentContainerStyle={{ padding: 16, gap: 12 }}
-            renderItem={({ item }) => {
-              const isSelected = selectedCurrency === item.currency_code;
-              return (
-                <TouchableOpacity
-                  onPress={() => handleCurrencySelect(item.currency_code)}
-                  activeOpacity={0.8}
+      {/* Auto-detect notice */}
+      <View style={styles.noticeCard}>
+        <MaterialIcons name="my-location" size={18} color="#10b981" />
+        <Text style={styles.noticeText}>
+          Currency is auto-detected from your location. You can override it
+          below.
+        </Text>
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color="#16A34A" size="large" />
+        </View>
+      ) : (
+        <FlatList
+          data={currencies}
+          keyExtractor={(item) => item.currency_code}
+          contentContainerStyle={{ padding: 16, gap: 12 }}
+          renderItem={({ item }) => {
+            const isSelected = selectedCurrency === item.currency_code;
+            return (
+              <TouchableOpacity
+                onPress={() => handleCurrencySelect(item.currency_code)}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.currencyCard,
+                    isSelected && styles.currencyCardSelected,
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.currencyCard,
-                      isSelected && styles.currencyCardSelected,
-                    ]}
-                  >
-                    <Text style={styles.flag}>
-                      {currencyFlags[item.currency_code] ?? "🏳️"}
+                  <Text style={styles.flag}>
+                    {currencyFlags[item.currency_code] ?? "🏳️"}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.currencyCode,
+                        isSelected && { color: "#FCD34D" },
+                      ]}
+                    >
+                      {item.currency_code}
                     </Text>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.currencyCode,
-                          isSelected && { color: "#FCD34D" },
-                        ]}
-                      >
-                        {item.currency_code}
-                      </Text>
-                      <Text style={styles.currencyName}>
-                        {currencyNames[item.currency_code] ??
-                          item.currency_name ??
-                          ""}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <View style={styles.checkBadge}>
-                        <MaterialIcons name="check" size={18} color="#16A34A" />
-                      </View>
-                    )}
+                    <Text style={styles.currencyName}>
+                      {currencyNames[item.currency_code] ??
+                        item.currency_name ??
+                        ""}
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              );
-            }}
-            ListFooterComponent={
-              <View style={styles.infoCard}>
-                <MaterialIcons name="info-outline" size={16} color="#9CA3AF" />
-                <Text style={styles.infoText}>
-                  Selecting a currency will update product prices to match the
-                  exchange rate.
-                </Text>
-              </View>
-            }
-          />
-        )}
-      </SafeAreaView>
+                  {isSelected && (
+                    <View style={styles.checkBadge}>
+                      <MaterialIcons name="check" size={18} color="#16A34A" />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          ListFooterComponent={
+            <View style={styles.infoCard}>
+              <MaterialIcons name="info-outline" size={16} color="#9CA3AF" />
+              <Text style={styles.infoText}>
+                Selecting a currency will update product prices to match the
+                exchange rate.
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 };
 

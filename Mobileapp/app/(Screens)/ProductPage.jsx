@@ -1,11 +1,22 @@
 // screens/ProductPage.js
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, Button, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, BackHandler, Button, Text, View } from "react-native";
 
 export default function ProductPage({ route }) {
   const { product } = route.params; // productId, title, basePrice
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [loading, setLoading] = useState(false);
 
   const startGroupBuy = async () => {

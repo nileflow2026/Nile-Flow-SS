@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,17 @@ import { usePremiumContext } from "../../Context/PremiumContext";
  */
 const SubscriptionSuccess = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { session_id } = useLocalSearchParams();
   const { isPremium, refreshStatus } = usePremiumContext();
   const [status, setStatus] = useState("checking"); // checking, success, failed

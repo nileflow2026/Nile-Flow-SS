@@ -1,7 +1,9 @@
 /* eslint-disable react/no-unescaped-entities */
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
+  BackHandler,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -40,6 +42,17 @@ const BodyText = ({ children }) => (
 
 const PrivacyPolicy = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -53,9 +66,7 @@ const PrivacyPolicy = () => {
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Privacy Policy</Text>
-          <Text style={styles.headerSubtitle}>
-            Last Updated: December 21, 2025
-          </Text>
+          <Text style={styles.headerSubtitle}>Last Updated: June 05, 2026</Text>
         </View>
       </View>
 
@@ -263,9 +274,9 @@ const PrivacyPolicy = () => {
                 Email:{" "}
                 <Text style={styles.link}>privacy@nileflowafrica.com</Text>
               </Text>
-              <Text style={styles.contactItem}>Phone: +254 703 115 359</Text>
+              <Text style={styles.contactItem}>Phone: +254 713 637 104</Text>
               <Text style={styles.contactItem}>
-                Address: Kilimani, Nairobi, Kenya
+                Address: Riara University, Nairobi, Kenya
               </Text>
               <Text
                 style={[
@@ -283,7 +294,7 @@ const PrivacyPolicy = () => {
         {/* Consent Notice */}
         <View style={styles.consentBox}>
           <Text style={styles.consentText}>
-            By using Nile Flow Africa, you consent to the collection, use, and
+            By using Nile Flow, you consent to the collection, use, and
             disclosure of your information as described in this Privacy Policy.
             If you do not agree with this policy, please do not use our
             services.

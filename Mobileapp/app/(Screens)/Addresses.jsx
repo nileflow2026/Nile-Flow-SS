@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   Modal,
   ScrollView,
@@ -25,6 +26,17 @@ const Addresses = () => {
   const { user } = useGlobalContext();
   const [addresses, setAddresses] = useState([]);
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newAddress, setNewAddress] = useState({
     phone: "",
@@ -128,185 +140,177 @@ const Addresses = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Your Addresses</Text>
-            <Text style={styles.headerSubtitle}>
-              Manage your delivery addresses
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Your Addresses</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your delivery addresses
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        {addresses.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <MaterialIcons name="location-off" size={48} color="#BBF7D0" />
+            <Text style={styles.emptyText}>No addresses saved yet</Text>
+            <Text style={styles.emptySubtext}>
+              Tap the + button to add your first address
             </Text>
           </View>
-        </View>
-
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-          {addresses.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <MaterialIcons
-                name="location-off"
-                size={48}
-                color="#BBF7D0"
-              />
-              <Text style={styles.emptyText}>No addresses saved yet</Text>
-              <Text style={styles.emptySubtext}>
-                Tap the + button to add your first address
-              </Text>
-              </View>
-          ) : (
-            addresses.map((item) => (
-              <View
-                key={item.$id}
-                style={styles.addressCard}
-              >
-                <View style={styles.addressCardRow}>
-                  <View style={styles.addressIconBox}>
-                    <MaterialIcons
-                      name="location-on"
-                      size={22}
-                      color="#16A34A"
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    {item.fullName ? (
-                      <Text style={styles.addressName}>{item.fullName}</Text>
-                    ) : null}
-                    <Text style={styles.addressText}>{item.address}</Text>
-                    {item.city || item.state ? (
-                      <Text style={styles.addressMeta}>
-                        {[item.city, item.state, item.zipCode, item.country]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </Text>
-                    ) : null}
-                    {item.phone ? (
-                      <Text style={styles.addressPhone}>{item.phone}</Text>
-                    ) : null}
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteAddress(item.$id)}
-                    style={styles.deleteButton}
-                  >
-                    <MaterialIcons
-                      name="delete-outline"
-                      size={22}
-                      color="#EF4444"
-                    />
-                  </TouchableOpacity>
+        ) : (
+          addresses.map((item) => (
+            <View key={item.$id} style={styles.addressCard}>
+              <View style={styles.addressCardRow}>
+                <View style={styles.addressIconBox}>
+                  <MaterialIcons name="location-on" size={22} color="#16A34A" />
                 </View>
-              </View>
-            ))
-          )}
-        </ScrollView>
-
-        {/* FAB */}
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          style={styles.fab}
-          activeOpacity={0.85}
-        >
-          <View style={styles.fabGradient}>
-            <Ionicons name="add" size={28} color="#fff" />
-          </View>
-        </TouchableOpacity>
-
-        {/* Add Address Modal */}
-        <Modal transparent animationType="slide" visible={modalVisible}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Add New Address</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <MaterialIcons name="close" size={24} color="#9CA3AF" />
-                </TouchableOpacity>
-              </View>
-
-              <TextInput
-                placeholder="Full Name"
-                placeholderTextColor="#6B7280"
-                value={user?.username || user?.name || ""}
-                editable={false}
-                style={[inputStyle, { color: "#9CA3AF" }]}
-              />
-              <TextInput
-                placeholder="Phone *"
-                placeholderTextColor="#6B7280"
-                keyboardType="phone-pad"
-                value={newAddress.phone}
-                onChangeText={(t) => setNewAddress({ ...newAddress, phone: t })}
-                style={inputStyle}
-              />
-              <TextInput
-                placeholder="Address *"
-                placeholderTextColor="#6B7280"
-                value={newAddress.address}
-                onChangeText={(t) =>
-                  setNewAddress({ ...newAddress, address: t })
-                }
-                style={inputStyle}
-              />
-              <TextInput
-                placeholder="City"
-                placeholderTextColor="#6B7280"
-                value={newAddress.city}
-                onChangeText={(t) => setNewAddress({ ...newAddress, city: t })}
-                style={inputStyle}
-              />
-              <TextInput
-                placeholder="State / Region"
-                placeholderTextColor="#6B7280"
-                value={newAddress.state}
-                onChangeText={(t) => setNewAddress({ ...newAddress, state: t })}
-                style={inputStyle}
-              />
-              <TextInput
-                placeholder="ZIP / Postal Code"
-                placeholderTextColor="#6B7280"
-                keyboardType="numeric"
-                value={newAddress.zipCode}
-                onChangeText={(t) =>
-                  setNewAddress({ ...newAddress, zipCode: t })
-                }
-                style={inputStyle}
-              />
-              <TextInput
-                placeholder="Country"
-                placeholderTextColor="#6B7280"
-                value={newAddress.country}
-                onChangeText={(t) =>
-                  setNewAddress({ ...newAddress, country: t })
-                }
-                style={inputStyle}
-              />
-
-              <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
-                <TouchableOpacity
-                  onPress={() => setModalVisible(false)}
-                  style={styles.cancelButton}
-                >
-                  <Text style={{ color: "#9CA3AF", fontFamily: "Poppins-SemiBold" }}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                  <TouchableOpacity
-                  onPress={handleAddAddress}
-                  style={[styles.saveButton, { backgroundColor: "#16A34A", flex: 1 }]}
-                >
-                    <Text
-                      style={{ color: "#fff", fontFamily: "Poppins-Bold", fontSize: 15 }}
-                    >
-                      Save Address
+                <View style={{ flex: 1 }}>
+                  {item.fullName ? (
+                    <Text style={styles.addressName}>{item.fullName}</Text>
+                  ) : null}
+                  <Text style={styles.addressText}>{item.address}</Text>
+                  {item.city || item.state ? (
+                    <Text style={styles.addressMeta}>
+                      {[item.city, item.state, item.zipCode, item.country]
+                        .filter(Boolean)
+                        .join(", ")}
                     </Text>
-                  </TouchableOpacity>
+                  ) : null}
+                  {item.phone ? (
+                    <Text style={styles.addressPhone}>{item.phone}</Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleDeleteAddress(item.$id)}
+                  style={styles.deleteButton}
+                >
+                  <MaterialIcons
+                    name="delete-outline"
+                    size={22}
+                    color="#EF4444"
+                  />
+                </TouchableOpacity>
               </View>
             </View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={styles.fab}
+        activeOpacity={0.85}
+      >
+        <View style={styles.fabGradient}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </View>
+      </TouchableOpacity>
+
+      {/* Add Address Modal */}
+      <Modal transparent animationType="slide" visible={modalVisible}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Address</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              placeholder="Full Name"
+              placeholderTextColor="#6B7280"
+              value={user?.username || user?.name || ""}
+              editable={false}
+              style={[inputStyle, { color: "#9CA3AF" }]}
+            />
+            <TextInput
+              placeholder="Phone *"
+              placeholderTextColor="#6B7280"
+              keyboardType="phone-pad"
+              value={newAddress.phone}
+              onChangeText={(t) => setNewAddress({ ...newAddress, phone: t })}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="Address *"
+              placeholderTextColor="#6B7280"
+              value={newAddress.address}
+              onChangeText={(t) => setNewAddress({ ...newAddress, address: t })}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="City"
+              placeholderTextColor="#6B7280"
+              value={newAddress.city}
+              onChangeText={(t) => setNewAddress({ ...newAddress, city: t })}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="State / Region"
+              placeholderTextColor="#6B7280"
+              value={newAddress.state}
+              onChangeText={(t) => setNewAddress({ ...newAddress, state: t })}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="ZIP / Postal Code"
+              placeholderTextColor="#6B7280"
+              keyboardType="numeric"
+              value={newAddress.zipCode}
+              onChangeText={(t) => setNewAddress({ ...newAddress, zipCode: t })}
+              style={inputStyle}
+            />
+            <TextInput
+              placeholder="Country"
+              placeholderTextColor="#6B7280"
+              value={newAddress.country}
+              onChangeText={(t) => setNewAddress({ ...newAddress, country: t })}
+              style={inputStyle}
+            />
+
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={styles.cancelButton}
+              >
+                <Text
+                  style={{ color: "#9CA3AF", fontFamily: "Poppins-SemiBold" }}
+                >
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddAddress}
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: "#16A34A", flex: 1 },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontFamily: "Poppins-Bold",
+                    fontSize: 15,
+                  }}
+                >
+                  Save Address
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </Modal>
-      </SafeAreaView>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 };
 

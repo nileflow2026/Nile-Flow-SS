@@ -1,8 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,17 @@ const { width } = Dimensions.get("window");
 
 const PaymentMethods = () => {
   const router = useRouter();
+  useEffect(() => {
+    const onBackPress = () => {
+      router.back();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [router]);
   const { isLogged } = useGlobalContext();
 
   // Placeholder saved methods — replace with real API data as needed
@@ -81,157 +93,149 @@ const PaymentMethods = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Payment Methods</Text>
-            <Text style={styles.headerSubtitle}>
-              Manage how you pay on NileFlow
-            </Text>
-          </View>
-        </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
         >
-          {/* Saved Methods */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Saved Payment Methods</Text>
-            <View style={styles.card}>
-              {!isLogged ? (
-                <View style={styles.emptyContainer}>
-                  <MaterialIcons
-                    name="lock-outline"
-                    size={48}
-                    color="#BBF7D0"
-                  />
-                  <Text style={styles.emptyTitle}>Sign In Required</Text>
-                  <Text style={styles.emptySubtitle}>
-                    Sign in to view and manage your saved payment methods
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => router.push("/sign-in")}
-                    style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
-                  >
-                      <Text style={styles.signInText}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : savedMethods.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <MaterialIcons
-                    name="credit-card-off"
-                    size={48}
-                    color="#BBF7D0"
-                  />
-                  <Text style={styles.emptyTitle}>No Saved Methods</Text>
-                  <Text style={styles.emptySubtitle}>
-                    Your payment methods will appear here after your first
-                    checkout
-                  </Text>
-                  <TouchableOpacity
-                    onPress={handleGoToCheckout}
-                    style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
-                  >
-                      <Text style={styles.signInText}>Go to Checkout</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                savedMethods.map((method, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.savedMethodItem,
-                      index < savedMethods.length - 1 && styles.menuItemBorder,
-                    ]}
-                  >
-                    <View style={styles.menuItemLeft}>
-                      <View
-                        style={[styles.menuIconContainer, { backgroundColor: method.iconColors[0] }]}
-                      >
-                        <MaterialIcons
-                          name={method.icon}
-                          size={20}
-                          color="white"
-                        />
-                      </View>
-                      <View style={styles.menuTextContainer}>
-                        <Text style={styles.menuTitle}>{method.title}</Text>
-                        <Text style={styles.menuSubtitle}>
-                          {method.subtitle}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity onPress={method.onDelete}>
-                      <MaterialIcons
-                        name="delete-outline"
-                        size={22}
-                        color="#DC2626"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                ))
-              )}
-            </View>
-          </View>
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Payment Methods</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage how you pay on NileFlow
+          </Text>
+        </View>
+      </View>
 
-          {/* Accepted Payment Methods */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Accepted Payment Methods</Text>
-            <View style={styles.card}>
-              {paymentOptions.map((option, index) => (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Saved Methods */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Saved Payment Methods</Text>
+          <View style={styles.card}>
+            {!isLogged ? (
+              <View style={styles.emptyContainer}>
+                <MaterialIcons name="lock-outline" size={48} color="#BBF7D0" />
+                <Text style={styles.emptyTitle}>Sign In Required</Text>
+                <Text style={styles.emptySubtitle}>
+                  Sign in to view and manage your saved payment methods
+                </Text>
                 <TouchableOpacity
+                  onPress={() => router.push("/sign-in")}
+                  style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
+                >
+                  <Text style={styles.signInText}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
+            ) : savedMethods.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialIcons
+                  name="credit-card-off"
+                  size={48}
+                  color="#BBF7D0"
+                />
+                <Text style={styles.emptyTitle}>No Saved Methods</Text>
+                <Text style={styles.emptySubtitle}>
+                  Your payment methods will appear here after your first
+                  checkout
+                </Text>
+                <TouchableOpacity
+                  onPress={handleGoToCheckout}
+                  style={[styles.signInButton, { backgroundColor: "#16A34A" }]}
+                >
+                  <Text style={styles.signInText}>Go to Checkout</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              savedMethods.map((method, index) => (
+                <View
                   key={index}
-                  onPress={option.onPress}
                   style={[
-                    styles.menuItem,
-                    index < paymentOptions.length - 1 && styles.menuItemBorder,
+                    styles.savedMethodItem,
+                    index < savedMethods.length - 1 && styles.menuItemBorder,
                   ]}
                 >
                   <View style={styles.menuItemLeft}>
                     <View
-                      style={[styles.menuIconContainer, { backgroundColor: option.iconColors[0] }]}
+                      style={[
+                        styles.menuIconContainer,
+                        { backgroundColor: method.iconColors[0] },
+                      ]}
                     >
                       <MaterialIcons
-                        name={option.icon}
+                        name={method.icon}
                         size={20}
                         color="white"
                       />
                     </View>
                     <View style={styles.menuTextContainer}>
-                      <Text style={styles.menuTitle}>{option.title}</Text>
-                      <Text style={styles.menuSubtitle}>{option.subtitle}</Text>
+                      <Text style={styles.menuTitle}>{method.title}</Text>
+                      <Text style={styles.menuSubtitle}>{method.subtitle}</Text>
                     </View>
                   </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={24}
-                    color="#16A34A"
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
+                  <TouchableOpacity onPress={method.onDelete}>
+                    <MaterialIcons
+                      name="delete-outline"
+                      size={22}
+                      color="#DC2626"
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
           </View>
+        </View>
 
-          {/* Security Notice */}
-          <View style={styles.noticeBanner}>
-            <MaterialIcons name="verified-user" size={24} color="#10B981" />
-            <View style={styles.noticeTextContainer}>
-              <Text style={styles.noticeTitle}>Secure Payments</Text>
-              <Text style={styles.noticeSubtitle}>
-                All transactions are encrypted and processed securely via Stripe
-                and M-Pesa
-              </Text>
-            </View>
+        {/* Accepted Payment Methods */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Accepted Payment Methods</Text>
+          <View style={styles.card}>
+            {paymentOptions.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={option.onPress}
+                style={[
+                  styles.menuItem,
+                  index < paymentOptions.length - 1 && styles.menuItemBorder,
+                ]}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View
+                    style={[
+                      styles.menuIconContainer,
+                      { backgroundColor: option.iconColors[0] },
+                    ]}
+                  >
+                    <MaterialIcons name={option.icon} size={20} color="white" />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>{option.title}</Text>
+                    <Text style={styles.menuSubtitle}>{option.subtitle}</Text>
+                  </View>
+                </View>
+                <MaterialIcons name="chevron-right" size={24} color="#16A34A" />
+              </TouchableOpacity>
+            ))}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+
+        {/* Security Notice */}
+        <View style={styles.noticeBanner}>
+          <MaterialIcons name="verified-user" size={24} color="#10B981" />
+          <View style={styles.noticeTextContainer}>
+            <Text style={styles.noticeTitle}>Secure Payments</Text>
+            <Text style={styles.noticeSubtitle}>
+              All transactions are encrypted and processed securely via Stripe
+              and M-Pesa
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
