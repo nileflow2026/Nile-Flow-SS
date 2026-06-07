@@ -44,7 +44,6 @@ const Redeem = () => {
   const [loading, setLoading] = useState(true);
   const [selectedReward, setSelectedReward] = useState(null);
   const [redeeming, setRedeeming] = useState(false);
-  const router = useRouter();
   const isDarkMode = false;
 
   // Premium African marketplace theme

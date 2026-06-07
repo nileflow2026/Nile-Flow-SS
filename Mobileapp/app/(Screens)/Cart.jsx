@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 /* eslint-disable no-unused-vars */
 
 import { Image } from "expo-image";
