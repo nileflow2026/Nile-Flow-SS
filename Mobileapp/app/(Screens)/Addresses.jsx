@@ -47,15 +47,15 @@ const Addresses = () => {
     country: "",
   });
 
+  const fetchAddresses = async () => {
+    if (!user?.id) return;
+    const fetched = await AddressService.getAddresses();
+    setAddresses(fetched || []);
+  };
+
   useEffect(() => {
     fetchAddresses();
   }, [user]);
-
-  const fetchAddresses = async () => {
-    if (!user?.userId) return;
-    const fetched = await AddressService.getAddresses(user.userId);
-    setAddresses(fetched || []);
-  };
 
   const handleAddAddress = async () => {
     if (!newAddress.phone || !newAddress.address) {
@@ -65,11 +65,16 @@ const Addresses = () => {
       );
       return;
     }
+    if (!user?.id) {
+      Alert.alert("Error", "User not authenticated. Please log in again.");
+      return;
+    }
     const newAddressData = {
+      userId: user.id,
       ...newAddress,
       fullName: user?.username || user?.name || "",
     };
-    const added = await AddressService.addAddress(user.userId, newAddressData);
+    const added = await AddressService.addAddress(newAddressData);
     if (added) {
       setAddresses((prev) => [...prev, added]);
       setNewAddress({

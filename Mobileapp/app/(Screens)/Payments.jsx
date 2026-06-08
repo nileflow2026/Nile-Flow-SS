@@ -601,24 +601,18 @@ const Payments = () => {
       console.log("Cart Items:", cart);
       console.log("Total Amount to be sent:", totalAmount);
 
-      // Add this code at the beginning of your initiateCheckout function
-      const now = new Date();
-      const deliveryDate = new Date(now);
-      deliveryDate.setDate(now.getDate() + 5);
-      const options = {
+      // Estimated delivery date (3 business days from now)
+      const deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      const estimatedDeliveryStr = deliveryDate.toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
-      };
-      /* const estimatedDelivery = deliveryDate.toLocaleDateString(
-        "en-US",
-        options
-      ); */
-      console.log("Estimated Delivery Date:", estimatedDelivery);
+      });
+      console.log("Estimated Delivery Date:", estimatedDeliveryStr);
 
-      // --- CRITICAL FIX: Add this conditional logic ---
-      if (selectedMethod === "cod") {
+      // --- Dispatch to the appropriate payment handler ---
+      if (selectedMethod === "pod") {
         await handleCashOnDelivery(user, token);
       } else if (selectedMethod === "mobile") {
         await handleMpesaPayment(user, token);

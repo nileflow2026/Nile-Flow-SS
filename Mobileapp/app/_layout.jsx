@@ -11,8 +11,9 @@ import { GroupBuyProvider } from "../Context/GroupBuyContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { BackHandler, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -57,8 +58,8 @@ function AppContent() {
   const posthog = usePostHog();
   const pathname = usePathname(); // ✅ Track current screen path
   const [user, setUser] = useState(null);
-  console.log("user in AppContent:", user);
-  posthog.capture("user_identified_test");
+  /* console.log("user in AppContent:", user);
+  posthog.capture("user_identified_test"); */
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -82,7 +83,7 @@ function AppContent() {
       phone: user.phone,
     });
 
-    console.log("PostHog user identified:", user.id);
+    /* console.log("PostHog user identified:", user.id); */
   }, [user]);
 
   // Track screen views automatically on every navigation
@@ -121,6 +122,55 @@ function AppContent() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // --- Android Hardware Back Button Handler ---
+  // In production (standalone APK), the Stack navigator sees only 1 route.
+  // Without this handler, pressing back on any deeply-navigated screen
+  // propagates to the root Stack and exits the entire app.
+  //
+  // Individual screens (Home, ProductDetails, etc.) already intercept
+  // BackHandler and call router.back() / setActiveTab(). This root handler
+  // acts as a safety net for Prod builds — if no screen-intercepting handler
+  // fires, we prevent Android from killing the app.
+  const lastBackPress = useRef(0);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const onBackPress = () => {
+      const now = Date.now();
+
+      // On the root (tabs) path, allow double-tap to exit
+      if (
+        pathname === "/" ||
+        pathname === "/(tabs)" ||
+        pathname === "/BottomTabs"
+      ) {
+        if (now - lastBackPress.current < 2000) {
+          // Double-tap within 2 seconds — exit the app
+          return false; // Let the system handle (exits app)
+        }
+        lastBackPress.current = now;
+        Toast.show({
+          type: "info",
+          text1: "Press back again to exit",
+          visibilityTime: 2000,
+          position: "bottom",
+        });
+        return true; // Prevent app exit
+      }
+
+      // On any other screen, always prevent app exit.
+      // Individual screen BackHandlers should have navigated back already.
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress,
+    );
+    return () => subscription.remove();
+  }, [pathname]);
 
   // Keep splash visible until fonts resolve
   if (!fontsLoaded && !fontError) return null;
