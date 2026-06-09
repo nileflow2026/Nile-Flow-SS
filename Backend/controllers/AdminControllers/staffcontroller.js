@@ -1,5 +1,5 @@
 const { ID } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { logAuditFromRequest } = require('../../utils/auditLogger');
 
@@ -8,7 +8,7 @@ const getStaff = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized: No user information found.' });
     }
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_STAFF_COLLECTION
     );
@@ -37,7 +37,7 @@ const getStaff = async (req, res) => {
       if (!userId) {
         return res.status(400).json({ error: 'Invalid token: Missing user ID.' });
       }
-      await db.deleteDocument(
+      await instrumentedDb.deleteDocument(
         env.APPWRITE_DATABASE_ID, 
         env.APPWRITE_STAFF_COLLECTION,  
         id);
@@ -63,7 +63,7 @@ const getStaff = async (req, res) => {
         return res.status(400).json({ error: 'Invalid token: Missing user ID.' });
       }
   
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         process.env.APPWRITE_DATABASE_ID, 
         process.env.APPWRITE_STAFF_COLLECTION, 
         id, 
@@ -90,7 +90,7 @@ const getStaff = async (req, res) => {
         phonenumber,
       };
   
-      const doc = await db.createDocument(
+      const doc = await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_STAFF_COLLECTION,
         ID.unique(),

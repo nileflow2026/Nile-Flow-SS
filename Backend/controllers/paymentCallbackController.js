@@ -1,5 +1,5 @@
 // controllers/paymentCallbackController.js
-const { users, db } = require("../services/appwriteService");
+const { getCachedUser } = require("../services/appwriteService");
 const { env } = require("../src/env");
 const { Query, ID } = require("node-appwrite");
 const PaymentService = require("../services/paymentService");
@@ -106,7 +106,7 @@ class PaymentCallbackController {
     }
 
     try {
-      const subscriptions = await db.listDocuments(
+      const subscriptions = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         [
@@ -132,7 +132,7 @@ class PaymentCallbackController {
 
     try {
       // 1. Get current user data
-      user = await users.get(userId);
+      user = await getCachedUser(userId);
     } catch (error) {
       errors.push(`Failed to get user: ${error.message}`);
       throw new Error(`Atomic update failed: ${errors.join(", ")}`);
@@ -155,7 +155,7 @@ class PaymentCallbackController {
     try {
       // 3. Create/update subscription record
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
-        await db.createDocument(
+        await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
           ID.unique(),
@@ -221,7 +221,7 @@ class PaymentCallbackController {
       // Find the pending subscription by checkoutRequestId
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          const subscriptions = await db.listDocuments(
+          const subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [
@@ -235,7 +235,7 @@ class PaymentCallbackController {
             const userId = subscription.userId;
 
             // Update subscription to active
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               subscription.$id,
@@ -246,7 +246,7 @@ class PaymentCallbackController {
             );
 
             // Get user and update premium status
-            const user = await users.get(userId);
+            const user = await getCachedUser(userId);
 
             // Update user prefs with premium status
             await users.updatePrefs(userId, {
@@ -261,13 +261,13 @@ class PaymentCallbackController {
             // Update user collection document attributes
             if (env.APPWRITE_USER_COLLECTION_ID) {
               try {
-                const userDocs = await db.listDocuments(
+                const userDocs = await instrumentedDb.listDocuments(
                   env.APPWRITE_DATABASE_ID,
                   env.APPWRITE_USER_COLLECTION_ID,
                   [Query.equal("email", user.email)],
                 );
                 if (userDocs.documents.length > 0) {
-                  await db.updateDocument(
+                  await instrumentedDb.updateDocument(
                     env.APPWRITE_DATABASE_ID,
                     env.APPWRITE_USER_COLLECTION_ID,
                     userDocs.documents[0].$id,
@@ -499,7 +499,7 @@ class PaymentCallbackController {
 
       if (orderId) {
         // Update order status to confirmed
-        const orders = await db.listDocuments(
+        const orders = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           [Query.equal("orderId", orderId), Query.limit(1)],
@@ -507,7 +507,7 @@ class PaymentCallbackController {
 
         if (orders.documents.length > 0) {
           const order = orders.documents[0];
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_ORDERS_COLLECTION,
             order.$id,
@@ -535,7 +535,7 @@ class PaymentCallbackController {
 
       if (orderId) {
         // Update order status to failed
-        const orders = await db.listDocuments(
+        const orders = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           [Query.equal("orderId", orderId), Query.limit(1)],
@@ -543,7 +543,7 @@ class PaymentCallbackController {
 
         if (orders.documents.length > 0) {
           const order = orders.documents[0];
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_ORDERS_COLLECTION,
             order.$id,
@@ -571,7 +571,7 @@ class PaymentCallbackController {
 
       if (userId && env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         // Create subscription record
-        await db.createDocument(
+        await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
           ID.unique(),
@@ -600,7 +600,7 @@ class PaymentCallbackController {
 
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         // Find and update subscription
-        const subscriptions = await db.listDocuments(
+        const subscriptions = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
           [
@@ -612,7 +612,7 @@ class PaymentCallbackController {
 
         if (subscriptions.documents.length > 0) {
           const sub = subscriptions.documents[0];
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             sub.$id,
@@ -697,7 +697,7 @@ class PaymentCallbackController {
         if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
           try {
             // Try to find by transactionId (session id) to be precise
-            let subscriptions = await db.listDocuments(
+            let subscriptions = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               [
@@ -708,7 +708,7 @@ class PaymentCallbackController {
 
             if (!subscriptions.documents.length) {
               // Fallback: find any pending stripe subscription for the user
-              subscriptions = await db.listDocuments(
+              subscriptions = await instrumentedDb.listDocuments(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
                 [
@@ -731,7 +731,7 @@ class PaymentCallbackController {
               );
 
               // Update subscription to active
-              const updated = await db.updateDocument(
+              const updated = await instrumentedDb.updateDocument(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
                 subscription.$id,
@@ -750,7 +750,7 @@ class PaymentCallbackController {
               );
 
               // Get user and update premium status
-              const user = await users.get(userId);
+              const user = await getCachedUser(userId);
 
               // Update user prefs with premium status
               await users.updatePrefs(userId, {
@@ -765,13 +765,13 @@ class PaymentCallbackController {
               // Update user collection document attributes
               if (env.APPWRITE_USER_COLLECTION_ID) {
                 try {
-                  const userDocs = await db.listDocuments(
+                  const userDocs = await instrumentedDb.listDocuments(
                     env.APPWRITE_DATABASE_ID,
                     env.APPWRITE_USER_COLLECTION_ID,
                     [Query.equal("email", user.email)],
                   );
                   if (userDocs.documents.length > 0) {
-                    await db.updateDocument(
+                    await instrumentedDb.updateDocument(
                       env.APPWRITE_DATABASE_ID,
                       env.APPWRITE_USER_COLLECTION_ID,
                       userDocs.documents[0].$id,
@@ -854,7 +854,7 @@ class PaymentCallbackController {
       // Find pending subscription atomically
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         // Try to find by transactionId (session id) first for precision
-        let subscriptions = await db.listDocuments(
+        let subscriptions = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
           [
@@ -866,7 +866,7 @@ class PaymentCallbackController {
 
         if (!subscriptions.documents.length) {
           // Fallback: find any pending stripe subscription for the user
-          subscriptions = await db.listDocuments(
+          subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [
@@ -910,7 +910,7 @@ class PaymentCallbackController {
 
     try {
       // 1. Update subscription to active
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         subscription.$id,
@@ -926,7 +926,7 @@ class PaymentCallbackController {
 
     try {
       // 2. Get and update user preferences
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       await users.updatePrefs(userId, {
         ...user.prefs,

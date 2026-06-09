@@ -11,7 +11,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow-app",
-    version: "1.2.8",
+    version: "1.3.9",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
@@ -19,14 +19,21 @@ module.exports = () => ({
     newArchEnabled: true,
     updates: {
       url: "https://u.expo.dev/f832f869-d5a3-472c-a6e6-8b098d9d45c9",
+      enabled: true,
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 30000,
     },
     runtimeVersion: {
-      policy: "appVersion",
+      policy: "fingerprint",
     },
     extra: {
       API_URL:
         process.env.API_BASE_URL || "https://nile-flow-backend.onrender.com",
       STRIPE_KEY: process.env.STRIPE_KEY || "",
+      STRIPE_PUBLISH_KEY: process.env.STRIPE_PUBLISH_KEY || "",
+      FLW_PUBLIC_KEY: process.env.FLW_PUBLIC_KEY || "",
+      PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || "",
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || "",
       EXPO_PUBLIC_POSTHOG_API_KEY:
         process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "",
       EXPO_PUBLIC_POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST || "",

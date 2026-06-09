@@ -1,5 +1,5 @@
 const { Query, ID, Permission } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const getNotifications = async (req, res) => {
@@ -19,7 +19,7 @@ const getNotifications = async (req, res) => {
     ) {
       query.unshift(Query.equal("type", notificationType));
     }
-    const notifications = await db.listDocuments(
+    const notifications = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       query
@@ -48,7 +48,7 @@ const fetchAdminNotifications = async (req, res) => {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [
@@ -87,13 +87,13 @@ const clearAllNotifications = async (req, res) => {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID
     );
 
     const deletions = response.documents.map((doc) =>
-      db.deleteDocument(
+      instrumentedDb.deleteDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
         doc.$id
@@ -129,7 +129,7 @@ const markNotificationsAsRead = async (req, res) => {
     }
     await Promise.all(
       ids.map((id) =>
-        db.updateDocument(
+        instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
           id,
@@ -181,7 +181,7 @@ const CreateProductApprovalNotification = async (req, res) => {
     }
 
     // Create notification with metadata
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),

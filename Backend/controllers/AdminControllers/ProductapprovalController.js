@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 const {
@@ -12,7 +12,7 @@ const approveProduct = async (req, res) => {
     const adminId = req.user.userId;
 
     // 1. Get the pending product
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId
@@ -38,7 +38,7 @@ const approveProduct = async (req, res) => {
 
     try {
       if (product.vendorId) {
-        const vendor = await db.getDocument(
+        const vendor = await instrumentedDb.getDocument(
           env.VENDOR_DATABASE_ID,
           env.VENDOR_COLLECTION_ID,
           product.vendorId
@@ -59,7 +59,7 @@ const approveProduct = async (req, res) => {
     }
 
     // 2. Update product status
-    const updatedProduct = await db.updateDocument(
+    const updatedProduct = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,
@@ -103,7 +103,7 @@ const approveProduct = async (req, res) => {
 
     // 4. Optional: Update vendor's product record
     try {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_PRODUCTS_COLLECTION_ID,
         productId,
@@ -138,14 +138,14 @@ const rejectProduct = async (req, res) => {
     const adminId = req.user.userId;
 
     // 1. Get the pending product
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId
     );
 
     // 2. Update product status
-    const updatedProduct = await db.updateDocument(
+    const updatedProduct = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,
@@ -192,7 +192,7 @@ const rejectProduct = async (req, res) => {
 
 const getPendingProducts = async (req, res) => {
   try {
-    const pendingProducts = await db.listDocuments(
+    const pendingProducts = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [

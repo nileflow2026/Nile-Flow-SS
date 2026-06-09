@@ -1,3 +1,28 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════╗
+ * ║            ⚠️  DEPRECATED — DO NOT USE FOR DATA ACCESS        ║
+ * ╠═══════════════════════════════════════════════════════════════╣
+ * ║  This file exposes direct Appwrite SDK access from the        ║
+ * ║  browser, bypassing Redis cache, repository layer, rate       ║
+ * ║  limiting, and instrumentation.                              ║
+ * ║                                                               ║
+ * ║  ARCHITECTURE VIOLATION                                      ║
+ * ║                                                               ║
+ * ║  Required architecture:                                      ║
+ * ║    Frontend → axiosClient → Express API → Redis Cache →      ║
+ * ║    Repository Layer → Instrumented DB → Appwrite             ║
+ * ║                                                               ║
+ * ║  Forbidden architecture:                                     ║
+ * ║    Frontend → Databases() → Appwrite                         ║
+ * ║                                                               ║
+ * ║  This file is retained only for backward compatibility        ║
+ * ║  during the migration period. New code MUST NOT import       ║
+ * ║  from this file for data access.                             ║
+ * ║                                                               ║
+ * ║  Use `import axiosClient from '../api'` instead.             ║
+ * ╚═══════════════════════════════════════════════════════════════╝
+ */
+
 import {
   Client,
   Databases,
@@ -11,7 +36,7 @@ import {
 
 const client = new Client();
 client
-  .setEndpoint("https://fra.cloud.appwrite.io/v1") // Replace with your Appwrite endpoint
+  .setEndpoint("https://fra.cloud.appwrite.io/v1")
   .setProject("6926c7df002fa7831d94");
 
 const databases = new Databases(client);
@@ -42,4 +67,7 @@ export const Config = {
   APPLICANT_CVS_BUCKET_ID: "68c2feda000396f76d7d",
 };
 
+// ⚠️ DEPRECATED — Exports retained for migration period only.
+// Do NOT import databases, account, or other services from this file
+// for new components. Use axiosClient + Express API instead.
 export { databases, account, avatars, ID, functions, client, Query, storage };

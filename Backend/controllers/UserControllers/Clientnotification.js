@@ -1,5 +1,5 @@
 const { ID, Permission, Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const {
   sendPushNotification,
@@ -16,7 +16,7 @@ const createNotificationInternal = async (notificationData) => {
       return; // Or throw an error if you want the signup to fail
     }
 
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),
@@ -75,7 +75,7 @@ const createNotificationInternal = async (notificationData) => {
       throw new Error("Missing required fields");
     }
 
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),
@@ -138,7 +138,7 @@ const createNotification = async (req, res) => {
       throw new Error("Missing required fields: userId and type");
     }
 
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),
@@ -229,7 +229,7 @@ const fetchCustomerNotification = async (req, res) => {
 
     console.log("Sanitized userId:", userId);
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       process.env.APPWRITE_DATABASE_ID,
       process.env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [Query.equal("userId", userId), Query.orderDesc("$createdAt")],
@@ -250,7 +250,7 @@ const markAllNotificationsAsRead = async (req, res) => {
 
     const userId = req.user.userId;
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [
@@ -261,7 +261,7 @@ const markAllNotificationsAsRead = async (req, res) => {
     );
 
     for (const note of result.documents) {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
         note.$id,
@@ -305,7 +305,7 @@ const registerPushToken = async (req, res) => {
 
     const userId = req.user.userId;
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       userId,

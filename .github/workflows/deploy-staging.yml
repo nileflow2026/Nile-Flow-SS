@@ -1,0 +1,63 @@
+# ──────────────────────────────────────────────────────────
+# NILE FLOW — Deploy Staging (OTA Update)
+# ──────────────────────────────────────────────────────────
+# Trigger: Push to develop or staging branches
+# Action: Build validation -> OTA publish -> Tag deployment
+# ──────────────────────────────────────────────────────────
+
+name: Deploy Staging (OTA)
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20.x"
+  WORKING_DIRECTORY: Mobileapp
+
+jobs:
+  validate-and-deploy:
+    name: Validate and Deploy Staging OTA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Validate Expo Config
+        run: npx expo config --type public
+
+      - name: Generate Fingerprint
+        run: npx @expo/fingerprint .
+
+      - name: Publish OTA Update (Staging Channel)
+        run: npx eas update --branch staging --message "Staging OTA: $SHA"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SHA: ${{ github.sha }}
+
+      - name: Tag Deployment
+        run: |
+          TAG="staging-ota-$(date +%Y%m%d-%H%M%S)"
+          git tag "$TAG"
+          git push origin "$TAG"

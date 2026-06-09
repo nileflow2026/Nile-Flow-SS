@@ -1,5 +1,5 @@
 const { ID, Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const {
   retryUpdateDocumentWithOptimisticLock,
@@ -96,7 +96,7 @@ async function createGroupOrder(req, res) {
       expiresAt,
     };
 
-    const order = await db.createDocument(
+    const order = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       ID.unique(),
@@ -120,7 +120,7 @@ async function createGroupOrder(req, res) {
 async function getGroupOrder(req, res) {
   try {
     const id = req.params.id;
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       id,
@@ -167,7 +167,7 @@ async function listGroupOrders(req, res) {
     // Default: show newest first
     queries.push(Query.orderDesc("$createdAt"));
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       queries,
@@ -200,7 +200,7 @@ async function updateGroupOrder(req, res) {
     const id = req.params.id;
     const updates = req.body;
     // Basic validation could go here
-    const updated = await db.updateDocument(
+    const updated = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       id,
@@ -220,7 +220,7 @@ async function cancelGroupOrder(req, res) {
   try {
     const id = req.params.id;
     // set status to 'cancelled'
-    const updated = await db.updateDocument(
+    const updated = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       id,
@@ -408,7 +408,7 @@ async function expireGroupOrders(req, res) {
   try {
     const now = new Date().toISOString();
 
-    const expiredCandidates = await db.listDocuments(
+    const expiredCandidates = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       [
@@ -421,7 +421,7 @@ async function expireGroupOrders(req, res) {
     const updated = [];
     for (const order of expiredCandidates.documents || []) {
       try {
-        const updatedDoc = await db.updateDocument(
+        const updatedDoc = await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
           order.$id,
@@ -472,7 +472,7 @@ async function getActiveGroupsForProduct(req, res) {
       Query.limit(Number(limit)),
     ];
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       queries,
@@ -503,7 +503,7 @@ async function getActiveGroupsForProduct(req, res) {
 async function getGroupShareData(req, res) {
   try {
     const id = req.params.id;
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_GROUP_ORDER_COLLECTION_ID,
       id,

@@ -1,6 +1,11 @@
 // services/subscriptionCronService.js
 const cron = require("node-cron");
-const { db, users } = require("./appwriteService");
+const {
+  db,
+  users,
+  instrumentedDb,
+  getCachedUser,
+} = require("./appwriteService");
 const { env } = require("../src/env");
 const { Query } = require("node-appwrite");
 const PaymentService = require("./paymentService");
@@ -44,32 +49,32 @@ class SubscriptionCronService {
 
       const now = new Date();
       const sevenDaysFromNow = new Date(
-        now.getTime() + 7 * 24 * 60 * 60 * 1000
+        now.getTime() + 7 * 24 * 60 * 60 * 1000,
       );
       const threeDaysFromNow = new Date(
-        now.getTime() + 3 * 24 * 60 * 60 * 1000
+        now.getTime() + 3 * 24 * 60 * 60 * 1000,
       );
 
       // Fetch active subscriptions
-      const subscriptions = await db.listDocuments(
+      const subscriptions = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         [
           Query.equal("status", "active"),
           Query.lessThan("expiresAt", sevenDaysFromNow.toISOString()),
           Query.greaterThan("expiresAt", now.toISOString()),
-        ]
+        ],
       );
 
       logger.info(
-        `Found ${subscriptions.documents.length} subscriptions expiring within 7 days`
+        `Found ${subscriptions.documents.length} subscriptions expiring within 7 days`,
       );
 
       for (const subscription of subscriptions.documents) {
         try {
           const expiresAt = new Date(subscription.expiresAt);
           const daysUntilExpiry = Math.ceil(
-            (expiresAt - now) / (1000 * 60 * 60 * 24)
+            (expiresAt - now) / (1000 * 60 * 60 * 24),
           );
 
           // Check if this is a cancelled subscription (no auto-renewal)
@@ -82,11 +87,11 @@ class SubscriptionCronService {
             await this.sendReminderNotification(subscription, 7, isCancelled);
 
             // Mark reminder as sent
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               subscription.$id,
-              { sevenDayReminderSent: true }
+              { sevenDayReminderSent: true },
             );
           }
 
@@ -95,17 +100,17 @@ class SubscriptionCronService {
             await this.sendReminderNotification(subscription, 3, isCancelled);
 
             // Mark reminder as sent
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               subscription.$id,
-              { threeDayReminderSent: true }
+              { threeDayReminderSent: true },
             );
           }
         } catch (error) {
           logger.error(
             `Error processing subscription ${subscription.$id}:`,
-            error
+            error,
           );
         }
       }
@@ -122,10 +127,10 @@ class SubscriptionCronService {
   static async sendReminderNotification(
     subscription,
     daysRemaining,
-    isCancelled
+    isCancelled,
   ) {
     try {
-      const user = await users.get(subscription.userId);
+      const user = await getCachedUser(subscription.userId);
 
       if (!user || !user.email) {
         logger.warn(`User not found for subscription ${subscription.$id}`);
@@ -145,17 +150,17 @@ class SubscriptionCronService {
         });
 
         logger.info(
-          `Sent ${daysRemaining}-day reminder to ${user.email} for subscription ${subscription.subscriptionId}`
+          `Sent ${daysRemaining}-day reminder to ${user.email} for subscription ${subscription.subscriptionId}`,
         );
       } else {
         logger.info(
-          `Skipping reminder for cancelled subscription ${subscription.subscriptionId}`
+          `Skipping reminder for cancelled subscription ${subscription.subscriptionId}`,
         );
       }
     } catch (error) {
       logger.error(
         `Failed to send reminder for subscription ${subscription.$id}:`,
-        error
+        error,
       );
     }
   }
@@ -176,18 +181,18 @@ class SubscriptionCronService {
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
       // Find subscriptions expiring today or tomorrow that haven't been cancelled
-      const subscriptions = await db.listDocuments(
+      const subscriptions = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         [
           Query.equal("status", "active"),
           Query.lessThan("expiresAt", tomorrow.toISOString()),
           Query.greaterThan("expiresAt", now.toISOString()),
-        ]
+        ],
       );
 
       logger.info(
-        `Found ${subscriptions.documents.length} subscriptions ready for renewal`
+        `Found ${subscriptions.documents.length} subscriptions ready for renewal`,
       );
 
       for (const subscription of subscriptions.documents) {
@@ -199,7 +204,7 @@ class SubscriptionCronService {
 
           if (isCancelled) {
             logger.info(
-              `Skipping auto-renewal for cancelled subscription ${subscription.subscriptionId}`
+              `Skipping auto-renewal for cancelled subscription ${subscription.subscriptionId}`,
             );
             continue;
           }
@@ -207,7 +212,7 @@ class SubscriptionCronService {
           // Skip if already renewed
           if (subscription.autoRenewed) {
             logger.info(
-              `Subscription ${subscription.subscriptionId} already renewed`
+              `Subscription ${subscription.subscriptionId} already renewed`,
             );
             continue;
           }
@@ -216,7 +221,7 @@ class SubscriptionCronService {
         } catch (error) {
           logger.error(
             `Error renewing subscription ${subscription.$id}:`,
-            error
+            error,
           );
         }
       }
@@ -232,7 +237,7 @@ class SubscriptionCronService {
    */
   static async renewSubscription(subscription) {
     try {
-      const user = await users.get(subscription.userId);
+      const user = await getCachedUser(subscription.userId);
 
       if (!user) {
         logger.error(`User not found for subscription ${subscription.$id}`);
@@ -244,7 +249,7 @@ class SubscriptionCronService {
       const paymentMethod = subscription.paymentMethod;
 
       logger.info(
-        `Attempting to renew subscription ${subscription.subscriptionId} for user ${subscription.userId}`
+        `Attempting to renew subscription ${subscription.subscriptionId} for user ${subscription.userId}`,
       );
 
       // Process renewal payment based on payment method
@@ -256,12 +261,12 @@ class SubscriptionCronService {
 
         if (!phoneNumber) {
           logger.error(
-            `No phone number found for M-Pesa renewal: ${subscription.userId}`
+            `No phone number found for M-Pesa renewal: ${subscription.userId}`,
           );
           await this.handleRenewalFailure(
             subscription,
             user,
-            "No phone number on file"
+            "No phone number on file",
           );
           return;
         }
@@ -276,19 +281,19 @@ class SubscriptionCronService {
         // For Stripe, we would need to store customer ID and payment method ID
         // This is a simplified version - production should use Stripe Subscriptions API
         logger.warn(
-          `Stripe auto-renewal requires manual intervention or Stripe Subscriptions API - subscription ${subscription.subscriptionId}`
+          `Stripe auto-renewal requires manual intervention or Stripe Subscriptions API - subscription ${subscription.subscriptionId}`,
         );
 
         // Send email to manually renew
         await this.handleRenewalFailure(
           subscription,
           user,
-          "Please update your subscription manually"
+          "Please update your subscription manually",
         );
         return;
       } else {
         logger.error(
-          `Unsupported payment method for renewal: ${paymentMethod}`
+          `Unsupported payment method for renewal: ${paymentMethod}`,
         );
         return;
       }
@@ -299,7 +304,7 @@ class SubscriptionCronService {
         newExpiresAt.setDate(newExpiresAt.getDate() + 30);
 
         // Update subscription document
-        await db.updateDocument(
+        await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
           subscription.$id,
@@ -310,7 +315,7 @@ class SubscriptionCronService {
             sevenDayReminderSent: false,
             threeDayReminderSent: false,
             lastRenewalTransactionId: paymentResult.transactionId,
-          }
+          },
         );
 
         // Update user prefs
@@ -322,19 +327,19 @@ class SubscriptionCronService {
         // Update user collection document
         if (env.APPWRITE_USER_COLLECTION_ID) {
           try {
-            const userDocs = await db.listDocuments(
+            const userDocs = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_USER_COLLECTION_ID,
-              [Query.equal("email", user.email)]
+              [Query.equal("email", user.email)],
             );
             if (userDocs.documents.length > 0) {
-              await db.updateDocument(
+              await instrumentedDb.updateDocument(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_USER_COLLECTION_ID,
                 userDocs.documents[0].$id,
                 {
                   subscriptionExpiresAt: newExpiresAt.toISOString(),
-                }
+                },
               );
             }
           } catch (docError) {
@@ -353,24 +358,24 @@ class SubscriptionCronService {
         });
 
         logger.info(
-          `Successfully renewed subscription ${subscription.subscriptionId} for user ${subscription.userId}`
+          `Successfully renewed subscription ${subscription.subscriptionId} for user ${subscription.userId}`,
         );
       } else {
         // Payment failed
         await this.handleRenewalFailure(
           subscription,
           user,
-          paymentResult.message || "Payment processing failed"
+          paymentResult.message || "Payment processing failed",
         );
       }
     } catch (error) {
       logger.error(
         `Error in renewSubscription for ${subscription.$id}:`,
-        error
+        error,
       );
 
       try {
-        const user = await users.get(subscription.userId);
+        const user = await getCachedUser(subscription.userId);
         await this.handleRenewalFailure(subscription, user, error.message);
       } catch (emailError) {
         logger.error("Failed to send renewal failure email:", emailError);
@@ -386,7 +391,7 @@ class SubscriptionCronService {
       const userName = user.name || user.prefs?.name || "Valued Customer";
 
       // Mark subscription as renewal failed
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         subscription.$id,
@@ -394,7 +399,7 @@ class SubscriptionCronService {
           renewalFailed: true,
           renewalFailureReason: reason,
           renewalFailedAt: new Date().toISOString(),
-        }
+        },
       );
 
       // Send failure notification
@@ -406,7 +411,7 @@ class SubscriptionCronService {
       });
 
       logger.warn(
-        `Renewal failed for subscription ${subscription.subscriptionId}: ${reason}`
+        `Renewal failed for subscription ${subscription.subscriptionId}: ${reason}`,
       );
     } catch (error) {
       logger.error("Error handling renewal failure:", error);
@@ -427,34 +432,34 @@ class SubscriptionCronService {
       const now = new Date();
 
       // Find active subscriptions that have expired
-      const subscriptions = await db.listDocuments(
+      const subscriptions = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
         [
           Query.equal("status", "active"),
           Query.lessThan("expiresAt", now.toISOString()),
-        ]
+        ],
       );
 
       logger.info(
-        `Found ${subscriptions.documents.length} overdue subscriptions`
+        `Found ${subscriptions.documents.length} overdue subscriptions`,
       );
 
       for (const subscription of subscriptions.documents) {
         try {
           // Update subscription to expired
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             subscription.$id,
             {
               status: "expired",
               expiredAt: new Date().toISOString(),
-            }
+            },
           );
 
           // Update user prefs
-          const user = await users.get(subscription.userId);
+          const user = await getCachedUser(subscription.userId);
           await users.updatePrefs(subscription.userId, {
             ...user.prefs,
             isPremium: false,
@@ -463,19 +468,19 @@ class SubscriptionCronService {
           // Update user collection document
           if (env.APPWRITE_USER_COLLECTION_ID) {
             try {
-              const userDocs = await db.listDocuments(
+              const userDocs = await instrumentedDb.listDocuments(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_USER_COLLECTION_ID,
-                [Query.equal("email", user.email)]
+                [Query.equal("email", user.email)],
               );
               if (userDocs.documents.length > 0) {
-                await db.updateDocument(
+                await instrumentedDb.updateDocument(
                   env.APPWRITE_DATABASE_ID,
                   env.APPWRITE_USER_COLLECTION_ID,
                   userDocs.documents[0].$id,
                   {
                     isPremium: false,
-                  }
+                  },
                 );
               }
             } catch (docError) {
@@ -484,12 +489,12 @@ class SubscriptionCronService {
           }
 
           logger.info(
-            `Expired subscription ${subscription.subscriptionId} for user ${subscription.userId}`
+            `Expired subscription ${subscription.subscriptionId} for user ${subscription.userId}`,
           );
         } catch (error) {
           logger.error(
             `Error expiring subscription ${subscription.$id}:`,
-            error
+            error,
           );
         }
       }

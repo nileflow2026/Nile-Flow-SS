@@ -1,6 +1,6 @@
 // routes/riderRoutes.js
 const express = require("express");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 const { storage } = require("../../src/appwrite");
@@ -30,7 +30,7 @@ const getRiders = async (req, res) => {
       queries.push(Query.search("name", search));
     }
 
-    const riders = await db.listDocuments(
+    const riders = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       queries
@@ -63,7 +63,7 @@ const getRiders = async (req, res) => {
  */
 const getRiderProfile = async (req, res) => {
   try {
-    const rider = await db.getDocument(
+    const rider = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       req.rider.riderId
@@ -101,7 +101,7 @@ const updateRiderProfile = async (req, res) => {
     if (vehicleNumber) updateData.vehicleNumber = vehicleNumber;
     if (licenseNumber) updateData.licenseNumber = licenseNumber;
 
-    const updatedRider = await db.updateDocument(
+    const updatedRider = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       req.rider.riderId,
@@ -138,7 +138,7 @@ const updateRiderStatus = async (req, res) => {
       });
     }
 
-    const updatedRider = await db.updateDocument(
+    const updatedRider = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       req.rider.riderId,
@@ -210,7 +210,7 @@ const getRiderDeliveries = async (req, res) => {
       queries.map((q) => q.toString())
     );
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -232,7 +232,7 @@ const getRiderDeliveries = async (req, res) => {
           !delivery.customerName
         ) {
           try {
-            const customer = await db.getDocument(
+            const customer = await instrumentedDb.getDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_USER_COLLECTION_ID,
               delivery.customerId
@@ -264,7 +264,7 @@ const getRiderDeliveries = async (req, res) => {
         // If order details are missing, fetch them
         if (delivery.orderId && (!delivery.totalAmount || !delivery.items)) {
           try {
-            const order = await db.getDocument(
+            const order = await instrumentedDb.getDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_ORDERS_COLLECTION ||
                 env.APPWRITE_ORDERS_COLLECTION_ID,
@@ -321,7 +321,7 @@ const getRiderDeliveries = async (req, res) => {
  */
 const getAllDeliveries = async (req, res) => {
   try {
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       [Query.limit(100), Query.orderDesc("createdAt")]
@@ -392,7 +392,7 @@ const getRiderEarnings = async (req, res) => {
       queries.map((q) => q.toString())
     );
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID, // Fixed: Use consistent database pattern
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -451,7 +451,7 @@ const updateDeliveryStatus = async (req, res) => {
     }
 
     // Verify delivery belongs to this rider
-    const delivery = await db.getDocument(
+    const delivery = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId
@@ -483,7 +483,7 @@ const updateDeliveryStatus = async (req, res) => {
       }
     }
 
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
@@ -494,7 +494,7 @@ const updateDeliveryStatus = async (req, res) => {
     let rider = null;
     try {
       console.log(`📋 Fetching rider information...`);
-      rider = await db.getDocument(
+      rider = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         req.rider.riderId
@@ -547,7 +547,7 @@ const updateDeliveryStatus = async (req, res) => {
         JSON.stringify(notificationData, null, 2)
       );
 
-      const createdNotification = await db.createDocument(
+      const createdNotification = await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
         ID.unique(),
@@ -710,7 +710,7 @@ const uploadDocumentasync = async (req, res) => {
     );
 
     // Create verification record
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_DOCUMENTS_COLLECTION_ID,
       ID.unique(),
@@ -738,7 +738,7 @@ const uploadDocumentasync = async (req, res) => {
 const verifyDocument = async (req, res) => {
   const { documentId, status, notes } = req.body; // status: 'approved' or 'rejected'
 
-  await db.updateDocument(
+  await instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_DOCUMENTS_COLLECTION_ID,
     documentId,
@@ -751,7 +751,7 @@ const verifyDocument = async (req, res) => {
   );
 
   // Check if all documents are verified
-  const documents = await db.listDocuments(
+  const documents = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_DOCUMENTS_COLLECTION_ID,
     [Query.equal("riderId", riderId)]
@@ -763,7 +763,7 @@ const verifyDocument = async (req, res) => {
 
   if (allApproved) {
     // Activate rider account
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
@@ -781,7 +781,7 @@ const verifyDocument = async (req, res) => {
 const updateLocation = async (req, res) => {
   const { latitude, longitude, accuracy } = req.body;
 
-  await db.updateDocument(
+  await instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_COLLECTION_ID,
     req.rider.riderId,
@@ -801,7 +801,7 @@ const getNearbyRiders = async (req, res) => {
   const { latitude, longitude, radius = 5 } = req.query; // radius in km
 
   // This is a simplified version. In production, use geospatial queries
-  const riders = await db.listDocuments(
+  const riders = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_COLLECTION_ID,
     [Query.equal("status", "online")]

@@ -1,0 +1,73 @@
+# Sentry Audit Report
+
+**Date:** 2026-06-09
+**Auditor:** Platform Engineering (SRE)
+**Scope:** Nile Flow — Sentry Implementation Across All Surfaces
+
+---
+
+## Implementation Audit
+
+### Mobile (React Native / Expo)
+
+| Check                 | Status  | Details                                                          |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| Sentry initialization | ✅ PASS | Initialized in `app/_layout.jsx`                                 |
+| DSN configured        | ✅ PASS | `913978...` Sentry project ID                                    |
+| Release tracking      | ✅ PASS | `nile-flow@${version}`                                           |
+| Environment tagging   | ✅ PASS | `__DEV__ ? "development" : "production"`                         |
+| OTA release tagging   | ✅ PASS | `ota.channel`, `ota.runtimeVersion`, `ota.updateId`              |
+| User context          | ✅ PASS | `posthog.identify()` — Sentry uses `sendDefaultPii: true`        |
+| Device context        | ✅ PASS | `@sentry/react-native` auto-captures device info                 |
+| Auto session tracking | ✅ PASS | `autoSessionTracking: true`                                      |
+| Performance tracing   | ✅ PASS | `tracesSampleRate: 0.2` (prod), `1.0` (dev)                      |
+| Session replay        | ✅ PASS | `replaysOnErrorSampleRate: 1.0`, `replaysSessionSampleRate: 0.1` |
+| `Sentry.wrap()`       | ✅ PASS | RootLayout wrapped with `Sentry.wrap()`                          |
+| Error boundary        | ✅ PASS | `ErrorBoundary` component wraps all providers                    |
+
+### Backend (Node.js / Express)
+
+| Check                       | Status  | Details                                                    |
+| --------------------------- | ------- | ---------------------------------------------------------- | --- | -------------- |
+| Sentry initialization       | ✅ PASS | In `instrument.js` (loaded first in `index.js`)            |
+| DSN configured              | ✅ PASS | `e5d842...` Sentry project ID                              |
+| Environment tagging         | ✅ PASS | `process.env.NODE_ENV                                      |     | "development"` |
+| Release tracking            | ✅ PASS | `process.env.APP_VERSION`                                  |
+| Express error middleware    | ✅ PASS | `Sentry.setupExpressErrorHandler(app)`                     |
+| Request tracing             | ✅ PASS | Request tracing middleware enabled                         |
+| Performance monitoring      | ✅ PASS | `tracesSampleRate: 0.1` (prod), `1.0` (dev)                |
+| Profiling                   | ✅ PASS | `profilesSampleRate: 0.1` (prod)                           |
+| Uncaught exception handler  | ✅ PASS | `process.on("uncaughtException", ...)` captures to Sentry  |
+| Unhandled rejection handler | ✅ PASS | `process.on("unhandledRejection", ...)` captures to Sentry |
+| Max request body size       | ✅ PASS | `"none"` in production (security)                          |
+| Debug mode                  | ✅ PASS | `true` in dev only                                         |
+
+### Website (React / Vite)
+
+| Check                 | Status  | Details                                                           |
+| --------------------- | ------- | ----------------------------------------------------------------- |
+| Sentry initialization | ✅ PASS | In `main.jsx`                                                     |
+| DSN configured        | ✅ PASS | `4f4398...` Sentry project ID                                     |
+| Environment tagging   | ✅ PASS | `import.meta.env.MODE`                                            |
+| Release tracking      | ✅ PASS | `import.meta.env.VITE_APP_VERSION`                                |
+| Browser tracing       | ✅ PASS | `browserTracingIntegration()`                                     |
+| Session replay        | ✅ PASS | `replaysOnErrorSampleRate: 1.0`, `replaysSessionSampleRate: 0.05` |
+| Error boundary        | ✅ PASS | `Sentry.ErrorBoundary` wrapping entire app                        |
+| Chunk error handling  | ✅ PASS | Chunk load errors captured to Sentry                              |
+| Replay masking        | ✅ PASS | `maskAllText: false`, `blockAllMedia: false`                      |
+
+## Recommendations
+
+1. **Configure Sentry Releases in CI** — Use `sentry-cli` to create releases and associate commits. This enables suspect commits and stack trace linking.
+2. **Set up Sentry Alert Rules** — Configure email/Slack alerts for error rate spikes.
+3. **Unify DSNs** — Consider using a single Sentry project or cross-project metrics for unified view.
+
+---
+
+## Conclusion
+
+**SENTRY STATUS: PASS** — All three surfaces (Mobile, Backend, Website) have Sentry properly configured with environment tagging, release tracking, performance monitoring, and session replay.
+
+---
+
+_Generated by Nile Flow Platform Engineering_

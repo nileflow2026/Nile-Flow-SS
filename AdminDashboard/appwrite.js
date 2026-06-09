@@ -1,3 +1,25 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════╗
+ * ║            ⚠️  DEPRECATED — DO NOT USE FOR DATA ACCESS        ║
+ * ╠═══════════════════════════════════════════════════════════════╣
+ * ║  This file exposes direct Appwrite SDK access from the        ║
+ * ║  browser, bypassing Redis cache, repository layer, rate       ║
+ * ║  limiting, and instrumentation.                              ║
+ * ║                                                               ║
+ * ║  ARCHITECTURE VIOLATION                                      ║
+ * ║                                                               ║
+ * ║  Required architecture:                                      ║
+ * ║    Frontend → axiosClient → Express API → Redis Cache →      ║
+ * ║    Repository Layer → Instrumented DB → Appwrite             ║
+ * ║                                                               ║
+ * ║  Forbidden architecture:                                     ║
+ * ║    Frontend → Databases() → Appwrite                         ║
+ * ║                                                               ║
+ * ║  Retained only for backward compatibility during migration.  ║
+ * ║  New code MUST use axiosClient + Express API instead.        ║
+ * ╚═══════════════════════════════════════════════════════════════╝
+ */
+
 import {
   Client,
   Databases,
@@ -11,8 +33,8 @@ import {
 
 const client = new Client();
 client
-  .setEndpoint("https://fra.cloud.appwrite.io/v1") // Replace with your Appwrite endpoint
-  .setProject("6926c7df002fa7831d94"); // Replace with your Appwrite project ID
+  .setEndpoint("https://fra.cloud.appwrite.io/v1")
+  .setProject("6926c7df002fa7831d94");
 
 const databases = new Databases(client);
 const account = new Account(client);
@@ -43,4 +65,6 @@ export const Config = {
   APPLICANT_CVS_BUCKET_ID: "68c2feda000396f76d7d",
 };
 
+// ⚠️ DEPRECATED — Do NOT import databases/account/client for new code.
+// Use axiosClient + Express API routes instead.
 export { databases, account, avatars, ID, functions, client, Query, storage };

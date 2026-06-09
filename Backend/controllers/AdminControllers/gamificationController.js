@@ -1,7 +1,7 @@
 // controllers/gamificationController.js
 
 const { Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 
 const DB_ID = process.env.APPWRITE_DB_ID;
 const CHECKINS = "checkins";
@@ -16,7 +16,7 @@ const dailyCheckIn = async (req, res) => {
     const today = new Date().toISOString().split("T")[0];
 
     // Check if user already checked in today
-    const existing = await db.listDocuments(DB_ID, CHECKINS, [
+    const existing = await instrumentedDb.listDocuments(DB_ID, CHECKINS, [
       Query.equal("userId", userId),
       Query.equal("date", today),
     ]);
@@ -26,7 +26,7 @@ const dailyCheckIn = async (req, res) => {
     }
 
     // Add check-in
-    await db.createDocument(DB_ID, CHECKINS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, CHECKINS, ID.unique(), {
       userId,
       date: today,
       streakCount: existing.total + 1,
@@ -34,7 +34,7 @@ const dailyCheckIn = async (req, res) => {
     });
 
     // Add reward to ledger
-    await db.createDocument(DB_ID, REWARDS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, REWARDS, ID.unique(), {
       userId,
       rewardType: "checkin",
       value: 10, // Example: 10 Nile Miles
@@ -55,7 +55,7 @@ const spinWheel = async (req, res) => {
     const today = new Date().toISOString().split("T")[0];
 
     // Check if already spun today
-    const existing = await db.listDocuments(DB_ID, SPINS, [
+    const existing = await instrumentedDb.listDocuments(DB_ID, SPINS, [
       Query.equal("userId", userId),
       Query.equal("spinDate", today),
     ]);
@@ -73,13 +73,13 @@ const spinWheel = async (req, res) => {
     ];
     const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
 
-    await db.createDocument(DB_ID, SPINS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, SPINS, ID.unique(), {
       userId,
       spinDate: today,
       prize: randomPrize.prize,
     });
 
-    await db.createDocument(DB_ID, REWARDS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, REWARDS, ID.unique(), {
       userId,
       rewardType: "spin",
       value: randomPrize.value,
@@ -97,7 +97,7 @@ const spinWheel = async (req, res) => {
 const trackReferral = async (req, res) => {
   const { referrerId, refereeId } = req.body;
   try {
-    await db.createDocument(DB_ID, REFERRALS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, REFERRALS, ID.unique(), {
       referrerId,
       refereeId,
       rewardStatus: "pending",
@@ -113,7 +113,7 @@ const trackReferral = async (req, res) => {
 const claimReferralReward = async (req, res) => {
   const { refereeId } = req.body;
   try {
-    const referrals = await db.listDocuments(DB_ID, REFERRALS, [
+    const referrals = await instrumentedDb.listDocuments(DB_ID, REFERRALS, [
       Query.equal("refereeId", refereeId),
       Query.equal("rewardStatus", "pending"),
     ]);
@@ -125,12 +125,12 @@ const claimReferralReward = async (req, res) => {
     const referral = referrals.documents[0];
 
     // Mark referral as claimed
-    await db.updateDocument(DB_ID, REFERRALS, referral.$id, {
+    await instrumentedDb.updateDocument(DB_ID, REFERRALS, referral.$id, {
       rewardStatus: "claimed",
     });
 
     // Reward referrer
-    await db.createDocument(DB_ID, REWARDS, ID.unique(), {
+    await instrumentedDb.createDocument(DB_ID, REWARDS, ID.unique(), {
       userId: referral.referrerId,
       rewardType: "referral",
       value: 20, // Example: 20 Nile Miles
@@ -148,7 +148,7 @@ const claimReferralReward = async (req, res) => {
 const getRewards = async (req, res) => {
   const { userId } = req.params;
   try {
-    const rewards = await db.listDocuments(DB_ID, REWARDS, [
+    const rewards = await instrumentedDb.listDocuments(DB_ID, REWARDS, [
       Query.equal("userId", userId),
     ]);
 

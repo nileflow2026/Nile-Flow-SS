@@ -9,6 +9,16 @@
       "distribution": "internal",
       "channel": "development"
     },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "channel": "preview"

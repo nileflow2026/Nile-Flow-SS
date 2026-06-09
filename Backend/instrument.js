@@ -8,7 +8,15 @@ Sentry.init({
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
   environment: process.env.NODE_ENV || "development",
-  release: process.env.APP_VERSION,
+  release: process.env.APP_VERSION || "unknown",
   // Capture 10% of requests for performance tracing in production; 100% in dev
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  // Profile 10% of transactions in production for code-level insights
+  profilesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  // Enable Spotlight for local debugging
+  spotlight: process.env.NODE_ENV === "development",
+  // Enable debug mode in development only
+  debug: process.env.NODE_ENV === "development",
+  // Include request body in breadcrumbs for debugging
+  maxRequestBodySize: process.env.NODE_ENV === "production" ? "none" : "always",
 });

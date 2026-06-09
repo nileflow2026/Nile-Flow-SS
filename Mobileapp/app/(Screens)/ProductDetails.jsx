@@ -1,13 +1,10 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/rules-of-hooks */
-
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Alert,
   Dimensions,
@@ -21,7 +18,7 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import { Config, databases } from "../../Appwrite";
+import { Config } from "../../Appwrite";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useFavorites } from "../../Context/FavoritesContext";
 import { useGroupBuy } from "../../Context/GroupBuyContext";
@@ -33,14 +30,12 @@ import {
   useGlobalContext,
 } from "../../Context/GlobalProvider";
 import CustomAlertReview from "../components/CustomAlertReview";
-import ProductCard from "../components/ProductCard";
 import RatingModal from "../components/RatingModal";
 import RelatedProducts from "../components/RelatedProducts";
 import ReviewForm from "../components/ReviewForm";
 import ReviewList from "../components/ReviewList";
-import GroupBuyCard from "../components/GroupBuyCard";
-import GroupBuyStarter from "../components/GroupBuyStarter";
-import { useRef } from "react";
+/* import GroupBuyCard from "../components/GroupBuyCard";
+import GroupBuyStarter from "../components/GroupBuyStarter"; */
 
 const { width } = Dimensions.get("window");
 
@@ -88,7 +83,14 @@ const ProductDetails = () => {
   const router = useRouter();
   useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      // In production (APK), router.back() may fail silently if there's no
+      // previous route in the native stack. When that happens, navigate
+      // to the tabs home instead of letting the app exit.
+      try {
+        router.back();
+      } catch (_) {
+        router.replace("/(tabs)/BottomTabs");
+      }
       return true; // prevent default behavior (exit app)
     };
 
@@ -117,7 +119,7 @@ const ProductDetails = () => {
         ? reviews.slice(0, initialReviewCount)
         : [];
   }, [showAllReviews, reviews, initialReviewCount]);
-  const { user, loading, isLogged, isGuest } = useGlobalContext();
+  const { user, isLogged } = useGlobalContext();
 
   // Debug: Log navigation params
   useEffect(() => {
@@ -127,20 +129,17 @@ const ProductDetails = () => {
     console.log("item type:", typeof item);
   }, [item, params]);
   /* console.log("User in ProductDetails:", user); // Log user object for debugging */
-  const [editingReviewId, setEditingReviewId] = useState(null);
   const [ratings, setRatings] = useState({});
-  const [convertedPrice, setConvertedPrice] = useState("");
   const [selectedRating, setSelectedRating] = useState(null);
   const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
   const { fetchActiveGroups, productGroups } = useGroupBuy();
-  const [showGroupStarter, setShowGroupStarter] = useState(false);
+  /* const [showGroupStarter, setShowGroupStarter] = useState(false); */
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeImage, setActiveImage] = useState(null);
   const [fetchedImages, setFetchedImages] = useState(null); // null = not yet fetched
   const imageScrollRef = useRef(null);
-  const isDarkMode = false;
 
   let product = item;
   // Check if item is a string and parse it to object
@@ -214,7 +213,7 @@ const ProductDetails = () => {
     }
     if (product?.image) return [product.image];
     return [];
-  }, [fetchedImages, product?.images, product?.image]);
+  }, [fetchedImages, product]);
 
   // Now you can safely use 'product' (it will be an object or null)
   useEffect(() => {
@@ -311,18 +310,18 @@ const ProductDetails = () => {
     if (product?.category && product?.$id) {
       fetchRelatedData();
     }
-  }, [product]); // This hook now depends only on the main product object
+  }, [product, fetchActiveGroups]);
 
   // Removed duplicate fetchAllRatings useEffect - ratings are already fetched for related products above
 
-  useEffect(() => {
-    if (!product?.price) return;
+  // Derived price string — computed directly, no setState in effect needed
+  const convertedPrice = useMemo(() => {
+    if (!product?.price) return "";
     // Handle enriched price object from the backend currency middleware
     if (typeof product.price === "object" && product.price.displayValue) {
-      setConvertedPrice(product.price.displayValue);
-      return;
+      return product.price.displayValue;
     }
-    setConvertedPrice(`$${(parseFloat(product.price) || 0).toFixed(2)}`);
+    return `$${(parseFloat(product.price) || 0).toFixed(2)}`;
   }, [product?.price]);
 
   // Fetch all images for this product from the server (main + vendor collections)
@@ -340,41 +339,24 @@ const ProductDetails = () => {
       });
   }, [product?.$id]);
 
-  // Initialize active image
-  useEffect(() => {
-    if (product?.images?.length > 0) {
-      setActiveImage(product.images[0]);
-    } else if (product?.image) {
-      setActiveImage(product.image);
-    }
-  }, [product]);
-
   // Fetch full product details from API when product ID changes
   // This ensures we have all fields (price, details, brand, stock, etc.)
   useEffect(() => {
-    if (!product?.$id) return;
+    const pid = product?.$id;
+    if (!pid) return;
 
+    let cancelled = false;
     const fetchFullProductDetails = async () => {
       try {
-        console.log(`📥 Fetching full product details for $id: ${product.$id}`);
+        console.log(`📥 Fetching full product details for $id: ${pid}`);
         const response = await axiosClient.get(
-          `/api/customerprofile/product/${product.$id}`,
+          `/api/customerprofile/product/${pid}`,
         );
 
+        if (cancelled) return;
+
         if (response.data?.product) {
-          const fullProduct = {
-            ...product,
-            ...response.data.product, // Merge full product data
-          };
-
-          console.log("✅ Full product data loaded:", fullProduct);
-
-          // Update product with full data
-          // Note: We can't directly modify product (it's from params),
-          // but setting price/other state will trigger the dependent useEffects
-          if (fullProduct.price) {
-            // Price effect will catch this
-          }
+          console.log("✅ Full product data loaded");
         }
       } catch (error) {
         console.warn("⚠️ Could not fetch full product details:", error.message);
@@ -383,6 +365,9 @@ const ProductDetails = () => {
     };
 
     fetchFullProductDetails();
+    return () => {
+      cancelled = true;
+    };
   }, [product?.$id]);
 
   const handletogglefavorite = useCallback(() => {
@@ -396,10 +381,6 @@ const ProductDetails = () => {
       addToFavorites(product);
     }
   }, [product, isFavorite, removeFromFavorites, addToFavorites]);
-
-  const handleOrderNow = useCallback(() => {
-    console.log("Order Placed!");
-  }, []);
 
   const handleImageNavigation = useCallback(
     (direction) => {
@@ -612,115 +593,9 @@ const ProductDetails = () => {
     } catch (error) {
       console.error("Failed to add review:", error);
     }
-  }, [isLogged, user, product, reviewText, selectedImage, selectedRating]);
+  }, [isLogged, user, product, reviewText, selectedRating]);
 
-  const handleRelatedProducts = ({ item }) => (
-    <View>
-      <ProductCard
-        id={product?.id}
-        price={product?.price}
-        image={product?.image}
-        brand={product?.brand}
-        title={
-          product?.name?.length > 10
-            ? product?.name?.slice(0, 15) + "....."
-            : product?.name || "Product"
-        }
-        totalRatings={product?.$id ? ratings[product.$id] || 0 : 0}
-        rating={product?.$id ? ratings[product.$id] || 0 : 0}
-        onPress={() =>
-          product?.$id &&
-          router.push({
-            pathname: "/(Screens)/ProductDetails",
-            params: { item: JSON.stringify(product) },
-          })
-        }
-      />
-    </View>
-  );
-
-  const handleEditReview = async () => {
-    try {
-      if (!user) {
-        Alert.alert(
-          "Login Required",
-          "You need to log in to edit your review.",
-        );
-        return;
-      }
-
-      if (!editingReviewId) {
-        Alert.alert("Error", "No review selected for editing.");
-        return;
-      }
-
-      if (!product?.$id) {
-        Alert.alert("Error", "Product information is not available.");
-        return;
-      }
-
-      const cleanedReviewText = reviewText.trim();
-      let imageUrl = selectedImage;
-
-      // Image upload temporarily disabled - can be re-enabled when uploadImage is implemented
-      // if (selectedImage) {
-      //   const imageUploadResponse = await uploadImage(selectedImage);
-      //   if (imageUploadResponse) {
-      //     imageUrl = imageUploadResponse;
-      //   } else {
-      //     throw new Error("Image upload failed.");
-      //   }
-      // }
-
-      await databases.updateDocument(
-        Config.databaseId,
-        Config.reviewsCollectionId,
-        editingReviewId,
-        {
-          reviewText: cleanedReviewText,
-          imageUrl,
-          updatedAt: new Date().toISOString(),
-        },
-      );
-
-      setReviewText("");
-      setSelectedImage(null);
-      setEditingReviewId(null);
-
-      const updatedReviews = await fetchReviews(String(product.$id));
-      setReviews(updatedReviews);
-    } catch (error) {
-      console.error("Failed to edit review:", error);
-    }
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    try {
-      if (!user) {
-        Alert.alert(
-          "Login Required",
-          "You need to log in to delete your review.",
-        );
-        return;
-      }
-
-      if (!product?.$id) {
-        Alert.alert("Error", "Product information is not available.");
-        return;
-      }
-
-      await databases.deleteDocument(
-        Config.databaseId,
-        Config.reviewsCollectionId,
-        reviewId,
-      );
-
-      const updatedReviews = await fetchReviews(String(product.$id));
-      setReviews(updatedReviews);
-    } catch (error) {
-      console.error("Failed to delete review:", error);
-    }
-  };
+  // Edit and delete handlers are defined when ReviewList component supports onEdit/onDelete props
 
   const handleIPickimage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -759,9 +634,6 @@ const ProductDetails = () => {
     }),
     [],
   );
-
-  const themedText = "text-black";
-  const themedBackground = "bg-white";
 
   // Guard: Show error if product is not available
   if (!product) {

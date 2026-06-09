@@ -44,7 +44,27 @@ export const NotificationProvider = ({ children }) => {
         setPushSubscription(status.subscribed);
       }
 
-      // Load existing notifications
+      // Load existing notifications via TanStack Query if available
+      try {
+        const { queryClient } = await import("../lib/queryClient");
+        const cachedData = queryClient.getQueryData([
+          "notifications",
+          "list",
+          user.$id,
+        ]);
+        if (cachedData) {
+          setNotifications(cachedData.notifications || cachedData);
+          const unreadCount = (cachedData.notifications || cachedData).filter(
+            (n) => !n.read,
+          ).length;
+          setNotificationCount(unreadCount);
+          return;
+        }
+      } catch {
+        // TanStack Query not available, fall through
+      }
+
+      // Fallback: load via API
       const notificationsData = await getCustomerNotification();
       setNotifications(notificationsData || []);
       const unreadCount = (notificationsData || []).filter(
@@ -54,7 +74,7 @@ export const NotificationProvider = ({ children }) => {
     } catch (err) {
       console.error("❌ Error initializing notifications:", err);
     }
-  }, []); // ← no deps: stable reference, runs once on mount
+  }, []);
 
   // Request notification permission and setup push notifications
   const enableNotifications = useCallback(async () => {

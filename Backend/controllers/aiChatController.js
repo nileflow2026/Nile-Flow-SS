@@ -98,7 +98,7 @@ const getRelevantContext = async (message) => {
     // Search products if collections exist
     if (env.APPWRITE_PRODUCT_COLLECTION_ID) {
       try {
-        const products = await db.listDocuments(
+        const products = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCT_COLLECTION_ID,
           [Query.limit(5)]
@@ -112,7 +112,7 @@ const getRelevantContext = async (message) => {
     // Search categories if collections exist
     if (env.APPWRITE_CATEGORIES_COLLECTION_ID) {
       try {
-        const categories = await db.listDocuments(
+        const categories = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_CATEGORIES_COLLECTION_ID,
           [Query.limit(5)]
@@ -167,10 +167,10 @@ const getUserContext = async (userId) => {
     const db = AppwriteSessionService.getDatabases();
 
     // Get user profile
-    const userProfile = await users.get(userId);
+    const userProfile = await getCachedUser(userId);
 
     // Get last 5 orders
-    const orders = await db.listDocuments(
+    const orders = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       [
@@ -212,7 +212,7 @@ const getLatestOrderStatus = async (userId) => {
     await AppwriteSessionService.ensureConnected();
     const db = AppwriteSessionService.getDatabases();
 
-    const latestOrder = await db.listDocuments(
+    const latestOrder = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       [

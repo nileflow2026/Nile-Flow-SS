@@ -1,47 +1,69 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ────────────────────────────────────────────────────────
+# NILE FLOW — ENHANCED .GITIGNORE
+# ────────────────────────────────────────────────────────
 
-# dependencies
+# ── Dependencies ─────────────────────────────────────────
 node_modules/
 
-# Expo
+# ── Expo / React Native ──────────────────────────────────
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+app-example/
 
-# Native
+# ── Native Build Artifacts ───────────────────────────────
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+/ios/
+/android/
 
-# Metro
+# ── Secrets & Credentials (BLOCK COMMIT) ─────────────────
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+*.pem
+service-account*.json
+play-console*.json
+google-play*.json
+credentials*.json
+secrets/
+nile-flow-app-3ad669df2cd0.json
+
+# ── Metro Bundler ────────────────────────────────────────
 .metro-health-check*
 
-# debug
+# ── Debug Logs ───────────────────────────────────────────
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+\*.log
 
-# macOS
+# ── macOS ────────────────────────────────────────────────
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
-
-# typescript
+# ── TypeScript ───────────────────────────────────────────
 *.tsbuildinfo
 
-app-example
+# ── IDE / Editor ─────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# generated native folders
-/ios
-/android
-.env
+# ── Coverage & Reports ──────────────────────────────────
+coverage/
+.nyc_output/
 
-# Play Console service account key
-nile-flow-app-3ad669df2cd0.json
+# ── Generated Files ──────────────────────────────────────
+*.bundle.js
+*.bundle

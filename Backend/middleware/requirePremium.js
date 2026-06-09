@@ -1,5 +1,5 @@
 // middleware/requirePremium.js
-const { users } = require("../services/appwriteService");
+const { getCachedUser } = require("../services/appwriteService");
 const logger = require("../utils/logger");
 
 /**
@@ -18,7 +18,7 @@ const requirePremium = async (req, res, next) => {
     }
 
     // Fetch user from Appwrite
-    const user = await users.get(userId);
+    const user = await getCachedUser(userId);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -91,7 +91,7 @@ const checkPremiumStatus = async (req, res, next) => {
       return next();
     }
 
-    const user = await users.get(userId);
+    const user = await getCachedUser(userId);
 
     if (!user) {
       req.isPremium = false;

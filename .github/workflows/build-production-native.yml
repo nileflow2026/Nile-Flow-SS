@@ -1,0 +1,114 @@
+# ──────────────────────────────────────────────────────────
+# NILE FLOW — Build Production Native Binaries
+# ──────────────────────────────────────────────────────────
+# Trigger: Manual dispatch
+# Action: Android AAB + iOS IPA build -> Store submission
+# ──────────────────────────────────────────────────────────
+
+name: Build Production Native
+
+on:
+    workflow_dispatch:
+        inputs:
+            platform:
+                description: "Platform to build"
+                required: true
+                default: "all"
+                type: choice
+                options:
+                    - all
+                    - android
+                    - ios
+            profile:
+                description: "EAS Build profile"
+                required: true
+                default: "production"
+                type: choice
+                options:
+                    - production
+            submit_to_store:
+                description: "Submit to store after build"
+                required: true
+                default: false
+                type: boolean
+
+concurrency:
+    group: native-build
+    cancel-in-progress: true
+
+env:
+    NODE_VERSION: "20.x"
+    WORKING_DIRECTORY: Mobileapp
+
+jobs:
+    build-android:
+        name: Build Android App Bundle
+        if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android' }}
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIRECTORY }}
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js ${{ env.NODE_VERSION }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+                  cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Validate Expo Config
+              run: npx expo config --type public
+
+            - name: EAS Build Android
+              run: npx eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+            - name: Submit to Google Play
+              if: ${{ github.event.inputs.submit_to_store == 'true' }}
+              run: npx eas submit --platform android --profile ${{ github.event.inputs.profile }}
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+    build-ios:
+        name: Build iOS IPA
+        if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios' }}
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIRECTORY }}
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js ${{ env.NODE_VERSION }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+                  cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Validate Expo Config
+              run: npx expo config --type public
+
+            - name: EAS Build iOS
+              run: npx eas build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+            - name: Submit to App Store
+              if: ${{ github.event.inputs.submit_to_store == 'true' }}
+              run: npx eas submit --platform ios --profile ${{ github.event.inputs.profile }}
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

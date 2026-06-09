@@ -1,27 +1,25 @@
 // utils/ai.js
-import axios from 'axios';
+// ⚠️ SECURITY NOTE: OpenAI API key must NOT be hardcoded.
+// This function proxies requests through the Nile Flow backend
+// to keep the API key server-side.
 
-const OPENAI_API_KEY = 'your_openai_api_key_here';
+import axios from "axios";
+import Constants from "expo-constants";
+
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.API_BASE_URL ||
+  "https://nile-flow-backend.onrender.com";
 
 export const getAIResponse = async (userInput) => {
   try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4', // or 'gpt-3.5-turbo' if preferred
-        messages: [{ role: 'user', content: userInput }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Proxy through backend — API key stays server-side
+    const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
+      message: userInput,
+    });
 
-    return response.data.choices[0].message.content;
+    return response.data.response || response.data.message;
   } catch (error) {
-    console.error('OpenAI API error:', error);
-    return 'Sorry, I encountered an issue. Please try again.';
+    console.error("AI API error:", error);
+    return "Sorry, I encountered an issue. Please try again.";
   }
 };

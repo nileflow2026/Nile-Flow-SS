@@ -888,6 +888,14 @@ try {
 
 console.log("🎯 All routes mounted successfully!");
 
+// ========== CACHE MIDDLEWARE FOR HIGH-TRAFFIC ROUTES ==========
+try {
+  require("../middleware/applyCacheToRoutes")(app);
+  console.log("✅ Cache middleware applied to high-traffic routes");
+} catch (cacheError) {
+  console.warn("⚠️  Cache middleware setup failed:", cacheError.message);
+}
+
 // ========== V1 API GATEWAY ROUTES ==========
 try {
   const v1Router = require("../routes/v1");

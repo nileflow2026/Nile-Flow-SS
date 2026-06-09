@@ -1,6 +1,6 @@
 const { ID, Query } = require("node-appwrite");
 const { env } = require("../../src/env");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 
 exports.addNileMilesOnPurchase = async (userId, amountSSPP) => {
   const milesToAdd = Math.floor(amountSSPP / 10);
@@ -16,7 +16,7 @@ exports.addNileMilesOnPurchase = async (userId, amountSSPP) => {
       date: new Date().toISOString(),
     });
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       userRecord.$id,
@@ -26,7 +26,7 @@ exports.addNileMilesOnPurchase = async (userId, amountSSPP) => {
       }
     );
   } else {
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       ID.unique(),
@@ -61,7 +61,7 @@ exports.addNileMilesOnReferral = async (inviterId, bonusMiles = 50) => {
       date: new Date().toISOString(),
     });
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       userRecord.$id,
@@ -71,7 +71,7 @@ exports.addNileMilesOnReferral = async (inviterId, bonusMiles = 50) => {
       }
     );
   } else {
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       ID.unique(),
@@ -93,7 +93,7 @@ exports.addNileMilesOnReferral = async (inviterId, bonusMiles = 50) => {
 
 exports.handleReferralSignup = async (newUserId, referralCode) => {
   // 1. Find inviter by referralCode
-  const inviter = await db.listDocuments(
+  const inviter = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFERRALS_COLLECTION_ID,
     [Query.equal("code", [referralCode])]
@@ -110,7 +110,7 @@ exports.handleReferralSignup = async (newUserId, referralCode) => {
   await addNileMilesOnReferral(inviterId, 50); // 👈 50 miles bonus per referral
 
   // 3. Optionally update referral stats (successful count, etc.)
-  await db.updateDocument(
+  await instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFERRALS_COLLECTION_ID,
     inviter.documents[0].$id,
@@ -125,7 +125,7 @@ exports.getReferralRewards = async (req, res) => {
     const userId = req.params.userId;
 
     // 1. Fetch Nile Miles record
-    const milesRes = await db.listDocuments(
+    const milesRes = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       [Query.equal("userId", [userId])]
@@ -149,7 +149,7 @@ exports.getReferralRewards = async (req, res) => {
     }
 
     // 2. Fetch referral code
-    const referralRes = await db.listDocuments(
+    const referralRes = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFERRALS_COLLECTION_ID,
       [Query.equal("userId", [userId])]
@@ -175,7 +175,7 @@ exports.getReferralRewards = async (req, res) => {
 };
 
 const getUserMiles = async (userId) => {
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_NILE_MILES_COLLECTION,
     [Query.equal("userId", [userId])]
@@ -185,7 +185,7 @@ const getUserMiles = async (userId) => {
 };
 
 const getUserReferralMiles = async (userId) => {
-  const res = await db.listDocuments(DB_ID, REFERRAL_ID, [
+  const res = await instrumentedDb.listDocuments(DB_ID, REFERRAL_ID, [
     Query.equal("userId", [userId]),
   ]);
 

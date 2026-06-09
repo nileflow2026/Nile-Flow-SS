@@ -4,7 +4,7 @@ const {
 } = require("../../services/platformSettingsService");
 const { commissionService } = require("../../services/commissionService");
 const { VendorPayoutService } = require("../../services/vendorPayoutService");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const { logAuditFromRequest } = require("../../utils/auditLogger");
@@ -531,7 +531,7 @@ class CommissionController {
         queries.push(Query.equal("vendor_id", vendorId));
       }
 
-      const orders = await db.listDocuments(
+      const orders = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         queries,
@@ -582,7 +582,7 @@ class CommissionController {
         queries.push(Query.equal("vendor_id", vendorId));
       }
 
-      const orders = await db.listDocuments(
+      const orders = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         queries,
@@ -748,7 +748,7 @@ class CommissionController {
         vendorQueries.push(Query.equal("vendor_id", vendor_id));
       }
 
-      const ordersResult = await db.listDocuments(
+      const ordersResult = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         vendorQueries
@@ -1394,7 +1394,7 @@ class CommissionController {
       console.log(`📋 Admin ${req.user.userId} requesting audit trail for ${entity_id}`);
 
       // Get audit logs for the entity
-      const auditLogs = await db.listDocuments(
+      const auditLogs = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PAYOUT_AUDIT_LOGS_COLLECTION_ID,
         [

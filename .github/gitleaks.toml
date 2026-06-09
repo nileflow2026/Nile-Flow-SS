@@ -1,0 +1,66 @@
+# Nile Flow — Gitleaks Custom Configuration
+#
+# Extends the default Gitleaks ruleset with Nile Flow-specific patterns.
+# Rules marked "blocking" cause CI to fail. "Warning" rules only log.
+
+title = "Nile Flow Secret Detection Rules"
+
+# ──────────────────────────────────────
+# CUSTOM RULES
+# ──────────────────────────────────────
+
+[[rules]]
+id = "nileflow-google-play-key"
+description = "Google Play Console service account key"
+regex = '''nile-flow-app-[a-f0-9]+\.json'''
+tags = ["nileflow", "google-play", "critical"]
+severity = "high"
+
+[[rules]]
+id = "nileflow-sentry-auth-token"
+description = "Sentry authentication token"
+regex = '''sntrys_[A-Za-z0-9_=]+'''
+tags = ["nileflow", "sentry"]
+severity = "high"
+
+[[rules]]
+id = "nileflow-expo-token"
+description = "Expo personal access token"
+regex = '''(?:EXPO_TOKEN|expo_token)\s*=\s*["\']?[A-Za-z0-9_-]+["\']?'''
+tags = ["nileflow", "expo"]
+severity = "high"
+
+[[rules]]
+id = "nileflow-env-file"
+description = "Environment file with potential secrets"
+regex = '''\.env(?:\.\w+)?$'''
+tags = ["nileflow", "env-file"]
+path = '''\.env(?:\.\w+)?$'''
+severity = "medium"
+
+[[rules]]
+id = "nileflow-service-account"
+description = "GCP service account JSON key"
+regex = '''"private_key":\s*"-----BEGIN'''
+tags = ["nileflow", "gcp", "service-account"]
+severity = "high"
+
+# ──────────────────────────────────────
+# ALLOWLIST — known safe patterns
+# ──────────────────────────────────────
+
+[allowlist]
+description = "Known safe files and test data"
+paths = [
+    '''node_modules''',
+    '''\.git/''',
+    '''__tests__/fixtures''',
+    '''test/fixtures''',
+]
+
+# Allow example/placeholder secrets in documentation
+regexes = [
+    '''your_openai_api_key_here''',
+    '''pk_live_XXXX''',
+    '''Replace with your actual API key''',
+]

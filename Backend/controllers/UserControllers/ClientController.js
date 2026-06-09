@@ -1,5 +1,5 @@
 const { Query, ID } = require("node-appwrite");
-const { users, db } = require("../../services/appwriteService");
+const { users } = require("../../services/appwriteService");
 const { storage } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 const { getAllRates, getRate } = require("../../services/exchangeRateService");
@@ -27,7 +27,7 @@ const getCustomerProfile = async (req, res) => {
     }
 
     // 3️⃣ Query Appwrite database for the user profile using a safe field (e.g., accountid)
-    const docs = await db.listDocuments(
+    const docs = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       /* [Query.equal("accountid", userId)] */
@@ -41,7 +41,7 @@ const getCustomerProfile = async (req, res) => {
     let phone = null;
     let addresses = null;
     if (docs.total > 0) {
-      const userDoc = await db.getDocument(
+      const userDoc = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_USER_COLLECTION_ID,
         docs.documents[0].$id,
@@ -88,7 +88,7 @@ const updateCurrencyRates = async (req, res) => {
 
     for (const [currencyCode, rate] of Object.entries(data.rates)) {
       // Check if currency already exists
-      const existing = await db.listDocuments(
+      const existing = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CURRENCIES_COLLECTION,
         [Query.equal("currency_code", currencyCode)],
@@ -96,7 +96,7 @@ const updateCurrencyRates = async (req, res) => {
 
       if (existing.total > 0) {
         // Update document
-        await db.updateDocument(
+        await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_CURRENCIES_COLLECTION,
           existing.documents[0].$id,
@@ -107,7 +107,7 @@ const updateCurrencyRates = async (req, res) => {
         );
       } else {
         // Create new document
-        await db.createDocument(
+        await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_CURRENCIES_COLLECTION,
           ID.unique(),
@@ -132,7 +132,7 @@ const getCustomerOrders = async (req, res) => {
   try {
     const userId = req.user.userId; // Comes from decoded JWT via middleware
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDER_COLLECTION_ID,
       [Query.equal("userId", userId), Query.orderDesc("$createdAt")],
@@ -154,7 +154,7 @@ const saveRecentSearch = async (req, res) => {
 
   try {
     const timestamp = Math.floor(Date.now() / 1000); // seconds
-    const result = await db.createDocument(
+    const result = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION, // recentSearches
       ID.unique(),
@@ -180,7 +180,7 @@ const getRecentSearches = async (req, res) => {
   }
 
   try {
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION,
       [
@@ -202,7 +202,7 @@ const getPopularSearches = async (req, res) => {
     const { limit = 10 } = req.query;
 
     // Get all searches and aggregate by query to find most popular
-    const allSearches = await db.listDocuments(
+    const allSearches = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION,
       [
@@ -247,7 +247,7 @@ const clearRecentSearches = async (req, res) => {
       return res.status(400).json({ message: "Missing userId." });
     }
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION,
       [Query.equal("userId", userId)],
@@ -256,7 +256,7 @@ const clearRecentSearches = async (req, res) => {
     const documents = response.documents;
 
     const deletePromises = documents.map((doc) =>
-      db.deleteDocument(
+      instrumentedDb.deleteDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SEARCH_COLLECTION,
         doc.$id,
@@ -367,7 +367,7 @@ const getProducts = async (req, res) => {
         ...(cursor ? [Query.cursorAfter(cursor)] : []),
       ];
 
-      const batch = await db.listDocuments(
+      const batch = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         queries,
@@ -470,7 +470,7 @@ const getProductsForMobile = async (req, res) => {
       queries.push(Query.cursorAfter(cursor));
     }
 
-    const batch = await db.listDocuments(
+    const batch = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       queries,
@@ -481,7 +481,7 @@ const getProductsForMobile = async (req, res) => {
       batch.documents.map(async (doc) => {
         try {
           // Fetch review count and average rating
-          const reviews = await db.listDocuments(
+          const reviews = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_REVIEW_COLLECTION_ID,
             [Query.equal("productId", doc.$id), Query.select(["rating"])],
@@ -605,7 +605,7 @@ const getProductImages = async (req, res) => {
 
     // 1. Fetch from main products collection
     try {
-      const doc = await db.getDocument(
+      const doc = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -618,7 +618,7 @@ const getProductImages = async (req, res) => {
 
     // 2. Fetch from vendor products collection (may have more uploaded images)
     try {
-      const vendorDoc = await db.getDocument(
+      const vendorDoc = await instrumentedDb.getDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_PRODUCTS_COLLECTION_ID,
         productId,
@@ -672,7 +672,7 @@ const submitReview = async (req, res) => {
     const userId = user.userId;
 
     // Fetch user name and avatar
-    const userDoc = await db.listDocuments(
+    const userDoc = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       [Query.equal("$id", userId)],
@@ -726,7 +726,7 @@ const submitReview = async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    const review = await db.createDocument(
+    const review = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REVIEW_COLLECTION_ID,
       ID.unique(),
@@ -754,7 +754,7 @@ const incrementProductRatingsCountInternal = async (productIdToIncrement) => {
     }
 
     // Fetch product from the products collection
-    const productResponse = await db.listDocuments(
+    const productResponse = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [Query.equal("$id", String(productIdToIncrement))],
@@ -770,7 +770,7 @@ const incrementProductRatingsCountInternal = async (productIdToIncrement) => {
     const product = productResponse.documents[0];
     const updatedRatingsCount = (product.ratingsCount || 0) + 1;
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       product.$id,
@@ -839,7 +839,7 @@ const getProductReviews = async (req, res) => {
     // console.log("Product ID:", productId);
 
     // Fetch reviews for the product
-    const reviewResponse = await db.listDocuments(
+    const reviewResponse = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REVIEW_COLLECTION_ID,
       [
@@ -871,7 +871,7 @@ const getProductReviews = async (req, res) => {
         try {
           // console.log(`\n🔎 Fetching user profile for userId: ${userId}`);
 
-          const userResponse = await db.listDocuments(
+          const userResponse = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_USER_COLLECTION_ID,
             [Query.equal("$id", userId)],
@@ -1018,7 +1018,7 @@ const submitRating = async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REVIEW_COLLECTION_ID,
       ID.unique(),
@@ -1055,7 +1055,7 @@ const updateUserAvatar = async (req, res) => {
 
     const avatarUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${created.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
 
-    const docs = await db.listDocuments(
+    const docs = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       [Query.equal("$id", userId)],
@@ -1066,7 +1066,7 @@ const updateUserAvatar = async (req, res) => {
 
     const profileDocId = docs.documents[0].$id;
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       profileDocId,
@@ -1092,7 +1092,7 @@ const getFeaturedProducts = async (req, res) => {
     if (showAll !== "true") {
       queries.push(Query.limit(50));
     }
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
       queries,
@@ -1126,7 +1126,7 @@ const getDealProducts = async (req, res) => {
       queries.push(Query.orderDesc("$updatedAt"));
     }
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
       queries,
@@ -1184,7 +1184,7 @@ const getDealProducts = async (req, res) => {
 const getDealAnalytics = async (req, res) => {
   try {
     // Get all active deals
-    const dealsResponse = await db.listDocuments(
+    const dealsResponse = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
       [Query.equal("isDeal", true)],
@@ -1257,7 +1257,7 @@ const getGlobalDealCountdown = async (req, res) => {
     const now = new Date();
 
     // Get the deal that ends soonest
-    const dealsResponse = await db.listDocuments(
+    const dealsResponse = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
       [
@@ -1313,13 +1313,13 @@ const calculateTimeLeft = (endTime) => {
 
 const getHeroProducts = async (req, res) => {
   try {
-    const { documents: featured } = await db.listDocuments(
+    const { documents: featured } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
       [Query.limit(3), Query.orderDesc("$createdAt")],
     );
 
-    const { documents: deals } = await db.listDocuments(
+    const { documents: deals } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
       [Query.limit(3), Query.orderDesc("$createdAt")],
@@ -1333,7 +1333,7 @@ const getHeroProducts = async (req, res) => {
         docs.map(async (doc) => {
           if (!doc.productId) return { ...doc, type };
           try {
-            const product = await db.getDocument(
+            const product = await instrumentedDb.getDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_PRODUCT_COLLECTION_ID,
               doc.productId,
@@ -1367,7 +1367,7 @@ const getHeroProducts = async (req, res) => {
 
 const getCategories = async (req, res) => {
   try {
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
       [Query.limit(100), Query.orderAsc("name")],
@@ -1400,7 +1400,7 @@ const getProductsByCategory = async (req, res) => {
     }
 
     // ✅ Fetch ALL products by category regardless of approval status
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [
@@ -1432,7 +1432,7 @@ const getCategoryBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
       [Query.equal("slug", slug), Query.limit(1)],
@@ -1451,7 +1451,7 @@ const getCategoryBySlug = async (req, res) => {
 
 const getCategorie = async (req, res) => {
   try {
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID, // Use the correct ID for your categories collection
       [Query.limit(100), Query.orderAsc("name")], // Fetch up to 100 categories, ordered by name
@@ -1477,7 +1477,7 @@ const getCategoryById = async (req, res) => {
     const { categoryId } = req.params; // Get the ID from the URL
 
     // Fetch the single document from the categories collection
-    const category = await db.getDocument(
+    const category = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
       categoryId,
@@ -1499,7 +1499,7 @@ const getCategoryById = async (req, res) => {
 
 const getMobileCategories = async (req, res) => {
   try {
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
     );
@@ -1543,7 +1543,7 @@ const getMobileProducts = async (req, res) => {
       queries.push(Query.offset(offset));
     }
 
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       queries,
@@ -1553,7 +1553,7 @@ const getMobileProducts = async (req, res) => {
     const productsWithReviews = await Promise.all(
       products.documents.map(async (doc) => {
         try {
-          const reviews = await db.listDocuments(
+          const reviews = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_REVIEW_COLLECTION_ID,
             [Query.equal("productId", doc.$id), Query.select(["rating"])],
@@ -1622,7 +1622,7 @@ const getProducts2 = async (req, res) => {
         ...(cursor ? [Query.cursorAfter(cursor)] : []),
       ];
 
-      const batch = await db.listDocuments(
+      const batch = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         batchQueries,

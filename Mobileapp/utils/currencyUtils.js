@@ -1,38 +1,61 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { Databases, Query } from "appwrite";
-import { client, Config } from "../Appwrite";
-
+import axiosClient from "../api";
 
 const currencySymbols = {
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-    NGN: "₦",
-    KES: "KSh",
-    SSP: "ssp"
-    // Add more currencies if needed
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  NGN: "₦",
+  KES: "KSh",
+  SSP: "ssp",
+  UGX: "USh",
+  TZS: "TSh",
+  ETB: "Br",
+  GHS: "GH₵",
+  RWF: "FRw",
+  ZAR: "R",
 };
-const databases = new Databases(client);
+
+/**
+ * Convert price display currency.
+ * Now fetches exchange rate from Express API instead of hitting Appwrite directly.
+ */
 export const convertPrice = async (priceInUSD) => {
-    const userCurrency = await AsyncStorage.getItem("userCurrency") || "USD";
+  const userCurrency = (await AsyncStorage.getItem("userCurrency")) || "USD";
 
+  if (userCurrency === "USD") {
+    const symbol = currencySymbols["USD"] || "$";
+    return `${symbol} ${Number(priceInUSD).toFixed(2)}`;
+  }
 
-    try {
-        const response = await databases.listDocuments(
-            Config.databaseId,
-            Config.currenciesCollection,
-            [Query.equal("currency_code", userCurrency)]
+  try {
+    const response = await axiosClient.get("/api/currency/rate", {
+      params: { code: userCurrency },
+    });
 
-        );
-
-        if (response.documents.length > 0) {
-            const exchangeRate = response.documents[0].rate;
-            const symbol = currencySymbols[userCurrency] || "";
-            return `${symbol} ${(priceInUSD * exchangeRate).toFixed(2)}`;
-        }
-    } catch (error) {
-        console.error("Error converting price:", error);
+    const rate = response.data?.rate;
+    if (!rate || typeof rate !== "number") {
+      throw new Error("Invalid rate response");
     }
-    return `$${priceInUSD.toFixed(2)}`; // Default to USD if error occurs
+
+    const symbol = currencySymbols[userCurrency] || "";
+    return `${symbol} ${(priceInUSD * rate).toFixed(2)}`;
+  } catch (error) {
+    console.error("Error converting price via API:", error?.message || error);
+    // Fallback to USD display
+    return `$${Number(priceInUSD).toFixed(2)}`;
+  }
+};
+
+/**
+ * Get available currencies from the backend.
+ */
+export const getCurrencies = async () => {
+  try {
+    const response = await axiosClient.get("/api/currency/list");
+    return response.data?.currencies || [];
+  } catch (error) {
+    console.error("Error fetching currencies:", error?.message || error);
+    return [];
+  }
 };

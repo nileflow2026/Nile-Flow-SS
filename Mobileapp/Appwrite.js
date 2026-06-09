@@ -1,3 +1,25 @@
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * ⚠️  DEPRECATED — ARCHITECTURE VIOLATION
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * This file exports raw Appwrite SDK instances (databases, account,
+ * storage, functions) for backward compatibility during migration.
+ *
+ * ❌ NEW CODE MUST NOT import databases, account, or storage from this file.
+ *
+ * ✅ All data access must go through:
+ *      axiosClient → Express API → Cache → Repository → Appwrite
+ *
+ * ✅ To migrate:
+ *   1. Replace `databases.listDocuments(...)` with `axiosClient.get('/api/...')`
+ *   2. Replace `account.createEmailPasswordSession(...)` with `axiosClient.post('/api/auth/...')`
+ *   3. Replace `storage.*` with Express API upload endpoints
+ *
+ * Phase 10 migration target: Remove all direct Appwrite SDK exports.
+ * ═══════════════════════════════════════════════════════════════
+ */
+
 // Appwrite.js
 import {
   Account,
@@ -48,6 +70,7 @@ const functions = new Functions(client);
 // to a new file or the GlobalProvider itself.
 
 // Export the Appwrite services for use in other files.
+// ⚠️ DEPRECATED: These exports will be removed in a future phase.
 export {
   account,
   avatars,

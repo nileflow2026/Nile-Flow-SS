@@ -1,5 +1,5 @@
 const { Query } = require("node-appwrite");
-const { users, db } = require("../../services/appwriteService");
+const { users } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const dayjs = require("dayjs");
 
@@ -49,7 +49,7 @@ const getTodayPromo = async (req, res) => {
     }
 
     // 2. Check Appwrite promotions
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PROMOTIONS_COLLECTION_ID
     );

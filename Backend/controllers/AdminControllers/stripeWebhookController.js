@@ -44,7 +44,7 @@ const handleSuccessfulPayment = async (paymentIntent) => {
     }
 
     // Get order from database
-    const orders = await db.listDocuments(
+    const orders = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       [Query.equal("orderId", orderId)]
@@ -62,7 +62,7 @@ const handleSuccessfulPayment = async (paymentIntent) => {
     const stockUpdateResult = await reduceProductStock(cart, orderId);
 
     // Update order status
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       order.$id,

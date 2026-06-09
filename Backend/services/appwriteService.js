@@ -7,7 +7,9 @@ const {
   Storage,
 } = require("node-appwrite");
 const { env } = require("../src/env");
-const { createInstrumentedDb } = require("../src/observability/appwriteMetrics");
+const {
+  createInstrumentedDb,
+} = require("../src/observability/appwriteMetrics");
 // console.log("Appwrite Key Loaded:", env.APPWRITE_API_KEY ? "Loaded" : "FAILED/UNDEFINED"); // 👈 Check this!
 const client = new Client()
   .setEndpoint(process.env.APPWRITE_ENDPOINT)
@@ -23,16 +25,34 @@ const storage = new Storage(client);
 
 async function getOrderById(orderId) {
   try {
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION_ID,
-      orderId
+      orderId,
     );
     return order;
   } catch (error) {
     console.error("Error fetching order:", error);
     throw error;
   }
+}
+
+async function getCachedUser(userId) {
+  try {
+    const { getUserCached } = require("./userCacheService");
+    return await getUserCached(userId);
+  } catch (error) {
+    // Fallback to direct users.get if cache service fails
+    console.warn(
+      "Cache lookup failed, falling back to direct users.get:",
+      error.message,
+    );
+    return await users.get(userId);
+  }
+}
+
+async function getInstrumentedOrRawDb() {
+  return instrumentedDb;
 }
 
 module.exports = {
@@ -43,5 +63,7 @@ module.exports = {
   avatars,
   functions,
   getOrderById,
+  getCachedUser,
+  getInstrumentedOrRawDb,
   storage,
 };

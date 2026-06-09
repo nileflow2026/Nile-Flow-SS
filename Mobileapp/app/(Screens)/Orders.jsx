@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -30,7 +31,11 @@ const Orders = () => {
   const router = useRouter();
   useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      try {
+        router.back();
+      } catch (_) {
+        router.replace("/(tabs)/BottomTabs");
+      }
       return true;
     };
     const subscription = BackHandler.addEventListener(

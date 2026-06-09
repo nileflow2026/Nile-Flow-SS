@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/purity */
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -49,7 +51,11 @@ const Payments = () => {
   const router = useRouter();
   useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      try {
+        router.back();
+      } catch (_) {
+        router.replace("/(tabs)/BottomTabs");
+      }
       return true;
     };
     const subscription = BackHandler.addEventListener(

@@ -2,7 +2,7 @@
 const bcrypt = require("bcryptjs");
 const { env } = require("../../src/env");
 const { Query, ID } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const {
   signAccessToken,
   signRefreshToken,
@@ -88,7 +88,7 @@ async function persistRefreshToken({
   ).toISOString();
   const docId = ID.unique();
 
-  return db.createDocument(
+  return instrumentedDb.createDocument(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     docId,
@@ -111,7 +111,7 @@ async function persistRefreshToken({
  */
 async function findRefreshTokenRecordByHash(refreshToken) {
   const tokenHash = hashToken(refreshToken);
-  const result = await db.listDocuments(
+  const result = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     [Query.equal("refreshToken", tokenHash)],
@@ -127,7 +127,7 @@ async function findRefreshTokenRecordByHash(refreshToken) {
  */
 async function findTokensByRiderAndDevice(riderId, deviceId, userAgent) {
   if (deviceId) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_SESSIONS_COLLECTION_ID,
       [Query.equal("riderId", riderId), Query.equal("deviceId", deviceId)],
@@ -135,14 +135,14 @@ async function findTokensByRiderAndDevice(riderId, deviceId, userAgent) {
     return res?.documents || [];
   }
   if (userAgent) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_SESSIONS_COLLECTION_ID,
       [Query.equal("riderId", riderId), Query.equal("userAgent", userAgent)],
     );
     return res?.documents || [];
   }
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     [Query.equal("riderId", riderId)],
@@ -154,7 +154,7 @@ async function findTokensByRiderAndDevice(riderId, deviceId, userAgent) {
  * Revoke refresh token by ID
  */
 async function revokeRefreshTokenById(docId) {
-  return db.updateDocument(
+  return instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     docId,
@@ -166,7 +166,7 @@ async function revokeRefreshTokenById(docId) {
  * Revoke all rider refresh tokens
  */
 async function revokeAllRiderRefreshTokens(riderId) {
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_SESSIONS_COLLECTION_ID,
     [Query.equal("riderId", riderId)],
@@ -177,7 +177,7 @@ async function revokeAllRiderRefreshTokens(riderId) {
   let count = 0;
   for (const doc of res.documents) {
     if (!doc.revoked) {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.RIDER_SESSIONS_COLLECTION_ID,
         doc.$id,
@@ -262,7 +262,7 @@ const riderAuthController = {
       }
 
       // Check if rider exists
-      const existingRiders = await db.listDocuments(
+      const existingRiders = await instrumentedDb.listDocuments(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         [Query.equal("email", email)],
@@ -279,7 +279,7 @@ const riderAuthController = {
       const hashedPassword = await bcrypt.hash(password, 12);
 
       // Create rider
-      const rider = await db.createDocument(
+      const rider = await instrumentedDb.createDocument(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         ID.unique(),
@@ -372,7 +372,7 @@ const riderAuthController = {
       }
 
       // Find rider
-      const riders = await db.listDocuments(
+      const riders = await instrumentedDb.listDocuments(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         [Query.equal("email", email)],
@@ -475,7 +475,7 @@ const riderAuthController = {
       }
 
       const decoded = verifyAccessToken(accessToken);
-      const rider = await db.getDocument(
+      const rider = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         decoded.sub,
@@ -612,7 +612,7 @@ const riderAuthController = {
       }
 
       // Load rider
-      const rider = await db.getDocument(
+      const rider = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         riderId,
@@ -741,7 +741,7 @@ const riderAuthController = {
               ]
             : [Query.equal("refreshToken", hashedRefreshToken)];
 
-        const result = await db.listDocuments(
+        const result = await instrumentedDb.listDocuments(
           env.RIDER_DATABASE_ID,
           env.RIDER_SESSIONS_COLLECTION_ID,
           queries,
@@ -789,7 +789,7 @@ const riderAuthController = {
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = hashToken(verificationToken);
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       rider.$id,
@@ -810,7 +810,7 @@ const riderAuthController = {
     const { token } = req.params;
     const hashedToken = hashToken(token);
 
-    const riders = await db.listDocuments(
+    const riders = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       [Query.equal("verificationToken", hashedToken)],
@@ -826,7 +826,7 @@ const riderAuthController = {
       return res.status(400).json({ error: "Verification token expired" });
     }
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       rider.$id,
@@ -845,7 +845,7 @@ const riderAuthController = {
     const hashedOTP = hashToken(otp);
 
     // Store OTP in database with expiry
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.OTP_COLLECTION_ID,
       ID.unique(),
@@ -865,7 +865,7 @@ const riderAuthController = {
     const { phone, otp } = req.body;
     const hashedOTP = hashToken(otp);
 
-    const otpRecords = await db.listDocuments(
+    const otpRecords = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.OTP_COLLECTION_ID,
       [
@@ -885,7 +885,7 @@ const riderAuthController = {
       return res.status(400).json({ error: "OTP expired" });
     }
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.OTP_COLLECTION_ID,
       record.$id,
@@ -904,7 +904,7 @@ const riderAuthController = {
 
     const qrCode = await QRCode.toDataURL(secret.otpauth_url);
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
@@ -925,7 +925,7 @@ const riderAuthController = {
     const { token } = req.body;
     const riderId = req.rider.riderId;
 
-    const rider = await db.getDocument(
+    const rider = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
@@ -941,7 +941,7 @@ const riderAuthController = {
       return res.status(400).json({ error: "Invalid 2FA token" });
     }
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,

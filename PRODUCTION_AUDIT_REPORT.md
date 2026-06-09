@@ -1,254 +1,950 @@
-# NILE FLOW — PRODUCTION READINESS AUDIT REPORT
+# NILE FLOW — PRODUCTION OTA AUDIT REPORT
 
-**Date:** April 19, 2026  
-**Auditor:** Senior Mobile Engineer / QA Lead / DevOps / Security  
-**Scope:** Mobile App (React Native/Expo) + Backend (Node.js/Express/Appwrite)
-
----
-
-## 1. EXECUTIVE SUMMARY
-
-### **Is the app ready for Play Store? NO — NOT YET**
-
-The Nile Flow application has a solid feature set and ambitious scope, but it has **critical security vulnerabilities, authentication bugs, and production-readiness gaps** that MUST be resolved before launch.
-
-**Most Critical Findings:**
-
-- **SECRET KEYS** (Appwrite API key, Flutterwave secret key) were shipped in client-side code — fixed in this audit
-- **PayPal webhook verification was a no-op** — any attacker could activate premium subscriptions — fixed
-- **Sign-in was importing from the wrong module** — login was broken — fixed
-- **CORS validation used `.includes()` bypass** — any subdomain could bypass — fixed
-- **Password sanitization was corrupting passwords** before hashing — fixed
-- **Cart endpoints had zero ownership checks** — any user could manipulate any other user's cart — fixed
-
-**20 critical fixes have been applied** during this audit. An estimated **25-35 additional items** need attention before launch.
+**Date:** June 9, 2026
+**Auditor:** Senior Expo / React Native / EAS / DevOps Engineer
+**Project:** Nile Flow Mobile App (Expo SDK 56)
+**Repository:** `nileflow2026/NileFlow`
+**Team Size:** 13 Engineers
+**Target Scale:** Millions of users across Africa
 
 ---
 
-## 2. CRITICAL ISSUES (Must Fix Before Launch)
+## Table of Contents
 
-| #   | Area       | Issue                                                                                     | Status   |
-| --- | ---------- | ----------------------------------------------------------------------------------------- | -------- |
-| C1  | Security   | Appwrite API key + Flutterwave secret key exposed in `config.js`                          | ✅ FIXED |
-| C2  | Security   | PayPal webhook signature verification was a no-op (always returned `true`)                | ✅ FIXED |
-| C3  | Security   | CORS origin check used `.includes()` — subdomain bypass possible                          | ✅ FIXED |
-| C4  | Auth       | `sign-in.jsx` imported `signIn`/`getCurrentUser` from `@/Appwrite` (wrong module)         | ✅ FIXED |
-| C5  | Auth       | `signOut()` used Appwrite SDK but `signIn()` used custom backend — mixed auth             | ✅ FIXED |
-| C6  | Auth       | `isGuestUser()` compared Promise to string (missing `await`) — always returned false      | ✅ FIXED |
-| C7  | Auth       | `authMiddleware.js` leaked debug info (cookies, origin, token prefix) in 401 response     | ✅ FIXED |
-| C8  | Backend    | `tokens.js` parsed `JWT_SECRET` as token expiry — tokens expired in random seconds        | ✅ FIXED |
-| C9  | Backend    | `env.js` validation result was discarded — missing env vars caused cryptic runtime errors | ✅ FIXED |
-| C10 | Security   | Cart endpoints had zero ownership checks — any user could read/modify any cart            | ✅ FIXED |
-| C11 | Security   | Sanitizer corrupted passwords with XSS/SQL escaping before hashing                        | ✅ FIXED |
-| C12 | Security   | Sanitizer applied SQL escaping on Appwrite (NoSQL) — corrupted data with apostrophes      | ✅ FIXED |
-| C13 | Security   | `uploadFile()` made unauthenticated requests to Appwrite storage                          | ✅ FIXED |
-| C14 | Arch       | Provider nesting order wrong — Premium/Notification outside GlobalProvider (auth)         | ✅ FIXED |
-| C15 | Security   | Verification codes generated with `Math.random()` (not crypto-safe)                       | ✅ FIXED |
-| C16 | Security   | Backend `appwrite.js` logged API key presence and project details                         | ✅ FIXED |
-| C17 | Security   | JWT verification had no algorithm restriction (algorithm confusion attack)                | ✅ FIXED |
-| C18 | Resilience | No offline detection, retry logic, or error boundary in mobile app                        | ✅ FIXED |
-| C19 | Security   | Debug cookie endpoint exposed at `/api/debug/cookies` in production                       | ✅ FIXED |
-| C20 | Cart       | Query for "already in cart" used comma operator — checked wrong user's items              | ✅ FIXED |
+1. [Phase 1 — Configuration Audit](#phase-1--configuration-audit)
+2. [Phase 2 — Channel & Branch Architecture Review](#phase-2--channel--branch-architecture-review)
+3. [Phase 3 — Release Process Audit](#phase-3--release-process-audit)
+4. [Phase 4 — Deployment Workflow Design](#phase-4--deployment-workflow-design)
+5. [Phase 5 — Security & Governance Review](#phase-5--security--governance-review)
+6. [Phase 6 — CI/CD Recommendations](#phase-6--cicd-recommendations)
+7. [Phase 7 — Final Verdict & Score](#phase-7--final-verdict--score)
 
 ---
 
-## 3. HIGH PRIORITY FIXES (Should Fix Before Launch)
+# Phase 1 — Configuration Audit
 
-| #   | Area       | File                            | Issue                                                                              | Recommendation                                                            |
-| --- | ---------- | ------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| H1  | Auth       | `sign-up.jsx`                   | Email verification is fake — shows "verified!" without checking code               | **(A) Fix** — Wire to backend verify endpoint                             |
-| H2  | Auth       | `sign-up.jsx`                   | "Resend code" is a no-op — shows success toast without sending                     | **(A) Fix** — Call backend resend endpoint                                |
-| H3  | Auth       | `Profile.jsx`                   | Dual logout implementations — one bypasses backend session invalidation            | **(A) Fix** — Remove local logout, use `handleLogout` from GlobalProvider |
-| H4  | Auth       | `Profile.jsx`                   | Avatar upload sets local `file://` URI as avatar URL — broken for other users      | **(A) Fix** — Upload to storage, save remote URL                          |
-| H5  | Data       | `ProductContext.js`             | Entire file is hardcoded test data (Apple Watch/Samsung with Croma.com URLs)       | **(C) Remove** — Replace with real ProductContext from API                |
-| H6  | Orders     | `Orders.jsx` L107               | Crash: `user.id` accessed when `user` is null (not logged in)                      | **(A) Fix** — Add null check                                              |
-| H7  | Payments   | `paymentSecurity.js`            | Server trusts client-supplied discount, shipping, tax, serviceFee                  | **(A) Fix** — Compute server-side from DB                                 |
-| H8  | Payments   | `paymentService.js`             | Hardcoded exchange rate `1 USD = 130 KSH` — will cause over/undercharging          | **(A) Fix** — Use live exchange rate API                                  |
-| H9  | Payments   | `subscriptionController.js`     | No payment amount validation — user could submit `amount: 1`                       | **(A) Fix** — Validate against plan prices server-side                    |
-| H10 | Auth       | `ClientauthController.js`       | 15+ console.logs dumping auth data, cookie options, tokens                         | **(A) Fix** — Replace with structured logger                              |
-| H11 | Backend    | `paymentCallbackController.js`  | `atomicPaymentUpdate` is NOT atomic — 3 sequential calls, partial failure possible | **(A) Fix** — Wrap in retry/compensation logic                            |
-| H12 | Backend    | `paymentCallbackController.js`  | M-Pesa callback has no authentication/signature verification                       | **(A) Fix** — Verify M-Pesa callback IP whitelist + signature             |
-| H13 | Security   | `rate-limiter.js`               | In-memory rate limiter only — bypassed in multi-instance deployments               | **(A) Fix** — Use Redis-backed store (ioredis is already a dependency)    |
-| H14 | Backend    | `tokenManager.js` + `tokens.js` | Duplicate token modules with different secret env var names — split-brain auth     | **(A) Fix** — Delete `tokens.js`, standardize on `tokenManager.js`        |
-| H15 | Auth       | `lib/authHelper.js`             | JWT stored in unencrypted AsyncStorage — readable on rooted devices                | **(A) Fix** — Use `expo-secure-store`                                     |
-| H16 | Navigation | `ProductDetails.jsx`            | Entire product object passed via URL params as JSON — crash on parse failure       | **(A) Fix** — Pass only product ID, fetch from API                        |
+## 1.1 Expo Updates Configuration
 
----
+**File:** `Mobileapp/app.config.js` (lines 20–25)
 
-## 4. MEDIUM / LOW IMPROVEMENTS
+```js
+updates: {
+  url: "https://u.expo.dev/f832f869-d5a3-472c-a6e6-8b098d9d45c9",
+},
+runtimeVersion: {
+  policy: "appVersion",
+},
+```
 
-| #   | Area    | File                        | Issue                                                                         | Priority                             |
-| --- | ------- | --------------------------- | ----------------------------------------------------------------------------- | ------------------------------------ |
-| M1  | UX      | `sign-in.jsx`               | Google/Facebook sign-in show "will be implemented" alert                      | **(B) Disable** buttons or implement |
-| M2  | UX      | `sign-in.jsx`               | "Remember me" checkbox does nothing                                           | **(B) Disable** or implement         |
-| M3  | Perf    | `Home.jsx`                  | Calls `getCurrentUser()` API when context already has user                    | Medium                               |
-| M4  | Perf    | `CartContext_NEW.js`        | Cart loaded 2-3 times on mount due to duplicate effect calls                  | Medium                               |
-| M5  | Perf    | `CartContext_NEW.js`        | Functions not wrapped in `useCallback` — `useMemo` provides no benefit        | Medium                               |
-| M6  | Perf    | `ProductDetails.jsx`        | Related products fetch all products (limit=50) then filter client-side        | Medium                               |
-| M7  | Perf    | `ProductDetails.jsx`        | Reviews for related products fetched sequentially — use `Promise.all()`       | Medium                               |
-| M8  | Data    | `Cart.jsx`                  | Tax rate hardcoded to 8% — incorrect for most African markets (Kenya: 16%)    | Medium                               |
-| M9  | UX      | `Orders.jsx`                | "Cancel Order" is a no-op — shows success without cancelling                  | Medium                               |
-| M10 | UX      | `OrderConfiramton.jsx`      | Typo in filename; no order details displayed, just "Thank You"                | Low                                  |
-| M11 | UX      | `BottomTabs.jsx`            | Notification badge count never passed — always shows 0                        | Low                                  |
-| M12 | UX      | `BottomTabs.jsx`            | CreatorMode tab visible to all users (premium guard commented out)            | Low                                  |
-| M13 | Perf    | `NotificationContext.js`    | Notifications fetched once on mount, never refreshed (realtime commented out) | Medium                               |
-| M14 | Backend | `logger.js`                 | Duplicate console transport in development — logs appear twice                | Low                                  |
-| M15 | Backend | `logger.js`                 | No log rotation for exceptions/rejections files — unbounded growth            | Low                                  |
-| M16 | Backend | `security.js`               | Duplicate `helmet()` calls; deprecated `X-XSS-Protection: 1` header           | Low                                  |
-| M17 | Backend | `paymentService.js`         | No M-Pesa access token caching — new OAuth token per request                  | Medium                               |
-| M18 | Backend | `sanitizer.js`              | DOMPurify with JSDOM adds ~20MB memory overhead — `xss` is sufficient alone   | Low                                  |
-| M19 | Backend | `subscriptionController.js` | `require("stripe")` inside request handler — re-executed per request          | Low                                  |
-| M20 | Logs    | All files                   | **100+ console.log/warn/error** across codebase logging user data, payments   | High                                 |
+### Analysis
 
----
+| Setting                          | Current Value                     | Status         | Best Practice                                     |
+| -------------------------------- | --------------------------------- | -------------- | ------------------------------------------------- |
+| `updates.url`                    | `https://u.expo.dev/f832f869-...` | ✅ Correct     | Valid Expo Updates URL for project `f832f869-...` |
+| `updates.enabled`                | **NOT SET**                       | ❌ **MISSING** | Should be explicitly `true`                       |
+| `updates.checkAutomatically`     | **NOT SET**                       | ❌ **MISSING** | Should be set to `ON_LOAD` for production         |
+| `updates.fallbackToCacheTimeout` | **NOT SET**                       | ❌ **MISSING** | Default is 0ms — too aggressive                   |
+| `runtimeVersion.policy`          | `"appVersion"`                    | ⚠️ Suboptimal  | See §1.3                                          |
 
-## 5. FEATURE STATUS MATRIX
+### Issues Found
 
-| Feature                        | Status               | Notes                                                                               |
-| ------------------------------ | -------------------- | ----------------------------------------------------------------------------------- |
-| Authentication (Sign up)       | ⚠️ Partially Working | Email verification is fake (no-op). Password validates length only, not complexity. |
-| Authentication (Sign in)       | ✅ Fixed             | Was importing from wrong module. Now fixed.                                         |
-| Authentication (Sign out)      | ✅ Fixed             | Was using Appwrite SDK instead of backend. Now fixed.                               |
-| Authentication (Token refresh) | ✅ Fully Functional  | Proper queue pattern with 401 interceptor.                                          |
-| Guest browsing                 | ✅ Fully Functional  | Users can browse without auth.                                                      |
-| Product browsing               | ✅ Fully Functional  | Backend API serves real products.                                                   |
-| Product search                 | ✅ Fully Functional  | Search with categories, text search.                                                |
-| Product details                | ⚠️ Partially Working | Product passed via URL params (fragile). Reviews work.                              |
-| Add to cart                    | ⚠️ Partially Working | Query bug fixed, but price trusted from client.                                     |
-| Checkout flow                  | ⚠️ Partially Working | Tax hardcoded, cart-to-payment data transfer fragile.                               |
-| Payment - Stripe               | ⚠️ Partially Working | Test keys in config. StripeProvider connected. Webhook raw body handling fragile.   |
-| Payment - PayPal               | ⚠️ Fixed             | Webhook verification was no-op. Now properly verifies.                              |
-| Payment - M-Pesa               | ⚠️ Partially Working | Callback lacks authentication. Exchange rate hardcoded.                             |
-| Nile Miles system              | ✅ Fully Functional  | Routes mounted, endpoints available.                                                |
-| Voice assistant                | ⚠️ Not Verified      | VoiceAssistant component exists but depends on OpenAI API key.                      |
-| Premium subscriptions          | ⚠️ Partially Working | Status checking works. Payment amount not validated server-side.                    |
-| Group buying                   | ✅ Fully Functional  | Context, routes, cron service all connected.                                        |
-| Social commerce feed           | ✅ Fully Functional  | Full CRUD for social posts, likes, comments.                                        |
-| Notifications                  | ⚠️ Partially Working | Fetched once, never refreshed. Realtime disabled.                                   |
-| Order tracking                 | ✅ Fully Functional  | Routes and WebSocket for real-time tracking.                                        |
-| Favorites / Wishlist           | ✅ Fully Functional  | FavoritesContext properly implemented.                                              |
-| Multi-currency                 | ✅ Fully Functional  | CurrencyProvider + backend rate updates.                                            |
-| i18n / Localization            | ✅ Fully Functional  | i18n setup with locale files.                                                       |
-| AI Chat                        | ✅ Fully Functional  | OpenAI-powered chat with routes mounted.                                            |
-| Creator Mode                   | ⚠️ Partially Working | Components exist but premium guard disabled.                                        |
-| Order cancellation             | ❌ Broken            | Shows success alert but doesn't actually cancel.                                    |
-| Google/Facebook Sign-in        | ❌ Broken            | Shows "will be implemented" alert.                                                  |
+**ISSUE 1 (CRITICAL): `updates.enabled` not declared**
+The `updates.enabled` key is absent from `app.config.js`. While Expo defaults this to `true` when `updates.url` is set, it is best practice to **explicitly declare** `updates: { enabled: true }`. Without explicit declaration, a misconfigured build could accidentally disable OTA updates.
+
+**ISSUE 2 (HIGH): `updates.checkAutomatically` not set**
+The default behavior is `ON_LOAD` which checks for updates on app launch. If this is the intended behavior it should be explicitly declared. Without explicit declaration, future Expo upgrades could change the default silently.
+
+**ISSUE 3 (MEDIUM): `updates.fallbackToCacheTimeout` not set**
+Default is `0`, meaning if the update check fails on launch, the app immediately falls back to the cached bundle **without any grace period**. For users in Africa with variable network connectivity, a 10–30 second timeout should be set to allow the update check time to complete before falling back.
+
+**Recommended fix:**
+
+```js
+updates: {
+  url: "https://u.expo.dev/f832f869-d5a3-472c-a6e6-8b098d9d45c9",
+  enabled: true,
+  checkAutomatically: "ON_LOAD",
+  fallbackToCacheTimeout: 30000, // 30 seconds for African network conditions
+},
+runtimeVersion: {
+  policy: "fingerprint", // See §1.3 recommendation
+},
+```
 
 ---
 
-## 6. SECURITY RISKS
+## 1.2 EAS Configuration (`eas.json`)
 
-### CRITICAL (Resolved in this audit)
+**File:** `Mobileapp/eas.json`
 
-1. **Secret keys in client bundle** — Appwrite API key + Flutterwave secret key shipped to every device
-2. **PayPal webhook bypass** — Any POST could activate premium subscriptions
-3. **CORS subdomain bypass** — `.includes("localhost")` accepted `evil-localhost.com`
-4. **Cart IDOR** — Any user could read/modify any other user's cart
-5. **Password corruption** — Sanitizer altered passwords before hashing
+```json
+{
+  "cli": {
+    "version": ">= 18.6.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview"
+    },
+    "apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "apk"
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+```
 
-### REMAINING RISKS
+### Analysis
 
-6. **M-Pesa callback has no auth** — Needs IP whitelist or signature verification
-7. **Rate limiting is in-memory only** — Ineffective in multi-instance deployment
-8. **JWT tokens in unencrypted AsyncStorage** — Readable on rooted/jailbroken devices
-9. **Client-supplied prices trusted in cart** — Server should look up prices from DB
-10. **Client-supplied discounts/fees trusted in payment** — Must compute server-side
-11. **No CSRF protection** on cookie-based auth endpoints
-12. **Order controller takes userId from request body** — Not from auth middleware
-13. **Transaction IDs use `Date.now()`** — Collisions under high concurrency
+| Profile       | Channel       | Distribution     | Issues                                                |
+| ------------- | ------------- | ---------------- | ----------------------------------------------------- |
+| `development` | `development` | Internal         | ✅ Correct for dev builds                             |
+| `preview`     | `preview`     | Internal         | ⚠️ **No Android/iOS platform config** — uses defaults |
+| `apk`         | `apk`         | Internal         | ✅ Useful for Android APK testing                     |
+| `production`  | `production`  | Store (implicit) | ⚠️ No explicit `distribution: "store"`                |
 
----
+### Issues Found
 
-## 7. PERFORMANCE BOTTLENECKS
+**ISSUE 4 (MEDIUM): `production` profile missing `distribution: "store"`**
+While the absence defaults to store distribution, explicit declaration prevents configuration drift.
 
-| #   | Area    | Issue                                                                                | Impact                                |
-| --- | ------- | ------------------------------------------------------------------------------------ | ------------------------------------- |
-| P1  | Mobile  | `getCurrentUser()` called via API in multiple places instead of reading from context | Duplicate network requests per screen |
-| P2  | Mobile  | Cart loaded 2-3 times on mount                                                       | Wasted bandwidth on African networks  |
-| P3  | Mobile  | ProductDetails fetches ALL products then filters client-side                         | Slow on large catalogs                |
-| P4  | Mobile  | Related product reviews fetched sequentially (10 serial API calls)                   | Slow product detail screen            |
-| P5  | Mobile  | No image optimization / lazy loading strategy                                        | High data usage                       |
-| P6  | Mobile  | CartContext functions not wrapped in `useCallback`                                   | Unnecessary re-renders                |
-| P7  | Backend | M-Pesa OAuth token fetched per request (no caching)                                  | Added latency per payment             |
-| P8  | Backend | `DOMPurify + JSDOM` adds ~20MB memory per instance                                   | Unnecessary memory usage              |
-| P9  | Backend | `require("stripe")` called inside request handlers                                   | Module load per request               |
-| P10 | Backend | Appwrite initialization check runs on EVERY request                                  | Unnecessary async check               |
+**ISSUE 5 (LOW): No `ios` / `android` platform overrides in `production`**
+For a production app targeting millions of users, platform-specific build configs (e.g., iOS Enterprise cert, Android ProGuard rules) should be explicitly configured.
 
----
+**ISSUE 6 (LOW): `apk` profile has no `ios` counterpart**
+Symmetry would be useful for iOS testing with debug builds.
 
-## 8. RECOMMENDED PRE-LAUNCH CHECKLIST
+**Recommended eas.json:**
 
-### MUST DO (Blockers)
-
-- [ ] **Rotate ALL leaked secrets** — The Appwrite API key, Flutterwave secret key exposed in git history must be regenerated
-- [ ] Wire up real email verification flow (sign-up)
-- [ ] Add server-side price lookup in cart (don't trust client prices)
-- [ ] Add server-side discount/fee computation in payment flow
-- [ ] Fix M-Pesa callback authentication
-- [ ] Switch rate limiting to Redis-backed store
-- [ ] Fix order cancellation (currently a no-op)
-- [ ] Remove or gate social sign-in buttons (Google/Facebook)
-- [ ] Add `expo-secure-store` for token storage
-- [ ] Remove or strip ALL `console.log` statements from production bundle
-- [ ] Set up Sentry for crash reporting
-- [ ] Set up EAS environment variables for API keys (dev vs prod)
-- [ ] Replace test Stripe/PayPal keys with production keys
-- [ ] Fix product details screen to pass product ID instead of full JSON via URL
-
-### SHOULD DO (Before Scale)
-
-- [ ] Add structured logging system (Winston is installed, not fully used)
-- [ ] Add request ID tracing (correlate frontend → backend logs)
-- [ ] Implement notification refresh / real-time subscription
-- [ ] Add input validation middleware on all API routes
-- [ ] Implement proper CSRF protection for cookie-based auth
-- [ ] Add health check monitoring (uptime alerts)
-- [ ] Set up CI/CD pipeline for EAS builds
-- [ ] Add automated tests (at minimum for auth, cart, payments)
-- [ ] Implement proper cache headers for product/image responses
-- [ ] Fix tax calculation to be region-aware (not hardcoded 8%)
-- [ ] Delete `tokens.js` — standardize on `tokenManager.js`
-- [ ] Delete `authservice.js` (empty file) and `authHelper.js` (unused)
-- [ ] Delete `ProductContext.js` (hardcoded test data)
-- [ ] Remove `index-backup.jsx` from production
-
-### NICE TO HAVE (Post-Launch)
-
-- [ ] Implement proper A/B testing framework
-- [ ] Add performance monitoring (React Native Performance)
-- [ ] Implement push notifications (currently only in-app)
-- [ ] Add image CDN with responsive sizing
-- [ ] Implement offline-first cart with sync
-- [ ] Add end-to-end encryption for sensitive data
-
----
-
-## 9. FILES MODIFIED IN THIS AUDIT
-
-| File                                                          | Changes                                                                        |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `Mobileapp/config/config.js`                                  | Removed all hardcoded secrets, load from EAS env vars                          |
-| `Mobileapp/api.js`                                            | Added offline detection, retry with backoff, removed debug logs                |
-| `Mobileapp/app/_layout.jsx`                                   | Fixed provider nesting order, added ErrorBoundary                              |
-| `Mobileapp/app/(auth)/sign-in.jsx`                            | Fixed import to use GlobalProvider instead of Appwrite                         |
-| `Mobileapp/Context/GlobalProvider.js`                         | Fixed `isGuestUser`, `signOut`, `uploadFile`                                   |
-| `Mobileapp/app/components/ErrorBoundary.jsx`                  | **NEW** — Production error boundary                                            |
-| `Mobileapp/utils/errorMessages.js`                            | **NEW** — User-friendly error message utility                                  |
-| `Backend/src/env.js`                                          | Added validation error checking                                                |
-| `Backend/src/appwrite.js`                                     | Removed debug logging, added key validation                                    |
-| `Backend/src/index.js`                                        | Removed debug cookie endpoint                                                  |
-| `Backend/middleware/authMiddleware.js`                        | Removed all debug logging, fixed CORS bypass, removed debug in 401             |
-| `Backend/middleware/verifyJWT.js`                             | Added algorithm restriction, secret validation                                 |
-| `Backend/utils/tokens.js`                                     | Fixed secret-as-expiry bug                                                     |
-| `Backend/utils/sanitizer.js`                                  | Removed SQL escaping, stopped password sanitization, fixed email normalization |
-| `Backend/controllers/paymentCallbackController.js`            | Implemented real PayPal webhook verification                                   |
-| `Backend/controllers/UserControllers/cartController.js`       | Added ownership checks, fixed query bug                                        |
-| `Backend/controllers/UserControllers/ClientauthController.js` | Crypto-safe verification codes                                                 |
+```json
+{
+  "cli": {
+    "version": ">= 18.6.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "staging",
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "production",
+      "ios": {
+        "enterpriseProvisioning": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+```
 
 ---
 
-**Total Issues Found: 56**  
-**Critical Issues Fixed: 20**  
-**Remaining Before Launch: ~25-35 items**
+## 1.3 Runtime Version Strategy
 
-The app has a strong foundation but needs the remaining security and reliability items addressed before it can safely serve production users at scale.
+### Current: `appVersion` policy
+
+The current strategy uses `runtimeVersion: { policy: "appVersion" }`, which ties the runtime version to the `version` field in `app.config.js` (currently `"1.2.8"`).
+
+**How it works:**
+
+- When `appVersion` changes (e.g., from `1.2.8` to `1.3.0`), the runtime version changes.
+- OTA updates are only delivered to builds with a **matching** runtime version.
+- A native rebuild is triggered automatically via `"appVersionSource": "remote"` in eas.json.
+
+### Advantages
+
+- ✅ Simple to understand and manage
+- ✅ `appVersionSource: "remote"` ensures auto-increment works
+- ✅ Works with `autoIncrement: true` in the production profile
+
+### Risks
+
+**ISSUE 7 (HIGH): `appVersion` policy is fragile for OTA-only changes**
+
+Scenario: Developers fix a React Native bug on the `main` branch and publish an OTA update. If `version` in `app.config.js` is bumped at the same time, the runtime version changes, and **only users who install the new native build will receive the update**. Users on the previous build will not receive the OTA fix.
+
+**Example:** Version `1.2.8` → OTA published → version bumped to `1.2.9` in app.config.js → OTA update now requires runtime `1.2.9` → users on `1.2.8` never get the fix.
+
+**ISSUE 8 (MEDIUM): Manual version bumps cause OTA delivery gaps**
+If a developer forgets to bump the version or bumps it incorrectly, OTA updates may silently fail to deliver to production users. There is no validation mechanism.
+
+### Recommendation: Switch to `fingerprint` policy
+
+```js
+runtimeVersion: {
+  policy: "fingerprint",
+}
+```
+
+**Why `fingerprint`:**
+
+- Automatically computes a unique hash based on the actual app content (JS bundles, assets, native modules).
+- Only OTA-incompatible changes (native code, Expo config plugins) trigger a new fingerprint.
+- Pure JS changes — UI updates, business logic, bug fixes — reuse the same fingerprint, so OTA updates deliver instantly.
+- Eliminates human error from manual version bumps.
+- Expo SDK 56 fully supports fingerprint.
+
+**Migration path:**
+
+1. Set `runtimeVersion.policy` to `"fingerprint"` in `app.config.js`
+2. Remove `EAS_SKIP_AUTO_FINGERPRINT=1` from `.env` — this flag **disables** fingerprint auto-detection, which defeats the purpose
+
+**⚠️ IMPORTANT: Environment Variable Conflict Detected**
+
+**ISSUE 9 (CRITICAL): `EAS_SKIP_AUTO_FINGERPRINT=1` is set in `.env`**
+
+```env
+EAS_SKIP_AUTO_FINGERPRINT=1
+```
+
+This environment variable tells EAS Build to **skip automatic fingerprint computation**. This means:
+
+- If you switch to `fingerprint` policy, it will **not work correctly** because the auto-fingerprint is skipped.
+- This was likely set to work around an earlier issue with `appVersion` policy.
+- **Must be removed** when switching to fingerprint policy.
+
+---
+
+## 1.4 OTA Compatibility Matrix
+
+### What OTA Updates Can Safely Change
+
+| Change Type                         | OTA Safe? | Notes                                        |
+| ----------------------------------- | --------- | -------------------------------------------- |
+| React Native JS/TS code changes     | ✅ Yes    | Pure JS/TS changes are fully OTA-safe        |
+| UI component changes (React Native) | ✅ Yes    | All React Native components are JS-rendered  |
+| Business logic changes              | ✅ Yes    | API calls, state management, data processing |
+| Asset changes (images, fonts)       | ✅ Yes    | `expo-asset` handles updates via OTA         |
+| i18n / locale files                 | ✅ Yes    | JSON translation files are bundled in JS     |
+| Navigation / routing changes        | ✅ Yes    | `expo-router` is JS-based                    |
+| Custom hooks / utils                | ✅ Yes    | Pure JS changes                              |
+| Styling / NativeWind changes        | ✅ Yes    | Tailwind/NativeWind compiles to JS styles    |
+
+### What Requires a Native Rebuild
+
+| Change Type                                 | Requires Rebuild   | Reason                                |
+| ------------------------------------------- | ------------------ | ------------------------------------- |
+| Native module version bump                  | ✅ Yes             | Requires new compiled binary          |
+| `app.json` / `app.config.js` plugin changes | ✅ Yes             | Expo config plugins run at build time |
+| Expo SDK version bump                       | ✅ Yes             | New native code                       |
+| `react-native` version bump                 | ✅ Yes             | New native code                       |
+| `@stripe/stripe-react-native` version       | ✅ **Potentially** | Contains native code; check changelog |
+| Push notification entitlements              | ✅ Yes             | Requires rebuilt provisioning profile |
+| Deep linking scheme changes                 | ✅ Yes             | Native manifest changes               |
+| Bundle identifier / package name            | ✅ Yes             | Native manifest                       |
+| Android `enableOnBackInvokedCallback`       | ✅ Yes             | Plugin-only, builds fine              |
+
+---
+
+## 1.5 Native Dependency Audit
+
+| Package                                | Native Dependency       | OTA Safe                          | Requires Rebuild                       | Notes                                                |
+| -------------------------------------- | ----------------------- | --------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| `expo` ~56.0.9                         | ✅ Core native          | ⚠️ Patch-safe                     | Major/minor requires rebuild           | SDK 56 stable                                        |
+| `expo-router` ~56.2.9                  | ✅ Native               | ✅ Yes                            | —                                      | JS-based routing                                     |
+| `expo-updates` ~56.0.18                | ✅ Native               | ✅ Yes                            | —                                      | Core OTA engine                                      |
+| `@stripe/stripe-react-native` 0.64.0   | ✅ SDK                  | ❌ **No**                         | ⚠️ **Version changes require rebuild** | Has native modules                                   |
+| `@sentry/react-native` ~7.11.0         | ✅ Native bridge        | ⚠️ Patch-safe                     | Major/minor requires rebuild           | SDK 7 is stable                                      |
+| `expo-notifications` ~56.0.16          | ✅ Native               | ⚠️ Config changes require rebuild | Entitlement changes need rebuild       |                                                      |
+| `expo-image` ~56.0.10                  | ✅ Native               | ✅ Yes                            | —                                      |                                                      |
+| `expo-video` ~56.1.2                   | ✅ Native               | ✅ Yes                            | —                                      |                                                      |
+| `react-native-maps` 1.27.2             | ✅ Native               | ❌ **No**                         | ⚠️ Version changes require rebuild     | Native map SDK                                       |
+| `react-native-reanimated` 4.3.1        | ✅ Native Worklets      | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `react-native-gesture-handler` ~2.31.1 | ✅ Native               | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `react-native-screens` 4.25.2          | ✅ Native               | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `react-native-webview` 13.16.1         | ✅ Native               | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `react-native-maps` 1.27.2             | ✅ Google Maps SDK      | ❌ **No**                         | ⚠️ Version changes require rebuild     |                                                      |
+| `react-native-paper` ^5.15.0           | ❌ Pure JS              | ✅ Yes                            | —                                      | UI components                                        |
+| `react-native-toast-message` ^2.3.3    | ❌ Pure JS              | ✅ Yes                            | —                                      |                                                      |
+| `react-native-vector-icons` ^10.3.0    | ✅ Font files           | ✅ Yes                            | —                                      | Font assets bundled in JS                            |
+| `lucide-react-native` ^0.575.0         | ❌ Pure JS              | ✅ Yes                            | —                                      | SVG icon library                                     |
+| `nativewind` ^4.2.1                    | ❌ Pure JS              | ✅ Yes                            | —                                      | CSS → JS compiler                                    |
+| `@tanstack/react-query` ^5.100.11      | ❌ Pure JS              | ✅ Yes                            | —                                      |                                                      |
+| `axios` ^1.13.5                        | ❌ Pure JS              | ✅ Yes                            | —                                      |                                                      |
+| `appwrite` ^22.4.0                     | ❌ Pure JS (Client SDK) | ✅ Yes                            | —                                      | Direct SDK calls deprecated; now proxied via backend |
+| `posthog-react-native` ^4.45.14        | ✅ Native               | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `react-native-reanimated` 4.3.1        | ✅ Native Worklets      | ⚠️ Patch-safe                     | Major/minor requires rebuild           |                                                      |
+| `expo-dev-client` ~56.0.19             | ✅ Native               | ❌ N/A                            | ⚠️ Changes require rebuild             | Development builds                                   |
+| `expo-splash-screen` ~56.0.10          | ✅ Native               | ✅ Yes                            | Config changes via plugin              |                                                      |
+
+### Payment SDK Risk Assessment
+
+**Stripe (`@stripe/stripe-react-native` 0.64.0):**
+
+- Contains native payment UI components
+- **Version upgrades require a new native build**
+- OTA is safe for non-SDK-version payment logic (e.g., backend integration, amount formatting)
+- ⚠️ Payment screen UI is a mix of native (Stripe elements) and JS (custom UI)
+
+**M-Pesa (via `mtn-momo` on backend):**
+
+- No native SDK on mobile
+- ✅ Fully OTA-safe (API-based)
+
+**Flutterwave:**
+
+- No native SDK on mobile
+- ✅ OTA-safe (API-based)
+
+**PayPal (`@paypal/checkout-server-sdk`):**
+
+- Only on backend (`Backend/package.json`)
+- ✅ OTA-safe
+
+---
+
+# Phase 2 — Channel & Branch Architecture Review
+
+## 2.1 Current Channels
+
+From `eas.json`:
+
+| Channel       | Profile       | Description                     |
+| ------------- | ------------- | ------------------------------- |
+| `development` | `development` | Dev builds, Expo Go alternative |
+| `preview`     | `preview`     | Internal preview builds         |
+| `apk`         | `apk`         | Direct APK distribution         |
+| `production`  | `production`  | Production store builds         |
+
+## 2.2 Current Channel-to-Branch Mapping
+
+There is **no defined mapping** between Git branches and EAS channels. Based on typical Expo projects:
+
+| Git Branch          | EAS Channel   | Purpose                 |
+| ------------------- | ------------- | ----------------------- |
+| `develop` (assumed) | `development` | Developer testing       |
+| `staging` (assumed) | `preview`     | QA/preview              |
+| `main` (assumed)    | `production`  | Production user updates |
+
+## 2.3 Issues Found
+
+**ISSUE 10 (HIGH): No `staging` channel in `eas.json`**
+
+There is a `preview` channel, but no `staging` channel. For a 13-person team, you need:
+
+- `development` — developer builds
+- `staging` — QA and testing updates
+- `preview` — product/design review
+- `production` — production users
+
+Combining `preview` and `staging` into a single channel creates risk:
+
+- QA might be testing against an update that's still in preview/review
+- No separation between "needs review" and "waiting for QA"
+
+**ISSUE 11 (MEDIUM): No branch protection per channel**
+
+Without CI/CD enforcement:
+
+- Anyone can publish to `preview` or even `production` from any branch
+- Manual `eas update --branch production --channel production` can be run accidentally
+
+## 2.4 Recommended Architecture
+
+```
+Git Branch          EAS Branch          EAS Channel     Environment
+──────────          ──────────          ───────────     ───────────
+feature/*           develop             development     Individual dev testing
+develop             staging             staging         QA / automated tests
+release/*           preview             preview         Product/design review
+main                production          production      Production users
+hotfix/*            production          production      Emergency fixes
+```
+
+### Implementation
+
+**EAS Channel → Branch mapping:**
+
+```
+EAS Update: --branch develop  --channel development
+EAS Update: --branch staging  --channel staging
+EAS Update: --branch preview  --channel preview
+EAS Update: --branch production --channel production
+```
+
+**Add `staging` profile to `eas.json`:**
+
+```json
+"staging": {
+  "distribution": "internal",
+  "channel": "staging",
+  "android": { "buildType": "apk" }
+}
+```
+
+---
+
+# Phase 3 — Release Process Audit
+
+## 3.1 Current Build Workflow
+
+Based on the codebase analysis, there is **no defined or documented release process**. The current state implies:
+
+### How production builds are created:
+
+- Manual: `eas build --platform all --profile production`
+- No CI/CD trigger for builds
+
+### How updates are published:
+
+- Manual: `eas update --branch production --channel production`
+- No automated checks before publishing
+
+### How updates are delivered:
+
+- Expo's OTA infrastructure via `https://u.expo.dev/...`
+- Users get updates on next app launch
+- No staged rollout (Expo does not natively support gradual rollouts)
+
+### How rollback would work:
+
+- Currently **NOT documented or implemented**
+- Would require manual CLI command: `eas update:rollback --branch production`
+- No rollback playbook
+
+## 3.2 Risks
+
+| Risk                             | Severity     | Description                                                      |
+| -------------------------------- | ------------ | ---------------------------------------------------------------- |
+| Accidental production deployment | **Critical** | No CI gates, anyone with Expo access can publish to production   |
+| Broken updates                   | **Critical** | No QA/staging gate before production                             |
+| Runtime version mismatch         | **High**     | `appVersion` policy + manual version bumps = OTA doesn't deliver |
+| Missing channels                 | **Medium**   | No `staging` channel                                             |
+| No rollback plan                 | **High**     | If a bad OTA goes out, team will scramble                        |
+| No update approval               | **Critical** | Developers can push directly to production branch                |
+| No automated CI/CD               | **High**     | All manual — human error risk                                    |
+
+---
+
+# Phase 4 — Deployment Workflow Design
+
+## 4.1 Ideal Developer Workflow for Nile Flow
+
+```
+┌──────────────┐
+│   Developer  │   Creates feature branch (feature/otp-fix)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  Pull Request │   Code review + CI checks run
+│  → develop    │     Architecture enforcement (existing .github/workflows)
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Merge develop │   Auto-trigger: eas update --branch staging
+└──────┬───────┘       (GitHub Actions)
+       │
+       ▼
+┌──────────────┐
+│ Staging OTA  │   QA team tests on staging channel
+│   Release    │     Internal distribution build
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  QA Approval │   Manual approval gate in GitHub
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Merge → main │   Auto-trigger: eas update --branch production
+└──────┬───────┘     + optional native rebuild if fingerprint changes
+       │
+       ▼
+┌──────────────┐
+│ Production   │   Users receive OTA update on next launch
+│    OTA       │
+└──────────────┘
+```
+
+## 4.2 Emergency Hotfix Workflow
+
+For critical checkout/payment bugs:
+
+```
+┌──────────────┐
+│ Developer    │   Branch from main: hotfix/critical-patch
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Fast-track   │   Bypass full staging (but at minimum 1 peer review)
+│  Review      │     Label: HOTFIX
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Merge → main │   Force deploy:
+│  & deploy    │     eas update --branch production --message "HOTFIX: ..."
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│  Notify team │   #release channel: "Production hotfix 1.2.9 deployed — fix for checkout crash"
+│              │     Rollback prepared if needed
+└──────────────┘
+```
+
+**Hotfix guardrails:**
+
+1. Must be from an approved hotfix branch
+2. Must pass CI checks (architecture enforcement)
+3. Must have at least 1 peer review
+4. Must be deployed with `--message` flag documenting the change
+5. Rollback command must be prepared in advance
+
+## 4.3 Rollback Workflow
+
+```bash
+# Rollback production to previous update
+eas update:rollback --branch production --channel production
+
+# Verify rollback by deploying to a test device
+eas update --branch recovery --channel preview --message "Rollback verification"
+
+# Confirm users are back on stable version
+```
+
+**Rollback playbook:**
+
+1. Identify the bad update (check Sentry, user reports)
+2. Run `eas update:rollback` on the affected branch
+3. Verify rollback on internal preview build
+4. Notify the team via Slack/Teams
+5. Investigate root cause
+6. Deploy fix via hotfix workflow
+
+## 4.4 Release Approval Process
+
+| Role            | Feature | Staging    | Production        | Hotfix       |
+| --------------- | ------- | ---------- | ----------------- | ------------ |
+| Developer       | ✅ Own  | ✅ PR      | ❌                | ✅ PR        |
+| QA Engineer     | ❌      | ✅ Approve | ❌                | ❌           |
+| Product Manager | ❌      | ❌         | ✅ Sign-off       | ❌           |
+| Founder/Lead    | ❌      | ❌         | ✅ Final sign-off | ✅ Exception |
+
+**Release checklist for production:**
+
+1. [ ] All CI checks pass
+2. [ ] QA verified on staging channel
+3. [ ] Product Manager approved
+4. [ ] Founder/Lead signed off
+5. [ ] Changelog documented
+6. [ ] Rollback command prepared
+
+---
+
+# Phase 5 — Security & Governance Review
+
+## 5.1 Secrets Management
+
+| Secret                          | Location                                          | Risk                                 |
+| ------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| Sentry DSN                      | `.env` ✅ (public-safe)                           | Low                                  |
+| Sentry Auth Token               | `.env`                                            | ⚠️ **SHOULD NOT BE IN REPO**         |
+| PostHog API Key                 | `.env` (public-safe)                              | Low                                  |
+| Google Play service account key | `Mobileapp/nile-flow-app-3ad669df2cd0.json`       | ❌ **CRITICAL: COMMITTED TO REPO**   |
+| Stripe live key                 | `Mobileapp/.env.js` (hardcoded as `pk_live_XXXX`) | ⚠️ Placeholder but dangerous pattern |
+| Appwrite endpoint/project IDs   | `Mobileapp/appwrite.js` (public-safe)             | Low                                  |
+| API URL                         | `app.config.js` (public)                          | Low                                  |
+
+**ISSUE 12 (CRITICAL): Google Play service account private key is committed to the repository**
+
+File: `Mobileapp/nile-flow-app-3ad669df2cd0.json`
+
+This file contains:
+
+- `private_key_id` → `3ad669df2cd0876b951aa88a86c2a68e44cf4690`
+- `private_key` → Full PEM-encoded RSA private key
+- `client_email` → `play-console-service-account@nile-flow-app.iam.gserviceaccount.com`
+- `client_id` → `111941029948285031859`
+
+**Impact:** Anyone with access to this repo can:
+
+1. Upload/manage apps on Google Play Console
+2. Access Play Console data
+3. Publish APKs under your account
+
+**The `.gitignore` already has an entry for this file:**
+
+```
+# Play Console service account key
+nile-flow-app-3ad669df2cd0.json
+```
+
+**However, it was committed before the `.gitignore` was updated.** It must be:
+
+1. **Immediately revoke** the key from Google Play Console
+2. **Remove from Git history** using `git filter-branch` or BFG Repo-Cleaner
+3. Add to `.gitignore` (already done)
+4. Generate a new key
+5. Store the new key securely (GitHub Secrets/1Password)
+
+## 5.2 Access Control Recommendations
+
+### Expo Account Permissions
+
+- **Admin:** Founder/Lead Developer (1–2 people)
+- **Developer:** Can create builds, view logs
+- **Viewer:** QA team, read-only
+
+### GitHub Permissions
+
+- **main branch:** Write access limited to Lead + QA approval
+- **develop branch:** All developers have write access
+- **Require pull request** before merging to `main`
+- **Require CI checks** (architecture enforcement) before merge
+
+### Least Privilege Model
+
+```
+Role            Expo Access     GitHub Access     EAS Publish
+─────────       ──────────      ────────────      ───────────
+Founder         Admin           Maintain          ✅ Production
+Lead Dev        Admin           Maintain          ✅ Production
+Developer       Contributor     Write             ✅ Staging only
+QA Engineer     Viewer          Triage            ❌ No publish
+Product Manager Viewer          Read              ❌ No publish
+```
+
+### Secret Management Recommendations
+
+1. **Never commit secrets to the repo** — use EAS Secrets (`eas secret:create`)
+2. **Use GitHub Secrets** for CI/CD workflows
+3. **Revoke the leaked Play Console key immediately**
+4. **Store Stripe production keys** in EAS Secrets, not `.env.js`
+5. **Run `git secrets` scanner** to prevent future leaks
+6. **Add `.env` file to `.gitignore`** — it's currently NOT listed in `.gitignore` (only `.env*.local`)
+
+---
+
+# Phase 6 — CI/CD Recommendations
+
+## 6.1 GitHub Actions — Required Workflows
+
+The existing `enforce-architecture.yml` is excellent. It must be supplemented with:
+
+### 1. Staging OTA Deploy Workflow
+
+```yaml
+# .github/workflows/deploy-staging.yml
+name: Deploy Staging OTA
+
+on:
+  push:
+    branches: [develop, staging]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging Channel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Mobileapp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: Mobileapp
+
+      - name: Publish EAS Update to Staging
+        run: |
+          npx eas update --branch staging \
+            --channel staging \
+            --message "Staging deploy: ${{ github.sha }}" \
+            --non-interactive
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+```
+
+### 2. Production OTA Deploy Workflow
+
+```yaml
+# .github/workflows/deploy-production.yml
+name: Deploy Production OTA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for deployment"
+        required: true
+        default: "Scheduled release"
+
+jobs:
+  validate:
+    name: Validate Production Readiness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Sentry release
+        run: |
+          VERSION=$(node -p "require('./Mobileapp/app.config.js')().expo.version")
+          echo "Production version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        id: version
+
+  deploy-production:
+    name: Deploy to Production Channel
+    needs: [validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://u.expo.dev/... # Update URL
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Mobileapp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: Mobileapp
+
+      - name: Run architecture checks
+        run: npx github:architecture-check
+        # Or include enforce-architecture.yml as a required check
+
+      - name: Publish EAS Update to Production
+        run: |
+          npx eas update --branch production \
+            --channel production \
+            --message "Production deploy: ${{ github.sha }}" \
+            --non-interactive
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Notify team
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Production OTA deployed from ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+```
+
+### 3. Production Build (Native Rebuild) Workflow
+
+```yaml
+# .github/workflows/build-production-native.yml
+name: Build Production Native
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to build (ios, android, all)"
+        required: true
+        default: "all"
+      profile:
+        description: "Build profile"
+        required: true
+        default: "production"
+
+jobs:
+  build:
+    name: EAS Build ${{ github.event.inputs.platform }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: Mobileapp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: Mobileapp
+
+      - name: EAS Build
+        run: npx eas build --platform ${{ github.event.inputs.platform }} --profile ${{ github.event.inputs.profile }} --non-interactive
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to Store
+        if: github.event.inputs.profile == 'production'
+        run: npx eas submit --platform ${{ github.event.inputs.platform }} --profile production --non-interactive
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+```
+
+---
+
+# Phase 7 — Final Verdict & Score
+
+## 7.1 OTA Readiness Score
+
+| Category            | Score (/100) | Assessment                                                                         |
+| ------------------- | ------------ | ---------------------------------------------------------------------------------- |
+| **Configuration**   | **55**       | Missing critical `updates.*` configs, env var conflicts                            |
+| **Reliability**     | **40**       | `appVersion` policy fragile, no staging channel, no rollback playbook              |
+| **Scalability**     | **30**       | No CI/CD, no staged rollouts, no release automation                                |
+| **Team Operations** | **25**       | No defined release workflow, no approval gates, 13 devs without process            |
+| **Security**        | **45**       | **CRITICAL**: Play Console key committed to repo, secrets in `.env` not gitignored |
+
+### Overall Score: **39 / 100**
+
+**This is NOT production-ready for OTA updates.**
+
+---
+
+## 7.2 Executive Summary
+
+### 1. Is Nile Flow fully OTA-ready?
+
+**No.** The codebase has the foundation for OTA updates (`expo-updates`, correct `updates.url`) but is missing critical configuration, safe runtime version management, deployment workflow, CI/CD, and has a **critical security vulnerability** (leaked Play Console key).
+
+### 2. What is missing?
+
+| Priority        | Item                                                              | Phase    |
+| --------------- | ----------------------------------------------------------------- | -------- |
+| 🔴 **CRITICAL** | Google Play service account key leak                              | Security |
+| 🔴 **CRITICAL** | `updates.enabled`, `checkAutomatically`, `fallbackToCacheTimeout` | Config   |
+| 🔴 **HIGH**     | Switch from `appVersion` to `fingerprint` runtime version         | Config   |
+| 🔴 **HIGH**     | Remove `EAS_SKIP_AUTO_FINGERPRINT=1`                              | Config   |
+| 🟡 **HIGH**     | Add `staging` channel to `eas.json`                               | Channels |
+| 🟡 **HIGH**     | GitHub Actions for staging/production deploy                      | CI/CD    |
+| 🟡 **HIGH**     | Rollback playbook                                                 | Process  |
+| 🟡 **MEDIUM**   | Release approval workflow (Dev → QA → PM → Founder)               | Process  |
+| 🟡 **MEDIUM**   | Emergency hotfix workflow                                         | Process  |
+| 🔵 **MEDIUM**   | Environment variable management (`.env` in `.gitignore`)          | Security |
+| 🔵 **LOW**      | Platform-specific build configs in `eas.json`                     | Config   |
+
+### 3. What risks exist?
+
+1. **🔴 CRITICAL:** Anyone with repo access has Google Play Console publishing privileges (leaked key)
+2. **🔴 HIGH:** OTA updates may not deliver due to `appVersion` policy drift
+3. **🔴 HIGH:** Accidental production deployment (no CI gates)
+4. **🟡 HIGH:** No rollback capability documented
+5. **🟡 HIGH:** Broken OTA would reach all users — no staged rollout
+6. **🟡 MEDIUM:** `.env` file not gitignored — secrets may be committed
+7. **🟡 MEDIUM:** No QA gate between staging and production
+
+### 4. What should be fixed immediately?
+
+**Immediate (24 hours):**
+
+1. **Revoke the Google Play service account key** in Google Play Console
+2. **Remove the key file from Git history** (BFG Repo-Cleaner or `git filter-branch`)
+3. **Add `nile-flow-app-3ad669df2cd0.json` to `.gitignore`** (already there — verify history removed)
+4. **Add `.env` to `.gitignore`** (currently only `.env*.local` is ignored)
+
+**This week:** 5. Add `updates.*` configuration to `app.config.js` 6. Switch to `fingerprint` runtime version policy 7. Remove `EAS_SKIP_AUTO_FINGERPRINT=1` from `.env` 8. Add `staging` channel to `eas.json` 9. Set up `EXPO_TOKEN` in GitHub Secrets 10. Create the CI/CD deploy workflows
+
+**This sprint:** 11. Create defined release workflow 12. Document rollback playbook 13. Add release approval process 14. Train team on release process
+
+### 5. What deployment workflow should the team adopt?
+
+**Adopt the Phase 4 workflow described in this document:**
+
+```
+Developer → Feature Branch → PR → Code Review
+    ↓
+Merge to develop → Auto-deploy to staging channel → QA tests
+    ↓
+QA Approval → Merge to main → Auto-deploy to production channel
+    ↓
+Users receive OTA update on next app launch
+```
+
+**With these guardrails:**
+
+- CI checks required before merge to `main`
+- QA must approve before production deploy
+- Hotfix bypass is documented and approved
+- Rollback command is prepared before every production deploy
+- Founder/Lead signs off on production releases
+
+---
+
+## Appendix A: Fix Checklist
+
+| #   | Action                                            | File                 | Priority |
+| --- | ------------------------------------------------- | -------------------- | -------- |
+| 1   | Revoke Google Play key                            | Google Console       | 🔴       |
+| 2   | Remove key from Git history                       | Git CLI              | 🔴       |
+| 3   | Add `updates.enabled: true`                       | `app.config.js`      | 🔴       |
+| 4   | Add `checkAutomatically: "ON_LOAD"`               | `app.config.js`      | 🟡       |
+| 5   | Add `fallbackToCacheTimeout: 30000`               | `app.config.js`      | 🟡       |
+| 6   | Change `runtimeVersion.policy` to `"fingerprint"` | `app.config.js`      | 🔴       |
+| 7   | Remove `EAS_SKIP_AUTO_FINGERPRINT=1`              | `.env`               | 🔴       |
+| 8   | Add `staging` profile                             | `eas.json`           | 🟡       |
+| 9   | Add `staging` channel                             | `eas.json`           | 🟡       |
+| 10  | Set `distribution: "store"` on production         | `eas.json`           | 🟢       |
+| 11  | Create deploy-staging GitHub Action               | `.github/workflows/` | 🟡       |
+| 12  | Create deploy-production GitHub Action            | `.github/workflows/` | 🟡       |
+| 13  | Add `.env` to `.gitignore`                        | `.gitignore`         | 🟡       |
+| 14  | Store secrets in EAS Secrets / GitHub Secrets     | Various              | 🔴       |
+| 15  | Document rollback playbook                        | README               | 🟡       |
+| 16  | Train team on release process                     | Team                 | 🟡       |
+
+**Severity:**
+
+- 🔴 = Critical — block production
+- 🟡 = High — needed this sprint
+- 🟢 = Medium/low — can wait
+
+---
+
+_Report generated by Senior Expo / React Native / DevOps Engineer_
+_Nile Flow Production Audit — June 2026_

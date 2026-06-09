@@ -23,7 +23,11 @@ const Cart = () => {
   const router = useRouter();
   useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      try {
+        router.back();
+      } catch (_) {
+        router.replace("/(tabs)/BottomTabs");
+      }
       return true;
     };
     const subscription = BackHandler.addEventListener(

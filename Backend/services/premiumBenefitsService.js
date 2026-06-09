@@ -15,7 +15,7 @@ class PremiumBenefitsService {
   static async awardNileMiles(userId, orderTotal, orderId) {
     try {
       // Check if user is premium
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
       const isPremium = user.prefs?.isPremium || false;
 
       // Calculate base miles (1 mile per 10 KSH)
@@ -32,7 +32,7 @@ class PremiumBenefitsService {
       // Get or create user's Nile Miles record
       let userMilesDoc = null;
       try {
-        const milesResponse = await db.listDocuments(
+        const milesResponse = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NILE_MILES_COLLECTION,
           [Query.equal("userId", userId), Query.limit(1)]
@@ -61,7 +61,7 @@ class PremiumBenefitsService {
 
         earnedHistory.push(earnedEntry);
 
-        await db.updateDocument(
+        await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NILE_MILES_COLLECTION,
           userMilesDoc.$id,
@@ -73,7 +73,7 @@ class PremiumBenefitsService {
         );
       } else {
         // Create new record
-        await db.createDocument(
+        await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NILE_MILES_COLLECTION,
           ID.unique(),
@@ -114,7 +114,7 @@ class PremiumBenefitsService {
    */
   static async applyPremiumDiscount(userId, cartItems, orderTotal) {
     try {
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
       const isPremium = user.prefs?.isPremium || false;
 
       if (!isPremium) {
@@ -163,7 +163,7 @@ class PremiumBenefitsService {
    */
   static async checkFreeDelivery(userId, orderTotal) {
     try {
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
       const isPremium = user.prefs?.isPremium || false;
 
       // Premium users get free delivery on all orders
@@ -200,7 +200,7 @@ class PremiumBenefitsService {
    */
   static async getPremiumDeals(userId) {
     try {
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
       const isPremium = user.prefs?.isPremium || false;
 
       if (!isPremium) {
@@ -214,7 +214,7 @@ class PremiumBenefitsService {
       // Get products with premium discounts
       let premiumProducts = [];
       try {
-        const productsResponse = await db.listDocuments(
+        const productsResponse = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCTS_COLLECTION_ID,
           [Query.equal("premiumOnly", true), Query.limit(20)]
@@ -278,7 +278,7 @@ class PremiumBenefitsService {
    */
   static async getMonthlySavings(userId) {
     try {
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
       const isPremium = user.prefs?.isPremium || false;
 
       if (!isPremium) {
@@ -298,7 +298,7 @@ class PremiumBenefitsService {
 
       let orders = [];
       try {
-        const ordersResponse = await db.listDocuments(
+        const ordersResponse = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           [

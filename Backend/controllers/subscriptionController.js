@@ -1,5 +1,8 @@
 // controllers/subscriptionController.js
-const { db, users } = require("../services/appwriteService");
+const {
+  instrumentedDb,
+  getCachedUser,
+} = require("../services/appwriteService");
 const { env } = require("../src/env");
 const { ID, Query } = require("node-appwrite");
 const PaymentService = require("../services/paymentService");
@@ -19,7 +22,7 @@ class SubscriptionController {
       const userId = req.user.userId || req.user.$id;
 
       // Fetch user from Appwrite
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -82,7 +85,7 @@ class SubscriptionController {
       // Find subscription by checkoutRequestId
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          const subscriptions = await db.listDocuments(
+          const subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [
@@ -159,7 +162,7 @@ class SubscriptionController {
 
           if (subscriptionId) {
             // Search by subscriptionId if provided
-            subscriptions = await db.listDocuments(
+            subscriptions = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               [
@@ -171,7 +174,7 @@ class SubscriptionController {
             );
           } else {
             // Search by paymentIntentId (transactionId)
-            subscriptions = await db.listDocuments(
+            subscriptions = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               [
@@ -192,7 +195,7 @@ class SubscriptionController {
           const subscription = subscriptions.documents[0];
 
           // Update subscription to active
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             subscription.$id,
@@ -203,7 +206,7 @@ class SubscriptionController {
           );
 
           // Get user and update premium status
-          const user = await users.get(userId);
+          const user = await getCachedUser(userId);
 
           // Update user prefs with premium status
           await users.updatePrefs(userId, {
@@ -218,13 +221,13 @@ class SubscriptionController {
           // Update user collection document attributes if exists
           if (env.APPWRITE_USER_COLLECTION_ID) {
             try {
-              const userDocs = await db.listDocuments(
+              const userDocs = await instrumentedDb.listDocuments(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_USER_COLLECTION_ID,
                 [Query.equal("email", user.email)],
               );
               if (userDocs.documents.length > 0) {
-                await db.updateDocument(
+                await instrumentedDb.updateDocument(
                   env.APPWRITE_DATABASE_ID,
                   env.APPWRITE_USER_COLLECTION_ID,
                   userDocs.documents[0].$id,
@@ -306,7 +309,7 @@ class SubscriptionController {
       }
 
       // Fetch user from Appwrite
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -391,7 +394,7 @@ class SubscriptionController {
       // Create PENDING subscription record - premium granted only after payment confirmation
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          await db.createDocument(
+          await instrumentedDb.createDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             ID.unique(),
@@ -459,7 +462,7 @@ class SubscriptionController {
     try {
       const userId = req.user.userId || req.user.$id;
 
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -485,13 +488,13 @@ class SubscriptionController {
       // Also update user collection document
       if (env.APPWRITE_USER_COLLECTION_ID) {
         try {
-          const userDocs = await db.listDocuments(
+          const userDocs = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_USER_COLLECTION_ID,
             [Query.equal("email", user.email)],
           );
           if (userDocs.documents.length > 0) {
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_USER_COLLECTION_ID,
               userDocs.documents[0].$id,
@@ -506,14 +509,14 @@ class SubscriptionController {
       // Update subscription record in database
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          const subscriptions = await db.listDocuments(
+          const subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [Query.equal("userId", userId), Query.equal("status", "active")],
           );
 
           if (subscriptions.documents.length > 0) {
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               subscriptions.documents[0].$id,
@@ -572,7 +575,7 @@ class SubscriptionController {
           .json({ error: "Phone number required for M-Pesa payment" });
       }
 
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -628,7 +631,7 @@ class SubscriptionController {
       // Update or create subscription record
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          const subscriptions = await db.listDocuments(
+          const subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [Query.equal("userId", userId)],
@@ -636,7 +639,7 @@ class SubscriptionController {
 
           if (subscriptions.documents.length > 0) {
             // Update existing
-            await db.updateDocument(
+            await instrumentedDb.updateDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               subscriptions.documents[0].$id,
@@ -649,7 +652,7 @@ class SubscriptionController {
             );
           } else {
             // Create new
-            await db.createDocument(
+            await instrumentedDb.createDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
               ID.unique(),
@@ -749,7 +752,7 @@ class SubscriptionController {
   static async getPremiumDeals(req, res) {
     try {
       const userId = req.user.userId || req.user.$id;
-      const user = await users.get(userId);
+      const user = await getCachedUser(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -766,7 +769,7 @@ class SubscriptionController {
       if (env.APPWRITE_PRODUCT_COLLECTION_ID) {
         try {
           // Try boolean true first
-          const dealsResponse = await db.listDocuments(
+          const dealsResponse = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_PRODUCT_COLLECTION_ID,
             [
@@ -782,7 +785,7 @@ class SubscriptionController {
 
           // If no results with boolean, try string "true"
           if (premiumDeals.length === 0) {
-            const stringDealsResponse = await db.listDocuments(
+            const stringDealsResponse = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_PRODUCT_COLLECTION_ID,
               [

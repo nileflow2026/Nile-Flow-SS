@@ -8,6 +8,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "../lib/queryClient";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
@@ -143,12 +145,14 @@ function App() {
   }
 
   return (
-    <Router>
-      <VendorAuthProvider>
-        <AppContent />
-        <UpdateNotifier />
-      </VendorAuthProvider>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <VendorAuthProvider>
+          <AppContent />
+          <UpdateNotifier />
+        </VendorAuthProvider>
+      </Router>
+    </QueryClientProvider>
   );
 }
 

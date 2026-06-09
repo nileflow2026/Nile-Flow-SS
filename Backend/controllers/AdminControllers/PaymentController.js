@@ -1,4 +1,4 @@
-const { db, functions } = require("../../services/appwriteService");
+const { functions } = require("../../services/appwriteService");
 const { client } = require("../../services/paypal");
 const { env } = require("../../src/env");
 const Stripe = require("stripe");
@@ -70,7 +70,7 @@ async function processSuccessfulMpesaPayment(order, orderId, paymentDetails) {
     }
 
     // 3. Update order status atomically
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -190,7 +190,7 @@ async function archiveCancelledOrder(order, reason, failureType) {
   }
 
   try {
-    const archivedOrder = await db.createDocument(
+    const archivedOrder = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CANCELLED_ORDERS_COLLECTION_ID,
       ID.unique(),
@@ -323,7 +323,7 @@ const cashonDelivery = async (req, res) => {
 
     // 3. SAVE ORDER TO DATABASE
     console.log("Creating order in database...");
-    const result = await db.createDocument(
+    const result = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       ID.unique(),
@@ -344,7 +344,7 @@ const cashonDelivery = async (req, res) => {
     if (!stockUpdateResult.success) {
       console.error("❌ Stock update failed:", stockUpdateResult.errors);
 
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -372,7 +372,7 @@ const cashonDelivery = async (req, res) => {
     );
 
     // 5. UPDATE ORDER WITH STOCK UPDATE SUCCESS
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -480,7 +480,7 @@ const cashonDelivery = async (req, res) => {
     // If order was created but error occurred later, try to mark it as failed
     if (orderId) {
       try {
-        await db.updateDocument(
+        await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           orderId,
@@ -728,7 +728,7 @@ const stripewebpayment = async (req, res) => {
     // After creating order, clear user's cart
     try {
       // Clear cart from backend
-      const cartItems = await db.listDocuments(
+      const cartItems = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CART_COLLECTION_ID,
         [Query.equal("userId", userId)],
@@ -736,7 +736,7 @@ const stripewebpayment = async (req, res) => {
 
       // Delete all cart items
       for (const item of cartItems.documents) {
-        await db.deleteDocument(
+        await instrumentedDb.deleteDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_CART_COLLECTION_ID,
           item.$id,
@@ -982,7 +982,7 @@ const stripePaymentCancelled = async (req, res) => {
     // 1. Get order details
     let order;
     try {
-      order = await db.getDocument(
+      order = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1010,7 +1010,7 @@ const stripePaymentCancelled = async (req, res) => {
         console.log("🔄 Stock restored:", restoreResult.restoredProducts);
 
         // Update order status
-        await db.updateDocument(
+        await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           orderId,
@@ -1340,7 +1340,7 @@ const initiateMpesaPayment = async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -1396,7 +1396,7 @@ const initiateMpesaPayment = async (req, res) => {
       console.error("Failed to parse M-Pesa response:", responseText);
 
       // Update order as failed
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1420,7 +1420,7 @@ const initiateMpesaPayment = async (req, res) => {
 
     if (stkData.ResponseCode === "0") {
       // Update order with checkout request ID
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1440,7 +1440,7 @@ const initiateMpesaPayment = async (req, res) => {
       });
     } else {
       // Update order as failed
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1506,7 +1506,7 @@ const mpesaCallback1 = async (req, res) => {
     // Find order by checkout request ID with proper error handling
     let orders;
     try {
-      orders = await db.listDocuments(
+      orders = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         [
@@ -1572,7 +1572,7 @@ const mpesaCallback1 = async (req, res) => {
         `❌ M-Pesa payment failed for order ${orderId}: ${ResultDesc}`,
       );
 
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1636,7 +1636,7 @@ const mpesaCallback = async (req, res) => {
     // Find order by checkout request ID with proper error handling
     let orders;
     try {
-      orders = await db.listDocuments(
+      orders = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         [
@@ -1659,7 +1659,7 @@ const mpesaCallback = async (req, res) => {
       // Try to find a pending subscription instead
       if (env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID) {
         try {
-          const subscriptions = await db.listDocuments(
+          const subscriptions = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
             [
@@ -1698,7 +1698,7 @@ const mpesaCallback = async (req, res) => {
               }
 
               // Update subscription to active
-              await db.updateDocument(
+              await instrumentedDb.updateDocument(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
                 subscription.$id,
@@ -1710,7 +1710,7 @@ const mpesaCallback = async (req, res) => {
 
               // Get user and update premium status
               const { users } = require("../../services/appwriteService");
-              const user = await users.get(userId);
+              const user = await getCachedUser(userId);
 
               // Update user prefs with premium status
               await users.updatePrefs(userId, {
@@ -1725,13 +1725,13 @@ const mpesaCallback = async (req, res) => {
               // Update user collection document attributes if exists
               if (env.APPWRITE_USER_COLLECTION_ID) {
                 try {
-                  const userDocs = await db.listDocuments(
+                  const userDocs = await instrumentedDb.listDocuments(
                     env.APPWRITE_DATABASE_ID,
                     env.APPWRITE_USER_COLLECTION_ID,
                     [Query.equal("email", user.email)],
                   );
                   if (userDocs.documents.length > 0) {
-                    await db.updateDocument(
+                    await instrumentedDb.updateDocument(
                       env.APPWRITE_DATABASE_ID,
                       env.APPWRITE_USER_COLLECTION_ID,
                       userDocs.documents[0].$id,
@@ -1774,7 +1774,7 @@ const mpesaCallback = async (req, res) => {
                 `❌ M-Pesa subscription payment failed: ${ResultDesc}`,
               );
 
-              await db.updateDocument(
+              await instrumentedDb.updateDocument(
                 env.APPWRITE_DATABASE_ID,
                 env.APPWRITE_SUBSCRIPTIONS_COLLECTION_ID,
                 subscription.$id,
@@ -1844,7 +1844,7 @@ const mpesaCallback = async (req, res) => {
         `❌ M-Pesa payment failed for order ${orderId}: ${ResultDesc}`,
       );
 
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -1888,7 +1888,7 @@ const mpesaPaymentStatus = async (req, res) => {
     }
 
     // Get order from database
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -1936,7 +1936,7 @@ const mpesaCancelPayment = async (req, res) => {
     }
 
     // Get order from database
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -1954,7 +1954,7 @@ const mpesaCancelPayment = async (req, res) => {
       order.paymentStatus === "pending" ||
       order.paymentStatus === "initiated"
     ) {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -2038,7 +2038,7 @@ const cancelCodOrder = async (req, res) => {
     }
 
     // Get order from database
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -2068,7 +2068,7 @@ const cancelCodOrder = async (req, res) => {
     }
 
     // Update order status
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,

@@ -1,5 +1,5 @@
 const { ID, Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const {  } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
@@ -14,7 +14,7 @@ const newsletter = async (req, res) => {
     }
 
     // Check if the email already exists in the newsletter list
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       [Query.equal("email", email)]
@@ -25,7 +25,7 @@ const newsletter = async (req, res) => {
     }
 
     // Create a new document in the subscribers collection
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       ID.unique(),
@@ -214,7 +214,7 @@ const getCampaignTypes = async (req, res) => {
 
     try {
       // Try to fetch from database collection
-      const { documents } = await db.listDocuments(
+      const { documents } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CAMPAIGN_TYPES_COLLECTION_ID || "campaign_types",
         [Query.equal("isActive", true), Query.orderAsc("sortOrder")]
@@ -236,7 +236,7 @@ const getCampaignTypes = async (req, res) => {
       try {
         // Create each default campaign type in the collection
         const createPromises = defaultCampaignTypes.map((type, index) => {
-          return db.createDocument(
+          return instrumentedDb.createDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_CAMPAIGN_TYPES_COLLECTION_ID || "campaign_types",
             ID.unique(),
@@ -315,14 +315,14 @@ const getCampaignTypes = async (req, res) => {
 const getAudienceStatistics = async (req, res) => {
   try {
     // Get total subscribers
-    const { total: totalSubscribers } = await db.listDocuments(
+    const { total: totalSubscribers } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       [Query.equal("subscribed", true)]
     );
 
     // Get VIP customers from users collection where isPremium = true
-    const { total: vipCount } = await db.listDocuments(
+    const { total: vipCount } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID, // Make sure this env variable exists
       [Query.equal("isPremium", true)]
@@ -332,7 +332,7 @@ const getAudienceStatistics = async (req, res) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { total: newSubscribersCount } = await db.listDocuments(
+    const { total: newSubscribersCount } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       [
@@ -348,7 +348,7 @@ const getAudienceStatistics = async (req, res) => {
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-      const { total: activeOrders } = await db.listDocuments(
+      const { total: activeOrders } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDER_COLLECTION_ID || "orders", // Adjust collection name as needed
         [
@@ -381,7 +381,7 @@ const getAudienceStatistics = async (req, res) => {
         : "0.0";
 
     // Get active campaigns count
-    const { total: activeCampaignsCount } = await db.listDocuments(
+    const { total: activeCampaignsCount } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
       [Query.equal("status", "scheduled")]
@@ -538,7 +538,7 @@ const sendnewsletter = async (req, res) => {
     }
 
     if (campaignType === "products") {
-      const { documents: products } = await db.listDocuments(
+      const { documents: products } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         [Query.orderDesc("$createdAt"), Query.limit(4)]
@@ -583,7 +583,7 @@ const sendnewsletter = async (req, res) => {
 
     // Handle marketing campaigns (general newsletter with featured products)
     if (campaignType === "marketing") {
-      const { documents: featuredProducts } = await db.listDocuments(
+      const { documents: featuredProducts } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         [Query.orderDesc("$createdAt"), Query.limit(4)]
@@ -1005,7 +1005,7 @@ const sendnewsletter = async (req, res) => {
 
       // Save to a scheduled campaigns collection (you'll need to create this)
       try {
-        await db.createDocument(
+        await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID ||
             "scheduled_campaigns", // Add this to your env
@@ -1046,7 +1046,7 @@ const sendnewsletter = async (req, res) => {
       audienceQueries.push(Query.equal("isVIP", true));
     }
 
-    const { documents: subscribers } = await db.listDocuments(
+    const { documents: subscribers } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       audienceQueries
@@ -1112,7 +1112,7 @@ const processScheduledCampaigns = async () => {
     );
 
     // Get all scheduled campaigns that are due to be sent
-    const { documents: scheduledCampaigns } = await db.listDocuments(
+    const { documents: scheduledCampaigns } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
       [
@@ -1127,7 +1127,7 @@ const processScheduledCampaigns = async () => {
 
     if (!scheduledCampaigns.length) {
       // Also check for all scheduled campaigns (not just due ones) for debugging
-      const { documents: allScheduledCampaigns } = await db.listDocuments(
+      const { documents: allScheduledCampaigns } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
         [Query.equal("status", "scheduled")]
@@ -1177,7 +1177,7 @@ const processScheduledCampaigns = async () => {
           // Regenerate the template based on campaign type and stored parameters
           if (campaign.campaignType === "marketing") {
             // Re-fetch products for marketing campaigns
-            const { documents: featuredProducts } = await db.listDocuments(
+            const { documents: featuredProducts } = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_PRODUCT_COLLECTION_ID,
               [Query.orderDesc("$createdAt"), Query.limit(4)]
@@ -1387,7 +1387,7 @@ const processScheduledCampaigns = async () => {
           audienceQueries.push(Query.equal("isVIP", true));
         }
 
-        const { documents: subscribers } = await db.listDocuments(
+        const { documents: subscribers } = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NEWSLETTER_COLLECTION_ID,
           audienceQueries
@@ -1415,7 +1415,7 @@ const processScheduledCampaigns = async () => {
           await Promise.allSettled(emailJobs);
 
           // Update campaign status to sent
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID ||
               "scheduled_campaigns",
@@ -1436,7 +1436,7 @@ const processScheduledCampaigns = async () => {
 
         // Mark campaign as failed
         try {
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID ||
               "scheduled_campaigns",

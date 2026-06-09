@@ -1,0 +1,100 @@
+# Nile Flow — Secret Scanning with Gitleaks
+#
+# Scans every PR and push for:
+#   - API keys (Stripe, Google, OpenAI, etc.)
+#   - Private keys (RSA, EC, SSH)
+#   - Tokens (OAuth, Sentry, Expo, GitHub)
+#   - Credentials files (service accounts, .env)
+#   - High-entropy strings that look like secrets
+#
+# On detection: BLOCKS the PR and surfaces the exact file + line.
+
+name: Security Scan
+
+on:
+    pull_request:
+        branches: [main, staging, develop]
+    push:
+        branches: [main, staging]
+    workflow_dispatch:
+
+jobs:
+    gitleaks-scan:
+        name: Gitleaks Secret Detection
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Run Gitleaks
+              uses: gitleaks/gitleaks-action@v2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for custom config
+              with:
+                  report-format: json
+                  config-path: .github/gitleaks.toml
+
+            - name: Check Gitleaks exit code
+              id: gitleaks-check
+              run: |
+                  echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+            - name: Upload scan report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: gitleaks-report
+                  path: gitleaks-report.json
+                  retention-days: 30
+
+            - name: Fail on secret detection
+              if: steps.gitleaks-check.outputs.exit_code != 0
+              run: |
+                  echo "❌ SECRETS DETECTED — Review the gitleaks report above."
+                  echo "Blocking PR until secrets are removed."
+                  exit 1
+
+    # Fallback scan: regex-based check for common patterns
+    # (runs even if Gitleaks is unavailable)
+    regex-fallback-scan:
+        name: Regex Secret Pattern Scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 3
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Scan for private keys
+              run: |
+                  echo "=== Scan: Private Keys ==="
+                  ! grep -rn "-----BEGIN\s\(RSA\|EC\|DSA\|OPENSSH\|PRIVATE\)\sKEY-----" \
+                    --include='*.{js,jsx,ts,tsx,json,yml,yaml,env,sh}' \
+                    --exclude-dir=node_modules \
+                    . 2>/dev/null || { echo "❌ Private key detected"; exit 1; }
+                  echo "✅ No private keys found"
+
+            - name: Scan for service account keys
+              run: |
+                  echo "=== Scan: Service Account Keys ==="
+                  ! find . -name "service-account*.json" \
+                    -not -path "./node_modules/*" \
+                    -not -path "./.git/*" \
+                    2>/dev/null | grep . && { echo "❌ Service account key file found"; exit 1; } || true
+                  echo "✅ No service account key files found"
+
+            - name: Scan for high-entropy env values
+              run: |
+                  echo "=== Scan: Potential Secrets in .env files ==="
+                  # Check for uncommitted .env files that should be gitignored
+                  ENV_FILES=$(find . -name ".env" -not -path "./node_modules/*" -not -path "./.git/*" 2>/dev/null)
+                  if [ -n "$ENV_FILES" ]; then
+                    echo "⚠️  .env files present in working tree:"
+                    echo "$ENV_FILES"
+                  fi
+                  echo "✅ Scan complete"

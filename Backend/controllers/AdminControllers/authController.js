@@ -139,7 +139,7 @@ async function persistRefreshToken({
   ).toISOString();
   const docId = ID.unique();
 
-  return db.createDocument(
+  return instrumentedDb.createDocument(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     docId,
@@ -163,7 +163,7 @@ async function persistRefreshToken({
  */
 async function findRefreshTokenRecord({ userId, refreshToken }) {
   const hashedRefreshToken = hashToken(refreshToken);
-  const result = await db.listDocuments(
+  const result = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [
@@ -179,7 +179,7 @@ async function findRefreshTokenRecord({ userId, refreshToken }) {
 
 async function findRefreshTokenRecordByHash(refreshToken) {
   const tokenHash = hashToken(refreshToken);
-  const result = await db.listDocuments(
+  const result = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("refreshToken", tokenHash)],
@@ -198,7 +198,7 @@ async function findRefreshTokenRecordByHash(refreshToken) {
 async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
   // Try deviceId first if provided
   if (deviceId) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
       [Query.equal("userId", userId), Query.equal("deviceId", deviceId)],
@@ -207,7 +207,7 @@ async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
   }
   // fallback to userAgent if deviceId not provided
   if (userAgent) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
       [Query.equal("userId", userId), Query.equal("userAgent", userAgent)],
@@ -215,7 +215,7 @@ async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
     return res?.documents || [];
   }
   // last resort: return all user tokens
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("userId", userId)],
@@ -227,7 +227,7 @@ async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
  * Revoke a refresh token record (by document id)
  */
 async function revokeRefreshTokenById(docId) {
-  return db.updateDocument(
+  return instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     docId,
@@ -239,7 +239,7 @@ async function revokeRefreshTokenById(docId) {
  * Revoke all refresh tokens for a user (useful for suspicious activity).
  */
 async function revokeAllUserRefreshTokens(userId) {
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("userId", userId)],
@@ -250,7 +250,7 @@ async function revokeAllUserRefreshTokens(userId) {
   let count = 0;
   for (const doc of res.documents) {
     if (!doc.revoked) {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
         doc.$id,
@@ -316,7 +316,7 @@ const signup = async (req, res) => {
     );
 
     // 2) Create profile document in admin/user collection
-    const profile = await db.createDocument(
+    const profile = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ADMIN_COLLECTION_ID,
       documentId,
@@ -440,7 +440,7 @@ const signin = async (req, res) => {
 
   try {
     const session = await account.createEmailPasswordSession(email, password);
-    const user = await users.get(session.userId);
+    const user = await getCachedUser(session.userId);
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
@@ -626,7 +626,7 @@ const handleRefreshToken = async (req, res) => {
     }
 
     // 6) Load user
-    const user = await users.get(userId);
+    const user = await getCachedUser(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
@@ -755,7 +755,7 @@ const logout = async (req, res) => {
             Query.equal("userId", decoded.sub),
           ]
         : [Query.equal("refreshToken", hashedRefreshToken)];
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
       queries,
@@ -805,7 +805,7 @@ const getCurrentUser = async (req, res) => {
     }
 
     const decoded = verifyAccessToken(accessToken);
-    const user = await users.get(decoded.sub);
+    const user = await getCachedUser(decoded.sub);
 
     return res.status(200).json({
       user: sanitizeUser(user),

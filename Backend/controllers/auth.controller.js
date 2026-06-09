@@ -125,7 +125,7 @@ const signupCustomer = async (req, res) => {
     try {
       const db = await AppwriteSessionService.getDatabase();
 
-      await db.createDocument(
+      await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID || "nile_mart_db",
         env.APPWRITE_USER_COLLECTION_ID || "user_profiles",
         ID.unique(),
@@ -236,7 +236,7 @@ const signinCustomer = async (req, res) => {
 
     // 5. Get user details
     const users = await AppwriteSessionService.getUsers();
-    const user = await users.get(session.userId);
+    const user = await getCachedUser(session.userId);
 
     // 6. Update last login (optional)
     try {
@@ -346,7 +346,7 @@ const getCurrentUser = async (req, res) => {
 
     // Get full user details
     const users = await AppwriteService.getUsers();
-    const fullUser = await users.get(user.$id);
+    const fullUser = await getCachedUser(user.$id);
 
     return res.status(200).json({
       success: true,
@@ -390,7 +390,7 @@ const refreshSession = async (req, res) => {
     // Get current session details
     const currentSession = await account.getSession(sessionId);
     const users = await AppwriteSessionService.getUsers();
-    const user = await users.get(currentSession.userId);
+    const user = await getCachedUser(currentSession.userId);
 
     // Create new session
     const newSession = await account.createEmailPasswordSession(

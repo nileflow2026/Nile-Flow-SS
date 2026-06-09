@@ -1,6 +1,6 @@
 // controllers/admin.js
 const { Query, ID } = require("node-appwrite");
-const { db, functions } = require("../../services/appwriteService");
+const { functions } = require("../../services/appwriteService");
 const { logAuditFromRequest } = require("../../utils/auditLogger");
 const { env } = require("../../src/env");
 const {
@@ -31,7 +31,7 @@ const getCancelledOrders = async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
     const offset = (page - 1) * limit;
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CANCELLED_ORDERS_COLLECTION_ID,
       [Query.orderDesc("$createdAt"), Query.limit(limit), Query.offset(offset)],
@@ -83,7 +83,7 @@ const getOrders = async (req, res) => {
     ];
     if (statusFilter) queries.push(Query.equal("status", statusFilter));
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       queries,
@@ -136,7 +136,7 @@ const getProducts = async (req, res) => {
         ...(cursor ? [Query.cursorAfter(cursor)] : []),
       ];
 
-      const batch = await db.listDocuments(
+      const batch = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         queries,
@@ -168,7 +168,7 @@ const getProducts = async (req, res) => {
 
 const getPendingProducts = async (req, res) => {
   try {
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [
@@ -192,7 +192,7 @@ const getPendingProducts = async (req, res) => {
 
 const getApprovedProducts = async (req, res) => {
   try {
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [
@@ -216,7 +216,7 @@ const getApprovedProducts = async (req, res) => {
 
 const getRejectedProducts = async (req, res) => {
   try {
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [
@@ -240,7 +240,7 @@ const getRejectedProducts = async (req, res) => {
 
 const getSingleProductDetails = async (req, res) => {
   try {
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       req.params.productId,
@@ -289,7 +289,7 @@ const addProduct = async (req, res) => {
     // ✅ Generate the unique ID beforehand
     const uniqueProductId = ID.unique();
     console.log("Attempting to create document with ID:", uniqueProductId);
-    const doc = await db.createDocument(
+    const doc = await instrumentedDb.createDocument(
       process.env.APPWRITE_DATABASE_ID,
       process.env.PRODUCTS_COLLECTION_ID,
       uniqueProductId,
@@ -350,7 +350,7 @@ const addFeaturedProducts = async (req, res) => {
     const { productId, tag } = req.body; // productId from the frontend is the original product's $id
 
     // Check if the product is already featured
-    const { total: existingFeatured } = await db.listDocuments(
+    const { total: existingFeatured } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
       [Query.equal("productId", productId)], // Use the new attribute name
@@ -361,7 +361,7 @@ const addFeaturedProducts = async (req, res) => {
     }
 
     // Fetch the original product to get its name and images
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,
@@ -371,7 +371,7 @@ const addFeaturedProducts = async (req, res) => {
 
     // Create a new document in the featured collection
     // The new document's ID will be a different, unique value
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
       ID.unique(),
@@ -399,7 +399,7 @@ const addProductsDeal = async (req, res) => {
     const { productId, discountPercentage, tag, durationHours = 24 } = req.body;
 
     // Check if the product already exists in the deals collection
-    const { total: existingDeal } = await db.listDocuments(
+    const { total: existingDeal } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID, // Use your new deals collection ID
       [Query.equal("productId", productId)], // Assumes your deals collection has a 'productDocId' attribute
@@ -412,7 +412,7 @@ const addProductsDeal = async (req, res) => {
     // Fetch the original product to get its price, name, and images
 
     // Fetch the original product to get its price
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID, // Get the document from your main products collection
       productId,
@@ -428,7 +428,7 @@ const addProductsDeal = async (req, res) => {
     dealEndTime.setHours(dealEndTime.getHours() + durationHours);
 
     // Create a new document in the deals collection with the necessary info
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID, // The new deals collection ID
       ID.unique(),
@@ -466,7 +466,7 @@ const addFlashSale = async (req, res) => {
 
     // ✅ 1. Check if the product is already in a flash sale.
     // Assuming your flash sale collection has a 'productId' attribute
-    const { total: existingSale } = await db.listDocuments(
+    const { total: existingSale } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FLASH_SALE_COLLECTION_ID,
       [Query.equal("productId", productId)],
@@ -479,7 +479,7 @@ const addFlashSale = async (req, res) => {
     }
 
     // ✅ 2. Fetch the original product from the main products collection.
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID, // Use your main products collection ID
       productId,
@@ -496,7 +496,7 @@ const addFlashSale = async (req, res) => {
     );
 
     // ✅ 5. Create the new document in the flash sales collection.
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FLASH_SALE_COLLECTION_ID, // The flash sale collection ID
 
@@ -536,7 +536,7 @@ const updatePremiumDeal = async (req, res) => {
 
     // Verify the product exists first
     try {
-      const existingProduct = await db.getDocument(
+      const existingProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -559,7 +559,7 @@ const updatePremiumDeal = async (req, res) => {
     }
 
     // Update the product's premiumDeal attribute
-    const updatedProduct = await db.updateDocument(
+    const updatedProduct = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,
@@ -590,7 +590,7 @@ const getFlashSales = async (req, res) => {
   try {
     const now = new Date().toISOString();
 
-    const flashSales = await db.listDocuments(
+    const flashSales = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FLASH_SALE_COLLECTION_ID, // The flash sale collection ID
       [
@@ -612,7 +612,7 @@ const addReward = async (req, res) => {
     const { name, lore, image, requiredMiles, rewardKey, category } = req.body;
 
     // Check if rewardKey already exists
-    const { total } = await db.listDocuments(
+    const { total } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARDS_COLLECTION_ID,
       [Query.equal("rewardKey", rewardKey)],
@@ -624,7 +624,7 @@ const addReward = async (req, res) => {
         .json({ error: "Reward with this key already exists." });
     }
 
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARDS_COLLECTION_ID,
       ID.unique(),
@@ -651,7 +651,7 @@ const updateReward = async (req, res) => {
     const { rewardId } = req.params;
     const updates = req.body; // can contain any subset of reward fields
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARDS_COLLECTION_ID,
       rewardId,
@@ -670,7 +670,7 @@ const deleteReward = async (req, res) => {
   try {
     const { rewardId } = req.params;
 
-    await db.deleteDocument(
+    await instrumentedDb.deleteDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARDS_COLLECTION_ID,
       rewardId,
@@ -686,7 +686,7 @@ const deleteReward = async (req, res) => {
 // List rewards (grouped by category if needed)
 const listRewards = async (req, res) => {
   try {
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARDS_COLLECTION_ID,
     );
@@ -710,7 +710,7 @@ const updateProduct = async (req, res) => {
 
     // if otherUpdates contains fields (like productName, price, colors etc.)
     if (Object.keys(otherUpdates).length > 0) {
-      const updatedDoc = await db.updateDocument(
+      const updatedDoc = await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -731,7 +731,7 @@ const updateProduct = async (req, res) => {
         categoryId,
       });
 
-      const currentProduct = await db.getDocument(
+      const currentProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -763,7 +763,7 @@ const updateProduct = async (req, res) => {
 
       const updatedCategoryIds = [...existingCategories, categoryId];
 
-      const updatedDoc = await db.updateDocument(
+      const updatedDoc = await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -789,7 +789,7 @@ const updateProduct = async (req, res) => {
 
 const getUsers = async (_req, res) => {
   try {
-    const { documents } = await db.listDocuments(
+    const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
     );
@@ -818,7 +818,7 @@ const updateOrderStatus = async (req, res) => {
       newStatus: orderStatus,
     });
 
-    const order = await db.getDocument(
+    const order = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
@@ -843,7 +843,7 @@ const clientmesseags = async (req, res) => {
     // You should implement an authentication middleware here to protect this route
     // For a simple example, we'll assume the client is an authenticated admin.
 
-    const { documents: messages } = await db.listDocuments(
+    const { documents: messages } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID, // Your contact database ID
       env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
       [Query.orderDesc("$createdAt")], // Your messages collection ID
@@ -884,7 +884,7 @@ const createCategory = async (req, res) => {
   try {
     const { name, slug, image, description } = req.body;
 
-    const doc = await db.createDocument(
+    const doc = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
       ID.unique, // auto-ID
@@ -907,7 +907,7 @@ const createSubcategory = async (req, res) => {
     // Validate parent category
     let category;
     try {
-      category = await db.getDocument(
+      category = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CATEGORIES_COLLECTION_ID,
         id,
@@ -917,7 +917,7 @@ const createSubcategory = async (req, res) => {
     }
 
     // Create subcategory document
-    const subcategory = await db.createDocument(
+    const subcategory = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SUBCATEGORY_COLLECTION_ID,
       ID.unique(),
@@ -943,7 +943,7 @@ const getSubcategoriesByCategoryId = async (req, res) => {
     // 1. Check if category exists
     let category;
     try {
-      category = await db.getDocument(
+      category = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CATEGORIES_COLLECTION_ID,
         id,
@@ -953,7 +953,7 @@ const getSubcategoriesByCategoryId = async (req, res) => {
     }
 
     // 2. Query subcategories with relationship field "category"
-    const subcategories = await db.listDocuments(
+    const subcategories = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SUBCATEGORY_COLLECTION_ID,
       [Query.equal("categoryId", [id])],
@@ -972,7 +972,7 @@ const getProductsBySubcategoryId = async (req, res) => {
     const { id } = req.params; // subcategory ID
 
     // Query products where subcategory relationship matches this ID
-    const products = await db.listDocuments(
+    const products = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [Query.contains("subcategoryId", id)],
@@ -1019,7 +1019,7 @@ const assignDeliveryToRider = async (req, res) => {
     try {
       // Try to find delivery in deliveries collection first
       console.log("Trying to find delivery in deliveries collection...");
-      delivery = await db.getDocument(
+      delivery = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
         env.DELIVERIES_COLLECTION_ID,
         deliveryId,
@@ -1032,7 +1032,7 @@ const assignDeliveryToRider = async (req, res) => {
 
       try {
         // Check if this is an order ID - try to find in orders collection
-        const order = await db.getDocument(
+        const order = await instrumentedDb.getDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION || env.APPWRITE_ORDERS_COLLECTION_ID,
           deliveryId,
@@ -1077,7 +1077,7 @@ const assignDeliveryToRider = async (req, res) => {
             env.APPWRITE_USER_COLLECTION_ID,
           );
 
-          const customer = await db.getDocument(
+          const customer = await instrumentedDb.getDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_USER_COLLECTION_ID,
             customerId,
@@ -1115,7 +1115,7 @@ const assignDeliveryToRider = async (req, res) => {
 
           // Get customer delivery address (where to deliver TO)
           try {
-            const deliveryAddresses = await db.listDocuments(
+            const deliveryAddresses = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_ADDRESS_COLLECTION_ID,
               [Query.equal("user", customerId), Query.equal("type", "pickup")],
@@ -1185,7 +1185,7 @@ const assignDeliveryToRider = async (req, res) => {
           let fallbackPhone = "";
           try {
             console.log("🔄 Trying to get phone from customer addresses...");
-            const customerAddresses = await db.listDocuments(
+            const customerAddresses = await instrumentedDb.listDocuments(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_ADDRESS_COLLECTION_ID,
               [Query.equal("user", order.userId || order.customerId)],
@@ -1233,7 +1233,7 @@ const assignDeliveryToRider = async (req, res) => {
         }
 
         // Create a delivery record from the order
-        delivery = await db.createDocument(
+        delivery = await instrumentedDb.createDocument(
           env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           deliveryId, // Use the same ID as the order
@@ -1293,7 +1293,7 @@ const assignDeliveryToRider = async (req, res) => {
     }
 
     // Check if rider exists and is available
-    const rider = await db.getDocument(
+    const rider = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
@@ -1314,7 +1314,7 @@ const assignDeliveryToRider = async (req, res) => {
     }
 
     // Assign delivery to rider
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
@@ -1329,7 +1329,7 @@ const assignDeliveryToRider = async (req, res) => {
 
     // Update rider status to busy if they were online
     if (rider.status === "online") {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
         riderId,

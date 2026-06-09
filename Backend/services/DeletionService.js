@@ -63,10 +63,10 @@ async function deleteDocumentsByUserId(collectionId, userIdField, userId) {
     const queries = [Query.equal(userIdField, userId), Query.limit(100)];
     if (cursor) queries.push(Query.cursorAfter(cursor));
 
-    const page = await db.listDocuments(DB_ID, collectionId, queries);
+    const page = await instrumentedDb.listDocuments(DB_ID, collectionId, queries);
     for (const doc of page.documents) {
       try {
-        await db.deleteDocument(DB_ID, collectionId, doc.$id);
+        await instrumentedDb.deleteDocument(DB_ID, collectionId, doc.$id);
         deleted++;
       } catch (e) {
         logger.warn("DeletionService: doc delete failed", {
@@ -116,14 +116,14 @@ async function anonymiseDocumentsByUserId(
     const queries = [Query.equal(userIdField, userId), Query.limit(100)];
     if (cursor) queries.push(Query.cursorAfter(cursor));
 
-    const page = await db.listDocuments(DB_ID, collectionId, queries);
+    const page = await instrumentedDb.listDocuments(DB_ID, collectionId, queries);
     for (const doc of page.documents) {
       const patch = { [userIdField]: anonId };
       if (emailField && doc[emailField]) {
         patch[emailField] = `${anonId}@deleted.nileflow`;
       }
       try {
-        await db.updateDocument(DB_ID, collectionId, doc.$id, patch);
+        await instrumentedDb.updateDocument(DB_ID, collectionId, doc.$id, patch);
         updated++;
       } catch (e) {
         logger.warn("DeletionService: doc anonymise failed", {
@@ -278,7 +278,7 @@ async function sendDeletionConfirmationEmail(email, username, scheduledDate) {
 
 async function getExistingRequest(userId) {
   if (!DELETION_COLL) return null;
-  const result = await db.listDocuments(DB_ID, DELETION_COLL, [
+  const result = await instrumentedDb.listDocuments(DB_ID, DELETION_COLL, [
     Query.equal("userId", userId),
     Query.limit(1),
   ]);
@@ -298,7 +298,7 @@ async function hasActiveOrders(userId) {
       "shipped",
       "out_for_delivery",
     ];
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       DB_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       [
@@ -319,7 +319,7 @@ async function hasActiveOrders(userId) {
 
 async function isVendorAccount(userId) {
   try {
-    const user = await users.get(userId);
+    const user = await getCachedUser(userId);
     return user?.prefs?.role === "vendor";
   } catch {
     return false;
@@ -333,7 +333,7 @@ async function isVendorAccount(userId) {
 async function hasPaymentRecords(userId) {
   if (!env.APPWRITE_ORDERS_COLLECTION) return false;
   try {
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       DB_ID,
       env.APPWRITE_ORDERS_COLLECTION,
       [
@@ -400,7 +400,7 @@ class DeletionService {
         }
       } else {
         // Reset window
-        await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+        await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
           otpSendCount: 0,
           otpWindowStart: now.toISOString(),
         });
@@ -419,7 +419,7 @@ class DeletionService {
     if (request) {
       // Update existing pending record
       const newAuditLog = appendAuditEvent(request.auditLog, "OTP_SENT");
-      await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+      await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
         otpHash,
         otpExpiry,
         otpAttempts: 0,
@@ -429,7 +429,7 @@ class DeletionService {
       });
     } else {
       // Create new staging record
-      await db.createDocument(DB_ID, DELETION_COLL, ID.unique(), {
+      await instrumentedDb.createDocument(DB_ID, DELETION_COLL, ID.unique(), {
         userId,
         email,
         status: "otp_pending",
@@ -452,7 +452,7 @@ class DeletionService {
     // Fetch username for email personalisation
     let username = "User";
     try {
-      const appwriteUser = await users.get(userId);
+      const appwriteUser = await getCachedUser(userId);
       username = appwriteUser.name || "User";
     } catch {
       // non-fatal
@@ -519,7 +519,7 @@ class DeletionService {
       const newAuditLog = appendAuditEvent(request.auditLog, "OTP_FAILED", {
         attemptNumber: newAttempts,
       });
-      await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+      await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
         otpAttempts: newAttempts,
         auditLog: newAuditLog,
       });
@@ -544,7 +544,7 @@ class DeletionService {
         request.auditLog,
         "BLOCKED_ACTIVE_ORDERS",
       );
-      await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+      await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
         activeOrdersBlocked: true,
         auditLog: newAuditLog,
       });
@@ -574,7 +574,7 @@ class DeletionService {
     );
 
     // Update to confirmed pending status
-    await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+    await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
       status: "pending",
       scheduledDeletionDate,
       otpHash: null,
@@ -592,7 +592,7 @@ class DeletionService {
     // Send confirmation email
     let username = "User";
     try {
-      const appwriteUser = await users.get(userId);
+      const appwriteUser = await getCachedUser(userId);
       username = appwriteUser.name || "User";
     } catch {
       // non-fatal
@@ -648,7 +648,7 @@ class DeletionService {
 
     // Update user preferences to mark deletion pending
     try {
-      const appwriteUser = await users.get(userId);
+      const appwriteUser = await getCachedUser(userId);
       const currentPrefs = appwriteUser.prefs || {};
       await users.updatePrefs(userId, {
         ...currentPrefs,
@@ -702,7 +702,7 @@ class DeletionService {
         for (const ev of auditEvents) {
           newAuditLog = appendAuditEvent(newAuditLog, ev);
         }
-        await db.updateDocument(DB_ID, DELETION_COLL, requestDocId, {
+        await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, requestDocId, {
           auditLog: newAuditLog,
         });
       } catch {
@@ -1064,7 +1064,7 @@ class DeletionService {
 
     // Remove deletion_pending flag from prefs
     try {
-      const appwriteUser = await users.get(userId);
+      const appwriteUser = await getCachedUser(userId);
       const prefs = appwriteUser.prefs || {};
       delete prefs.deletion_pending;
       delete prefs.deletion_requested_at;
@@ -1079,7 +1079,7 @@ class DeletionService {
       { reason: reason.slice(0, 200) },
     );
 
-    await db.updateDocument(DB_ID, DELETION_COLL, request.$id, {
+    await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, request.$id, {
       status: "cancelled",
       cancelledAt: new Date().toISOString(),
       cancelReason: reason.slice(0, 300) || null,
@@ -1114,7 +1114,7 @@ class DeletionService {
         const now = new Date().toISOString();
 
         // Find all pending requests where grace period has elapsed
-        const pending = await db.listDocuments(DB_ID, DELETION_COLL, [
+        const pending = await instrumentedDb.listDocuments(DB_ID, DELETION_COLL, [
           Query.equal("status", "pending"),
           Query.lessThanEqual("scheduledDeletionDate", now),
           Query.limit(50),

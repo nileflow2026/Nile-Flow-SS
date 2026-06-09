@@ -1,5 +1,5 @@
 // controllers/riderAnalyticsController.js
-const { db } = require("../services/appwriteService");
+const {  } = require("../services/appwriteService");
 const { env } = require("../src/env");
 const { Query } = require("node-appwrite");
 
@@ -49,7 +49,7 @@ const calculateSuccessRate = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const allDeliveries = await db.listDocuments(
+    const allDeliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -91,7 +91,7 @@ const calculateAvgDeliveryTime = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -139,7 +139,7 @@ const getCustomerRatings = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -190,7 +190,7 @@ const analyzePeakHours = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -236,7 +236,7 @@ const calculateEarningsTrend = async (riderId, days = 30) => {
       Query.lessThanEqual("completedAt", endDate.toISOString()),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -281,7 +281,7 @@ const getDeliveryStatusBreakdown = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -326,7 +326,7 @@ const calculateDistanceTraveled = async (riderId, startDate, endDate) => {
       Query.lessThanEqual("createdAt", endDate),
     ];
 
-    const deliveries = await db.listDocuments(
+    const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       queries
@@ -407,7 +407,7 @@ const riderAnalyticsController = {
         Query.lessThanEqual("completedAt", endDate),
       ];
 
-      const earningsData = await db.listDocuments(
+      const earningsData = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.DELIVERIES_COLLECTION_ID,
         earningsQueries
@@ -511,32 +511,32 @@ const riderAnalyticsController = {
         thisMonthData,
         lastMonthData,
       ] = await Promise.all([
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           todayQueries
         ),
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           yesterdayQueries
         ),
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           thisWeekQueries
         ),
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           lastWeekQueries
         ),
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           thisMonthQueries
         ),
-        db.listDocuments(
+        instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           lastMonthQueries

@@ -243,6 +243,15 @@ const premiumSubscriptionsActive = new client.Gauge({
   registers: [registry],
 });
 
+// ── Release Intelligence Metrics ──────────────────────────────────────────────
+
+const releaseInfo = new client.Gauge({
+  name: "nf_release_info",
+  help: "Release deployment metadata (set to timestamp when deployed)",
+  labelNames: ["sha", "branch", "channel", "runtime_version"],
+  registers: [registry],
+});
+
 // ── Rate Limiting Metrics ─────────────────────────────────────────────────────
 
 const rateLimitHitsTotal = new client.Counter({
@@ -294,6 +303,8 @@ module.exports = {
     ordersTotal,
     cartCheckoutsTotal,
     premiumSubscriptionsActive,
+    // Release
+    releaseInfo,
     // Load
     rateLimitHitsTotal,
   },

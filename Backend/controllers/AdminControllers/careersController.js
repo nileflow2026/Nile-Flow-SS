@@ -5,7 +5,7 @@ const { env } = require("../../src/env");
 
 const getCareers = async (req, res) => {
   try {
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CAREERS_COLLECTION_ID,
       [Query.limit(100), Query.orderAsc("$createdAt")] // Fetch up to 100 documents, adjust as needed
@@ -61,7 +61,7 @@ const addCareer = async (req, res) => {
     // Convert the responsibilities array to a JSON string
     const responsibilitiesJson = JSON.stringify(responsibilities);
     const requirementsJson = JSON.stringify(responsibilities);
-    const response = await db.createDocument(
+    const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CAREERS_COLLECTION_ID,
       ID.unique(),

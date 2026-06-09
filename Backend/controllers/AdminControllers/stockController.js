@@ -1,4 +1,4 @@
-const { db, Query } = require("../../services/appwriteService");
+const { Query } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 /**
@@ -25,7 +25,7 @@ const checkStockAvailability = async (cartItems) => {
     for (const [productId, requestedQuantity] of Object.entries(productMap)) {
       try {
         // Get product from main collection
-        const product = await db.getDocument(
+        const product = await instrumentedDb.getDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCT_COLLECTION_ID,
           productId
@@ -103,7 +103,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
   for (const [productId, quantityToReduce] of Object.entries(productMap)) {
     try {
       // 1. Get current product details from main collection
-      const mainProduct = await db.getDocument(
+      const mainProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId
@@ -122,7 +122,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
       const vendorId = mainProduct.vendorId;
 
       // 2. Update MAIN PRODUCT collection
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -138,7 +138,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
       if (vendorId && mainProduct.vendorProductId) {
         try {
           // Try to update vendor product by vendorProductId (preferred)
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             mainProduct.vendorProductId,
@@ -155,7 +155,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
 
           // Fallback: Try to find vendor product by productId
           try {
-            const vendorProducts = await db.listDocuments(
+            const vendorProducts = await instrumentedDb.listDocuments(
               env.VENDOR_DATABASE_ID,
               env.VENDOR_PRODUCTS_COLLECTION_ID,
               [
@@ -165,7 +165,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
             );
 
             if (vendorProducts.documents.length > 0) {
-              await db.updateDocument(
+              await instrumentedDb.updateDocument(
                 env.VENDOR_DATABASE_ID,
                 env.VENDOR_PRODUCTS_COLLECTION_ID,
                 vendorProducts.documents[0].$id,
@@ -241,7 +241,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
 
   for (const [productId, quantityToRestore] of Object.entries(productMap)) {
     try {
-      const mainProduct = await db.getDocument(
+      const mainProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId
@@ -251,7 +251,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
       const newStock = currentStock + quantityToRestore;
 
       // Update main collection
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
         productId,
@@ -266,7 +266,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
       // Update vendor collection
       if (mainProduct.vendorId && mainProduct.vendorProductId) {
         try {
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             mainProduct.vendorProductId,

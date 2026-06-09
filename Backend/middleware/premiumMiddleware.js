@@ -1,5 +1,5 @@
 // middleware/premiumMiddleware.js
-const { users } = require("../services/appwriteService");
+const { getCachedUser } = require("../services/appwriteService");
 const PremiumBenefitsService = require("../services/premiumBenefitsService");
 const logger = require("../utils/logger");
 
@@ -114,7 +114,7 @@ const checkPremiumStatus = async (req, res, next) => {
       return next();
     }
 
-    const user = await users.get(userId);
+    const user = await getCachedUser(userId);
     const isPremium = user.prefs?.isPremium || false;
     const subscriptionExpiresAt = user.prefs?.subscriptionExpiresAt;
 

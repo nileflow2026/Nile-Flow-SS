@@ -1,7 +1,9 @@
 "use strict";
 
 const { env } = require("../../env");
-const { enforceRepositoryOwnership } = require("../ownership/runtimeEnforcement");
+const {
+  enforceRepositoryOwnership,
+} = require("../../ownership/runtimeEnforcement");
 const { enforcePagination } = require("../governance/paginationRules");
 const { enforceLimit } = require("../governance/queryLimits");
 const { coalesce } = require("../coordination/requestCoalescer");
@@ -15,10 +17,16 @@ class BaseRepository {
       throw new Error("BaseRepository requires a collectionId");
     }
     if (!domainName) {
-      throw new Error("BaseRepository requires a domainName for ownership enforcement");
+      throw new Error(
+        "BaseRepository requires a domainName for ownership enforcement",
+      );
     }
 
-    enforceRepositoryOwnership({ domainName, collectionId, sourceFile: __filename });
+    enforceRepositoryOwnership({
+      domainName,
+      collectionId,
+      sourceFile: __filename,
+    });
 
     this.db = db;
     this.collectionId = collectionId;
@@ -35,20 +43,22 @@ class BaseRepository {
   }
 
   async get(documentId) {
-    return coalesce(
-      "getDocument",
-      this.collectionId,
-      [documentId],
-      () =>
-        this.db.getDocument(
-          env.APPWRITE_DATABASE_ID,
-          this.collectionId,
-          documentId,
-        ),
+    return coalesce("getDocument", this.collectionId, [documentId], () =>
+      this.db.getDocument(
+        env.APPWRITE_DATABASE_ID,
+        this.collectionId,
+        documentId,
+      ),
     );
   }
 
-  async list(filters = [], limit = 25, offset = 0, orderField = "$createdAt", orderType = "DESC") {
+  async list(
+    filters = [],
+    limit = 25,
+    offset = 0,
+    orderField = "$createdAt",
+    orderType = "DESC",
+  ) {
     enforcePagination(limit, offset);
     enforceLimit(limit, "list");
 

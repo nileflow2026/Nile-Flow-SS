@@ -1,0 +1,262 @@
+# Nile Flow — Architecture Enforcement CI
+#
+# Phase 9: Prevents architectural regression by blocking PRs that:
+#   - Use raw Appwrite database calls outside the repository layer
+#   - Import Appwrite SDK from frontend code
+#   - Use users.get() without cache wrapper
+#   - Use setInterval for polling (blocking new violations)
+#   - Use ad-hoc cache key strings instead of CacheKeys registry
+#
+# Runs on every PR and push to main/staging.
+
+name: Architecture Enforcement
+
+on:
+  pull_request:
+    branches: [main, staging, develop]
+  push:
+    branches: [main, staging]
+
+jobs:
+  enforce-architecture:
+    name: Enforce Architecture Rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for raw Appwrite DB calls outside repository layer
+        id: rule-1
+        run: |
+          echo "=== Rule 1: No raw db.* calls outside src/data/ ==="
+          # Search for raw db.listDocuments, db.getDocument, db.createDocument, db.updateDocument
+          # outside the allowed data layer and test files
+          VIOLATIONS=$(grep -rn '\(?<!instrumented\)db\.\(listDocuments\|getDocument\|createDocument\|updateDocument\|deleteDocument\)' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=src/data \
+            --exclude-dir=tests \
+            --exclude-dir=diagnostics \
+            . 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Raw Appwrite DB calls detected outside repository layer:"
+            echo "$VIOLATIONS"
+            echo "count=1" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No raw Appwrite DB calls outside repository layer"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for frontend Appwrite SDK imports (Databases)
+        id: rule-2
+        run: |
+          echo "=== Rule 2: No frontend Appwrite SDK imports for data access ==="
+          VIOLATIONS=$(grep -rn 'import\s*{[^}]*Databases[^}]*}\s*from\s*["'"'"']appwrite["'"'"']' \
+            --include='*.{js,jsx,ts,tsx}' \
+            Website/ Mobileapp/ AdminDashboard/ VendorDashboard/ RiderDashboard/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Frontend Appwrite SDK imports (Databases) detected:"
+            echo "$VIOLATIONS"
+            echo "count=1" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No frontend Appwrite SDK imports"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for users.get() without cache wrapper
+        id: rule-3
+        run: |
+          echo "=== Rule 3: No direct users.get() without caching ==="
+          # This targets controller/service files that call users.get() directly
+          # Excluding the cache service itself, test files, and data layer
+          VIOLATIONS=$(grep -rn 'users\.get(' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=src/data \
+            --exclude-dir=tests \
+            --exclude-dir=diagnostics \
+            --exclude-dir=src/ownership \
+            Backend/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "⚠️  Direct users.get() calls detected (should use getUserCached):"
+            echo "$VIOLATIONS"
+            # Warning only — migration in progress
+            echo "count=0" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No raw users.get() calls"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for new setInterval usage in frontend files
+        id: rule-4
+        run: |
+          echo "=== Rule 4: No new setInterval for polling ==="
+          # Check for setInterval in frontend files that look like polling
+          VIOLATIONS=$(grep -rn 'setInterval(' \
+            --include='*.{js,jsx,ts,tsx}' \
+            Website/ Mobileapp/ AdminDashboard/ VendorDashboard/ RiderDashboard/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "⚠️  setInterval usage detected (may be polling):"
+            echo "$VIOLATIONS"
+            echo "count=0" >> $GITHUB_OUTPUT
+            echo "This is a warning — check if these are polling loops"
+          else
+            echo "✅ No setInterval usage in frontend"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for ad-hoc cache key strings
+        id: rule-5
+        run: |
+          echo "=== Rule 5: Use CacheKeys registry, not ad-hoc key strings ==="
+          # This catches "nf:" prefixed strings that are NOT inside CacheKeys definitions
+          # We exclude the cache keys file itself
+          VIOLATIONS=$(grep -rn '"nf:[a-z]*:[a-z]*"' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=src/lib/cache \
+            --exclude-dir=Backend/src/ownership \
+            Backend/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "⚠️  Ad-hoc cache key strings detected:"
+            echo "$VIOLATIONS"
+            echo "count=0" >> $GITHUB_OUTPUT
+            echo "Warning — move to CacheKeys registry"
+          else
+            echo "✅ All cache keys use CacheKeys registry"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for direct Appwrite account operations outside auth controllers
+        id: rule-6
+        run: |
+          echo "=== Rule 6: Auth operations only in auth controllers ==="
+          VIOLATIONS=$(grep -rn 'account\.createEmailPasswordSession\|account\.deleteSession\|account\.get' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=tests \
+            --exclude-dir=diagnostics \
+            --exclude='*auth*' \
+            Backend/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "⚠️  Appwrite account operations outside auth files:"
+            echo "$VIOLATIONS"
+            echo "count=0" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No account operations outside auth"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      # ═══════════════════════════════════════════════════════
+      # PHASE 10 — Hardened Enforcement Rules
+      # ═══════════════════════════════════════════════════════
+
+      - name: Check for const { db } import in controllers (must use instrumentedDb)
+        id: rule-7
+        run: |
+          echo "=== Rule 7 (BLOCKING): No const { db } import in controllers ==="
+          VIOLATIONS=$(grep -rn 'const\s*\{\s*db\s*\}\s*=\s*require.*appwriteService' \
+            --include='*.js' \
+            Backend/controllers/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ BLOCKING: Raw 'db' import detected in controllers (use instrumentedDb):"
+            echo "$VIOLATIONS"
+            echo "count=1" >> $GITHUB_OUTPUT
+          else
+            echo "✅ All controllers import instrumentedDb instead of raw db"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for users.get() in controllers and middleware (must use getCachedUser)
+        id: rule-8
+        run: |
+          echo "=== Rule 8 (BLOCKING): No users.get() in controllers/middleware ==="
+          VIOLATIONS=$(grep -rn 'users\.get(' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=services/userCacheService.js \
+            Backend/controllers/ Backend/middleware/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ BLOCKING: users.get() calls found (must use getCachedUser):"
+            echo "$VIOLATIONS"
+            echo "count=1" >> $GITHUB_OUTPUT
+          else
+            echo "✅ All controllers use getCachedUser() instead of users.get()"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for raw instrumentedDb bypass (db in services, not wrapped)
+        id: rule-9
+        run: |
+          echo "=== Rule 9 (WARNING): Prefer instrumentedDb over raw db ==="
+          VIOLATIONS=$(grep -rn 'const\s*\{\s*db\s*\}\s*=' \
+            --include='*.js' \
+            --exclude-dir=node_modules \
+            --exclude-dir=src/data \
+            --exclude-dir=src/observability \
+            --exclude-dir=services/appwriteService.js \
+            Backend/ 2>/dev/null || true)
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "⚠️  Raw db import may still exist in non-controller files:"
+            echo "$VIOLATIONS"
+            echo "count=0" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No raw db imports outside data layer"
+            echo "count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for repository ownership enforcement (verification)
+        id: rule-10
+        run: |
+          echo "=== Rule 10: Verify enforceRepositoryOwnership is active ==="
+          ENFORCEMENT_EXISTS=$(grep -c 'enforceRepositoryOwnership' Backend/src/ownership/runtimeEnforcement.js 2>/dev/null || echo "0")
+          BASEREPO_CALLS=$(grep -c 'enforceRepositoryOwnership' Backend/src/data/repositories/baseRepository.js 2>/dev/null || echo "0")
+
+          if [ "$ENFORCEMENT_EXISTS" -gt 0 ] && [ "$BASEREPO_CALLS" -gt 0 ]; then
+            echo "✅ Runtime enforcement active: enforceRepositoryOwnership called from BaseRepository"
+            echo "count=0" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Runtime enforcement not verified"
+            echo "count=1" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "═══════════════════════════════════════════"
+          echo "  Architecture Enforcement Summary"
+          echo "═══════════════════════════════════════════"
+          echo "  Rule 1 (raw db.*): ${{ steps.rule-1.outputs.count == '1' && '❌ BLOCKING' || '✅ PASS' }}"
+          echo "  Rule 2 (frontend SDK): ${{ steps.rule-2.outputs.count == '1' && '❌ BLOCKING' || '✅ PASS' }}"
+          echo "  Rule 3 (users.get): ${{ steps.rule-3.outputs.count == '1' && '❌ BLOCKING' || '✅ PASS' }}"
+          echo "  Rule 4 (setInterval): ⚠️  Warning only"
+          echo "  Rule 5 (cache keys): ⚠️  Warning only"
+          echo "  Rule 6 (auth operations): ⚠️  Warning only"
+          echo "  Rule 7 (db import in controllers): ${{ steps.rule-7.outputs.count == '1' && '❌ BLOCKING' || '✅ PASS' }}"
+          echo "  Rule 8 (users.get in controllers): ${{ steps.rule-8.outputs.count == '1' && '❌ BLOCKING' || '✅ PASS' }}"
+          echo "  Rule 9 (raw db elsewhere): ⚠️  Warning"
+          echo "  Rule 10 (ownership enforcement): ${{ steps.rule-10.outputs.count == '1' && '❌ FAIL' || '✅ ACTIVE' }}"
+          echo "═══════════════════════════════════════════"
+
+      - name: Fail on blocking violations
+        if: steps.rule-1.outputs.count == '1' || steps.rule-2.outputs.count == '1' || steps.rule-7.outputs.count == '1' || steps.rule-8.outputs.count == '1'
+        run: |
+          echo "❌ BLOCKING VIOLATIONS DETECTED"
+          echo "Rule 1 (raw db.*): ${{ steps.rule-1.outputs.count }}"
+          echo "Rule 2 (frontend SDK): ${{ steps.rule-2.outputs.count }}"
+          echo "Rule 7 (db import in controllers): ${{ steps.rule-7.outputs.count }}"
+          echo "Rule 8 (users.get in controllers): ${{ steps.rule-8.outputs.count }}"
+          exit 1

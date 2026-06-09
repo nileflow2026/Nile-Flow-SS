@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import * as Sentry from "@sentry/react-native";
+import * as Updates from "expo-updates";
 import Constants from "expo-constants";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
@@ -50,6 +51,22 @@ Sentry.init({
   sendDefaultPii: !__DEV__,
   enableLogs: true,
 });
+
+// Tag Sentry with OTA update metadata (runs once at startup)
+(async function tagSentryWithOTA() {
+  try {
+    const update = await Updates.checkForUpdateAsync();
+    if (update.isAvailable) {
+      Sentry.setTag("ota.update.available", "true");
+    }
+    const channel = Updates.channel ?? "unknown";
+    Sentry.setTag("ota.channel", channel);
+    Sentry.setTag("ota.runtimeVersion", Updates.runtimeVersion ?? "unknown");
+    Sentry.setTag("ota.updateId", Updates.updateId ?? "unknown");
+  } catch {
+    // Non-critical — Sentry tags are best-effort
+  }
+})();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -132,6 +149,10 @@ function AppContent() {
   // BackHandler and call router.back() / setActiveTab(). This root handler
   // acts as a safety net for Prod builds — if no screen-intercepting handler
   // fires, we prevent Android from killing the app.
+  //
+  // KEY PRODUCTION FIX: When router.back() fails silently (no previous route
+  // in the native stack), we MUST NOT let the system exit. Instead we navigate
+  // back to the tabs home screen manually.
   const lastBackPress = useRef(0);
 
   useEffect(() => {
@@ -140,14 +161,18 @@ function AppContent() {
     const onBackPress = () => {
       const now = Date.now();
 
-      // On the root (tabs) path, allow double-tap to exit
-      if (
+      // Check if we're on a deeply-navigated screen (not a tab root)
+      // These paths are the tab roots — everything else is a pushed screen
+      const isTabRoot =
         pathname === "/" ||
         pathname === "/(tabs)" ||
-        pathname === "/BottomTabs"
-      ) {
+        pathname === "/(tabs)/BottomTabs" ||
+        pathname === "/BottomTabs" ||
+        pathname === "";
+
+      if (isTabRoot) {
+        // On the root (tabs) path, allow double-tap to exit
         if (now - lastBackPress.current < 2000) {
-          // Double-tap within 2 seconds — exit the app
           return false; // Let the system handle (exits app)
         }
         lastBackPress.current = now;
@@ -157,12 +182,23 @@ function AppContent() {
           visibilityTime: 2000,
           position: "bottom",
         });
-        return true; // Prevent app exit
+        return true; // Prevent premature app exit
       }
 
-      // On any other screen, always prevent app exit.
-      // Individual screen BackHandlers should have navigated back already.
-      return true;
+      // We're on a pushed/modal screen (e.g. ProductDetails, Orders, etc.)
+      // router.back() should have already been attempted by the screen's own
+      // BackHandler. If it failed (no stack history), we need to manually
+      // navigate back to the tabs home — otherwise the app would exit.
+      //
+      // Using a small timeout to let any pending router.back() from the
+      // screen-level handler complete first. If the screen is still visible
+      // after the attempt, we force-navigate to tabs.
+      setTimeout(() => {
+        // Navigate back to the main tabs screen
+        router.replace("/(tabs)/BottomTabs");
+      }, 100);
+
+      return true; // Always prevent system exit on non-tab screens
     };
 
     const subscription = BackHandler.addEventListener(
@@ -170,7 +206,7 @@ function AppContent() {
       onBackPress,
     );
     return () => subscription.remove();
-  }, [pathname]);
+  }, [pathname, router]);
 
   // Keep splash visible until fonts resolve
   if (!fontsLoaded && !fontError) return null;

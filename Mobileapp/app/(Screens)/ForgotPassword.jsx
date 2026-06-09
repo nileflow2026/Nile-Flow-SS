@@ -1,69 +1,104 @@
-import { Account } from "appwrite";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, BackHandler, ScrollView, Text, View } from "react-native";
+// DEPRECATED: Direct Appwrite SDK usage removed.
+// Password reset now goes through the Express API.
+// See Mobileapp/api.js for the axiosClient instance.
+
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import FormField from "../../app/components/FormField";
-import CusttomButton from "../components/CusttomButton";
-// Ensure you have Appwrite configured
+import axiosClient from "../../api";
 
 const ForgotPassword = () => {
-  const router = useRouter();
-  useEffect(() => {
-    const onBackPress = () => {
-      router.back();
-      return true;
-    };
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      onBackPress,
-    );
-    return () => subscription.remove();
-  }, [router]);
   const [email, setEmail] = useState("");
-  const [isSubmitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = async () => {
-    if (!email) {
-      Alert.alert("Error", "Please enter your email");
+  const handlePasswordReset = async () => {
+    if (!email || !email.includes("@")) {
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
-    setSubmitting(true);
+
+    setLoading(true);
     try {
-      await Account.createRecovery(
-        email,
-        "http://localhost:8081/reset-password",
+      await axiosClient.post(
+        "/api/nileflowafrica/passwordchange/forgot-password",
+        {
+          email,
+        },
       );
-      Alert.alert("Success", "Check your email for reset instructions");
-      router.replace("/sign-in"); // Navigate back to login
+      Alert.alert(
+        "Password Reset",
+        "If an account exists with this email, you will receive password reset instructions.",
+      );
+      setEmail("");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(
+        "Error",
+        error.response?.data?.error ||
+          "Failed to send reset email. Please try again.",
+      );
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="h-full bg-nile-white">
-      <ScrollView>
-        <View className="w-full justify-center min-h-[85vh] px-6 my-6">
-          <Text className="text-2xl text-nile-green-900 mt-10 font-pbold">
-            Reset Your Password
-          </Text>
-          <FormField
-            title={"Email Address"}
-            value={email}
-            handleChangeText={setEmail}
-            otherStyles={"mt-7"}
-          />
-          <CusttomButton
-            title="Send Reset Link"
-            handlePress={handleResetPassword}
-            containerStyles={"mt-7"}
-            isLoading={isSubmitting}
-          />
-        </View>
-      </ScrollView>
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        <ScrollView
+          contentContainerClassName="flex-grow justify-center px-6"
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="mb-8">
+            <Text className="text-3xl font-bold text-amber-400 text-center">
+              Reset Password
+            </Text>
+            <Text className="text-gray-400 text-center mt-2">
+              Enter your email to receive reset instructions
+            </Text>
+          </View>
+
+          <View className="mb-6">
+            <Text className="text-gray-300 mb-2">Email</Text>
+            <TextInput
+              className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+              placeholder="your@email.com"
+              placeholderTextColor="#6b7280"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <TouchableOpacity
+            className="bg-amber-500 py-3 rounded-xl"
+            onPress={handlePasswordReset}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text className="text-black font-bold text-center text-lg">
+                Send Reset Link
+              </Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

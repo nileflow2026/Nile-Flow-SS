@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react/no-unescaped-entities */
 /**
  * GroupOrderPage.jsx — Full-featured Group Buy screen.
@@ -41,7 +42,11 @@ export default function GroupOrderPage() {
   const router = useRouter();
   useEffect(() => {
     const onBackPress = () => {
-      router.back();
+      try {
+        router.back();
+      } catch (_) {
+        router.replace("/(tabs)/BottomTabs");
+      }
       return true;
     };
     const subscription = BackHandler.addEventListener(
