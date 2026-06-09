@@ -1,5 +1,8 @@
 const { ID, Query } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const {
+  instrumentedDb,
+  getCachedUser,
+} = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
@@ -17,7 +20,7 @@ const newsletter = async (req, res) => {
     const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
-      [Query.equal("email", email)]
+      [Query.equal("email", email)],
     );
 
     if (documents.length > 0) {
@@ -29,7 +32,7 @@ const newsletter = async (req, res) => {
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
       ID.unique(),
-      { email: email, name: username, subscribed: true } // Save the name provided from the frontend
+      { email: email, name: username, subscribed: true }, // Save the name provided from the frontend
     );
 
     res.status(200).json({ message: "Thank you for subscribing!" });
@@ -70,7 +73,7 @@ const generateFallbackTemplate = (campaignData, campaignType) => {
           product.price || "Contact for pricing"
         }</div>
       </div>
-    `
+    `,
       )
       .join("");
 
@@ -217,7 +220,7 @@ const getCampaignTypes = async (req, res) => {
       const { documents } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CAMPAIGN_TYPES_COLLECTION_ID || "campaign_types",
-        [Query.equal("isActive", true), Query.orderAsc("sortOrder")]
+        [Query.equal("isActive", true), Query.orderAsc("sortOrder")],
       );
 
       if (documents && documents.length > 0) {
@@ -229,7 +232,7 @@ const getCampaignTypes = async (req, res) => {
     } catch (collectionError) {
       console.log(
         "Campaign types collection not found, using defaults:",
-        collectionError.message
+        collectionError.message,
       );
 
       // If collection doesn't exist, try to create it with default data
@@ -245,7 +248,7 @@ const getCampaignTypes = async (req, res) => {
               sortOrder: index + 1,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-            }
+            },
           );
         });
 
@@ -254,7 +257,7 @@ const getCampaignTypes = async (req, res) => {
         campaignTypes = defaultCampaignTypes;
       } catch (createError) {
         console.log(
-          "Could not create campaign types collection, using defaults"
+          "Could not create campaign types collection, using defaults",
         );
         campaignTypes = defaultCampaignTypes;
       }
@@ -318,14 +321,14 @@ const getAudienceStatistics = async (req, res) => {
     const { total: totalSubscribers } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
-      [Query.equal("subscribed", true)]
+      [Query.equal("subscribed", true)],
     );
 
     // Get VIP customers from users collection where isPremium = true
     const { total: vipCount } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID, // Make sure this env variable exists
-      [Query.equal("isPremium", true)]
+      [Query.equal("isPremium", true)],
     );
 
     // Get new subscribers (last 30 days)
@@ -338,7 +341,7 @@ const getAudienceStatistics = async (req, res) => {
       [
         Query.equal("subscribed", true),
         Query.greaterThanEqual("$createdAt", thirtyDaysAgo.toISOString()),
-      ]
+      ],
     );
 
     // Get active buyers (users who have made orders in last 90 days)
@@ -354,7 +357,7 @@ const getAudienceStatistics = async (req, res) => {
         [
           Query.greaterThanEqual("$createdAt", ninetyDaysAgo.toISOString()),
           Query.notEqual("status", "cancelled"),
-        ]
+        ],
       );
       activeBuyersCount = activeOrders;
     } catch (error) {
@@ -367,7 +370,7 @@ const getAudienceStatistics = async (req, res) => {
       0,
       totalSubscribers -
         newSubscribersCount -
-        Math.floor(activeBuyersCount * 0.7)
+        Math.floor(activeBuyersCount * 0.7),
     );
 
     // Calculate engagement statistics
@@ -384,7 +387,7 @@ const getAudienceStatistics = async (req, res) => {
     const { total: activeCampaignsCount } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
-      [Query.equal("status", "scheduled")]
+      [Query.equal("status", "scheduled")],
     );
 
     const statistics = {
@@ -488,7 +491,7 @@ const sendnewsletter = async (req, res) => {
           return res.status(400).json({
             error: `Scheduled time must be in the future. Current time: ${now.toLocaleString(
               "en-US",
-              { timeZone: "Africa/Nairobi" }
+              { timeZone: "Africa/Nairobi" },
             )}, Scheduled time: ${scheduledDate.toLocaleString("en-US", {
               timeZone: "Africa/Nairobi",
             })}`,
@@ -498,7 +501,7 @@ const sendnewsletter = async (req, res) => {
         console.log(
           `Campaign scheduled for: ${scheduledDate.toLocaleString("en-US", {
             timeZone: "Africa/Nairobi",
-          })} EAT (${convertedScheduledAt} UTC)`
+          })} EAT (${convertedScheduledAt} UTC)`,
         );
       } catch (dateError) {
         return res.status(400).json({
@@ -532,7 +535,7 @@ const sendnewsletter = async (req, res) => {
     if (!validCampaignTypes.includes(campaignType)) {
       return res.status(400).json({
         error: `Invalid campaign type. Supported types: ${validCampaignTypes.join(
-          ", "
+          ", ",
         )}`,
       });
     }
@@ -541,7 +544,7 @@ const sendnewsletter = async (req, res) => {
       const { documents: products } = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
-        [Query.orderDesc("$createdAt"), Query.limit(4)]
+        [Query.orderDesc("$createdAt"), Query.limit(4)],
       );
 
       if (!products.length) {
@@ -583,11 +586,12 @@ const sendnewsletter = async (req, res) => {
 
     // Handle marketing campaigns (general newsletter with featured products)
     if (campaignType === "marketing") {
-      const { documents: featuredProducts } = await instrumentedDb.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_PRODUCT_COLLECTION_ID,
-        [Query.orderDesc("$createdAt"), Query.limit(4)]
-      );
+      const { documents: featuredProducts } =
+        await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_PRODUCT_COLLECTION_ID,
+          [Query.orderDesc("$createdAt"), Query.limit(4)],
+        );
 
       if (featuredProducts.length === 0) {
         return res.status(404).json({ error: "No featured products found." });
@@ -626,7 +630,7 @@ const sendnewsletter = async (req, res) => {
               product.productId
             }" style="display: inline-block; background-color: #e47d2b; color: #fff; padding: 8px 12px; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px;">View Product</a>
         </div>
-      `
+      `,
         )
         .join("");
 
@@ -884,7 +888,7 @@ const sendnewsletter = async (req, res) => {
                     ${
                       product.originalPrice
                         ? `<span class="original-price">$${product.originalPrice.toFixed(
-                            2
+                            2,
                           )}</span>`
                         : ""
                     }
@@ -894,7 +898,7 @@ const sendnewsletter = async (req, res) => {
                 }" class="product-cta">View Details</a>
             </div>
         </div>
-      `
+      `,
         )
         .join("");
 
@@ -963,7 +967,7 @@ const sendnewsletter = async (req, res) => {
       } catch (error) {
         console.warn(
           "Newsletter renderer failed, using fallback template:",
-          error.message
+          error.message,
         );
         baseHtml = generateFallbackTemplate(campaignData, campaignType);
       }
@@ -1010,17 +1014,17 @@ const sendnewsletter = async (req, res) => {
           env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID ||
             "scheduled_campaigns", // Add this to your env
           ID.unique(),
-          scheduledCampaign
+          scheduledCampaign,
         );
 
         return res.status(200).json({
           message: `Campaign scheduled successfully for ${new Date(
-            convertedScheduledAt
+            convertedScheduledAt,
           ).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })} EAT`,
           scheduledAt: convertedScheduledAt,
           scheduledAtLocal: new Date(convertedScheduledAt).toLocaleString(
             "en-US",
-            { timeZone: "Africa/Nairobi" }
+            { timeZone: "Africa/Nairobi" },
           ),
           campaignType,
           isScheduled: true,
@@ -1049,7 +1053,7 @@ const sendnewsletter = async (req, res) => {
     const { documents: subscribers } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NEWSLETTER_COLLECTION_ID,
-      audienceQueries
+      audienceQueries,
     );
 
     if (!subscribers.length) {
@@ -1067,8 +1071,8 @@ const sendnewsletter = async (req, res) => {
         .replace(
           "{{unsubscribe_link}}",
           `https://nileflowafrica.com/unsubscribe?email=${encodeURIComponent(
-            subscriber.email
-          )}`
+            subscriber.email,
+          )}`,
         );
 
       return sendNewsletterEmail({
@@ -1108,34 +1112,37 @@ const processScheduledCampaigns = async () => {
     console.log(
       `⏰ Current time (EAT): ${new Date().toLocaleString("en-US", {
         timeZone: "Africa/Nairobi",
-      })}`
+      })}`,
     );
 
     // Get all scheduled campaigns that are due to be sent
-    const { documents: scheduledCampaigns } = await instrumentedDb.listDocuments(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
-      [
-        Query.equal("status", "scheduled"),
-        Query.lessThanEqual("scheduledAt", now),
-      ]
-    );
+    const { documents: scheduledCampaigns } =
+      await instrumentedDb.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
+        [
+          Query.equal("status", "scheduled"),
+          Query.lessThanEqual("scheduledAt", now),
+        ],
+      );
 
     console.log(
-      `📧 Found ${scheduledCampaigns.length} scheduled campaigns to process`
+      `📧 Found ${scheduledCampaigns.length} scheduled campaigns to process`,
     );
 
     if (!scheduledCampaigns.length) {
       // Also check for all scheduled campaigns (not just due ones) for debugging
-      const { documents: allScheduledCampaigns } = await instrumentedDb.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID || "scheduled_campaigns",
-        [Query.equal("status", "scheduled")]
-      );
+      const { documents: allScheduledCampaigns } =
+        await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_SCHEDULED_CAMPAIGNS_COLLECTION_ID ||
+            "scheduled_campaigns",
+          [Query.equal("status", "scheduled")],
+        );
 
       if (allScheduledCampaigns.length > 0) {
         console.log(
-          `📅 Found ${allScheduledCampaigns.length} scheduled campaigns (not yet due):`
+          `📅 Found ${allScheduledCampaigns.length} scheduled campaigns (not yet due):`,
         );
         allScheduledCampaigns.forEach((campaign) => {
           console.log(
@@ -1143,7 +1150,7 @@ const processScheduledCampaigns = async () => {
               campaign.scheduledAt
             } (${new Date(campaign.scheduledAt).toLocaleString("en-US", {
               timeZone: "Africa/Nairobi",
-            })} EAT)`
+            })} EAT)`,
           );
         });
       } else {
@@ -1177,11 +1184,12 @@ const processScheduledCampaigns = async () => {
           // Regenerate the template based on campaign type and stored parameters
           if (campaign.campaignType === "marketing") {
             // Re-fetch products for marketing campaigns
-            const { documents: featuredProducts } = await instrumentedDb.listDocuments(
-              env.APPWRITE_DATABASE_ID,
-              env.APPWRITE_PRODUCT_COLLECTION_ID,
-              [Query.orderDesc("$createdAt"), Query.limit(4)]
-            );
+            const { documents: featuredProducts } =
+              await instrumentedDb.listDocuments(
+                env.APPWRITE_DATABASE_ID,
+                env.APPWRITE_PRODUCT_COLLECTION_ID,
+                [Query.orderDesc("$createdAt"), Query.limit(4)],
+              );
 
             const productCardsHtml = featuredProducts
               .map(
@@ -1194,7 +1202,7 @@ const processScheduledCampaigns = async () => {
                   product.productId
                 }" style="display: inline-block; background-color: #e47d2b; color: #fff; padding: 8px 12px; text-decoration: none; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px;">View Product</a>
             </div>
-          `
+          `,
               )
               .join("");
 
@@ -1295,8 +1303,8 @@ const processScheduledCampaigns = async () => {
                         <a href="${
                           campaign.ctaLink || "https://nileflowafrica.com"
                         }" class="cta-button">${
-              campaign.ctaText || "Shop Now"
-            }</a>
+                          campaign.ctaText || "Shop Now"
+                        }</a>
                     </div>
                     <div class="footer">
                         <p>&copy; ${currentYear} Nile Mart. All rights reserved.</p>
@@ -1390,7 +1398,7 @@ const processScheduledCampaigns = async () => {
         const { documents: subscribers } = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NEWSLETTER_COLLECTION_ID,
-          audienceQueries
+          audienceQueries,
         );
 
         if (subscribers.length > 0) {
@@ -1401,8 +1409,8 @@ const processScheduledCampaigns = async () => {
               .replace(
                 /{{unsubscribe_link}}/g,
                 `https://nileflowafrica.com/unsubscribe?email=${encodeURIComponent(
-                  subscriber.email
-                )}`
+                  subscriber.email,
+                )}`,
               );
 
             return sendNewsletterEmail({
@@ -1424,11 +1432,11 @@ const processScheduledCampaigns = async () => {
               status: "sent",
               sentAt: new Date().toISOString(),
               recipientCount: subscribers.length,
-            }
+            },
           );
 
           console.log(
-            `Scheduled campaign "${campaign.subject}" sent to ${subscribers.length} subscribers`
+            `Scheduled campaign "${campaign.subject}" sent to ${subscribers.length} subscribers`,
           );
         }
       } catch (error) {
@@ -1445,7 +1453,7 @@ const processScheduledCampaigns = async () => {
               status: "failed",
               error: error.message,
               failedAt: new Date().toISOString(),
-            }
+            },
           );
         } catch (updateError) {
           console.error(`Error updating failed campaign status:`, updateError);

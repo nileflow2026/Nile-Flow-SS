@@ -196,12 +196,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-
-    // Define for better tree shaking
-    define: {
-      "process.env.NODE_ENV": JSON.stringify(mode),
-      __DEV__: mode === "development",
-    },
   };
 
   return config;

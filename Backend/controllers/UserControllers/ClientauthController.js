@@ -451,7 +451,7 @@ const signincustomer = async (req, res) => {
   try {
     // Create Appwrite session
     const session = await account.createEmailPasswordSession(email, password);
-    const user = await users.get(session.userId);
+    const user = await getUserCached(session.userId);
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
@@ -636,8 +636,8 @@ const handleRefreshToken = async (req, res) => {
       });
     }
 
-    // 7) Load user
-    const user = await users.get(userId);
+    // 7) Load user (cached)
+    const user = await getUserCached(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
@@ -816,7 +816,7 @@ const getCurrentCustomer = async (req, res) => {
     }
 
     const decoded = verifyAccessToken(accessToken);
-    const user = await users.get(decoded.sub);
+    const user = await getUserCached(decoded.sub);
 
     // ✅ Fetch user profile/document from database
     let profile = null;
@@ -868,7 +868,7 @@ const getCustomerPreferences = async (req, res) => {
     }
 
     const decoded = verifyAccessToken(accessToken);
-    const user = await users.get(decoded.sub);
+    const user = await getUserCached(decoded.sub);
 
     // Return user preferences
     return res.status(200).json({
@@ -894,8 +894,8 @@ const updateCustomerPreferences = async (req, res) => {
     const decoded = verifyAccessToken(accessToken);
     const { preferredPaymentMethod, ...otherPrefs } = req.body;
 
-    // Get current prefs
-    const user = await users.get(decoded.sub);
+    // Get current prefs (cached)
+    const user = await getUserCached(decoded.sub);
     const currentPrefs = user.prefs || {};
 
     // Update prefs
@@ -948,8 +948,8 @@ const updateCustomerProfile = async (req, res) => {
     // Update Appwrite name
     await users.updateName(decoded.sub, trimmedUsername);
 
-    // Update phone in prefs
-    const user = await users.get(decoded.sub);
+    // Update phone in prefs (cached)
+    const user = await getUserCached(decoded.sub);
     const currentPrefs = user.prefs || {};
     await users.updatePrefs(decoded.sub, {
       ...currentPrefs,

@@ -51,13 +51,18 @@ jobs:
         run: npx @expo/fingerprint .
 
       - name: Publish OTA Update (Staging Channel)
-        run: npx eas update --branch staging --message "Staging OTA: $SHA"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          npx eas update \
+            --branch staging \
+            --message "Staging OTA: $SHA"
 
       - name: Tag Deployment
+        env:
+          TAG: staging-ota-${{ github.run_number }}
         run: |
-          TAG="staging-ota-$(date +%Y%m%d-%H%M%S)"
-          git tag "$TAG"
-          git push origin "$TAG"
+          git tag "${{ env.TAG }}"
+          git push origin "${{ env.TAG }}"

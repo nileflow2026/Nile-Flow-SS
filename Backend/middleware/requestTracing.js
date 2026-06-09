@@ -21,7 +21,7 @@
 "use strict";
 
 const crypto = require("crypto");
-const { correlationStore, logger } = require("../lib/logger");
+const { correlationStore, logger } = require("../src/lib/logger");
 
 /**
  * Generate a short, URL-safe correlation ID.

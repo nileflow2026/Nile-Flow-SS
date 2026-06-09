@@ -40,9 +40,10 @@ const otpSendLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   keyGenerator: (req) => {
-    // Key by authenticated userId if available, else by IP
-    return req.user?.userId || req.ip;
+    // Key by authenticated userId if available, else by IP (handles IPv6 safely)
+    return req.user?.userId || req.ip || req.socket?.remoteAddress || "unknown";
   },
   message: {
     error: "Too many OTP requests. You may request a new code after 1 hour.",
@@ -60,7 +61,9 @@ const initiationLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || req.ip,
+  validate: { xForwardedForHeader: false },
+  keyGenerator: (req) =>
+    req.user?.userId || req.ip || req.socket?.remoteAddress || "unknown",
   message: {
     error: "Too many deletion attempts. Please try again after 1 hour.",
     code: "RATE_LIMITED",

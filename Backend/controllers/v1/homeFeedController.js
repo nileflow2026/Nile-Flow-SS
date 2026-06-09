@@ -25,9 +25,13 @@
 const { Query } = require("node-appwrite");
 const { db } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
-const { getOrSet, cacheGet, cacheSet } = require("../lib/cache/cacheClient");
-const { CacheKeys, TTL } = require("../lib/cache/cacheKeys");
-const { logger } = require("../lib/logger");
+const {
+  getOrSet,
+  cacheGet,
+  cacheSet,
+} = require("../../src/lib/cache/cacheClient");
+const { CacheKeys, TTL } = require("../../src/lib/cache/cacheKeys");
+const { logger } = require("../../src/lib/logger");
 
 /**
  * GET /api/v1/home-feed

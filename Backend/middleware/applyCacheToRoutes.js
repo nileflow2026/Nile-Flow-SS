@@ -41,7 +41,7 @@ function applyCacheToRoutes(app) {
 
   // ── Categories ─────────────────────────────────────────────────────────────
   app.get(
-    "/api/categories/:path*",
+    "/api/categories/:path(.*)",
     cacheMiddleware(CacheKeys.categories(), TTL.LONG, ["categories"]),
   );
 

@@ -47,7 +47,7 @@ This file contains:
 | File path                 | `Mobileapp/nile-flow-app-3ad669df2cd0.json`                          |
 | Client email              | `play-console-service-account@nile-flow-app.iam.gserviceaccount.com` |
 | Project ID                | `nile-flow-app`                                                      |
-| Private key ID            | `3ad669df2cd0876b951aa88a86c2a68e44cf4690`                           |
+| Private key ID            | `REDACTED`                                                           |
 | File size                 | ~2.5 KB                                                              |
 | Added to `.gitignore`     | ✅ Yes (but after it was committed)                                  |
 | Currently in working tree | ✅ Yes                                                               |
@@ -89,7 +89,7 @@ The file is referenced/used by:
 # Go to: https://console.cloud.google.com/iam-admin/serviceaccounts
 # Project: nile-flow-app
 # Service account: play-console-service-account@nile-flow-app.iam.gserviceaccount.com
-# → Keys tab → Find key ID: 3ad669df2cd0876b951aa88a86c2a68e44cf4690
+# → Keys tab → Find key ID: REDACTED
 # → Click "Disable" → "Delete"
 ```
 
