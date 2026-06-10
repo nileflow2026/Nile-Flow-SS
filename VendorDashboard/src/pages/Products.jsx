@@ -4,10 +4,13 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus, Search, Edit, Trash2, Eye, Filter } from "lucide-react";
 import { productService } from "../../services/BackendServices/productService";
 import { useDropzone } from "react-dropzone";
-import { Config, ID, storage } from "../../services/appwrite";
 import SEOPanel from "../components/SEOPanel";
-import { generateSlug, generateAltText, generateImageFilename } from "../utils/seoService";
-import { optimizeProductImage, getImageAltText, needsCompression } from "../utils/imageOptimizer";
+import { generateSlug, generateAltText } from "../utils/seoService";
+import {
+  optimizeProductImage,
+  getImageAltText,
+  needsCompression,
+} from "../utils/imageOptimizer";
 
 const Products = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -311,21 +314,37 @@ const Products = () => {
       }
 
       try {
-        const uploadedFile = await storage.createFile(
-          Config.bucketId, // Your bucket ID
-          ID.unique(),
-          uploadFile,
-        );
-        const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.bucketId}/files/${uploadedFile.$id}/view?project=679073fc0012a72c14ab`;
-        setEditFormData((prev) => ({ ...prev, image: imageUrl }));
-        setMessage({
-          type: "success",
-          text: "Primary image uploaded successfully!",
-        });
+        // Upload via backend API
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const base64 = e.target.result;
+          const result = await productService.uploadDirect({
+            base64,
+            fileName: uploadFile.name,
+          });
+
+          if (result.success) {
+            setEditFormData((prev) => ({ ...prev, image: result.imageUrl }));
+            setMessage({
+              type: "success",
+              text: "Primary image uploaded successfully!",
+            });
+          } else {
+            setMessage({
+              type: "error",
+              text: result.message || "Failed to upload primary image.",
+            });
+          }
+          setUploading(false);
+        };
+        reader.onerror = () => {
+          setMessage({ type: "error", text: "Failed to read file." });
+          setUploading(false);
+        };
+        reader.readAsDataURL(uploadFile);
       } catch (err) {
         setMessage({ type: "error", text: "Failed to upload primary image." });
         console.error(err);
-      } finally {
         setUploading(false);
       }
     }
@@ -352,12 +371,28 @@ const Products = () => {
         }
 
         try {
-          const uploadedFile = await storage.createFile(
-            Config.bucketId, // Your bucket ID
-            ID.unique(),
-            convertedFile,
-          );
-          const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.bucketId}/files/${uploadedFile.$id}/view?project=679073fc0012a72c14ab`;
+          // Upload via backend API
+          const imageUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const base64 = e.target.result;
+                const result = await productService.uploadDirect({
+                  base64,
+                  fileName: convertedFile.name,
+                });
+                if (result.success) {
+                  resolve(result.imageUrl);
+                } else {
+                  reject(new Error(result.message || "Upload failed"));
+                }
+              } catch (err) {
+                reject(err);
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(convertedFile);
+          });
           currentImages.push(imageUrl);
         } catch (err) {
           setMessage({
@@ -455,20 +490,40 @@ const Products = () => {
 
       try {
         // Compress + rename with SEO-optimised filename (handles WebP conversion too)
-        const uploadFile = await optimizeProductImage(file, formData.name || "product", 0);
-
-        const uploadedFile = await storage.createFile(
-          Config.bucketId,
-          ID.unique(),
-          uploadFile,
+        const optimizedFile = await optimizeProductImage(
+          file,
+          formData.name || "product",
+          0,
         );
-        const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.bucketId}/files/${uploadedFile.$id}/view?project=${Config.projectId}`;
-        const altText = getImageAltText(formData.name, formData.brand);
-        setFormData((prev) => ({ ...prev, image: imageUrl, imageAlt: altText }));
-        setMessage({
-          type: "success",
-          text: `Primary image uploaded${needsCompression(file) ? " (compressed)" : ""}!`,
-        });
+
+        // Upload via backend API
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const base64 = e.target.result;
+          const result = await productService.uploadDirect({
+            base64,
+            fileName: optimizedFile.name || optimizedFile.name,
+          });
+
+          if (result.success) {
+            const altText = getImageAltText(formData.name, formData.brand);
+            setFormData((prev) => ({
+              ...prev,
+              image: result.imageUrl,
+              imageAlt: altText,
+            }));
+            setMessage({
+              type: "success",
+              text: `Primary image uploaded${needsCompression(file) ? " (compressed)" : ""}!`,
+            });
+          } else {
+            setMessage({
+              type: "error",
+              text: result.message || "Failed to upload primary image.",
+            });
+          }
+        };
+        reader.readAsDataURL(optimizedFile);
       } catch (err) {
         setMessage({ type: "error", text: "Failed to upload primary image." });
         console.error(err);
@@ -493,12 +548,29 @@ const Products = () => {
             formData.name || "product",
             imageIndex,
           );
-          const uploadedFile = await storage.createFile(
-            Config.bucketId,
-            ID.unique(),
-            convertedFile,
-          );
-          const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.bucketId}/files/${uploadedFile.$id}/view?project=${Config.projectId}`;
+
+          // Upload via backend API
+          const reader = new FileReader();
+          const imageUrl = await new Promise((resolve, reject) => {
+            reader.onload = async (e) => {
+              try {
+                const base64 = e.target.result;
+                const result = await productService.uploadDirect({
+                  base64,
+                  fileName: convertedFile.name,
+                });
+                if (result.success) {
+                  resolve(result.imageUrl);
+                } else {
+                  reject(new Error(result.message || "Upload failed"));
+                }
+              } catch (err) {
+                reject(err);
+              }
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(convertedFile);
+          });
           currentImages.push(imageUrl);
         } catch (err) {
           setMessage({
@@ -617,45 +689,60 @@ const Products = () => {
   }, []);
 
   // Replace your current filteredProducts with this comprehensive filtering
-  const filteredProducts = useMemo(() => products.filter((product) => {
-    // Enhanced fuzzy search — checks name, SKU, brand, tags, description
-    const searchable = [
-      product.name || "",
-      product.sku || "",
-      product.brand || "",
-      Array.isArray(product.tags) ? product.tags.join(" ") : product.tags || "",
-      product.shortDescription || "",
-      product.description || "",
-    ].join(" ");
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((product) => {
+        // Enhanced fuzzy search — checks name, SKU, brand, tags, description
+        const searchable = [
+          product.name || "",
+          product.sku || "",
+          product.brand || "",
+          Array.isArray(product.tags)
+            ? product.tags.join(" ")
+            : product.tags || "",
+          product.shortDescription || "",
+          product.description || "",
+        ].join(" ");
 
-    const matchesSearch = !searchTerm || fuzzyMatch(searchable, searchTerm);
+        const matchesSearch = !searchTerm || fuzzyMatch(searchable, searchTerm);
 
-    // Category filter - now comparing IDs
-    const matchesCategory =
-      selectedCategory === "All Categories" ||
-      product.category === selectedCategory; // This now compares IDs
+        // Category filter - now comparing IDs
+        const matchesCategory =
+          selectedCategory === "All Categories" ||
+          product.category === selectedCategory; // This now compares IDs
 
-    // Stock filter
-    const matchesStock =
-      stockFilter === "all" ||
-      (stockFilter === "in-stock" && product.inventory > 0) ||
-      (stockFilter === "out-of-stock" && product.inventory === 0) ||
-      (stockFilter === "low-stock" &&
-        product.inventory > 0 &&
-        product.inventory <= 20);
+        // Stock filter
+        const matchesStock =
+          stockFilter === "all" ||
+          (stockFilter === "in-stock" && product.inventory > 0) ||
+          (stockFilter === "out-of-stock" && product.inventory === 0) ||
+          (stockFilter === "low-stock" &&
+            product.inventory > 0 &&
+            product.inventory <= 20);
 
-    // Price filter
-    const matchesPrice =
-      priceFilter === "all" ||
-      (priceFilter === "under-25" && product.price < 25) ||
-      (priceFilter === "25-50" && product.price >= 25 && product.price <= 50) ||
-      (priceFilter === "50-100" &&
-        product.price > 50 &&
-        product.price <= 100) ||
-      (priceFilter === "over-100" && product.price > 100);
+        // Price filter
+        const matchesPrice =
+          priceFilter === "all" ||
+          (priceFilter === "under-25" && product.price < 25) ||
+          (priceFilter === "25-50" &&
+            product.price >= 25 &&
+            product.price <= 50) ||
+          (priceFilter === "50-100" &&
+            product.price > 50 &&
+            product.price <= 100) ||
+          (priceFilter === "over-100" && product.price > 100);
 
-    return matchesSearch && matchesCategory && matchesStock && matchesPrice;
-  }), [products, searchTerm, selectedCategory, stockFilter, priceFilter, fuzzyMatch]);
+        return matchesSearch && matchesCategory && matchesStock && matchesPrice;
+      }),
+    [
+      products,
+      searchTerm,
+      selectedCategory,
+      stockFilter,
+      priceFilter,
+      fuzzyMatch,
+    ],
+  );
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -691,7 +778,12 @@ const Products = () => {
   };
 
   /** Apply auto-generated SEO values from SEOPanel into the form */
-  const handleApplyAutoFill = ({ seoTitle, seoDescription, slug, keywords }) => {
+  const handleApplyAutoFill = ({
+    seoTitle,
+    seoDescription,
+    slug,
+    keywords,
+  }) => {
     setFormData((prev) => ({
       ...prev,
       seoTitle: seoTitle || prev.seoTitle,
@@ -790,14 +882,23 @@ const Products = () => {
         seoTitle: formData.seoTitle.trim(),
         seoDescription: formData.seoDescription.trim(),
         slug: formData.slug.trim() || generateSlug(formData.name),
-        metaTitle: formData.metaTitle.trim() || formData.seoTitle.trim() || formData.name.trim(),
-        metaDescription: formData.metaDescription.trim() || formData.seoDescription.trim(),
+        metaTitle:
+          formData.metaTitle.trim() ||
+          formData.seoTitle.trim() ||
+          formData.name.trim(),
+        metaDescription:
+          formData.metaDescription.trim() || formData.seoDescription.trim(),
         keywords: formData.keywords
-          ? formData.keywords.split(",").map((k) => k.trim()).filter(Boolean)
+          ? formData.keywords
+              .split(",")
+              .map((k) => k.trim())
+              .filter(Boolean)
           : [],
         // Images
         image: formData.image,
-        imageAlt: formData.imageAlt || generateAltText({ name: formData.name, brand: formData.brand }),
+        imageAlt:
+          formData.imageAlt ||
+          generateAltText({ name: formData.name, brand: formData.brand }),
         images: formData.images,
       };
 
@@ -2064,11 +2165,16 @@ const Products = () => {
                           <span className="ml-2 text-amber-400 font-normal text-xs">
                             ({formData.seoTitle.length}/70 characters)
                           </span>
-                          {formData.seoTitle.length > 0 && formData.seoTitle.length <= 70 && (
-                            <span className="ml-2 text-green-600 text-xs">✓ Good length</span>
-                          )}
+                          {formData.seoTitle.length > 0 &&
+                            formData.seoTitle.length <= 70 && (
+                              <span className="ml-2 text-green-600 text-xs">
+                                ✓ Good length
+                              </span>
+                            )}
                           {formData.seoTitle.length > 70 && (
-                            <span className="ml-2 text-red-500 text-xs">⚠ Too long</span>
+                            <span className="ml-2 text-red-500 text-xs">
+                              ⚠ Too long
+                            </span>
                           )}
                         </label>
                         <input
@@ -2103,14 +2209,22 @@ const Products = () => {
                           <span className="ml-2 text-amber-400 font-normal text-xs">
                             ({formData.seoDescription.length}/160 characters)
                           </span>
-                          {formData.seoDescription.length >= 80 && formData.seoDescription.length <= 160 && (
-                            <span className="ml-2 text-green-600 text-xs">✓ Good length</span>
-                          )}
-                          {formData.seoDescription.length > 0 && formData.seoDescription.length < 80 && (
-                            <span className="ml-2 text-amber-500 text-xs">↑ Too short (aim 80+)</span>
-                          )}
+                          {formData.seoDescription.length >= 80 &&
+                            formData.seoDescription.length <= 160 && (
+                              <span className="ml-2 text-green-600 text-xs">
+                                ✓ Good length
+                              </span>
+                            )}
+                          {formData.seoDescription.length > 0 &&
+                            formData.seoDescription.length < 80 && (
+                              <span className="ml-2 text-amber-500 text-xs">
+                                ↑ Too short (aim 80+)
+                              </span>
+                            )}
                           {formData.seoDescription.length > 160 && (
-                            <span className="ml-2 text-red-500 text-xs">⚠ Too long</span>
+                            <span className="ml-2 text-red-500 text-xs">
+                              ⚠ Too long
+                            </span>
                           )}
                         </label>
                         <textarea
@@ -2131,7 +2245,8 @@ const Products = () => {
                               backgroundColor:
                                 formData.seoDescription.length === 0
                                   ? "#fde68a"
-                                  : formData.seoDescription.length >= 80 && formData.seoDescription.length <= 160
+                                  : formData.seoDescription.length >= 80 &&
+                                      formData.seoDescription.length <= 160
                                     ? "#22c55e"
                                     : formData.seoDescription.length < 80
                                       ? "#f59e0b"
@@ -2150,14 +2265,18 @@ const Products = () => {
                           </span>
                         </label>
                         <div className="flex items-center gap-2">
-                          <span className="text-amber-400 text-sm font-mono shrink-0">/products/</span>
+                          <span className="text-amber-400 text-sm font-mono shrink-0">
+                            /products/
+                          </span>
                           <input
                             type="text"
                             name="slug"
                             value={formData.slug}
                             onChange={handleInputChange}
                             className="flex-1 border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80 font-mono text-sm"
-                            placeholder={generateSlug(formData.name) || "your-product-slug"}
+                            placeholder={
+                              generateSlug(formData.name) || "your-product-slug"
+                            }
                             disabled={isLoading}
                           />
                         </div>
@@ -2168,7 +2287,8 @@ const Products = () => {
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Keywords
                           <span className="ml-2 text-amber-400 font-normal text-xs">
-                            (comma-separated, e.g. leather wallet, minimalist, slim)
+                            (comma-separated, e.g. leather wallet, minimalist,
+                            slim)
                           </span>
                         </label>
                         <input
@@ -2182,14 +2302,17 @@ const Products = () => {
                         />
                         {formData.keywords && (
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {formData.keywords.split(",").filter((k) => k.trim()).map((kw, i) => (
-                              <span
-                                key={i}
-                                className="text-xs bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5"
-                              >
-                                {kw.trim()}
-                              </span>
-                            ))}
+                            {formData.keywords
+                              .split(",")
+                              .filter((k) => k.trim())
+                              .map((kw, i) => (
+                                <span
+                                  key={i}
+                                  className="text-xs bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5"
+                                >
+                                  {kw.trim()}
+                                </span>
+                              ))}
                           </div>
                         )}
                       </div>

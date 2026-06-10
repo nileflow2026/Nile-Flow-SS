@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState } from "react";
 import axiosClient from "../api";
-import { Config, ID, storage } from "../appwrite";
 
 export default function ApplicationForm() {
   const [formData, setFormData] = useState({
@@ -44,17 +43,6 @@ export default function ApplicationForm() {
     console.log(formData.cv);
 
     try {
-      let cvFileId = null;
-
-      // ✅ Upload CV if provided
-      if (formData.cv) {
-        const uploadedFile = await storage.createFile(
-          Config.APPLICANT_CVS_BUCKET_ID, // replace with your bucket ID
-          ID.unique(),
-          formData.cv
-        );
-        cvFileId = uploadedFile.$id;
-      }
       await axiosClient.post("/api/apply/submit", formPayload);
       setSubmitted(true);
     } catch (err) {
@@ -79,7 +67,9 @@ export default function ApplicationForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-[color:var(--nf-text-primary)] font-medium">Full Name</label>
+            <label className="block text-[color:var(--nf-text-primary)] font-medium">
+              Full Name
+            </label>
             <input
               type="text"
               name="name"
@@ -92,7 +82,9 @@ export default function ApplicationForm() {
 
           {/* Email */}
           <div>
-            <label className="block text-[color:var(--nf-text-primary)] font-medium">Email</label>
+            <label className="block text-[color:var(--nf-text-primary)] font-medium">
+              Email
+            </label>
             <input
               type="email"
               name="email"

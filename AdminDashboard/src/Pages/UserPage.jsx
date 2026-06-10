@@ -12,7 +12,7 @@ import {
   getUserPreferences,
   updateUserPreferences,
 } from "../../adminService";
-import UserDebugPanel from "../components/UserDebugPanel";
+
 import {
   User,
   Mail,
@@ -70,7 +70,7 @@ export default function UserPage() {
         }
 
         console.log(
-          "User validation successful, proceeding with full data fetch..."
+          "User validation successful, proceeding with full data fetch...",
         );
         const userDoc = validation.user;
 
@@ -135,24 +135,24 @@ export default function UserPage() {
           const errorMsg = `User not found: The user with ID '${userId}' does not exist in the database.`;
           setError(new Error(errorMsg));
           toast.error(
-            `User not found: ID '${userId?.substring(0, 8)}...' does not exist`
+            `User not found: ID '${userId?.substring(0, 8)}...' does not exist`,
           );
         } else if (err.code === 401) {
           setError(
             new Error(
-              "Access denied: You do not have permission to view this user."
-            )
+              "Access denied: You do not have permission to view this user.",
+            ),
           );
           toast.error("Access denied: Insufficient permissions");
         } else if (!userId || userId.trim() === "") {
           setError(
-            new Error("Invalid user ID: No user ID provided in the URL.")
+            new Error("Invalid user ID: No user ID provided in the URL."),
           );
           toast.error("Invalid user ID provided");
         } else {
           setError(err);
           toast.error(
-            `Failed to load user data: ${err.message || "Unknown error"}`
+            `Failed to load user data: ${err.message || "Unknown error"}`,
           );
         }
       } finally {
@@ -179,7 +179,7 @@ export default function UserPage() {
       orders.length > 0
         ? orders.reduce((sum, order) => {
             const total = parseFloat(
-              order.total || order.amount || order.price || 0
+              order.total || order.amount || order.price || 0,
             );
             return sum + (isNaN(total) ? 0 : total);
           }, 0) / orders.length
@@ -317,7 +317,7 @@ export default function UserPage() {
                       src={
                         user.avatarUrl ||
                         `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          user.username
+                          user.username,
                         )}&background=D4A017&color=fff&bold=true&size=200`
                       }
                       alt={user.username}
@@ -449,7 +449,7 @@ export default function UserPage() {
                       <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         Last updated:{" "}
                         {new Date(
-                          user.prefs.lastMilesUpdate
+                          user.prefs.lastMilesUpdate,
                         ).toLocaleDateString()}
                       </div>
                     )}
@@ -536,7 +536,7 @@ export default function UserPage() {
                             {userStats.lastOrder
                               ? userStats.lastOrder.toLocaleDateString(
                                   "en-US",
-                                  { month: "short", day: "numeric" }
+                                  { month: "short", day: "numeric" },
                                 )
                               : "Never"}
                           </p>
@@ -557,8 +557,8 @@ export default function UserPage() {
                             {userStats.totalOrders > 10
                               ? "Gold"
                               : userStats.totalOrders > 5
-                              ? "Silver"
-                              : "Bronze"}
+                                ? "Silver"
+                                : "Bronze"}
                           </p>
                         </div>
                       </div>
@@ -588,8 +588,8 @@ export default function UserPage() {
                                       order.status === "Shipped"
                                         ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                         : order.status === "Pending"
-                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                                     }`}
                                   >
                                     {order.status}
@@ -597,7 +597,7 @@ export default function UserPage() {
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                   {new Date(
-                                    order.$createdAt
+                                    order.$createdAt,
                                   ).toLocaleDateString("en-US", {
                                     weekday: "short",
                                     month: "short",
@@ -612,7 +612,7 @@ export default function UserPage() {
                                     order.total ||
                                       order.amount ||
                                       order.price ||
-                                      0
+                                      0,
                                   );
                                   return isNaN(total)
                                     ? "0.00"
@@ -679,7 +679,7 @@ export default function UserPage() {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                 {new Date(
-                                  order.$createdAt
+                                  order.$createdAt,
                                 ).toLocaleDateString()}
                               </td>
                               <td className="px-4 py-3">
@@ -688,8 +688,8 @@ export default function UserPage() {
                                     order.status === "Shipped"
                                       ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                                       : order.status === "Pending"
-                                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                                   }`}
                                 >
                                   {order.status}
@@ -702,7 +702,7 @@ export default function UserPage() {
                                     order.total ||
                                       order.amount ||
                                       order.price ||
-                                      0
+                                      0,
                                   );
                                   return isNaN(total)
                                     ? "0.00"
@@ -902,7 +902,7 @@ export default function UserPage() {
                           <p className="text-sm font-medium text-[#2C1810] dark:text-[#F5E6D3]">
                             {user.prefs?.subscriptionStartedAt
                               ? new Date(
-                                  user.prefs.subscriptionStartedAt
+                                  user.prefs.subscriptionStartedAt,
                                 ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
@@ -918,7 +918,7 @@ export default function UserPage() {
                           <p className="text-sm font-medium text-[#2C1810] dark:text-[#F5E6D3]">
                             {user.prefs?.subscriptionExpiresAt
                               ? new Date(
-                                  user.prefs.subscriptionExpiresAt
+                                  user.prefs.subscriptionExpiresAt,
                                 ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
@@ -1118,7 +1118,7 @@ export default function UserPage() {
                           {
                             dateStyle: "medium",
                             timeStyle: "short",
-                          }
+                          },
                         )}
                       </p>
                     </div>
@@ -1131,7 +1131,6 @@ export default function UserPage() {
       </div>
 
       {/* Debug Panel - Remove this after debugging */}
-      <UserDebugPanel userId={userId} />
     </div>
   );
 }

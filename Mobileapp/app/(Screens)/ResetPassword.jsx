@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Alert, BackHandler, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "../../app/components/FormField";
-import { account } from "../../Appwrite";
+import axiosClient from "../../api";
 import CusttomButton from "../components/CusttomButton";
 
 const ResetPassword = () => {
@@ -30,11 +30,20 @@ const ResetPassword = () => {
     }
     setSubmitting(true);
     try {
-      await account.updateRecovery(userId, secret, newPassword, newPassword);
+      await axiosClient.post("/api/customerauth/reset-password", {
+        userId,
+        secret,
+        newPassword,
+      });
       Alert.alert("Success", "Password reset successfully");
       router.replace("/sign-in"); // Redirect to login
     } catch (error) {
-      Alert.alert("Error", error.message);
+      Alert.alert(
+        "Error",
+        error?.response?.data?.error ||
+          error.message ||
+          "Failed to reset password",
+      );
     } finally {
       setSubmitting(false);
     }

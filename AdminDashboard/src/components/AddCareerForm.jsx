@@ -1,7 +1,6 @@
 // src/components/AddCareerForm.jsx
 import React, { useState } from "react";
 import axiosClient from "../../api";
-import { Config, ID, storage } from "../../appwrite";
 
 const AddCareerForm = ({ onCareerAdded }) => {
   const [formData, setFormData] = useState({
@@ -68,25 +67,36 @@ const AddCareerForm = ({ onCareerAdded }) => {
 
     try {
       if (imageFile) {
-        // Step 1: Upload the file to Appwrite Storage
-        const fileResponse = await storage.createFile(
-          Config.StorageId, // Your Appwrite Storage Bucket ID
-          ID.unique(),
-          imageFile
-        );
-
-        // Step 2: Construct the public image URL
-        // Appwrite provides a direct preview URL
-        imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.StorageId}/files/${fileResponse.$id}/view?project=${Config.projectId}`;
+        // Upload file via backend API
+        const reader = new FileReader();
+        imageUrl = await new Promise((resolve, reject) => {
+          reader.onload = async (e) => {
+            try {
+              const base64 = e.target.result;
+              const response = await axiosClient.post(
+                "/api/admin/upload-image",
+                {
+                  base64,
+                  fileName: imageFile.name,
+                },
+              );
+              resolve(response.data.imageUrl);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
       }
 
       // Filter out any empty responsibility strings
       const cleanedResponsibilities = responsibilities.filter(
-        (resp) => resp.trim() !== ""
+        (resp) => resp.trim() !== "",
       );
 
       const cleanedRequirements = requirements.filter(
-        (resp) => resp.trim() !== ""
+        (resp) => resp.trim() !== "",
       );
       // Replace with your actual backend URL
       const response = await axiosClient.post("/api/admin/careers/add", {

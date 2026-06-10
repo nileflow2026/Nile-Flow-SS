@@ -44,7 +44,6 @@ import {
   markNotificationsAsRead,
   clearAllVendorNotifications,
 } from "../../services/BackendServices/notificationservice";
-import { client, Config } from "../../services/appwrite";
 import { useVendorAuth } from "../../contexts/VendorAuthContext";
 
 export default function NotificationsPage() {
@@ -80,20 +79,20 @@ export default function NotificationsPage() {
           "product_approved",
           "product_rejected",
           "order_received",
-          "payment_processed"
+          "payment_processed",
         );
 
         let filteredData = data || [];
         if (filterType !== "all") {
           filteredData = filteredData.filter(
-            (notification) => notification.type === filterType
+            (notification) => notification.type === filterType,
           );
         }
 
         const sorted = filteredData.sort(
           (a, b) =>
             new Date(b.timestamp || b.$createdAt) -
-            new Date(a.timestamp || a.$createdAt)
+            new Date(a.timestamp || a.$createdAt),
         );
 
         setNotifications(sorted);
@@ -108,48 +107,6 @@ export default function NotificationsPage() {
       }
     };
 
-    fetchAllNotifications();
-
-    // Real-time subscription
-    const unsubscribe = client.subscribe(
-      `databases.${Config.databaseId}.collections.${Config.NOTIFICATIONS_COLLECTION_ID}.documents`,
-      (response) => {
-        if (
-          response.events.includes(
-            "databases.*.collections.*.documents.*.create"
-          )
-        ) {
-          const newNotification = response.payload;
-          setNotifications((prev) => [newNotification, ...prev]);
-
-          // Show toast for new notification
-          const notificationType = newNotification.type || "info";
-          const icon =
-            notificationType === "order" ? (
-              <ShoppingBag className="w-4 h-4" />
-            ) : notificationType === "user" ? (
-              <User className="w-4 h-4" />
-            ) : notificationType === "system" ? (
-              <AlertCircle className="w-4 h-4" />
-            ) : (
-              <Bell className="w-4 h-4" />
-            );
-
-          toast(
-            `${
-              notificationType.charAt(0).toUpperCase() +
-              notificationType.slice(1)
-            } Alert`,
-            {
-              description: newNotification.message,
-              icon,
-              duration: 5000,
-            }
-          );
-        }
-      }
-    );
-
     // Auto-refresh interval
     let refreshInterval;
     if (autoRefresh) {
@@ -159,7 +116,6 @@ export default function NotificationsPage() {
     }
 
     return () => {
-      unsubscribe();
       if (refreshInterval) clearInterval(refreshInterval);
     };
   }, [filterType, autoRefresh, isAuthenticated, user]);
@@ -174,7 +130,7 @@ export default function NotificationsPage() {
             (n.username &&
               n.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (n.userEmail &&
-              n.userEmail.toLowerCase().includes(searchTerm.toLowerCase())))
+              n.userEmail.toLowerCase().includes(searchTerm.toLowerCase()))),
       );
 
       const grouped = filtered.reduce((acc, note) => {
@@ -186,7 +142,7 @@ export default function NotificationsPage() {
 
       const unread = filtered.filter((n) => !n.read).length;
       const uniqueTypes = Array.from(
-        new Set(notifications.map((n) => n.type).filter(Boolean))
+        new Set(notifications.map((n) => n.type).filter(Boolean)),
       );
 
       return {
@@ -229,7 +185,7 @@ export default function NotificationsPage() {
       setSelectedNotifications(new Set());
     } else {
       setSelectedNotifications(
-        new Set(filteredNotifications.map((n) => n.$id))
+        new Set(filteredNotifications.map((n) => n.$id)),
       );
     }
   }, [filteredNotifications]);
@@ -240,7 +196,7 @@ export default function NotificationsPage() {
       const response = await markNotificationsAsRead([note.$id]);
       if (response?.updated > 0) {
         setNotifications((prev) =>
-          prev.map((n) => (n.$id === note.$id ? { ...n, read: true } : n))
+          prev.map((n) => (n.$id === note.$id ? { ...n, read: true } : n)),
         );
         toast.success("Notification marked as read");
       }
@@ -259,13 +215,13 @@ export default function NotificationsPage() {
 
     try {
       const response = await markNotificationsAsRead(
-        Array.from(selectedNotifications)
+        Array.from(selectedNotifications),
       );
       if (response?.updated > 0) {
         setNotifications((prev) =>
           prev.map((n) =>
-            selectedNotifications.has(n.$id) ? { ...n, read: true } : n
-          )
+            selectedNotifications.has(n.$id) ? { ...n, read: true } : n,
+          ),
         );
         setSelectedNotifications(new Set());
         toast.success(`${response.updated} notifications marked as read`);
@@ -285,7 +241,7 @@ export default function NotificationsPage() {
 
     if (
       window.confirm(
-        `Are you sure you want to clear all ${notifications.length} vendor notifications? This action cannot be undone.`
+        `Are you sure you want to clear all ${notifications.length} vendor notifications? This action cannot be undone.`,
       )
     ) {
       try {
@@ -657,7 +613,7 @@ export default function NotificationsPage() {
             Object.keys(groupedByUser).map((username) => {
               const userNotifications = groupedByUser[username];
               const unreadCount = userNotifications.filter(
-                (n) => !n.read
+                (n) => !n.read,
               ).length;
               const isExpanded = expandedUsers.has(username);
 
@@ -775,7 +731,7 @@ export default function NotificationsPage() {
                                     <span className="flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
                                       {new Date(
-                                        note.timestamp || note.$createdAt
+                                        note.timestamp || note.$createdAt,
                                       ).toLocaleString()}
                                     </span>
                                     {note.userEmail && (
@@ -911,7 +867,7 @@ export default function NotificationsPage() {
                         <td className="px-6 py-4">
                           <div className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70">
                             {new Date(
-                              note.timestamp || note.$createdAt
+                              note.timestamp || note.$createdAt,
                             ).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -919,7 +875,7 @@ export default function NotificationsPage() {
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(
-                              note.timestamp || note.$createdAt
+                              note.timestamp || note.$createdAt,
                             ).toLocaleDateString()}
                           </div>
                         </td>

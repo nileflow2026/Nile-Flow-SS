@@ -19,7 +19,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
-import { Config } from "../../Appwrite";
+// Config values inlined (Appwrite SDK removed from frontend)
+const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "6926c7df002fa7831d94";
+const APPWRITE_STORAGE_ID = "692a3b700039c02fb4bc";
 import { useCart } from "../../Context/CartContext_NEW";
 import { signOut, useGlobalContext } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
@@ -29,7 +32,7 @@ const { width } = Dimensions.get("window");
 
 // ==== Helper to get Appwrite file URL ====
 const getFileViewUrl = (bucketId, fileId) =>
-  `${Config.endpoint}/storage/buckets/${bucketId}/files/${fileId}/view?project=${Config.projectId}`;
+  `${APPWRITE_ENDPOINT}/storage/buckets/${bucketId}/files/${fileId}/view?project=${APPWRITE_PROJECT_ID}`;
 const Settings = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();

@@ -83,7 +83,13 @@ export const FavoritesProvider = ({ children }) => {
       isFavorite,
       toggleFavorite,
     }),
-    [favorites],
+    [
+      favorites,
+      addToFavorites,
+      removeFromFavorites,
+      isFavorite,
+      toggleFavorite,
+    ],
   );
   return (
     <FavoritesContext.Provider value={favoritesValue}>

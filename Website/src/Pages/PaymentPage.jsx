@@ -21,8 +21,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { account } from "../../appwrite";
 import { getCurrentUser } from "../../authServices";
+import axiosClient from "../../api";
 
 const PaymentPage = () => {
   const [selectedPayment, setSelectedPayment] = useState("card");
@@ -39,12 +39,20 @@ const PaymentPage = () => {
         setUser(currentUser);
 
         if (currentUser) {
-          const userPrefs = await account.getPrefs();
-          if (userPrefs.preferredPaymentMethod) {
-            setSelectedPayment(userPrefs.preferredPaymentMethod);
-            setConfirmationMessage(
-              `You have selected this as your preferred payment method.`
+          try {
+            const prefsResponse = await axiosClient.get(
+              "/api/customerprofile/payment-preference",
             );
+            const preferredPaymentMethod =
+              prefsResponse.data?.preferredPaymentMethod;
+            if (preferredPaymentMethod) {
+              setSelectedPayment(preferredPaymentMethod);
+              setConfirmationMessage(
+                `You have selected this as your preferred payment method.`,
+              );
+            }
+          } catch (prefErr) {
+            console.warn("No saved payment preference found:", prefErr.message);
           }
         }
       } catch (error) {
@@ -61,7 +69,9 @@ const PaymentPage = () => {
     setSaving(true);
 
     try {
-      await account.updatePrefs({ preferredPaymentMethod: method });
+      await axiosClient.post("/api/customerprofile/payment-preference", {
+        preferredPaymentMethod: method,
+      });
       setConfirmationMessage(`Payment method updated successfully!`);
 
       // Show success animation
@@ -209,7 +219,9 @@ const PaymentPage = () => {
                 Payment Method
               </span>
               <br />
-              <span className="text-[color:var(--nf-text-primary)]">Premium Security</span>
+              <span className="text-[color:var(--nf-text-primary)]">
+                Premium Security
+              </span>
             </h1>
 
             <p className="text-[color:var(--nf-text-secondary)] text-lg max-w-2xl mx-auto mb-10">
@@ -298,7 +310,9 @@ const PaymentPage = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-gradient-to-br from-amber-900/20 to-transparent backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-2xl p-4 text-center">
               <Shield className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-              <div className="text-sm text-[color:var(--nf-text-secondary)]">256-bit Encryption</div>
+              <div className="text-sm text-[color:var(--nf-text-secondary)]">
+                256-bit Encryption
+              </div>
             </div>
             <div className="bg-gradient-to-br from-emerald-900/20 to-transparent backdrop-blur-sm border border-emerald-800/30 rounded-2xl p-4 text-center">
               <Lock className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
@@ -372,12 +386,16 @@ const PaymentPage = () => {
                         <div
                           className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${option.color} flex items-center justify-center`}
                         >
-                          <div className="text-[color:var(--nf-text-primary)]">{option.icon}</div>
+                          <div className="text-[color:var(--nf-text-primary)]">
+                            {option.icon}
+                          </div>
                         </div>
                         <div className="flex-1">
                           <h3
                             className={`text-xl font-bold ${
-                              isSelected ? "text-[color:var(--nf-accent)]" : "text-[color:var(--nf-text-primary)]"
+                              isSelected
+                                ? "text-[color:var(--nf-accent)]"
+                                : "text-[color:var(--nf-text-primary)]"
                             }`}
                           >
                             {option.name}
@@ -401,7 +419,9 @@ const PaymentPage = () => {
                             className="flex items-center space-x-2 text-sm"
                           >
                             <div className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-emerald-500"></div>
-                            <span className="text-[color:var(--nf-text-secondary)]">{feature}</span>
+                            <span className="text-[color:var(--nf-text-secondary)]">
+                              {feature}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -464,7 +484,9 @@ const PaymentPage = () => {
                 </div>
                 <div className="text-center">
                   <Star className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-                  <div className="text-sm text-[color:var(--nf-text-secondary)]">5-Star Service</div>
+                  <div className="text-sm text-[color:var(--nf-text-secondary)]">
+                    5-Star Service
+                  </div>
                 </div>
               </div>
             </div>

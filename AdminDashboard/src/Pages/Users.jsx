@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { fetchUsers } from "../../adminService";
-import { Config, databases } from "../../appwrite";
+import axiosClient from "../../api";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -45,7 +45,7 @@ export default function UsersTable() {
     const dbUser = dbUsers.find((db) => db.email === apiUser.email);
     if (dbUser && dbUser.$id !== apiUser.$id) {
       console.warn(
-        `Using corrected DB ID ${dbUser.$id} instead of API ID ${apiUser.$id} for user ${apiUser.email}`
+        `Using corrected DB ID ${dbUser.$id} instead of API ID ${apiUser.$id} for user ${apiUser.email}`,
       );
       return dbUser.$id;
     }
@@ -68,47 +68,12 @@ export default function UsersTable() {
             id: u.$id,
             username: u.username,
             email: u.email,
-          }))
+          })),
         );
         setUsers(usersData);
 
-        // Also check direct database to compare
-        try {
-          const { databases, Config } = await import("../../appwrite");
-          const directUsers = await databases.listDocuments(
-            Config.databaseId,
-            Config.userCollectionId,
-            [],
-            100
-          );
-          console.log(
-            "Users from direct DB:",
-            directUsers.documents.map((u) => ({
-              id: u.$id,
-              username: u.username,
-              email: u.email,
-            }))
-          );
-          setDbUsers(directUsers.documents); // Store for ID mapping
-
-          // Compare IDs
-          console.log("=== API vs DATABASE ID COMPARISON ===");
-          usersData.forEach((apiUser) => {
-            const dbUser = directUsers.documents.find(
-              (db) => db.email === apiUser.email
-            );
-            if (dbUser && dbUser.$id !== apiUser.$id) {
-              console.warn(`⚠️ ID MISMATCH for user ${apiUser.email}:`);
-              console.warn(`  - API ID: ${apiUser.$id}`);
-              console.warn(`  - DB ID: ${dbUser.$id}`);
-              console.warn(
-                `  - Clicking this user will navigate to /users/${apiUser.$id} but should be /users/${dbUser.$id}`
-              );
-            }
-          });
-        } catch (dbError) {
-          console.error("Could not check direct database:", dbError);
-        }
+        // Direct DB comparison no longer available — Appwrite SDK removed from frontend
+        setDbUsers(usersData); // Use API data directly
       } catch (err) {
         console.error("Error loading users:", err);
         setError(err);
@@ -179,7 +144,7 @@ export default function UsersTable() {
   const handleDelete = useCallback(async (userId, username) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete ${username || "this user"}?`
+        `Are you sure you want to delete ${username || "this user"}?`,
       )
     ) {
       return;
@@ -187,11 +152,7 @@ export default function UsersTable() {
 
     setIsDeleting(true);
     try {
-      await databases.deleteDocument(
-        Config.databaseId,
-        Config.userCollectionId,
-        userId
-      );
+      await axiosClient.delete(`/api/users/delete/${userId}`);
 
       setUsers((prev) => prev.filter((user) => user.$id !== userId));
       toast.success("User deleted successfully");
@@ -216,11 +177,7 @@ export default function UsersTable() {
 
     setIsDeleting(true);
     const deletePromises = Array.from(selectedUsers).map((userId) =>
-      databases.deleteDocument(
-        Config.databaseId,
-        Config.userCollectionId,
-        userId
-      )
+      axiosClient.delete(`/api/users/delete/${userId}`),
     );
 
     try {
@@ -599,7 +556,7 @@ export default function UsersTable() {
                           src={
                             user.avatar ||
                             `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                              user.username
+                              user.username,
                             )}&background=D4A017&color=fff&bold=true`
                           }
                           alt={user.username}
@@ -694,7 +651,7 @@ export default function UsersTable() {
                           onClick={() => {
                             const correctId = getCorrectUserId(user);
                             console.log(
-                              `Navigating to user profile with ID: ${correctId}`
+                              `Navigating to user profile with ID: ${correctId}`,
                             );
                             navigate(`/users/${correctId}`);
                           }}
@@ -759,7 +716,7 @@ export default function UsersTable() {
                 <span className="font-semibold text-[#2C1810] dark:text-[#F5E6D3]">
                   {Math.min(
                     currentPage * itemsPerPage,
-                    filteredAndSortedUsers.length
+                    filteredAndSortedUsers.length,
                   )}
                 </span>{" "}
                 of{" "}

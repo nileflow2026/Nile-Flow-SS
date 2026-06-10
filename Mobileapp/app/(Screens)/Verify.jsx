@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { account } from "../../Appwrite";
+import axiosClient from "../../api";
 
 const Verify = () => {
   const router = useRouter();
@@ -38,7 +38,10 @@ const Verify = () => {
       }
 
       try {
-        await account.updateVerification(userId, secret);
+        await axiosClient.post("/api/customerauth/verify-email", {
+          userId,
+          secret,
+        });
         setStatus("Email verified successfully! Redirecting...");
 
         // Redirect to main app after 3 seconds

@@ -18,7 +18,6 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import { Config } from "../../Appwrite";
 import { useCart } from "../../Context/CartContext_NEW";
 import { useFavorites } from "../../Context/FavoritesContext";
 import { useGroupBuy } from "../../Context/GroupBuyContext";
@@ -441,7 +440,6 @@ const ProductDetails = () => {
           createdAt: new Date().toISOString(),
         };
 
-        console.log("Collection ID:", Config.reviewsCollectionId);
         console.log("Review Data being sent:", reviewData);
 
         // Validate before sending

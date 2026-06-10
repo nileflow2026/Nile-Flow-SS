@@ -1,6 +1,4 @@
-import { ID, Query, Storage } from "appwrite";
 import axiosClient from "./api";
-import { Config, storage } from "./appwrite";
 import { getCurrentUser } from "./authServices";
 /* import { getCurrentUser } from "./Context/GlobalProvider"; */
 
@@ -29,7 +27,7 @@ export const createNotification = async ({
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data.notification;
@@ -53,20 +51,20 @@ export const saveRecentSearch = async (query) => {
       console.log("No userId found, skipping save recent search");
       return;
     }
-    
+
     const response = await axiosClient.post(
       `/api/customerprofile/customer-searches`,
       {
         userId,
         query,
-      }
+      },
     );
 
     console.log("Recent search saved:", response.data.message);
   } catch (error) {
     console.error(
       "Failed to save recent search:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
   }
 };
@@ -79,26 +77,26 @@ export const getRecentSearches = async () => {
       console.log("No token found, skipping recent searches");
       return [];
     }
-    
+
     const userId = await fetchUserId();
     if (!userId) {
       console.log("No userId found, skipping recent searches");
       return [];
     }
-    
+
     const response = await axiosClient.get(
       "/api/customerprofile/customer-recent-search",
       {
         params: {
           userId: userId,
         },
-      }
+      },
     );
     return response.data.searches || [];
   } catch (error) {
     console.error(
       "Error fetching recent searches:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     return [];
   }
@@ -109,14 +107,14 @@ export const getPopularSearches = async (limit = 6) => {
     const response = await axiosClient.get(
       "/api/customerprofile/popular-searches",
       {
-        params: { limit }
-      }
+        params: { limit },
+      },
     );
     return response.data.searches || [];
   } catch (error) {
     console.error(
       "Error fetching popular searches:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     return [];
   }
@@ -134,14 +132,14 @@ export const clearRecentSearches = async () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error) {
     console.error(
       "Error clearing recent searches:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -163,7 +161,7 @@ export const getCustomerNotification = async () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     const notifications = response.data?.result;
@@ -197,7 +195,7 @@ export const getCustomerNotification = async () => {
 export const getProducts = async () => {
   try {
     const response = await axiosClient.get(
-      "/api/customerprofile/fetch-products"
+      "/api/customerprofile/fetch-products",
     );
 
     if (response.data.success) {
@@ -226,7 +224,7 @@ export const updateCurrencyRates = async () => {
         headers: {
           Authorization: `Bearer ${token}`, // 🔐 Set the token here
         },
-      }
+      },
     );
 
     /* sendNotification(); */
@@ -239,7 +237,7 @@ export const updateCurrencyRates = async () => {
 export const fetchReviews = async (productId) => {
   try {
     const response = await axiosClient.get(
-      `/api/customerprofile/fetch-reviews/${productId}`
+      `/api/customerprofile/fetch-reviews/${productId}`,
     );
     /* console.log("Review data:", response.data); */
     return response.data;
@@ -288,7 +286,7 @@ export const getProfile = async () => {
   } catch (error) {
     console.error(
       "❌ Frontend Service: Error fetching admin profile:",
-      error.response?.data?.error || error.message
+      error.response?.data?.error || error.message,
     );
     throw error; // Re-throw the error for the component to handle
   }
@@ -296,7 +294,7 @@ export const getProfile = async () => {
 
 export const fetchProduct = async (
   { category = "all", search = "" } = {},
-  setLoading
+  setLoading,
 ) => {
   try {
     if (typeof setLoading === "function") setLoading(true);
@@ -305,7 +303,7 @@ export const fetchProduct = async (
       "/api/customerprofile/fetch-product",
       {
         params: { category, search },
-      }
+      },
     );
 
     if (!response?.data?.products || !Array.isArray(response.data.products)) {
@@ -324,7 +322,7 @@ export const fetchProduct = async (
 
 export const fetchProducts = async (
   { category = "", search = "", cursor = null } = {},
-  setLoading
+  setLoading,
 ) => {
   try {
     if (typeof setLoading === "function") setLoading(true);
@@ -333,7 +331,7 @@ export const fetchProducts = async (
       "/api/customerprofile/fetch-product",
       {
         params: { category, search, cursor },
-      }
+      },
     );
 
     if (!response || !response.data || !Array.isArray(response.data.products)) {
@@ -365,7 +363,7 @@ export const incrementProductRatingsCount = async (productId) => {
 
     const response = await axiosClient.post(
       "/api/customerprofile/increment-rating",
-      { productId } // Request body
+      { productId }, // Request body
       /*     {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -378,7 +376,7 @@ export const incrementProductRatingsCount = async (productId) => {
   } catch (error) {
     console.error(
       "Error incrementing product ratings count:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -392,7 +390,7 @@ export const getOrders = async () => {
   } catch (error) {
     console.error(
       "Error fetching orders:",
-      error.response?.data?.error || error.message
+      error.response?.data?.error || error.message,
     );
     throw new Error(error.response?.data?.error || "Failed to fetch orders.");
   }
@@ -400,7 +398,7 @@ export const getOrders = async () => {
 
 export const getCustomerOrders = async () => {
   const response = await axiosClient.get(
-    "/api/customerprofile/customer-orders"
+    "/api/customerprofile/customer-orders",
   );
   console.log("Customer Orders fetched:", response.data.orders);
 
@@ -424,7 +422,7 @@ export const submitReview = async ({
       image: image || "",
       images: Array.isArray(images) ? images : undefined,
       parentReviewId: parentReviewId || undefined,
-    }
+    },
   );
 
   return response.data;
@@ -437,20 +435,26 @@ export const uploadFile = async (file) => {
   }
 
   try {
-    // Upload file to Appwrite Storage
-    const uploadedFile = await storage.createFile(
-      Config.StorageId,
-      ID.unique(), // Use ID.unique() from Appwrite SDK
-      file // Pass the raw File object directly
-    );
+    // Upload file via backend API
+    const reader = new FileReader();
+    const imageUrl = await new Promise((resolve, reject) => {
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target.result;
+          const response = await axiosClient.post("/api/admin/upload-image", {
+            base64,
+            fileName: file.name,
+          });
+          resolve(response.data.imageUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-    // Get a public view URL for the uploaded file
-    const url = storage.getFileView(Config.StorageId, uploadedFile.$id);
-    console.log("Appwrite upload successful:", uploadedFile, url);
-    // SDK returns a URL string; fallback to constructing if not
-    return typeof url === "string"
-      ? url
-      : `${Config.endpoint}/storage/buckets/${Config.StorageId}/files/${uploadedFile.$id}/view?project=${Config.projectId}`;
+    return imageUrl;
   } catch (error) {
     console.error("Error uploading file:", error);
     return null;

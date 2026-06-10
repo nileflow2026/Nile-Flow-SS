@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import axiosClient from "@/api";
-import { account, Config, databases, ID, Query, storage } from "@/Appwrite";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
@@ -211,11 +210,9 @@ export const signOut = async () => {
 
 export const createGuestSession = async () => {
   try {
-    const session = await account.createAnonymousSession();
-    console.log("Guest session created:", session);
-    // You might want to store some indication in local storage that the user is a guest
+    const response = await axiosClient.post("/api/customerauth/guest-session");
     await AsyncStorage.setItem("isGuest", "true");
-    return session;
+    return response.data.session || response.data;
   } catch (error) {
     console.error("Error creating guest session:", error);
     throw new Error("Failed to create guest session.");
@@ -230,7 +227,8 @@ export const isGuestUser = async () => {
 export const getGuestUser = async () => {
   if (await isGuestUser()) {
     try {
-      return await account.get(); // This will return the current anonymous session
+      const response = await axiosClient.get("/api/customerauth/guest-session");
+      return response.data.user || response.data;
     } catch (error) {
       console.error("Error getting guest user:", error);
       return null;
@@ -479,16 +477,22 @@ export const updateCurrencyRates = async () => {
 
 const uploadImageToStorage = async (imageFile) => {
   try {
-    // Create a File object with both parts: file data and file name
-    const file = new File([imageFile], imageFile.name, {
-      type: imageFile.type,
+    const formData = new FormData();
+    formData.append("file", {
+      uri: imageFile.uri,
+      type: imageFile.type || "image/jpeg",
+      name: imageFile.name || "upload.jpg",
     });
 
-    // Upload the file to Appwrite storage
-    const fileId = await storage.createFile(file); // Upload the file
+    const response = await axiosClient.post(
+      "/api/customerprofile/upload-file",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
 
-    // Store fileId in review (instead of imageUrl)
-    return fileId; // Return the fileId
+    return response.data.fileId || response.data.$id;
   } catch (error) {
     console.error("Error uploading image:", error);
     throw new Error("Failed to upload image");
@@ -503,28 +507,15 @@ export async function uploadFile(file) {
 
   const { uri, name } = file;
   const mimeType = mime.lookup(uri) || "image/jpeg";
-  const uniqueFileId = ID.unique();
-
-  console.log("uploadFile (FormData+ID): Received file:", file);
-  console.log("uploadFile (FormData+ID): Attempting to upload:", {
-    uri,
-    mimeType,
-    name,
-    uniqueFileId,
-  });
-  console.log("uploadFile (FormData+ID): Storage ID:", Config.StorageId);
-  console.log("uploadFile (FormData+ID): Project ID:", Config.projectId);
 
   try {
     const formData = new FormData();
-    formData.append("fileId", uniqueFileId); // Include fileId in the form data
     formData.append("file", {
       uri,
       type: mimeType,
       name,
     });
 
-    // Use axiosClient which automatically sends auth cookies
     const response = await axiosClient.post(
       `/api/customerprofile/upload-avatar`,
       formData,
@@ -538,8 +529,7 @@ export async function uploadFile(file) {
     const uploadedFile = response.data;
     return uploadedFile.$id || uploadedFile.fileId;
   } catch (error) {
-    console.error("uploadFile (FormData+ID): Error uploading file:", error);
-    console.log("uploadFile (FormData+ID): Error details:", error);
+    console.error("uploadFile: Error uploading file:", error);
     Alert.alert(
       "Upload Error",
       "Failed to upload the image. Please try again.",
@@ -551,24 +541,18 @@ export async function uploadFile(file) {
 // Get File Preview
 const getImageViewURL = (fileId) => {
   if (!fileId) {
-    return null; // Or a default placeholder image URL
+    return null;
   }
-  try {
-    return storage.getFileView(Config.StorageId, fileId);
-  } catch (error) {
-    console.error("Error generating image view URL:", error);
-    return null; // Or a default placeholder image URL
-  }
+  // Return a URL that will be resolved by the backend
+  return `/api/files/${fileId}/view`;
 };
 
 export const getlatestProducts = async () => {
   try {
-    const result = await databases.listDocuments(
-      Config.databaseId,
-      Config.productCollectionId,
-      [Query.orderAsc("$createdAt"), Query.limit(5)],
+    const response = await axiosClient.get(
+      "/api/customerprofile/fetch-product-mobile?limit=5",
     );
-    return result.documents;
+    return response.data.products || [];
   } catch (error) {
     console.error(error);
     return [];

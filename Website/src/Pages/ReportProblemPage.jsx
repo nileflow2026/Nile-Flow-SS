@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useGlobalContext } from "../../Context/GlobalProvider";
-import { Config } from "../../appwrite";
 import Header from "../../components/Header";
 import {
   AlertTriangle,
@@ -21,15 +20,7 @@ import {
 } from "lucide-react";
 import Footer from "../../components/Footer";
 
-// Mock Appwrite services for web environment
-const mockDatabases = {
-  createDocument: async (databaseId, collectionId, docId, data) => {
-    console.log(`Mock: Creating document in ${collectionId} with data:`, data);
-    return { ...data, $id: docId };
-  },
-};
-
-const databases = mockDatabases;
+import axiosClient from "../../api";
 
 const ReportProblemPage = () => {
   const [problemDetails, setProblemDetails] = useState("");
@@ -90,25 +81,18 @@ const ReportProblemPage = () => {
     try {
       const userName = user?.name || "Anonymous";
       const email = user?.email || "unknown";
-      const ID = { unique: () => `unique-${Date.now()}` };
 
-      await databases.createDocument(
-        Config.databaseId,
-        Config.reportsCollectionId,
-        ID.unique(),
-        {
-          problemDetails,
-          problemType,
-          priority,
-          userName,
-          email,
-          createdAt: new Date().toISOString(),
-        }
-      );
+      await axiosClient.post("/api/reports/submit", {
+        problemDetails,
+        problemType,
+        priority,
+        userName,
+        email,
+      });
 
       showToast(
         "Thank you for reporting the problem. Our premium support team will contact you within 1 hour.",
-        "success"
+        "success",
       );
       setSubmitted(true);
       setProblemDetails("");
@@ -131,8 +115,8 @@ const ReportProblemPage = () => {
           ? "from-red-900/80 to-amber-900/80"
           : "from-emerald-900/80 to-green-900/80"
       } backdrop-blur-sm border ${
-      type === "error" ? "border-red-700/50" : "border-emerald-700/50"
-    } rounded-2xl p-4 shadow-2xl max-w-sm">
+        type === "error" ? "border-red-700/50" : "border-emerald-700/50"
+      } rounded-2xl p-4 shadow-2xl max-w-sm">
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-full bg-gradient-to-br ${
             type === "error"
@@ -187,7 +171,9 @@ const ReportProblemPage = () => {
                   <h3 className="text-lg font-bold text-[color:var(--nf-accent)]">
                     Response Time
                   </h3>
-                  <p className="text-[color:var(--nf-text-muted)]">Within 1 Hour</p>
+                  <p className="text-[color:var(--nf-text-muted)]">
+                    Within 1 Hour
+                  </p>
                 </div>
                 <div className="text-center p-6 bg-gradient-to-br from-emerald-900/20 to-transparent border border-emerald-800/30 rounded-2xl">
                   <Shield className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
@@ -252,7 +238,9 @@ const ReportProblemPage = () => {
               Report a Problem
             </span>
             <br />
-            <span className="text-[color:var(--nf-text-primary)]">Premium Issue Resolution</span>
+            <span className="text-[color:var(--nf-text-primary)]">
+              Premium Issue Resolution
+            </span>
           </h1>
 
           <p className="text-[color:var(--nf-text-secondary)] text-lg max-w-2xl mx-auto mb-10">
@@ -263,8 +251,12 @@ const ReportProblemPage = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
             <div className="bg-gradient-to-br from-amber-900/20 to-transparent backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-2xl p-4">
-              <div className="text-2xl font-bold text-[color:var(--nf-accent)]">1H</div>
-              <div className="text-[color:var(--nf-text-muted)] text-sm">Response Time</div>
+              <div className="text-2xl font-bold text-[color:var(--nf-accent)]">
+                1H
+              </div>
+              <div className="text-[color:var(--nf-text-muted)] text-sm">
+                Response Time
+              </div>
             </div>
             <div className="bg-gradient-to-br from-red-900/20 to-transparent backdrop-blur-sm border border-red-800/30 rounded-2xl p-4">
               <div className="text-2xl font-bold text-red-300">24/7</div>
@@ -311,7 +303,9 @@ const ReportProblemPage = () => {
                     <User className="w-6 h-6 text-[color:var(--nf-text-primary)]" />
                   </div>
                   <div>
-                    <p className="text-[color:var(--nf-text-secondary)] text-sm">Reporting as</p>
+                    <p className="text-[color:var(--nf-text-secondary)] text-sm">
+                      Reporting as
+                    </p>
                     <h3 className="text-lg font-bold text-[color:var(--nf-accent)]">
                       {user.name}
                     </h3>
@@ -394,8 +388,8 @@ const ReportProblemPage = () => {
                           ? level === "high"
                             ? "bg-gradient-to-r from-red-600/30 to-red-700/20 border-red-500/50 shadow-lg shadow-red-900/30"
                             : level === "medium"
-                            ? "bg-gradient-to-r from-amber-600/30 to-amber-700/20 border-amber-500/50 shadow-lg shadow-amber-900/30"
-                            : "bg-gradient-to-r from-emerald-600/30 to-emerald-700/20 border-emerald-500/50 shadow-lg shadow-emerald-900/30"
+                              ? "bg-gradient-to-r from-amber-600/30 to-amber-700/20 border-amber-500/50 shadow-lg shadow-amber-900/30"
+                              : "bg-gradient-to-r from-emerald-600/30 to-emerald-700/20 border-emerald-500/50 shadow-lg shadow-emerald-900/30"
                           : "bg-[var(--nf-bg-elevated)] border-[var(--nf-border-subtle)] hover:border-amber-500/50"
                       }`}
                     >
@@ -405,8 +399,8 @@ const ReportProblemPage = () => {
                             ? level === "high"
                               ? "text-red-300"
                               : level === "medium"
-                              ? "text-[color:var(--nf-accent)]"
-                              : "text-emerald-300"
+                                ? "text-[color:var(--nf-accent)]"
+                                : "text-emerald-300"
                             : "text-[color:var(--nf-text-secondary)]"
                         }`}
                       >
@@ -507,8 +501,12 @@ const ReportProblemPage = () => {
           {/* Trust Badges */}
           <div className="mt-16 grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-gradient-to-br from-amber-900/20 to-transparent backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-2xl p-6 text-center">
-              <div className="text-2xl font-bold text-[color:var(--nf-accent)] mb-2">1H</div>
-              <div className="text-[color:var(--nf-text-muted)]">Response Time</div>
+              <div className="text-2xl font-bold text-[color:var(--nf-accent)] mb-2">
+                1H
+              </div>
+              <div className="text-[color:var(--nf-text-muted)]">
+                Response Time
+              </div>
             </div>
             <div className="bg-gradient-to-br from-emerald-900/20 to-transparent backdrop-blur-sm border border-emerald-800/30 rounded-2xl p-6 text-center">
               <div className="text-2xl font-bold text-emerald-300 mb-2">

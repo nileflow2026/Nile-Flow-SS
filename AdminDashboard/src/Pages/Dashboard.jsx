@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
-import { account } from "../../appwrite";
 import { format, subDays } from "date-fns";
 import html2pdf from "html2pdf.js";
 import {

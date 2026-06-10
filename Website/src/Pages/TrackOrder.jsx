@@ -2,7 +2,6 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { client, Config, databases } from "../../appwrite";
 import axiosClient from "../../api";
 import {
   Package,
@@ -63,7 +62,7 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
       "TrackOrder useEffect running, orderId:",
       orderId,
       "userId:",
-      userId
+      userId,
     );
 
     if (!orderId || !userId) {
@@ -146,11 +145,11 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
       } else if (error.response?.status === 404) {
         setHasNoOrders(true);
         setError(
-          "Order not found. Make sure you have placed an order to track."
+          "Order not found. Make sure you have placed an order to track.",
         );
       } else {
         setError(
-          "Failed to load order tracking information. Please try again."
+          "Failed to load order tracking information. Please try again.",
         );
       }
     } finally {
@@ -162,7 +161,7 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
     try {
       console.log("Fetching live location for orderId:", orderId);
       const response = await axiosClient.get(
-        `/api/orders/tracking/${orderId}/location`
+        `/api/orders/tracking/${orderId}/location`,
       );
 
       if (response.data.success) {
@@ -413,7 +412,9 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
         return (
           <div className="flex items-center space-x-2 bg-gradient-to-r from-gray-900/30 to-gray-800/30 backdrop-blur-sm px-4 py-2 rounded-full border border-[var(--nf-border-subtle)]">
             <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-            <span className="text-sm text-[color:var(--nf-text-secondary)]">Offline</span>
+            <span className="text-sm text-[color:var(--nf-text-secondary)]">
+              Offline
+            </span>
           </div>
         );
     }
@@ -533,7 +534,7 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
                   </div>
                   <div
                     className={`bg-gradient-to-r ${getStatusColor(
-                      realTimeStatus || orderStatus
+                      realTimeStatus || orderStatus,
                     )} text-[color:var(--nf-text-primary)] px-4 py-2 rounded-full font-bold`}
                   >
                     {realTimeStatus || orderStatus || "Tracking..."}
@@ -757,14 +758,18 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-[var(--nf-bg-elevated)] backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-xl">
-                    <span className="text-[color:var(--nf-text-secondary)]">Name</span>
+                    <span className="text-[color:var(--nf-text-secondary)]">
+                      Name
+                    </span>
                     <span className="text-[color:var(--nf-text-primary)] font-bold">
                       {driverInfo.name}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-[var(--nf-bg-elevated)] backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-xl">
-                    <span className="text-[color:var(--nf-text-secondary)]">Contact</span>
+                    <span className="text-[color:var(--nf-text-secondary)]">
+                      Contact
+                    </span>
                     {driverInfo.phone !== "N/A" ? (
                       <a
                         href={`tel:${driverInfo.phone}`}
@@ -773,12 +778,16 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
                         {driverInfo.phone}
                       </a>
                     ) : (
-                      <span className="text-[color:var(--nf-text-muted)]">{driverInfo.phone}</span>
+                      <span className="text-[color:var(--nf-text-muted)]">
+                        {driverInfo.phone}
+                      </span>
                     )}
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-[var(--nf-bg-elevated)] backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-xl">
-                    <span className="text-[color:var(--nf-text-secondary)]">Vehicle</span>
+                    <span className="text-[color:var(--nf-text-secondary)]">
+                      Vehicle
+                    </span>
                     <span className="text-emerald-300 font-bold">
                       {driverInfo.vehicle}
                     </span>
@@ -786,7 +795,9 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
 
                   {driverInfo.rating && (
                     <div className="flex items-center justify-between p-3 bg-[var(--nf-bg-elevated)] backdrop-blur-sm border border-[var(--nf-border-subtle)] rounded-xl">
-                      <span className="text-[color:var(--nf-text-secondary)]">Rating</span>
+                      <span className="text-[color:var(--nf-text-secondary)]">
+                        Rating
+                      </span>
                       <div className="flex items-center space-x-2">
                         <span className="text-yellow-400 font-bold">
                           {driverInfo.rating}
@@ -838,7 +849,9 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[color:var(--nf-text-secondary)]">Shipping</span>
+                    <span className="text-[color:var(--nf-text-secondary)]">
+                      Shipping
+                    </span>
                     <span className="text-emerald-300 font-bold">
                       {orderData?.shippingFee > 0
                         ? orderData.shippingFee
@@ -847,7 +860,9 @@ const TrackOrder = ({ orderId, estimatedDelivery, orderTime, userId }) => {
                   </div>
                   {orderData?.premiumDiscountAmount > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-[color:var(--nf-text-secondary)]">Premium Discount</span>
+                      <span className="text-[color:var(--nf-text-secondary)]">
+                        Premium Discount
+                      </span>
                       <span className="text-emerald-300 font-bold">
                         -{orderData.premiumDiscountAmount}
                       </span>

@@ -161,7 +161,9 @@ const MAX_RETRIES = 3;
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 const RETRYABLE_METHODS = new Set(["get", "head", "options"]);
 
-async function retryRequest(config, retryCount = 0) {
+// Retry logic moved inline — function kept for backward compatibility
+// eslint-disable-next-line no-unused-vars
+async function retryLegacyRequest(config, retryCount = 0) {
   try {
     return await axiosClient.request(config);
   } catch (error) {
@@ -174,7 +176,7 @@ async function retryRequest(config, retryCount = 0) {
     if (isRetryable && retryCount < MAX_RETRIES) {
       const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
       await new Promise((resolve) => setTimeout(resolve, delay));
-      return retryRequest(config, retryCount + 1);
+      return retryLegacyRequest(config, retryCount + 1);
     }
     throw error;
   }
@@ -242,7 +244,7 @@ axiosClient.interceptors.response.use(
 
       // Refresh token is sent via httpOnly cookie automatically
       // IMPORTANT: Use a separate axios instance to avoid interceptor loop
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE_URL}/api/customerauth/refresh`,
         { deviceId },
         {

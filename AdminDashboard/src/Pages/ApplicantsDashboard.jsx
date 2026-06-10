@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Config, storage } from "../../appwrite";
 import axiosClient from "../../api";
 import {
   Users,
@@ -94,7 +93,7 @@ export default function ApplicantsDashboard() {
       thisWeek,
       roleDistribution,
       topRole: Object.entries(roleDistribution).sort(
-        (a, b) => b[1] - a[1]
+        (a, b) => b[1] - a[1],
       )[0] || ["None", 0],
     };
   }, [applications]);
@@ -156,18 +155,20 @@ export default function ApplicantsDashboard() {
 
     setDownloadingCV(cvId);
     try {
-      const result = storage.getFileDownload(
-        Config.APPLICANT_CVS_BUCKET_ID,
-        cvId
-      );
+      // Download via backend API
+      const response = await axiosClient.get(`/api/apply/download-cv/${cvId}`, {
+        responseType: "blob",
+      });
 
       // Create a temporary link to trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
-      link.href = result.href;
+      link.href = url;
       link.download = `${applicantName.replace(/\s+/g, "_")}_CV.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast.success("CV downloaded successfully", {
         description: `${applicantName}'s CV is being downloaded`,
@@ -395,7 +396,7 @@ export default function ApplicantsDashboard() {
               {Math.round(
                 (applications.filter((app) => app.cvId).length /
                   applications.length) *
-                  100
+                  100,
               )}
               % rate
             </div>
@@ -570,7 +571,7 @@ export default function ApplicantsDashboard() {
                         <div className="flex items-center gap-2 text-sm text-[#2C1810] dark:text-[#F5E6D3]">
                           <Calendar className="w-4 h-4 text-gray-400" />
                           {new Date(
-                            app.$createdAt || app.createdAt
+                            app.$createdAt || app.createdAt,
                           ).toLocaleDateString()}
                         </div>
                       </td>
@@ -662,7 +663,7 @@ export default function ApplicantsDashboard() {
                   <span className="font-semibold text-[#2C1810] dark:text-[#F5E6D3]">
                     {Math.min(
                       currentPage * itemsPerPage,
-                      filteredApplications.length
+                      filteredApplications.length,
                     )}
                   </span>{" "}
                   of{" "}
@@ -799,7 +800,7 @@ export default function ApplicantsDashboard() {
                         <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3]">
                           {new Date(
                             selectedApplication.$createdAt ||
-                              selectedApplication.createdAt
+                              selectedApplication.createdAt,
                           ).toLocaleString()}
                         </p>
                       </div>
@@ -826,7 +827,7 @@ export default function ApplicantsDashboard() {
                       onClick={() =>
                         downloadCV(
                           selectedApplication.cvId,
-                          selectedApplication.name
+                          selectedApplication.name,
                         )
                       }
                       disabled={
@@ -897,4 +898,3 @@ export default function ApplicantsDashboard() {
     </div>
   );
 }
-

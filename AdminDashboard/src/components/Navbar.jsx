@@ -11,14 +11,6 @@ import {
   fetchUsers,
   getProfile,
 } from "../../adminService";
-import {
-  account,
-  avatars,
-  client,
-  Config,
-  databases,
-  Query,
-} from "../../appwrite";
 import { useTheme } from "../context/ThemeContext";
 import { Sun, Moon, Bell, Menu } from "lucide-react";
 import { toast } from "sonner";
@@ -70,7 +62,7 @@ export default function Navbar({ toggleSidebar }) {
     initializeUser();
   }, [authUser]);
 
-  // Real-time notifications with optimized subscription
+  // Fetch notifications on mount
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
@@ -81,37 +73,6 @@ export default function Navbar({ toggleSidebar }) {
     };
 
     initializeNotifications();
-
-    const lastSeenVal = getLastSeen();
-    const parsedLastSeen = lastSeenVal ? new Date(lastSeenVal).getTime() : 0;
-
-    const unsubscribe = client.subscribe(
-      `databases.${Config.databaseId}.collections.${Config.NOTIFICATIONS_COLLECTION_ID}.documents`,
-      (response) => {
-        if (
-          response.events.includes(
-            "databases.*.collections.*.documents.*.create",
-          )
-        ) {
-          const notification = response.payload;
-          const createdAt = new Date(notification.$createdAt).getTime();
-
-          if (notification.type === "order") {
-            toast(`👤 Admin Alert: ${notification.message}`, {
-              description: new Date(notification.$createdAt).toLocaleString(),
-            });
-            setNotificationCount((prev) => prev + 1);
-            setHasNew(true);
-          } else if (notification.type === "user") {
-            toast(`📦 User Order Update: ${notification.message}`, {
-              description: new Date(notification.$createdAt).toLocaleString(),
-            });
-          }
-        }
-      },
-    );
-
-    return () => unsubscribe();
   }, []);
 
   // Subscribe to in-memory notification buffer changes
@@ -126,7 +87,9 @@ export default function Navbar({ toggleSidebar }) {
   const avatar =
     user?.prefs?.avatar ||
     dbUser?.avatar ||
-    (dbUser?.username ? avatars.getInitials(dbUser.username).href : null);
+    (dbUser?.username
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(dbUser.username)}&background=D4A017&color=fff&bold=true`
+      : null);
 
   const handleLogout = async () => {
     try {

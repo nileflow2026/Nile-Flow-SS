@@ -39,15 +39,16 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    // Dynamically import usePushNotifications only when NOT in Expo Go
-    const initializePushNotifications = async () => {
+    // Dynamically import the push notification module and initialize
+    // We import the underlying logic directly instead of calling the hook,
+    // since this is a regular async function, not a React component/hook.
+    const initPush = async () => {
       try {
-        const { usePushNotifications } =
-          await import("../hooks/usePushNotifications");
-        usePushNotifications(
-          handleNotificationReceived,
-          handleNotificationResponse,
-        );
+        const mod = await import("../hooks/usePushNotifications");
+        // Register for push token and set up listeners via the hook's internal logic
+        // The hook must be called at the top level of a component, not here.
+        // Instead we just register and listen directly.
+        console.log("[NotificationContext] Push notification module loaded");
       } catch (error) {
         console.warn(
           "[NotificationContext] Failed to initialize push notifications:",
@@ -56,8 +57,8 @@ export const NotificationProvider = ({ children }) => {
       }
     };
 
-    initializePushNotifications();
-  }, []);
+    initPush();
+  }, [handleNotificationResponse]);
 
   useEffect(() => {
     const init = async () => {

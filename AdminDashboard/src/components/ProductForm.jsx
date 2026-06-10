@@ -1,14 +1,9 @@
 /* eslint-disable no-unused-vars */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import { useDropzone } from "react-dropzone";
-import { Storage, ID } from "appwrite";
 import axiosClient from "../../api";
-import { client, Config } from "../../appwrite";
-import { useEffect } from "react";
-
-const storage = new Storage(client);
 
 export default function ProductForm({ product, onProductAdded, onCancel }) {
   // detect editing mode
@@ -182,6 +177,26 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
     }
   }, [form.category]); // 👈 This effect runs whenever the 'category' state changes
 
+  const uploadFileViaBackend = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target.result;
+          const response = await axiosClient.post("/api/admin/upload-image", {
+            base64,
+            fileName: file.name,
+          });
+          resolve(response.data.imageUrl);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const onDropPrimaryImage = useCallback(
     async (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
@@ -202,12 +217,7 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         }
 
         try {
-          const uploadedFile = await storage.createFile(
-            Config.StorageId,
-            ID.unique(),
-            uploadFile,
-          );
-          const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.StorageId}/files/${uploadedFile.$id}/view?project=${Config.projectId}`; // Update with your actual endpoint and project ID
+          const imageUrl = await uploadFileViaBackend(uploadFile);
           setForm({ ...form, image: imageUrl });
         } catch (err) {
           alert("Failed to upload primary image.");
@@ -237,12 +247,7 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
           }
         }
         try {
-          const uploadedFile = await storage.createFile(
-            Config.StorageId,
-            ID.unique(),
-            convertedFile,
-          );
-          const imageUrl = `https://fra.cloud.appwrite.io/v1/storage/buckets/${Config.StorageId}/files/${uploadedFile.$id}/view?project=${Config.projectId}`; // Update with your actual endpoint and project ID
+          const imageUrl = await uploadFileViaBackend(convertedFile);
           uploadedUrls.push(imageUrl);
         } catch (err) {
           alert(`Failed to upload file: ${file.name}`);

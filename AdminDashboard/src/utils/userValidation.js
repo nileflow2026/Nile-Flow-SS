@@ -1,4 +1,4 @@
-import { databases, Config } from "../../appwrite";
+import axiosClient from "../../api";
 
 /**
  * Validates if a user ID exists in the database
@@ -11,30 +11,25 @@ export const validateUserId = async (userId) => {
       return { exists: false, error: "Invalid user ID format" };
     }
 
-    // Check if user ID has the correct format (Appwrite IDs are typically 20+ characters)
-    if (userId.length < 20) {
-      return { exists: false, error: "User ID appears to be too short" };
-    }
-
-    // Try to fetch the user document
-    const userDoc = await databases.getDocument(
-      Config.databaseId,
-      Config.userCollectionId,
-      userId
-    );
+    // Check via backend API
+    const response = await axiosClient.get(`/api/users/${userId}`);
+    const userDoc = response.data;
 
     return { exists: true, user: userDoc };
   } catch (error) {
     console.error("User validation error:", error);
 
-    if (error.code === 404) {
+    if (error.response?.status === 404) {
       return { exists: false, error: "User not found in database" };
-    } else if (error.code === 401) {
+    } else if (
+      error.response?.status === 401 ||
+      error.response?.status === 403
+    ) {
       return {
         exists: false,
         error: "Access denied - insufficient permissions",
       };
-    } else if (error.code === 400) {
+    } else if (error.response?.status === 400) {
       return { exists: false, error: "Invalid user ID format" };
     }
 
@@ -48,24 +43,20 @@ export const validateUserId = async (userId) => {
  */
 export const debugListUsers = async () => {
   try {
-    const result = await databases.listDocuments(
-      Config.databaseId,
-      Config.userCollectionId,
-      [],
-      50 // Limit to first 50 users
-    );
+    const response = await axiosClient.get("/api/users/users");
+    const users = response.data;
 
     console.log(
       "Available users:",
-      result.documents.map((user) => ({
+      users.map((user) => ({
         id: user.$id,
         username: user.username,
         email: user.email,
         created: user.$createdAt,
-      }))
+      })),
     );
 
-    return result.documents;
+    return users;
   } catch (error) {
     console.error("Error listing users for debug:", error);
     return [];
@@ -77,55 +68,12 @@ export const debugListUsers = async () => {
  * @returns {Promise<Object>}
  */
 export const debugAppwriteConfig = async () => {
-  const config = {
-    databaseId: Config.databaseId,
-    userCollectionId: Config.userCollectionId,
-    orderCollectionId: Config.orderCollectionId,
-    addressCollectionId: Config.addressCollection,
-    orderCollection: Config.orderCollection, // Note: you have both orderCollection and orderCollectionId
+  console.log(
+    "debugAppwriteConfig: Appwrite SDK is no longer available on the frontend.",
+  );
+  console.log("Use the backend API endpoints instead.");
+  return {
+    success: false,
+    error: "Appwrite SDK removed from frontend — use backend API",
   };
-
-  console.log("Current Appwrite Config:", config);
-
-  try {
-    // Try to list documents from each collection to verify they exist
-    const userTest = await databases.listDocuments(
-      Config.databaseId,
-      Config.userCollectionId,
-      [],
-      1
-    );
-    const orderTest = await databases.listDocuments(
-      Config.databaseId,
-      Config.orderCollectionId,
-      [],
-      1
-    );
-    const addressTest = await databases.listDocuments(
-      Config.databaseId,
-      Config.addressCollection,
-      [],
-      1
-    );
-
-    console.log("Collection accessibility test:");
-    console.log("- Users collection: ✓ Accessible");
-    console.log("- Orders collection: ✓ Accessible");
-    console.log("- Address collection: ✓ Accessible");
-
-    return {
-      success: true,
-      collections: {
-        users: userTest.total,
-        orders: orderTest.total,
-        addresses: addressTest.total,
-      },
-    };
-  } catch (error) {
-    console.error("Configuration test failed:", error);
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
 };

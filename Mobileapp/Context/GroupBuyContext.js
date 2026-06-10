@@ -36,8 +36,6 @@ export function GroupBuyProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const subscriptions = useRef(new Map()); // groupId -> unsubscribe fn
-
   // ── API helpers ────────────────────────────────────────────────────────────
 
   const fetchGroup = useCallback(async (groupId) => {
@@ -46,8 +44,8 @@ export function GroupBuyProvider({ children }) {
       const res = await axiosClient.get(`/api/group-orders/${groupId}`);
       setActiveGroup(res.data);
       return res.data;
-    } catch (err) {
-      const msg = err?.response?.data?.error || "Failed to load group deal.";
+    } catch (error) {
+      const msg = error?.response?.data?.error || "Failed to load group deal.";
       setError(msg);
       return null;
     } finally {
@@ -92,13 +90,6 @@ export function GroupBuyProvider({ children }) {
         setActiveGroup(res.data);
         return { data: res.data, error: null };
       } catch (err) {
-        console.error("=== CREATE GROUP BUY ERROR ===");
-        console.error("Status:", err?.response?.status);
-        console.error(
-          "Response data:",
-          JSON.stringify(err?.response?.data, null, 2),
-        );
-        console.error("Error message:", err.message);
         const msg =
           err?.response?.data?.error || "Failed to create group deal.";
         setError(msg);
@@ -208,9 +199,10 @@ export function GroupBuyProvider({ children }) {
 
   // Clean up all poll timers on unmount
   useEffect(() => {
+    const timers = pollTimers.current;
     return () => {
-      pollTimers.current.forEach((timerId) => clearInterval(timerId));
-      pollTimers.current.clear();
+      timers.forEach((timerId) => clearInterval(timerId));
+      timers.clear();
     };
   }, []);
 

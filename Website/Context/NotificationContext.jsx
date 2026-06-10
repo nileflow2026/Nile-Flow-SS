@@ -9,7 +9,6 @@ import React, {
   useMemo,
 } from "react";
 import { getCustomerNotification } from "../CustomerServices";
-import { client, Config } from "../appwrite";
 import { getCurrentUser } from "../authServices";
 import notificationService from "../services/NotificationService";
 
@@ -206,43 +205,25 @@ export const NotificationProvider = ({ children }) => {
     initializeNotifications();
   }, []); // runs once on mount
 
+  // Poll for new notifications every 30 seconds
   useEffect(() => {
-    const unsubscribe = client.subscribe(
-      `databases.${Config.databaseId}.collections.${Config.NOTIFICATIONS_COLLECTION_ID}.documents`,
-      (response) => {
-        const { payload, events } = response;
+    let interval;
 
-        // Use the cached ref — no API call needed per event.
-        const uid = currentUserIdRef.current;
-        if (!uid) return;
-        if (payload.userId !== uid) return; // ignore other users' events
-
-        // Handle new notification creation
-        if (events.includes("databases.*.documents.*.create")) {
-          if (payload.type === "userNotification") {
-            handleNewNotification(payload);
-          }
+    const pollNotifications = async () => {
+      try {
+        const notificationsData = await getCustomerNotification();
+        if (notificationsData && notificationsData.length > 0) {
+          setNotifications(notificationsData);
+          const unreadCount = notificationsData.filter((n) => !n.read).length;
+          setNotificationCount(unreadCount);
         }
+      } catch (err) {
+        console.warn("Polling notifications failed:", err);
+      }
+    };
 
-        // Handle notification updates (e.g., marked as read)
-        if (events.includes("databases.*.documents.*.update")) {
-          setNotifications((prev) =>
-            prev.map((n) => (n.$id === payload.$id ? payload : n)),
-          );
-          if (payload.read) {
-            setNotificationCount((prev) => Math.max(0, prev - 1));
-          }
-        }
-
-        // Handle notification deletion
-        if (events.includes("databases.*.documents.*.delete")) {
-          setNotifications((prev) => prev.filter((n) => n.$id !== payload.$id));
-          if (!payload.read) {
-            setNotificationCount((prev) => Math.max(0, prev - 1));
-          }
-        }
-      },
-    );
+    // Poll every 30 seconds
+    interval = setInterval(pollNotifications, 30000);
 
     // Add notification service listener
     const notificationListener = (notification) => {
@@ -251,10 +232,10 @@ export const NotificationProvider = ({ children }) => {
     notificationService.addListener(notificationListener);
 
     return () => {
-      unsubscribe();
+      clearInterval(interval);
       notificationService.removeListener(notificationListener);
     };
-  }, []); // subscription set up once; handleNewNotification updates via closure over state setters
+  }, []); // poll set up once
 
   // Memoize context value — NotificationContext is consumed by Header on every render;
   // without this, every notification state change triggers a full Header re-render.

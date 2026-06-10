@@ -11,8 +11,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Config, databases, fetchUserName, ID } from "../../Appwrite";
-import { useGlobalContext } from "../../Context/GlobalProvider";
+import axiosClient from "../../api";
+import { fetchUserName, useGlobalContext } from "../../Context/GlobalProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -87,19 +87,14 @@ const ReportaProblem = () => {
       const userName = (await fetchUserName()) || "Anonymous";
       const email = user?.email || "unknown";
 
-      await databases.createDocument(
-        Config.databaseId,
-        Config.reportsCollectionId,
-        ID.unique(),
-        {
-          problemDetails,
-          problemType,
-          priority,
-          createdAt: new Date().toISOString(),
-          userName,
-          email,
-        },
-      );
+      await axiosClient.post("/api/customerreports/submit-report", {
+        problemDetails,
+        problemType,
+        priority,
+        createdAt: new Date().toISOString(),
+        userName,
+        email,
+      });
 
       Alert.alert(
         "Report Submitted",

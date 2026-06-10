@@ -10,7 +10,6 @@ import React, {
 } from "react";
 import * as Sentry from "@sentry/react";
 import axiosClient from "../api";
-import { account } from "../appwrite";
 import { getCurrentUser } from "../authServices";
 
 // The problematic import is removed
@@ -102,7 +101,7 @@ const GlobalProvider = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await account.deleteSession("current");
+      await axiosClient.post("/api/customerauth/logoutCustomer");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");

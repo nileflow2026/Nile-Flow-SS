@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Config, databases, Query } from "../../Appwrite";
+import axiosClient from "../../api";
 import { useGlobalContext } from "../../Context/GlobalProvider";
 
 const { width } = Dimensions.get("window");
@@ -56,12 +56,8 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
   useEffect(() => {
     const fetchCurrencies = async () => {
       try {
-        const response = await databases.listDocuments(
-          Config.databaseId,
-          Config.currenciesCollection,
-          [Query.equal("currency_code", ["USD", "SSP"])],
-        );
-        setCurrencies(response.documents);
+        const response = await axiosClient.get("/api/currencies");
+        setCurrencies(response.data.currencies || []);
 
         const savedCurrency = await AsyncStorage.getItem("userCurrency");
         setSelectedCurrency(savedCurrency || "SSP");
@@ -80,13 +76,11 @@ const Currency = ({ onCurrencyChange = () => {} }) => {
       setSelectedCurrency(currency);
       onCurrencyChange(currency);
 
-      if (user?.$id) {
-        await databases.updateDocument(
-          Config.databaseId,
-          Config.userCollectionId,
-          user.$id,
-          { currency },
-        );
+      if (user?.id || user?.$id) {
+        await axiosClient.put("/api/customerprofile/update-currency", {
+          userId: user.id || user.$id,
+          currency,
+        });
       }
     } catch (error) {
       console.error("❌ Error updating currency:", error);

@@ -37,11 +37,6 @@ export const SocialProvider = ({ children }) => {
     videosWatched: 60, // Max 60 Miles from watching videos per day
   };
 
-  useEffect(() => {
-    loadSocialData();
-    resetDailyActionsIfNeeded();
-  }, []);
-
   const loadSocialData = async () => {
     try {
       // Try to fetch from backend first
@@ -77,16 +72,6 @@ export const SocialProvider = ({ children }) => {
     }
   };
 
-  const saveSocialData = async (miles, level, actions) => {
-    try {
-      await AsyncStorage.setItem("nileMiles", miles.toString());
-      await AsyncStorage.setItem("userLevel", level.toString());
-      await AsyncStorage.setItem("dailyActions", JSON.stringify(actions));
-    } catch (error) {
-      console.error("Error saving social data:", error);
-    }
-  };
-
   const resetDailyActionsIfNeeded = () => {
     const today = new Date().toDateString();
     if (dailyActions.lastReset !== today) {
@@ -97,6 +82,22 @@ export const SocialProvider = ({ children }) => {
         lastReset: today,
       };
       setDailyActions(resetActions);
+    }
+  };
+
+  useEffect(() => {
+    loadSocialData();
+    resetDailyActionsIfNeeded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveSocialData = async (miles, level, actions) => {
+    try {
+      await AsyncStorage.setItem("nileMiles", miles.toString());
+      await AsyncStorage.setItem("userLevel", level.toString());
+      await AsyncStorage.setItem("dailyActions", JSON.stringify(actions));
+    } catch (error) {
+      console.error("Error saving social data:", error);
     }
   };
 
@@ -115,11 +116,9 @@ export const SocialProvider = ({ children }) => {
     }
 
     let milesEarned = 0;
-    let actionKey = "";
 
     switch (action) {
       case "LIKE":
-        actionKey = "likes";
         if (newActions.likes < DAILY_LIMITS.likes) {
           milesEarned = MILES_RATES.LIKE * amount;
           newActions.likes += amount;
@@ -127,7 +126,6 @@ export const SocialProvider = ({ children }) => {
         break;
 
       case "SHARE":
-        actionKey = "shares";
         if (newActions.shares < DAILY_LIMITS.shares / MILES_RATES.SHARE) {
           milesEarned = MILES_RATES.SHARE * amount;
           newActions.shares += amount;
@@ -135,7 +133,6 @@ export const SocialProvider = ({ children }) => {
         break;
 
       case "VIDEO_WATCH":
-        actionKey = "videosWatched";
         if (
           newActions.videosWatched <
           DAILY_LIMITS.videosWatched / MILES_RATES.VIDEO_WATCH

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getRecentSearches } from "../../Appwrite";
+import { getRecentSearches } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
 
 const RecentSearches = ({ userId, onSearchSelect, onClearRecentSearches }) => {
