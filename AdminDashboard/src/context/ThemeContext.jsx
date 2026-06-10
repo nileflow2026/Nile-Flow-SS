@@ -1,9 +1,7 @@
-/* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { account } from "../../appwrite";
-import { getProfile } from "../../adminService";
+import { getProfile, updateUserPreferences } from "../../adminService";
 
 const ThemeContext = createContext();
 
@@ -19,7 +17,7 @@ export const ThemeProvider = ({ children }) => {
         setTheme(savedTheme);
         document.documentElement.classList.toggle(
           "dark",
-          savedTheme === "dark"
+          savedTheme === "dark",
         );
       } catch (error) {
         console.error("Failed to fetch theme from prefs:", error.message);
@@ -35,29 +33,6 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [user]);
 
-  /*  const toggleTheme = async () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  
-    try {
-   
-        const user = await getProfile();
-      const currentPrefs = user.prefs || {};
-      // Merge theme into current prefs
-      const updatedPrefs = {
-        ...currentPrefs,
-        theme: newTheme, 
-      };
-  
-      // Update prefs safely
-      await account.updatePrefs(updatedPrefs);
-      console.log('✅ Theme saved to prefs:', newTheme);
-    } catch (error) {
-      console.error('❌ Failed to save theme to prefs:', error.message);
-    }
-  }; */
-
   const toggleTheme = async () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
@@ -71,7 +46,7 @@ export const ThemeProvider = ({ children }) => {
           ...currentPrefs,
           theme: newTheme,
         };
-        await account.updatePrefs(updatedPrefs);
+        await updateUserPreferences(user.$id, updatedPrefs);
         console.log("✅ Theme saved to prefs:", newTheme);
       } catch (error) {
         console.error("❌ Failed to save theme to prefs:", error.message);

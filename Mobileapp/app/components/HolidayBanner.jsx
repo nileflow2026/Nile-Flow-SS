@@ -3,42 +3,6 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import axiosClient from "../../api";
 
-/* const HolidayBanner = ({ themeStyles }) => {
-   const [promo, setPromo] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-  const fetchPromo = async () => {
-    setLoading(true); // show spinner while fetching
-    try {
-      const res = await axiosClient.get('/api/nilemart/promotions/promotion');
-      const data = await res.data; 
-      setPromo(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchPromo();
-}, []);
-
-  if (loading) {
-    return <ActivityIndicator color={themeStyles.text} />;
-  } 
-
-  if (!promo) {
-    return null; // no banner to show
-  }
-
-  return (
-    <View style={[styles.banner(themeStyles.primary)]}>
-        <Text style={styles.title(themeStyles.text)}>{promo.title}</Text>
-      <Text style={styles.subtitle(themeStyles.text)}>{promo.message}</Text>
-      {promo.cta && <Text style={styles.cta(themeStyles.text)}>{promo.cta}</Text>}
-    </View>
-  );
-}; */
 let cachedPromo = null; // keeps data across mounts
 let cachedDate = null; // stores which day it was fetched
 

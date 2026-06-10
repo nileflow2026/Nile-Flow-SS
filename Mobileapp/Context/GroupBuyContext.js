@@ -20,7 +20,6 @@ import React, {
   useState,
 } from "react";
 import axiosClient from "../api";
-import { client, Config } from "../Appwrite";
 import { useGlobalContext } from "./GlobalProvider";
 
 const GroupBuyContext = createContext(null);
@@ -163,58 +162,55 @@ export function GroupBuyProvider({ children }) {
     }
   }, []);
 
-  // ── Appwrite Realtime ───────────────────────────────────────────────────────
+  // ── Backend Polling (replaces Appwrite Realtime) ─────────────────────────
 
-  const subscribeToGroup = useCallback((groupId) => {
-    if (subscriptions.current.has(groupId)) return;
-    if (!Config?.databaseId) return;
-
-    try {
-      const channel = `databases.${Config.databaseId}.collections.${Config.groupOrderCollectionId || "group_orders"}.documents.${groupId}`;
-      const unsubscribe = client.subscribe(channel, (msg) => {
-        try {
-          const response = typeof msg === "string" ? JSON.parse(msg) : msg;
-          const { payload, events } = response;
-          if (!payload || payload.$id !== groupId) return;
-
-          if (events?.some((e) => e.includes("delete"))) {
-            setActiveGroup(null);
-            return;
-          }
-          setActiveGroup((prev) => (prev?.$id === groupId ? payload : prev));
-        } catch (e) {
-          console.error("GroupBuy realtime parse error:", e);
-        }
-      });
-      subscriptions.current.set(groupId, unsubscribe);
-    } catch (e) {
-      console.error("GroupBuy subscribe error:", e);
-    }
-  }, []);
+  const POLL_INTERVAL_MS = 10000; // 10 seconds
+  const pollTimers = useRef(new Map());
 
   const unsubscribeFromGroup = useCallback((groupId) => {
-    const unsub = subscriptions.current.get(groupId);
-    if (unsub) {
-      try {
-        if (typeof unsub === "function") unsub();
-        else if (unsub?.unsubscribe) unsub.unsubscribe();
-      } catch (e) {
-        console.error("GroupBuy unsubscribe error:", e);
-      }
-      subscriptions.current.delete(groupId);
+    const timerId = pollTimers.current.get(groupId);
+    if (timerId) {
+      clearInterval(timerId);
+      pollTimers.current.delete(groupId);
     }
   }, []);
 
-  // Clean up all subscriptions on unmount
+  const subscribeToGroup = useCallback(
+    (groupId) => {
+      if (pollTimers.current.has(groupId)) return;
+
+      // Initial fetch
+      fetchGroup(groupId);
+
+      // Poll for updates
+      const timerId = setInterval(async () => {
+        try {
+          const res = await axiosClient.get(`/api/group-orders/${groupId}`);
+          const updated = res.data;
+          if (!updated) {
+            setActiveGroup(null);
+            unsubscribeFromGroup(groupId);
+            return;
+          }
+          setActiveGroup((prev) => {
+            if (prev?.$id === groupId) return updated;
+            return prev;
+          });
+        } catch (err) {
+          console.error("GroupBuy poll error:", err);
+        }
+      }, POLL_INTERVAL_MS);
+
+      pollTimers.current.set(groupId, timerId);
+    },
+    [fetchGroup, unsubscribeFromGroup],
+  );
+
+  // Clean up all poll timers on unmount
   useEffect(() => {
     return () => {
-      subscriptions.current.forEach((unsub) => {
-        try {
-          if (typeof unsub === "function") unsub();
-          else if (unsub?.unsubscribe) unsub.unsubscribe();
-        } catch (e) {}
-      });
-      subscriptions.current.clear();
+      pollTimers.current.forEach((timerId) => clearInterval(timerId));
+      pollTimers.current.clear();
     };
   }, []);
 

@@ -1,27 +1,3 @@
-// services/staffService.js
-/* const mockStaff = [
-    { $id: '1', name: 'Alice Makuach', email: 'alice@example.com', role: 'Manager' },
-    { $id: '2', name: 'John Deng', email: 'john@example.com', role: 'Sales Rep' },
-    { $id: '3', name: 'Mary Nyadeng', email: 'mary@example.com', role: 'Support' },
-  ];
-  
-  export const getStaff = async () => {
-    // Later, replace this with Appwrite database listDocuments call
-    return mockStaff;
-  };
-  
-  export const deleteStaff = async (id) => {
-    // Later, replace with Appwrite's deleteDocument call
-    return mockStaff.filter((s) => s.$id !== id);
-  };
-  
-  export const updateStaff = async (id, updatedData) => {
-    // Later, replace with Appwrite's updateDocument call
-    return mockStaff.map((s) => (s.$id === id ? { ...s, ...updatedData } : s));
-  }; */
-
-// services/staffService.js
-
 import axiosClient from "../../api";
 
 export const getStaff = async () => {
@@ -49,7 +25,7 @@ export const updateStaff = async (id, updatedData) => {
     const response = await axiosClient.get(
       "/api/staff/updateStaff",
       id,
-      updatedData
+      updatedData,
     );
     return response.data;
   } catch (error) {
