@@ -33,7 +33,7 @@ class ErrorBoundary extends React.Component {
             Something went wrong
           </Text>
           <Text className="text-gray-500 text-center mb-6">
-            We're sorry for the inconvenience. Please try again.
+            {`We're sorry for the inconvenience. Please try again.`}
           </Text>
           <TouchableOpacity
             onPress={() => this.setState({ hasError: false })}

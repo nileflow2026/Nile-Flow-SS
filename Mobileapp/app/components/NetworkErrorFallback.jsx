@@ -45,7 +45,8 @@ const NetworkErrorFallback = ({ onRetry }) => (
         marginBottom: 36,
       }}
     >
-      We couldn't reach Nile Flow right now.{"\n"}
+      {`We couldn't reach Nile Flow right now.`}
+      {"\n"}
       Check your connection and try again.
     </Text>
     <TouchableOpacity
