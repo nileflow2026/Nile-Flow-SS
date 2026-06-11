@@ -3,7 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Alert,
@@ -80,26 +80,67 @@ const StarRating = ({
 
 const ProductDetails = () => {
   const router = useRouter();
+
+  const navigation = useNavigation();
+
+  // DIAGNOSTIC: Check what navigation object looks like
+  /* console.log("🔍 [NAV] navigation type:", typeof navigation);
+  console.log(
+    "🔍 [NAV] navigation keys:",
+    navigation ? Object.keys(navigation).join(", ") : "null",
+  ); */
+  /*  console.log("🔍 [NAV] getState exists:", typeof navigation?.getState); */
+
+  // Log navigation state on mount
+  useEffect(() => {
+    try {
+      const state = navigation?.getState?.();
+      /*  console.log(
+        "� [NAV] state:",
+        state
+          ? JSON.stringify({
+              index: state.index,
+              routeCount: state.routes?.length,
+              routes: state.routes?.map((r) => r.name),
+            })
+          : "null",
+      ); */
+    } catch (e) {
+      console.log("🔍 [NAV] getState error:", e.message);
+    }
+  }, [navigation]);
+
+  // Log before each back button press
   useEffect(() => {
     const onBackPress = () => {
-      // In production (APK), router.back() may fail silently if there's no
-      // previous route in the native stack. When that happens, navigate
-      // to the tabs home instead of letting the app exit.
+      try {
+        const state = navigation?.getState?.();
+        if (state) {
+          console.log(
+            "⬅️ [BACK] index=%d  routes=[%s]  hasHistory=%s",
+            state.index,
+            state.routes?.map((r) => r.name).join(", "),
+            state.index > 0 ? "YES" : "NO",
+          );
+        } else {
+          console.log("⬅️ [BACK] state=null — navigation not ready");
+        }
+      } catch (_) {}
+
       try {
         router.back();
       } catch (_) {
         router.replace("/(tabs)/BottomTabs");
       }
-      return true; // prevent default behavior (exit app)
+      return true;
     };
 
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       onBackPress,
     );
-
     return () => subscription.remove();
-  }, [router]);
+  }, [router, navigation]);
   const params = useLocalSearchParams();
   const { item } = params;
   const [reviews, setReviews] = useState([]);
