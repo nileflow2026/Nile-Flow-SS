@@ -5,6 +5,7 @@ const {
   Avatars,
   Functions,
   Storage,
+  Account,
 } = require("node-appwrite");
 const { env } = require("../src/env");
 const {
