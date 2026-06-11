@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/purity */
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */

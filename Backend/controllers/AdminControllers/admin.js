@@ -1,6 +1,6 @@
 // controllers/admin.js
 const { Query, ID } = require("node-appwrite");
-const { functions } = require("../../services/appwriteService");
+const { functions, instrumentedDb } = require("../../services/appwriteService");
 const { logAuditFromRequest } = require("../../utils/auditLogger");
 const { env } = require("../../src/env");
 const {

@@ -381,7 +381,7 @@ const Home = () => {
 
     const interval = setInterval(updateCurrencyRates, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [retryKey]);
 
   if (isLoading) {

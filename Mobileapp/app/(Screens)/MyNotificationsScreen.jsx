@@ -98,7 +98,7 @@ export default function MyNotificationsScreen() {
     };
 
     initNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, setNotificationCount, retryKey]);
 
   const handleRetry = () => {

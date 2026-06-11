@@ -7,6 +7,10 @@ const logger = require("../utils/logger");
 const sanitizer = require("../utils/sanitizer");
 const CompensationTracker = require("../utils/compensation-tracker");
 const { ID, Query } = require("node-appwrite");
+const {
+  instrumentedDb,
+  getCachedUser,
+} = require("../services/appwriteService");
 const AppwriteSessionService = require("../services/AppwriteSessionService");
 const { env } = require("../src/env");
 
@@ -66,7 +70,7 @@ const signupCustomer = async (req, res) => {
         validatedEmail,
         validatedPassword,
         validatedUsername,
-        validatedPhone
+        validatedPhone,
       );
 
       console.log("✅ User created:", user.$id);
@@ -102,7 +106,7 @@ const signupCustomer = async (req, res) => {
       const account = await AppwriteSessionService.getAccount();
       session = await account.createEmailPasswordSession(
         validatedEmail,
-        validatedPassword
+        validatedPassword,
       );
 
       console.log("✅ Session created:", session.$id);
@@ -136,14 +140,14 @@ const signupCustomer = async (req, res) => {
           phone: validatedPhone,
           role: "customer",
           createdAt: new Date().toISOString(),
-        }
+        },
       );
 
       console.log("✅ Profile created");
     } catch (profileError) {
       console.warn(
         "Profile creation failed (non-critical):",
-        profileError.message
+        profileError.message,
       );
       // Don't fail the whole signup if profile creation fails
     }
@@ -231,7 +235,7 @@ const signinCustomer = async (req, res) => {
     const account = await AppwriteSessionService.getAccount();
     const session = await account.createEmailPasswordSession(
       validatedEmail,
-      validatedPassword
+      validatedPassword,
     );
 
     // 5. Get user details
@@ -395,7 +399,7 @@ const refreshSession = async (req, res) => {
     // Create new session
     const newSession = await account.createEmailPasswordSession(
       user.email,
-      req.body.password // Require password for security
+      req.body.password, // Require password for security
     );
 
     // Delete old session
@@ -465,7 +469,7 @@ const changePassword = async (req, res) => {
     try {
       await account.createEmailPasswordSession(
         currentUser.email,
-        currentPassword
+        currentPassword,
       );
     } catch (authError) {
       return res.status(401).json({

@@ -105,7 +105,7 @@ const ProfilePage = () => {
 
   useEffect(() => {
     fetchNileMiles();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [fetchNileMiles, retryKey]);
 
   const handleRetry = () => {
@@ -137,7 +137,7 @@ const ProfilePage = () => {
     };
 
     fetchOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [isLogged, retryKey]);
 
   const handleImagePicker = async () => {

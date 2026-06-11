@@ -1,5 +1,5 @@
 const { Query, ID, Permission } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const getNotifications = async (req, res) => {
@@ -22,7 +22,7 @@ const getNotifications = async (req, res) => {
     const notifications = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
-      query
+      query,
     );
     console.log("Fetched notifications:", notifications.documents);
 
@@ -59,7 +59,7 @@ const fetchAdminNotifications = async (req, res) => {
           "delivery_update",
         ]),
         Query.orderDesc("$createdAt"),
-      ]
+      ],
     );
     /*  console.log('Fetched admin notifications:', result.documents); */
     res.status(200).json({ result: result.documents });
@@ -89,15 +89,15 @@ const clearAllNotifications = async (req, res) => {
 
     const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_NOTIFICATIONS_COLLECTION_ID
+      env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
     );
 
     const deletions = response.documents.map((doc) =>
       instrumentedDb.deleteDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
-        doc.$id
-      )
+        doc.$id,
+      ),
     );
 
     await Promise.all(deletions);
@@ -133,9 +133,9 @@ const markNotificationsAsRead = async (req, res) => {
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
           id,
-          { read: true }
-        )
-      )
+          { read: true },
+        ),
+      ),
     );
     res.json({ updated: ids.length });
   } catch (e) {
@@ -199,7 +199,7 @@ const CreateProductApprovalNotification = async (req, res) => {
         Permission.read(`user:${userId}`),
         Permission.update(`user:${userId}`),
         Permission.delete(`user:${userId}`),
-      ]
+      ],
     );
 
     if (res && typeof res.status === "function") {

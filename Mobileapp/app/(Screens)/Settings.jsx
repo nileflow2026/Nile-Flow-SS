@@ -19,14 +19,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
-// Config values inlined (Appwrite SDK removed from frontend)
-const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "6926c7df002fa7831d94";
-const APPWRITE_STORAGE_ID = "692a3b700039c02fb4bc";
 import { useCart } from "../../Context/CartContext_NEW";
 import { signOut, useGlobalContext } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
 import i18n, { useLanguage } from "../../i18n";
+// Config values inlined (Appwrite SDK removed from frontend)
+const APPWRITE_ENDPOINT = "https://fra.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "6926c7df002fa7831d94";
+const APPWRITE_STORAGE_ID = "692a3b700039c02fb4bc";
 
 const { width } = Dimensions.get("window");
 

@@ -1,6 +1,7 @@
 const { ID, Query } = require("node-appwrite");
 const crypto = require("crypto");
-const { users, db, account, avatars } = require("../../src/appwrite");
+const { users, account, avatars } = require("../../src/appwrite");
+const { instrumentedDb } = require("../../services/appwriteService");
 const {
   getUserCached,
   invalidateUserCache,
@@ -178,7 +179,7 @@ async function findRefreshTokenRecordByHash(refreshToken) {
  */
 async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
   if (deviceId) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
       [Query.equal("userId", userId), Query.equal("deviceId", deviceId)],
@@ -186,14 +187,14 @@ async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
     return res?.documents || [];
   }
   if (userAgent) {
-    const res = await db.listDocuments(
+    const res = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
       [Query.equal("userId", userId), Query.equal("userAgent", userAgent)],
     );
     return res?.documents || [];
   }
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("userId", userId)],
@@ -205,7 +206,7 @@ async function findTokensByUserAndDevice(userId, deviceId, userAgent) {
  * Revoke a refresh token by document id
  */
 async function revokeRefreshTokenById(docId) {
-  return db.updateDocument(
+  return instrumentedDb.updateDocument(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     docId,
@@ -329,7 +330,7 @@ const signupcustomer = async (req, res) => {
     });
 
     // 4) Create profile document
-    const profile = await db.createDocument(
+    const profile = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       documentId,
@@ -821,7 +822,7 @@ const getCurrentCustomer = async (req, res) => {
     // ✅ Fetch user profile/document from database
     let profile = null;
     try {
-      profile = await db.getDocument(
+      profile = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_USER_COLLECTION_ID,
         decoded.sub,
@@ -1231,7 +1232,7 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
   // Try to locate profile by email in user collection
   let existingProfile = null;
   try {
-    const list = await db.listDocuments(
+    const list = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       [Query.equal("email", email)],
@@ -1255,7 +1256,7 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
       // ignore
     }
     try {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_USER_COLLECTION_ID,
         userId,
@@ -1285,7 +1286,7 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
   }
 
   try {
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       created.$id,
@@ -1349,7 +1350,7 @@ const savePickupAddress = async (req, res) => {
       let existingAddresses;
       try {
         // Try to query with type field first
-        existingAddresses = await db.listDocuments(
+        existingAddresses = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           [Query.equal("user", userId), Query.equal("type", "pickup")],
@@ -1360,7 +1361,7 @@ const savePickupAddress = async (req, res) => {
           queryError.message,
         );
         // Fallback: query without type field if it doesn't exist
-        existingAddresses = await db.listDocuments(
+        existingAddresses = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           [Query.equal("user", userId)],
@@ -1376,7 +1377,7 @@ const savePickupAddress = async (req, res) => {
       if (existingAddresses.documents.length > 0) {
         // Update existing pickup address
         const existingAddress = existingAddresses.documents[0];
-        pickupAddress = await db.updateDocument(
+        pickupAddress = await instrumentedDb.updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           existingAddress.$id,
@@ -1393,7 +1394,7 @@ const savePickupAddress = async (req, res) => {
       } else {
         // Create new pickup address
         const addressId = ID.unique();
-        pickupAddress = await db.createDocument(
+        pickupAddress = await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           addressId,
@@ -1466,7 +1467,7 @@ const getPickupAddress = async (req, res) => {
       let addresses;
       try {
         // Try to query with type field first
-        addresses = await db.listDocuments(
+        addresses = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           [Query.equal("user", userId), Query.equal("type", "pickup")],
@@ -1477,7 +1478,7 @@ const getPickupAddress = async (req, res) => {
           queryError.message,
         );
         // Fallback: query without type field
-        addresses = await db.listDocuments(
+        addresses = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ADDRESS_COLLECTION_ID,
           [Query.equal("user", userId)],

@@ -1,6 +1,10 @@
 // controllers/aiChatController.js
 const { default: OpenAI } = require("openai");
 const { Query } = require("node-appwrite");
+const {
+  instrumentedDb,
+  getCachedUser,
+} = require("../services/appwriteService");
 const AppwriteSessionService = require("../services/AppwriteSessionService");
 const logger = require("../utils/logger");
 const sanitizer = require("../utils/sanitizer");
@@ -101,7 +105,7 @@ const getRelevantContext = async (message) => {
         const products = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCT_COLLECTION_ID,
-          [Query.limit(5)]
+          [Query.limit(5)],
         );
         context.products = products.documents.slice(0, 3); // Limit for token control
       } catch (error) {
@@ -115,7 +119,7 @@ const getRelevantContext = async (message) => {
         const categories = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_CATEGORIES_COLLECTION_ID,
-          [Query.limit(5)]
+          [Query.limit(5)],
         );
         context.categories = categories.documents.slice(0, 3);
       } catch (error) {
@@ -177,7 +181,7 @@ const getUserContext = async (userId) => {
         Query.equal("userId", userId),
         Query.orderDesc("$createdAt"),
         Query.limit(5),
-      ]
+      ],
     );
 
     return {
@@ -219,7 +223,7 @@ const getLatestOrderStatus = async (userId) => {
         Query.equal("userId", userId),
         Query.orderDesc("$createdAt"),
         Query.limit(1),
-      ]
+      ],
     );
 
     return latestOrder.documents[0] || null;
@@ -236,7 +240,7 @@ const constructPrompt = (
   intent,
   userContext,
   message,
-  additionalContext = {}
+  additionalContext = {},
 ) => {
   const systemPrompt = `You are a helpful AI assistant for NileFlow, an eCommerce platform. 
 Your role is to provide accurate, helpful, and concise responses to customer inquiries.
@@ -296,12 +300,12 @@ COMPANY INFO:
  */
 const validateTokenUsage = (prompt) => {
   const estimatedTokens = Math.ceil(
-    (prompt.systemPrompt + prompt.userPrompt).length / 4
+    (prompt.systemPrompt + prompt.userPrompt).length / 4,
   );
 
   if (estimatedTokens > TOKEN_LIMITS.MAX_INPUT_TOKENS) {
     throw new Error(
-      `Input too long. Estimated ${estimatedTokens} tokens, max ${TOKEN_LIMITS.MAX_INPUT_TOKENS}`
+      `Input too long. Estimated ${estimatedTokens} tokens, max ${TOKEN_LIMITS.MAX_INPUT_TOKENS}`,
     );
   }
 
@@ -364,7 +368,7 @@ const handleAiChat = async (req, res) => {
       intent,
       userContext,
       message,
-      additionalContext
+      additionalContext,
     );
 
     // 6. Validate token usage
@@ -526,7 +530,7 @@ const healthCheck = async (req, res) => {
 
     // Determine overall health status
     const hasConnectedServices = Object.values(healthStatus.services).some(
-      (status) => status === "connected"
+      (status) => status === "connected",
     );
     const hasOpenAI = healthStatus.services.openai === "connected";
     const hasAppwrite = healthStatus.services.appwrite === "connected";

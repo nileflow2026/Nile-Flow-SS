@@ -1,5 +1,5 @@
 const { ID, Permission, Query } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const {
   sendPushNotification,

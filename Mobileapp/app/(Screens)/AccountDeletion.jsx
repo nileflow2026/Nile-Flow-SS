@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 /**
  * AccountDeletion.jsx — Mobile Screen
  * =====================================

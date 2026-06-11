@@ -1,6 +1,6 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/immutability */
+ 
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
@@ -106,7 +106,7 @@ const CategoryDetailsScreen = () => {
     if (categoryId) {
       loadData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/immutability
+     
   }, [categoryId]);
 
   const handleSubcategoryClick = async (subId) => {

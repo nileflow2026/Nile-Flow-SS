@@ -1,5 +1,10 @@
 // services/premiumBenefitsService.js
-const { db, users } = require("./appwriteService");
+const {
+  db,
+  users,
+  instrumentedDb,
+  getCachedUser,
+} = require("./appwriteService");
 const { env } = require("../src/env");
 const { Query, ID } = require("node-appwrite");
 const logger = require("../utils/logger");
@@ -26,7 +31,7 @@ class PremiumBenefitsService {
       const bonusMiles = isPremium ? baseMiles : 0;
 
       logger.info(
-        `Awarding ${finalMiles} miles to user ${userId} (Premium: ${isPremium})`
+        `Awarding ${finalMiles} miles to user ${userId} (Premium: ${isPremium})`,
       );
 
       // Get or create user's Nile Miles record
@@ -35,7 +40,7 @@ class PremiumBenefitsService {
         const milesResponse = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_NILE_MILES_COLLECTION,
-          [Query.equal("userId", userId), Query.limit(1)]
+          [Query.equal("userId", userId), Query.limit(1)],
         );
 
         if (milesResponse.documents.length > 0) {
@@ -69,7 +74,7 @@ class PremiumBenefitsService {
             currentMiles: currentMiles + finalMiles,
             earnedHistory: JSON.stringify(earnedHistory),
             lastEarned: currentTime,
-          }
+          },
         );
       } else {
         // Create new record
@@ -84,7 +89,7 @@ class PremiumBenefitsService {
             redeemed: JSON.stringify([]),
             lastEarned: currentTime,
             $createdAt: currentTime,
-          }
+          },
         );
       }
 
@@ -178,8 +183,8 @@ class PremiumBenefitsService {
         reason: isPremium
           ? "Premium member - free delivery on all orders"
           : orderTotal >= 2000
-          ? "Free delivery on orders over 2000 KSH"
-          : "Standard delivery fee applies",
+            ? "Free delivery on orders over 2000 KSH"
+            : "Standard delivery fee applies",
         savings: isPremium && orderTotal < 2000 ? 150 : 0,
       };
     } catch (error) {
@@ -217,7 +222,7 @@ class PremiumBenefitsService {
         const productsResponse = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCTS_COLLECTION_ID,
-          [Query.equal("premiumOnly", true), Query.limit(20)]
+          [Query.equal("premiumOnly", true), Query.limit(20)],
         );
 
         premiumProducts = productsResponse.documents.map((product) => ({
@@ -225,7 +230,7 @@ class PremiumBenefitsService {
           premiumDiscount: product.premiumDiscount || 15, // Default 15% premium discount
           originalPrice: product.price,
           premiumPrice: Math.floor(
-            product.price * (1 - (product.premiumDiscount || 15) / 100)
+            product.price * (1 - (product.premiumDiscount || 15) / 100),
           ),
         }));
       } catch (error) {
@@ -305,7 +310,7 @@ class PremiumBenefitsService {
             Query.equal("users", userId),
             Query.greaterThanEqual("createdAt", startOfMonth.toISOString()),
             Query.equal("status", ["completed", "shipped", "delivered"]),
-          ]
+          ],
         );
         orders = ordersResponse.documents;
       } catch (error) {

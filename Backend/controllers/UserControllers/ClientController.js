@@ -1,5 +1,5 @@
 const { Query, ID } = require("node-appwrite");
-const { users } = require("../../services/appwriteService");
+const { users, instrumentedDb } = require("../../services/appwriteService");
 const { storage } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 const { getAllRates, getRate } = require("../../services/exchangeRateService");

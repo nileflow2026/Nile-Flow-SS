@@ -27,7 +27,13 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const cron = require("node-cron");
 const { Resend } = require("resend");
-const { db, users, storage } = require("./appwriteService");
+const {
+  db,
+  users,
+  storage,
+  instrumentedDb,
+  getCachedUser,
+} = require("./appwriteService");
 const { env } = require("../src/env");
 const logger = require("../utils/logger");
 
@@ -63,7 +69,11 @@ async function deleteDocumentsByUserId(collectionId, userIdField, userId) {
     const queries = [Query.equal(userIdField, userId), Query.limit(100)];
     if (cursor) queries.push(Query.cursorAfter(cursor));
 
-    const page = await instrumentedDb.listDocuments(DB_ID, collectionId, queries);
+    const page = await instrumentedDb.listDocuments(
+      DB_ID,
+      collectionId,
+      queries,
+    );
     for (const doc of page.documents) {
       try {
         await instrumentedDb.deleteDocument(DB_ID, collectionId, doc.$id);
@@ -116,14 +126,23 @@ async function anonymiseDocumentsByUserId(
     const queries = [Query.equal(userIdField, userId), Query.limit(100)];
     if (cursor) queries.push(Query.cursorAfter(cursor));
 
-    const page = await instrumentedDb.listDocuments(DB_ID, collectionId, queries);
+    const page = await instrumentedDb.listDocuments(
+      DB_ID,
+      collectionId,
+      queries,
+    );
     for (const doc of page.documents) {
       const patch = { [userIdField]: anonId };
       if (emailField && doc[emailField]) {
         patch[emailField] = `${anonId}@deleted.nileflow`;
       }
       try {
-        await instrumentedDb.updateDocument(DB_ID, collectionId, doc.$id, patch);
+        await instrumentedDb.updateDocument(
+          DB_ID,
+          collectionId,
+          doc.$id,
+          patch,
+        );
         updated++;
       } catch (e) {
         logger.warn("DeletionService: doc anonymise failed", {
@@ -702,9 +721,14 @@ class DeletionService {
         for (const ev of auditEvents) {
           newAuditLog = appendAuditEvent(newAuditLog, ev);
         }
-        await instrumentedDb.updateDocument(DB_ID, DELETION_COLL, requestDocId, {
-          auditLog: newAuditLog,
-        });
+        await instrumentedDb.updateDocument(
+          DB_ID,
+          DELETION_COLL,
+          requestDocId,
+          {
+            auditLog: newAuditLog,
+          },
+        );
       } catch {
         // non-fatal
       }
@@ -1114,11 +1138,15 @@ class DeletionService {
         const now = new Date().toISOString();
 
         // Find all pending requests where grace period has elapsed
-        const pending = await instrumentedDb.listDocuments(DB_ID, DELETION_COLL, [
-          Query.equal("status", "pending"),
-          Query.lessThanEqual("scheduledDeletionDate", now),
-          Query.limit(50),
-        ]);
+        const pending = await instrumentedDb.listDocuments(
+          DB_ID,
+          DELETION_COLL,
+          [
+            Query.equal("status", "pending"),
+            Query.lessThanEqual("scheduledDeletionDate", now),
+            Query.limit(50),
+          ],
+        );
 
         logger.info(
           `DeletionService: found ${pending.total} request(s) due for purge`,

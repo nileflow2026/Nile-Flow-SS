@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";

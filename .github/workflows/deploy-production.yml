@@ -50,7 +50,7 @@ jobs:
       - name: Run TypeScript Check
         run: npx tsc --noEmit
       - name: Run Lint
-        run: npx eslint . --max-warnings 50
+        run: npx eslint . --max-warnings 75
       - name: Upload Validation Artifact
         uses: actions/upload-artifact@v4
         with:

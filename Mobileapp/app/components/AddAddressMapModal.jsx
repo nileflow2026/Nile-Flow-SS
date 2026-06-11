@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
-/* eslint-disable no-irregular-whitespace */
+ 
+ 
 // components/AddAddressMapModal.js
 
 import React, { useState, useEffect } from "react";
