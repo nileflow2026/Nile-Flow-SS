@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { ID } = require("node-appwrite");
 const { createNotification } = require("./Clientnotification");
@@ -45,7 +45,7 @@ const handleCancelRequest = async (req, res) => {
     // Get order from database
     let order;
     try {
-      order = await db.getDocument(
+      order = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -104,7 +104,7 @@ const handleCancelRequest = async (req, res) => {
 
     // Create cancellation request document
     const requestId = ID.unique();
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CANCELLATION_REQUESTS_COLLECTION_ID,
       requestId,

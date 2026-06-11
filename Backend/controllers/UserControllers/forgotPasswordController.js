@@ -1,8 +1,9 @@
 const crypto = require("crypto");
 const { Query } = require("node-appwrite");
-const { users, db } = require("../../src/appwrite");
+const { users } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
+const { instrumentedDb } = require("../../services/appwriteService");
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -21,7 +22,7 @@ const sendForgotPasswordEmail = async (req, res) => {
     }
 
     // Check if user exists
-    const userQuery = await db.listDocuments(
+    const userQuery = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       [Query.equal("email", email)],
@@ -43,7 +44,7 @@ const sendForgotPasswordEmail = async (req, res) => {
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
     // Store reset token in user document
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       user.$id,
@@ -296,7 +297,7 @@ const resetPassword = async (req, res) => {
     }
 
     // Find user by email
-    const userQuery = await db.listDocuments(
+    const userQuery = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       [Query.equal("email", email)],
@@ -333,7 +334,7 @@ const resetPassword = async (req, res) => {
     await users.updatePassword(user.appwriteUserId, newPassword);
 
     // Clear reset token from user document
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       user.$id,

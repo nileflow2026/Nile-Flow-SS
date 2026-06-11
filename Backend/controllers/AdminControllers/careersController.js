@@ -1,6 +1,5 @@
-
-const { Query, ID } = require("node-appwrite");
-const { db } = require("../../src/appwrite");
+const { ID, Query } = require("node-appwrite");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const getCareers = async (req, res) => {
@@ -8,7 +7,7 @@ const getCareers = async (req, res) => {
     const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CAREERS_COLLECTION_ID,
-      [Query.limit(100), Query.orderAsc("$createdAt")] // Fetch up to 100 documents, adjust as needed
+      [Query.limit(100), Query.orderAsc("$createdAt")], // Fetch up to 100 documents, adjust as needed
     );
 
     res.status(200).json({
@@ -70,12 +69,12 @@ const addCareer = async (req, res) => {
         type,
         description,
         location,
-        department, 
+        department,
         responsibilities: responsibilitiesJson, // Save the JSON string
         requirements: requirementsJson,
         growthPath,
         image, // Add the image field here
-      }
+      },
     );
 
     res.status(201).json({

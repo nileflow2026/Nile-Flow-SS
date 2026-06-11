@@ -1,4 +1,4 @@
-const { functions } = require("../../services/appwriteService");
+const { functions, instrumentedDb } = require("../../services/appwriteService");
 const { client } = require("../../services/paypal");
 const { env } = require("../../src/env");
 const Stripe = require("stripe");

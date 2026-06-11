@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 
@@ -31,7 +31,7 @@ const getOrderStatus = async (req, res) => {
 
     try {
       // First try to get by document ID
-      order = await db.getDocument(
+      order = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ORDERS_COLLECTION,
         orderId,
@@ -39,7 +39,7 @@ const getOrderStatus = async (req, res) => {
     } catch (error) {
       // If that fails, try to find by orderId field
       try {
-        const orderQuery = await db.listDocuments(
+        const orderQuery = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_ORDERS_COLLECTION,
           [Query.equal("orderId", orderId), Query.limit(1)],
@@ -98,7 +98,7 @@ const getOrderStatus = async (req, res) => {
     // First check if riderId exists directly on the order
     if (order.riderId) {
       try {
-        riderDetails = await db.getDocument(
+        riderDetails = await instrumentedDb.getDocument(
           env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
           env.RIDER_COLLECTION_ID || "riders",
           order.riderId,
@@ -119,7 +119,7 @@ const getOrderStatus = async (req, res) => {
     if (!riderDetails) {
       try {
         console.log("Checking delivery record for rider assignment...");
-        const delivery = await db.getDocument(
+        const delivery = await instrumentedDb.getDocument(
           env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
           orderId, // Using orderId as delivery ID since they're the same
@@ -127,7 +127,7 @@ const getOrderStatus = async (req, res) => {
 
         if (delivery.riderId) {
           console.log("Found riderId in delivery record:", delivery.riderId);
-          riderDetails = await db.getDocument(
+          riderDetails = await instrumentedDb.getDocument(
             env.RIDER_DATABASE_ID,
             env.RIDER_COLLECTION_ID,
             delivery.riderId,
@@ -210,7 +210,7 @@ const updateLiveLocation = async (req, res) => {
     }
 
     // Update the delivery record with location data
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       orderId,
@@ -301,7 +301,7 @@ const getUserOrders = async (req, res) => {
       queries.push(Query.equal("orderStatus", status));
     }
 
-    const orders = await db.listDocuments(
+    const orders = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION || env.APPWRITE_ORDERS_COLLECTION_ID,
       queries,
@@ -356,7 +356,7 @@ const getLiveLocation = async (req, res) => {
 
     // Fetch delivery record for live location data
     try {
-      const delivery = await db.getDocument(
+      const delivery = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
         env.DELIVERIES_COLLECTION_ID,
         orderId,

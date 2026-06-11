@@ -2,7 +2,7 @@
 const bcrypt = require("bcryptjs");
 const { env } = require("../../src/env");
 const { Query, ID } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const {
   signAccessToken,
   signRefreshToken,

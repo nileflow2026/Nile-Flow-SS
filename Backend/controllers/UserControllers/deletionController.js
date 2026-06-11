@@ -13,11 +13,12 @@
 "use strict";
 
 const DeletionService = require("../../services/DeletionService");
-const { db, users } = require("../../src/appwrite");
+const { users } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const logger = require("../../utils/logger");
 const validator = require("validator");
+const { instrumentedDb } = require("../../services/appwriteService");
 
 // ─────────────────────────────────────────────
 // Helper — resolve userId from request
@@ -51,7 +52,7 @@ async function resolveUser(req) {
     });
   }
 
-  const result = await db.listDocuments(
+  const result = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_USER_COLLECTION_ID,
     [Query.equal("email", sanitizedEmail), Query.limit(1)],
@@ -288,10 +289,9 @@ const adminForcePurge = async (req, res) => {
 
     // Get the actual document for executePurge
     const DELETION_COLL = process.env.APPWRITE_DELETION_REQUESTS_COLLECTION_ID;
-    const { db: appwriteDb } = require("../../src/appwrite");
     const { Query: AQuery } = require("node-appwrite");
 
-    const result = await appwriteDb.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       DELETION_COLL,
       [AQuery.equal("userId", userId), AQuery.limit(1)],

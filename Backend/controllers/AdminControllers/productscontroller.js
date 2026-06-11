@@ -1,5 +1,5 @@
 const { Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const getProducts = async (req, res) => {
@@ -9,10 +9,10 @@ const getProducts = async (req, res) => {
   }
 
   try {
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
-      id
+      id,
     );
 
     res.json(product);

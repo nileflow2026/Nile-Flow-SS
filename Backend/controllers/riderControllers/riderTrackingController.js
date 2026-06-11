@@ -1,5 +1,5 @@
 // controllers/riderControllers/riderTrackingController.js
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 
@@ -22,7 +22,7 @@ const updateRiderLocation = async (req, res) => {
     const riderId = req.rider.userId; // From rider auth middleware
 
     console.log(
-      `📍 Updating location for rider ${riderId}, delivery: ${deliveryId}`
+      `📍 Updating location for rider ${riderId}, delivery: ${deliveryId}`,
     );
 
     if (!deliveryId || !latitude || !longitude) {
@@ -45,11 +45,11 @@ const updateRiderLocation = async (req, res) => {
     if (speed !== undefined) updateData.speed = speed;
 
     // Update the delivery record with new location
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
-      updateData
+      updateData,
     );
 
     console.log("✅ Rider location updated successfully");
@@ -78,7 +78,7 @@ const updateRiderLocation = async (req, res) => {
       } catch (socketError) {
         console.log(
           "❌ Failed to broadcast rider location:",
-          socketError.message
+          socketError.message,
         );
       }
     }
@@ -128,7 +128,7 @@ const startDelivery = async (req, res) => {
     const riderId = req.rider.userId; // From rider auth middleware
 
     console.log(
-      `🚀 Starting delivery tracking for rider ${riderId}, delivery: ${deliveryId}`
+      `🚀 Starting delivery tracking for rider ${riderId}, delivery: ${deliveryId}`,
     );
 
     // Update delivery status to "picked_up" and set initial location
@@ -140,11 +140,11 @@ const startDelivery = async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
-      updateData
+      updateData,
     );
 
     console.log("✅ Delivery started successfully");
@@ -170,7 +170,7 @@ const startDelivery = async (req, res) => {
       } catch (socketError) {
         console.log(
           "❌ Failed to broadcast delivery start:",
-          socketError.message
+          socketError.message,
         );
       }
     }
@@ -220,7 +220,7 @@ const completeDelivery = async (req, res) => {
     const riderId = req.rider.userId; // From rider auth middleware
 
     console.log(
-      `✅ Completing delivery for rider ${riderId}, delivery: ${deliveryId}`
+      `✅ Completing delivery for rider ${riderId}, delivery: ${deliveryId}`,
     );
 
     // Update delivery status to "delivered"
@@ -234,11 +234,11 @@ const completeDelivery = async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedDelivery = await db.updateDocument(
+    const updatedDelivery = await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
-      updateData
+      updateData,
     );
 
     console.log("✅ Delivery completed successfully");
@@ -265,7 +265,7 @@ const completeDelivery = async (req, res) => {
       } catch (socketError) {
         console.log(
           "❌ Failed to broadcast delivery completion:",
-          socketError.message
+          socketError.message,
         );
       }
     }

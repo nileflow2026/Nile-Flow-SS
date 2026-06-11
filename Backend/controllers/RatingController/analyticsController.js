@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 
@@ -20,7 +20,7 @@ const getOverallRatingAnalytics = async (req, res) => {
     // Add date filtering if provided
     if (startDate) {
       const startDateTime = new Date(
-        startDate + "T00:00:00.000Z"
+        startDate + "T00:00:00.000Z",
       ).toISOString();
       queries.push(Query.greaterThanEqual("createdAt", startDateTime));
     }
@@ -30,10 +30,10 @@ const getOverallRatingAnalytics = async (req, res) => {
       queries.push(Query.lessThanEqual("createdAt", endDateTime));
     }
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const analytics = {
@@ -87,7 +87,7 @@ const getOverallRatingAnalytics = async (req, res) => {
     }
 
     console.log(
-      `✅ Overall analytics: ${analytics.totalRatings} ratings, ${analytics.averageRating}/5 avg`
+      `✅ Overall analytics: ${analytics.totalRatings} ratings, ${analytics.averageRating}/5 avg`,
     );
 
     res.json({
@@ -125,7 +125,7 @@ const getRiderPerformance = async (req, res) => {
 
     if (startDate) {
       const startDateTime = new Date(
-        startDate + "T00:00:00.000Z"
+        startDate + "T00:00:00.000Z",
       ).toISOString();
       queries.push(Query.greaterThanEqual("createdAt", startDateTime));
     }
@@ -135,10 +135,10 @@ const getRiderPerformance = async (req, res) => {
       queries.push(Query.lessThanEqual("createdAt", endDateTime));
     }
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     // Group ratings by rider
@@ -206,17 +206,17 @@ const getRiderPerformance = async (req, res) => {
     switch (sortBy) {
       case "totalRatings":
         sortedRiders = riderPerformance.sort(
-          (a, b) => b.totalRatings - a.totalRatings
+          (a, b) => b.totalRatings - a.totalRatings,
         );
         break;
       case "recentActivity":
         sortedRiders = riderPerformance.sort(
-          (a, b) => new Date(b.lastRatingDate) - new Date(a.lastRatingDate)
+          (a, b) => new Date(b.lastRatingDate) - new Date(a.lastRatingDate),
         );
         break;
       default: // averageRating
         sortedRiders = riderPerformance.sort(
-          (a, b) => b.averageRiderRating - a.averageRiderRating
+          (a, b) => b.averageRiderRating - a.averageRiderRating,
         );
     }
 
@@ -224,10 +224,10 @@ const getRiderPerformance = async (req, res) => {
     const ridersWithNames = await Promise.all(
       sortedRiders.slice(0, parseInt(limit)).map(async (stats) => {
         try {
-          const rider = await db.getDocument(
+          const rider = await instrumentedDb.getDocument(
             env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
             env.RIDER_COLLECTION_ID,
-            stats.riderId
+            stats.riderId,
           );
           return {
             ...stats,
@@ -241,11 +241,11 @@ const getRiderPerformance = async (req, res) => {
             riderPhone: "",
           };
         }
-      })
+      }),
     );
 
     console.log(
-      `✅ Rider performance: ${ridersWithNames.length} riders analyzed`
+      `✅ Rider performance: ${ridersWithNames.length} riders analyzed`,
     );
 
     res.json({
@@ -259,7 +259,7 @@ const getRiderPerformance = async (req, res) => {
             ? Math.round(
                 (ratings.documents.reduce((sum, r) => sum + r.riderRating, 0) /
                   ratings.documents.length) *
-                  10
+                  10,
               ) / 10
             : 0,
       },
@@ -286,10 +286,10 @@ const getIndividualRiderAnalytics = async (req, res) => {
     // Get rider info
     let riderInfo = { name: "Unknown Rider", phone: "", email: "" };
     try {
-      const rider = await db.getDocument(
+      const rider = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        riderId
+        riderId,
       );
       riderInfo = {
         name: rider.name,
@@ -312,7 +312,7 @@ const getIndividualRiderAnalytics = async (req, res) => {
 
     if (startDate) {
       const startDateTime = new Date(
-        startDate + "T00:00:00.000Z"
+        startDate + "T00:00:00.000Z",
       ).toISOString();
       queries.push(Query.greaterThanEqual("createdAt", startDateTime));
     }
@@ -322,10 +322,10 @@ const getIndividualRiderAnalytics = async (req, res) => {
       queries.push(Query.lessThanEqual("createdAt", endDateTime));
     }
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     if (ratings.documents.length === 0) {
@@ -376,7 +376,7 @@ const getIndividualRiderAnalytics = async (req, res) => {
       const weekStart = new Date(
         date.getFullYear(),
         date.getMonth(),
-        date.getDate() - date.getDay()
+        date.getDate() - date.getDay(),
       );
       const weekKey = weekStart.toISOString().split("T")[0];
 
@@ -394,7 +394,7 @@ const getIndividualRiderAnalytics = async (req, res) => {
         count: trend.count,
         average:
           Math.round(
-            (trend.ratings.reduce((sum, r) => sum + r, 0) / trend.count) * 10
+            (trend.ratings.reduce((sum, r) => sum + r, 0) / trend.count) * 10,
           ) / 10,
       }))
       .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -424,7 +424,7 @@ const getIndividualRiderAnalytics = async (req, res) => {
       }));
 
     console.log(
-      `✅ Individual rider analytics: ${analytics.totalRatings} ratings, ${analytics.averageRiderRating}/5 avg`
+      `✅ Individual rider analytics: ${analytics.totalRatings} ratings, ${analytics.averageRiderRating}/5 avg`,
     );
 
     res.json({
@@ -454,7 +454,7 @@ const getRatingTrends = async (req, res) => {
 
     if (startDate) {
       const startDateTime = new Date(
-        startDate + "T00:00:00.000Z"
+        startDate + "T00:00:00.000Z",
       ).toISOString();
       queries.push(Query.greaterThanEqual("createdAt", startDateTime));
     }
@@ -464,10 +464,10 @@ const getRatingTrends = async (req, res) => {
       queries.push(Query.lessThanEqual("createdAt", endDateTime));
     }
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const trends = {};
@@ -482,14 +482,14 @@ const getRatingTrends = async (req, res) => {
           break;
         case "month":
           periodKey = `${date.getFullYear()}-${String(
-            date.getMonth() + 1
+            date.getMonth() + 1,
           ).padStart(2, "0")}`;
           break;
         default: // week
           const weekStart = new Date(
             date.getFullYear(),
             date.getMonth(),
-            date.getDate() - date.getDay()
+            date.getDate() - date.getDay(),
           );
           periodKey = weekStart.toISOString().split("T")[0];
       }
@@ -530,7 +530,7 @@ const getRatingTrends = async (req, res) => {
             ? Math.round(
                 (ratings.documents.reduce((sum, r) => sum + r.riderRating, 0) /
                   ratings.documents.length) *
-                  10
+                  10,
               ) / 10
             : 0,
       },
@@ -567,10 +567,10 @@ const getCustomerFeedback = async (req, res) => {
       queries.push(Query.lessThanEqual("riderRating", parseInt(maxRating)));
     }
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      queries
+      queries,
     );
 
     let feedback = ratings.documents.map((rating) => ({
@@ -587,11 +587,11 @@ const getCustomerFeedback = async (req, res) => {
     // Filter by comment presence if specified
     if (hasComment === "true") {
       feedback = feedback.filter(
-        (f) => f.comment && f.comment.trim().length > 0
+        (f) => f.comment && f.comment.trim().length > 0,
       );
     } else if (hasComment === "false") {
       feedback = feedback.filter(
-        (f) => !f.comment || f.comment.trim().length === 0
+        (f) => !f.comment || f.comment.trim().length === 0,
       );
     }
 
@@ -599,14 +599,14 @@ const getCustomerFeedback = async (req, res) => {
     const analysis = {
       totalFeedback: feedback.length,
       withComments: feedback.filter(
-        (f) => f.comment && f.comment.trim().length > 0
+        (f) => f.comment && f.comment.trim().length > 0,
       ).length,
       averageRating:
         feedback.length > 0
           ? Math.round(
               (feedback.reduce((sum, f) => sum + f.riderRating, 0) /
                 feedback.length) *
-                10
+                10,
             ) / 10
           : 0,
       ratingBreakdown: {
@@ -617,12 +617,12 @@ const getCustomerFeedback = async (req, res) => {
         terrible: feedback.filter((f) => f.riderRating === 1).length,
       },
       commonWords: getCommonWords(
-        feedback.map((f) => f.comment).filter(Boolean)
+        feedback.map((f) => f.comment).filter(Boolean),
       ),
     };
 
     console.log(
-      `✅ Customer feedback: ${analysis.totalFeedback} total, ${analysis.withComments} with comments`
+      `✅ Customer feedback: ${analysis.totalFeedback} total, ${analysis.withComments} with comments`,
     );
 
     res.json({

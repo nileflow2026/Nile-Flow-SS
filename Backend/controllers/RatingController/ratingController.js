@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 
@@ -39,10 +39,10 @@ const submitRating = async (req, res) => {
     }
 
     // Verify delivery exists and belongs to the customer
-    const delivery = await db.getDocument(
+    const delivery = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      deliveryId
+      deliveryId,
     );
 
     if (delivery.status !== "delivered") {
@@ -54,13 +54,13 @@ const submitRating = async (req, res) => {
 
     // Check if customer already rated this delivery
     try {
-      const existingRating = await db.listDocuments(
+      const existingRating = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.RATINGS_COLLECTION_ID,
         [
           Query.equal("deliveryId", deliveryId),
           Query.equal("customerId", req.user?.userId || delivery.customerId),
-        ]
+        ],
       );
 
       if (existingRating.documents.length > 0) {
@@ -89,15 +89,15 @@ const submitRating = async (req, res) => {
 
     console.log("Creating rating:", ratingData);
 
-    const rating = await db.createDocument(
+    const rating = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
       ID.unique(),
-      ratingData
+      ratingData,
     );
 
     // Update delivery with rating status
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
@@ -106,7 +106,7 @@ const submitRating = async (req, res) => {
         ratedAt: new Date().toISOString(),
         riderRating,
         deliveryRating: deliveryRating || riderRating,
-      }
+      },
     );
 
     // Update rider's average rating
@@ -142,7 +142,7 @@ const getRiderRatings = async (req, res) => {
     const { riderId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
       [
@@ -151,7 +151,7 @@ const getRiderRatings = async (req, res) => {
         Query.limit(parseInt(limit)),
         Query.offset(parseInt(offset)),
         Query.orderDesc("createdAt"),
-      ]
+      ],
     );
 
     // Calculate statistics
@@ -194,10 +194,10 @@ const getDeliveryRating = async (req, res) => {
   try {
     const { deliveryId } = req.params;
 
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
-      [Query.equal("deliveryId", deliveryId), Query.equal("status", "active")]
+      [Query.equal("deliveryId", deliveryId), Query.equal("status", "active")],
     );
 
     if (ratings.documents.length === 0) {
@@ -236,10 +236,10 @@ const canRateDelivery = async (req, res) => {
     }
 
     // Check delivery status
-    const delivery = await db.getDocument(
+    const delivery = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      deliveryId
+      deliveryId,
     );
 
     if (delivery.status !== "delivered") {
@@ -294,14 +294,14 @@ const canRateDelivery = async (req, res) => {
 async function updateRiderAverageRating(riderId) {
   try {
     // Get all active ratings for this rider
-    const ratings = await db.listDocuments(
+    const ratings = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.RATINGS_COLLECTION_ID,
       [
         Query.equal("riderId", riderId),
         Query.equal("status", "active"),
         Query.limit(1000), // Adjust as needed
-      ]
+      ],
     );
 
     if (ratings.documents.length === 0) {
@@ -314,7 +314,7 @@ async function updateRiderAverageRating(riderId) {
       totalRatings;
 
     // Update rider record
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       riderId,
@@ -322,13 +322,13 @@ async function updateRiderAverageRating(riderId) {
         averageRating: Math.round(averageRating * 10) / 10,
         totalRatings,
         updatedAt: new Date().toISOString(),
-      }
+      },
     );
 
     console.log(
       `📊 Updated rider ${riderId} average rating: ${averageRating.toFixed(
-        1
-      )}/5 (${totalRatings} ratings)`
+        1,
+      )}/5 (${totalRatings} ratings)`,
     );
   } catch (error) {
     console.error("Update rider average rating error:", error);
@@ -342,10 +342,10 @@ const getRatingReminder = async (req, res) => {
   try {
     const { deliveryId } = req.params;
 
-    const delivery = await db.getDocument(
+    const delivery = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      deliveryId
+      deliveryId,
     );
 
     if (delivery.status !== "delivered" || delivery.isRated) {
@@ -356,10 +356,10 @@ const getRatingReminder = async (req, res) => {
     }
 
     // Get rider info
-    const rider = await db.getDocument(
+    const rider = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
-      delivery.riderId
+      delivery.riderId,
     );
 
     res.json({

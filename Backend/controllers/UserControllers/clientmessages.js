@@ -1,5 +1,5 @@
 const { ID } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const clientmessages = async (req, res) => {
@@ -11,7 +11,7 @@ const clientmessages = async (req, res) => {
     }
 
     // Save the message to your Appwrite database
-    await db.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID, // Your contact database ID
       env.APPWRITE_USER_MESSAGES_COLLECTION_ID, // Your messages collection ID
       ID.unique(),
@@ -19,7 +19,7 @@ const clientmessages = async (req, res) => {
         username,
         email,
         message,
-      }
+      },
     );
 
     res.status(200).json({

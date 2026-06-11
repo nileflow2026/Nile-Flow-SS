@@ -1,5 +1,5 @@
 const { Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 exports.getNileMilesStatus = async (req, res) => {
@@ -8,10 +8,10 @@ exports.getNileMilesStatus = async (req, res) => {
 
     if (!userId) return res.status(400).json({ error: "Missing userId" });
 
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
-      [Query.equal("userId", [userId])]
+      [Query.equal("userId", [userId])],
     );
 
     if (result.total === 0) {

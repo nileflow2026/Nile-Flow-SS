@@ -1,7 +1,7 @@
 // controllers/gamificationController.js
 
 const { Query } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 
 const DB_ID = process.env.APPWRITE_DB_ID;
 const CHECKINS = "checkins";

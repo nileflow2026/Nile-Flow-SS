@@ -19,6 +19,7 @@ const client = new Client()
 const db = new Databases(client);
 const instrumentedDb = createInstrumentedDb(db);
 const users = new Users(client);
+const account = new Account(client);
 const avatars = new Avatars(client);
 const functions = new Functions(client);
 const storage = new Storage(client);
@@ -60,6 +61,7 @@ module.exports = {
   db,
   instrumentedDb,
   users,
+  account,
   avatars,
   functions,
   getOrderById,

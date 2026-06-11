@@ -2,11 +2,10 @@
 
 const formidable = require("formidable"); // Formidable can also be used if not using Multer
 const fs = require("fs");
-const { db, storage } = require("../../src/appwrite");
+const { storage } = require("../../src/appwrite");
 const { ID, Query } = require("node-appwrite");
 const { env } = require("../../src/env");
-
-
+const { instrumentedDb } = require("../services/appwriteService");
 
 const submitApplication = async (req, res) => {
   try {
@@ -30,13 +29,13 @@ const submitApplication = async (req, res) => {
         env.APPLICANT_CVS_BUCKET_ID,
         ID.unique(),
         // Multer's memory storage provides a buffer
-        cvFile.buffer
+        cvFile.buffer,
       );
       cvFileId = uploadedFile.$id;
     }
 
     // Save applicant data to Appwrite DB
-    const newApplication = await db.createDocument(
+    const newApplication = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_APPLICATIONS_COLLECTION_ID,
       ID.unique(),
@@ -47,7 +46,7 @@ const submitApplication = async (req, res) => {
         role,
         motivation,
         cvId: cvFileId,
-      }
+      },
     );
 
     res.status(201).json({
@@ -67,10 +66,10 @@ const submitApplication = async (req, res) => {
 
 const getApplications = async (req, res) => {
   try {
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_APPLICATIONS_COLLECTION_ID,
-      [Query.orderDesc("$createdAt")] // Order by creation date, descending
+      [Query.orderDesc("$createdAt")], // Order by creation date, descending
     );
 
     res.status(200).json({

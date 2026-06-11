@@ -1,4 +1,4 @@
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { Query } = require("node-appwrite");
 const { env } = require("../../src/env");
 const e = require("express");
@@ -12,10 +12,10 @@ const REWARDS = [
 ];
 
 const getUserMiles = async (userId) => {
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_NILE_MILES_COLLECTION,
-    [Query.equal("userId", [userId])] // ✅ CORRECT
+    [Query.equal("userId", [userId])], // ✅ CORRECT
   );
   return res.total > 0 ? res.documents[0] : null;
 };
@@ -53,14 +53,14 @@ exports.redeemMile = async (req, res) => {
       },
     ];
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       userRecord.$id,
       {
         currentMiles: newMiles,
         redeemed: JSON.stringify(updatedRedemptions),
-      }
+      },
     );
 
     return res.status(200).json({ success: true, reward: reward.name });
@@ -79,10 +79,10 @@ exports.redeemMiles = async (req, res) => {
     }
 
     // 🔍 Fetch reward dynamically from DB
-    const rewardQuery = await db.listDocuments(
+    const rewardQuery = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARD_COLLECTION_ID,
-      [Query.equal("key", rewardKey), Query.equal("active", true)]
+      [Query.equal("key", rewardKey), Query.equal("active", true)],
     );
 
     if (rewardQuery.documents.length === 0) {
@@ -121,14 +121,14 @@ exports.redeemMiles = async (req, res) => {
     ];
 
     // ✅ Update user
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       userRecord.$id,
       {
         currentMiles: newMiles,
         redeemed: JSON.stringify(updatedRedemptions),
-      }
+      },
     );
 
     return res.status(200).json({
@@ -160,7 +160,7 @@ exports.markRewardAsUsed = async (req, res) => {
 
     const redeemedHistory = JSON.parse(userRecord.redeemed || "[]");
     const rewardIndex = redeemedHistory.findIndex(
-      (item) => item.rewardName === redeemedRewardName && item.used === false
+      (item) => item.rewardName === redeemedRewardName && item.used === false,
     );
 
     if (rewardIndex === -1) {
@@ -169,13 +169,13 @@ exports.markRewardAsUsed = async (req, res) => {
 
     redeemedHistory[rewardIndex].used = true;
 
-    await db.updateDocument(
+    await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NILE_MILES_COLLECTION,
       userRecord.$id,
       {
         redeemed: JSON.stringify(redeemedHistory),
-      }
+      },
     );
 
     return res
@@ -189,13 +189,13 @@ exports.markRewardAsUsed = async (req, res) => {
 
 exports.listRewards = async (req, res) => {
   try {
-    const rewards = await db.listDocuments(
+    const rewards = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARD_COLLECTION_ID,
       [
         Query.equal("active", true), // only return active rewards
         Query.orderAsc("miles"), // optional: sort by miles
-      ]
+      ],
     );
 
     return res.status(200).json({
@@ -217,10 +217,10 @@ exports.listRewards = async (req, res) => {
 
 exports.listRewardsGrouped = async (req, res) => {
   try {
-    const rewards = await db.listDocuments(
+    const rewards = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_REWARD_COLLECTION_ID,
-      [Query.equal("active", true), Query.orderAsc("miles")]
+      [Query.equal("active", true), Query.orderAsc("miles")],
     );
 
     // Group rewards by category

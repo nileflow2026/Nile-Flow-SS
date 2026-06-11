@@ -1,6 +1,6 @@
 // routes/riderRoutes.js
 const express = require("express");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 const { storage } = require("../../src/appwrite");
@@ -33,7 +33,7 @@ const getRiders = async (req, res) => {
     const riders = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
-      queries
+      queries,
     );
 
     // Remove password from all rider documents
@@ -66,7 +66,7 @@ const getRiderProfile = async (req, res) => {
     const rider = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
-      req.rider.riderId
+      req.rider.riderId,
     );
 
     const { password, ...sanitizedRider } = rider;
@@ -105,7 +105,7 @@ const updateRiderProfile = async (req, res) => {
       env.RIDER_DATABASE_ID,
       env.RIDER_COLLECTION_ID,
       req.rider.riderId,
-      updateData
+      updateData,
     );
 
     const { password, ...sanitizedRider } = updatedRider;
@@ -145,7 +145,7 @@ const updateRiderStatus = async (req, res) => {
       {
         status,
         updatedAt: new Date().toISOString(),
-      }
+      },
     );
 
     res.json({
@@ -200,24 +200,24 @@ const getRiderDeliveries = async (req, res) => {
       } else {
         // Use Query.or for multiple statuses
         queries.push(
-          Query.or([...statusArray.map((s) => Query.equal("status", s))])
+          Query.or([...statusArray.map((s) => Query.equal("status", s))]),
         );
       }
     }
 
     console.log(
       "Querying with:",
-      queries.map((q) => q.toString())
+      queries.map((q) => q.toString()),
     );
 
     const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     console.log(
-      `Found ${deliveries.documents.length} deliveries for rider ${req.rider.riderId}`
+      `Found ${deliveries.documents.length} deliveries for rider ${req.rider.riderId}`,
     );
 
     // Enhance deliveries with customer and order details if needed
@@ -235,7 +235,7 @@ const getRiderDeliveries = async (req, res) => {
             const customer = await instrumentedDb.getDocument(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_USER_COLLECTION_ID,
-              delivery.customerId
+              delivery.customerId,
             );
 
             enhancedDelivery.customerName =
@@ -248,12 +248,12 @@ const getRiderDeliveries = async (req, res) => {
             enhancedDelivery.customerEmail = customer.email || "";
 
             console.log(
-              `Enhanced delivery ${delivery.$id} with customer: ${enhancedDelivery.customerName}`
+              `Enhanced delivery ${delivery.$id} with customer: ${enhancedDelivery.customerName}`,
             );
           } catch (customerError) {
             console.log(
               `Could not fetch customer for delivery ${delivery.$id}:`,
-              customerError.message
+              customerError.message,
             );
             enhancedDelivery.customerName = "Customer Name Not Available";
             enhancedDelivery.customerPhone = "";
@@ -268,7 +268,7 @@ const getRiderDeliveries = async (req, res) => {
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_ORDERS_COLLECTION ||
                 env.APPWRITE_ORDERS_COLLECTION_ID,
-              delivery.orderId
+              delivery.orderId,
             );
 
             // Fill missing order details
@@ -293,13 +293,13 @@ const getRiderDeliveries = async (req, res) => {
           } catch (orderError) {
             console.log(
               `Could not fetch order for delivery ${delivery.$id}:`,
-              orderError.message
+              orderError.message,
             );
           }
         }
 
         return enhancedDelivery;
-      })
+      }),
     );
 
     res.json({
@@ -324,7 +324,7 @@ const getAllDeliveries = async (req, res) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      [Query.limit(100), Query.orderDesc("createdAt")]
+      [Query.limit(100), Query.orderDesc("createdAt")],
     );
 
     console.log(
@@ -334,7 +334,7 @@ const getAllDeliveries = async (req, res) => {
         riderId: d.riderId,
         status: d.status,
         assignedAt: d.assignedAt,
-      }))
+      })),
     );
 
     res.json({
@@ -374,7 +374,7 @@ const getRiderEarnings = async (req, res) => {
     if (startDate) {
       // Convert date to start of day in ISO format
       const startDateTime = new Date(
-        startDate + "T00:00:00.000Z"
+        startDate + "T00:00:00.000Z",
       ).toISOString();
       queries.push(Query.greaterThanEqual("completedAt", startDateTime));
       console.log(`📅 Filtering from: ${startDateTime}`);
@@ -389,13 +389,13 @@ const getRiderEarnings = async (req, res) => {
 
     console.log(
       `🔍 Earnings queries:`,
-      queries.map((q) => q.toString())
+      queries.map((q) => q.toString()),
     );
 
     const deliveries = await instrumentedDb.listDocuments(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID, // Fixed: Use consistent database pattern
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     console.log(`📦 Found ${deliveries.documents.length} completed deliveries`);
@@ -414,7 +414,7 @@ const getRiderEarnings = async (req, res) => {
 
     const totalEarnings = deliveries.documents.reduce(
       (sum, delivery) => sum + (delivery.riderEarning || 0),
-      0
+      0,
     );
 
     console.log(`💰 Total earnings calculated: ${totalEarnings}`);
@@ -454,7 +454,7 @@ const updateDeliveryStatus = async (req, res) => {
     const delivery = await instrumentedDb.getDocument(
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      deliveryId
+      deliveryId,
     );
 
     if (delivery.riderId !== req.rider.riderId) {
@@ -487,7 +487,7 @@ const updateDeliveryStatus = async (req, res) => {
       env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
       deliveryId,
-      updateData
+      updateData,
     );
 
     // Get rider info for notifications and emails
@@ -497,7 +497,7 @@ const updateDeliveryStatus = async (req, res) => {
       rider = await instrumentedDb.getDocument(
         env.RIDER_DATABASE_ID || env.APPWRITE_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        req.rider.riderId
+        req.rider.riderId,
       );
       console.log(`✅ Rider found: ${rider.name} (${rider.$id})`);
     } catch (riderError) {
@@ -509,10 +509,10 @@ const updateDeliveryStatus = async (req, res) => {
     // Create admin notification for delivery status update
     try {
       console.log(
-        `🔄 Creating admin notification for delivery status update...`
+        `🔄 Creating admin notification for delivery status update...`,
       );
       console.log(
-        `Delivery ID: ${deliveryId}, New Status: ${status}, Rider ID: ${req.rider.riderId}`
+        `Delivery ID: ${deliveryId}, New Status: ${status}, Rider ID: ${req.rider.riderId}`,
       );
 
       // Get rider info for the notification
@@ -544,20 +544,20 @@ const updateDeliveryStatus = async (req, res) => {
 
       console.log(
         `📝 Notification data:`,
-        JSON.stringify(notificationData, null, 2)
+        JSON.stringify(notificationData, null, 2),
       );
 
       const createdNotification = await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
         ID.unique(),
-        notificationData
+        notificationData,
       );
 
       console.log(`🎉 Admin notification created successfully!`);
       console.log(`Notification ID: ${createdNotification.$id}`);
       console.log(
-        `📱 Admin notification created for delivery ${deliveryId} status change to ${status}`
+        `📱 Admin notification created for delivery ${deliveryId} status change to ${status}`,
       );
     } catch (notificationError) {
       console.error(`❌ Failed to create admin notification:`, {
@@ -584,7 +584,7 @@ const updateDeliveryStatus = async (req, res) => {
     let ratingInfo = null;
     if (status === "delivered") {
       console.log(
-        `🎯 Delivery marked as DELIVERED - processing rating setup for ${deliveryId}`
+        `🎯 Delivery marked as DELIVERED - processing rating setup for ${deliveryId}`,
       );
 
       ratingInfo = {
@@ -597,20 +597,20 @@ const updateDeliveryStatus = async (req, res) => {
         customerEmail: updatedDelivery.customerEmail,
       };
       console.log(
-        `📋 Delivery completed - customer can now rate: ${deliveryId}`
+        `📋 Delivery completed - customer can now rate: ${deliveryId}`,
       );
       console.log(
         `🔍 Rating info prepared:`,
-        JSON.stringify(ratingInfo, null, 2)
+        JSON.stringify(ratingInfo, null, 2),
       );
 
       // Debug environment variables
       console.log(`🔧 Email settings check:`);
       console.log(
-        `  ENABLE_RATING_EMAILS: ${process.env.ENABLE_RATING_EMAILS}`
+        `  ENABLE_RATING_EMAILS: ${process.env.ENABLE_RATING_EMAILS}`,
       );
       console.log(
-        `  ENABLE_RATING_REMINDERS: ${process.env.ENABLE_RATING_REMINDERS}`
+        `  ENABLE_RATING_REMINDERS: ${process.env.ENABLE_RATING_REMINDERS}`,
       );
       console.log(`  Customer Email: ${updatedDelivery.customerEmail}`);
       console.log(`  Has customer email: ${!!updatedDelivery.customerEmail}`);
@@ -625,7 +625,7 @@ const updateDeliveryStatus = async (req, res) => {
 
       if (isEmailEnabled && updatedDelivery.customerEmail) {
         console.log(
-          `✅ Email conditions met - attempting to send rating request email`
+          `✅ Email conditions met - attempting to send rating request email`,
         );
         try {
           const emailSent = await sendRatingRequestEmail({
@@ -640,11 +640,11 @@ const updateDeliveryStatus = async (req, res) => {
 
           if (emailSent) {
             console.log(
-              `🎉 Rating request email sent successfully for delivery ${deliveryId}`
+              `🎉 Rating request email sent successfully for delivery ${deliveryId}`,
             );
           } else {
             console.log(
-              `⚠️ Rating request email returned false for delivery ${deliveryId}`
+              `⚠️ Rating request email returned false for delivery ${deliveryId}`,
             );
           }
         } catch (emailError) {
@@ -656,12 +656,12 @@ const updateDeliveryStatus = async (req, res) => {
         // Schedule reminder email (4 hours later if not rated)
         if (isReminderEnabled) {
           console.log(
-            `📅 Scheduling rating reminder for delivery ${deliveryId}`
+            `📅 Scheduling rating reminder for delivery ${deliveryId}`,
           );
           scheduleRatingReminder(deliveryId);
         } else {
           console.log(
-            `⏭️ Rating reminders disabled - skipping reminder for delivery ${deliveryId}`
+            `⏭️ Rating reminders disabled - skipping reminder for delivery ${deliveryId}`,
           );
         }
       } else {
@@ -669,12 +669,12 @@ const updateDeliveryStatus = async (req, res) => {
         console.log(`  Email enabled: ${isEmailEnabled}`);
         console.log(`  Has customerEmail: ${!!updatedDelivery.customerEmail}`);
         console.log(
-          `  CustomerEmail value: "${updatedDelivery.customerEmail}"`
+          `  CustomerEmail value: "${updatedDelivery.customerEmail}"`,
         );
       }
     } else {
       console.log(
-        `⏭️ Delivery status "${status}" - not triggering rating system`
+        `⏭️ Delivery status "${status}" - not triggering rating system`,
       );
     }
 
@@ -706,7 +706,7 @@ const uploadDocumentasync = async (req, res) => {
     const uploadedFile = await storage.createFile(
       env.RIDER_DOCUMENTS_BUCKET_ID,
       ID.unique(),
-      file
+      file,
     );
 
     // Create verification record
@@ -720,7 +720,7 @@ const uploadDocumentasync = async (req, res) => {
         fileId: uploadedFile.$id,
         status: "pending", // pending, approved, rejected
         uploadedAt: new Date().toISOString(),
-      }
+      },
     );
 
     res.json({
@@ -747,18 +747,18 @@ const verifyDocument = async (req, res) => {
       verifiedAt: new Date().toISOString(),
       verifiedBy: req.admin.adminId,
       notes: notes || "",
-    }
+    },
   );
 
   // Check if all documents are verified
   const documents = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_DOCUMENTS_COLLECTION_ID,
-    [Query.equal("riderId", riderId)]
+    [Query.equal("riderId", riderId)],
   );
 
   const allApproved = documents.documents.every(
-    (doc) => doc.status === "approved"
+    (doc) => doc.status === "approved",
   );
 
   if (allApproved) {
@@ -770,7 +770,7 @@ const verifyDocument = async (req, res) => {
       {
         isActive: true,
         verificationStatus: "verified",
-      }
+      },
     );
   }
 
@@ -790,7 +790,7 @@ const updateLocation = async (req, res) => {
       currentLongitude: longitude,
       locationAccuracy: accuracy,
       lastLocationUpdate: new Date().toISOString(),
-    }
+    },
   );
 
   res.json({ success: true });
@@ -804,7 +804,7 @@ const getNearbyRiders = async (req, res) => {
   const riders = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.RIDER_COLLECTION_ID,
-    [Query.equal("status", "online")]
+    [Query.equal("status", "online")],
   );
 
   // Calculate distance and filter
@@ -813,7 +813,7 @@ const getNearbyRiders = async (req, res) => {
       latitude,
       longitude,
       rider.currentLatitude,
-      rider.currentLongitude
+      rider.currentLongitude,
     );
     return distance <= radius;
   });

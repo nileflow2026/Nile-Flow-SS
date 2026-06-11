@@ -1,7 +1,7 @@
 // controllers/cartController.js
 
 const { Query, ID } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 
 /**
  * Add item to cart
@@ -61,7 +61,7 @@ const addToCart = async (req, res) => {
     const trustedPrice = productData.price;
 
     // Check if item already exists — fix: each Query must be a separate array element
-    const existing = await db.listDocuments(
+    const existing = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       [Query.equal("userId", userId), Query.equal("productId", productId)],
@@ -75,7 +75,7 @@ const addToCart = async (req, res) => {
       });
     }
 
-    const newItem = await db.createDocument(
+    const newItem = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       ID.unique(),
@@ -114,7 +114,7 @@ const fetchCart = async (req, res) => {
 
     if (!userId) return res.status(400).json({ error: "Missing userId" });
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       [Query.equal("userId", userId)],
@@ -149,7 +149,7 @@ const updateQuantity = async (req, res) => {
     }
 
     // 1. Find the cart document by productId + userId
-    const result = await db.listDocuments(
+    const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       [Query.equal("productId", cartItemId), Query.equal("userId", userId)],
@@ -160,7 +160,7 @@ const updateQuantity = async (req, res) => {
     }
 
     const docId = result.documents[0].$id;
-    const updated = await db.updateDocument(
+    const updated = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       docId,
@@ -188,7 +188,7 @@ const removeFromCart = async (req, res) => {
 
     // Ownership check: verify the item belongs to the authenticated user
     if (userId) {
-      const doc = await db.getDocument(
+      const doc = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CART_COLLECTION_ID,
         cartItemId,
@@ -200,7 +200,7 @@ const removeFromCart = async (req, res) => {
       }
     }
 
-    await db.deleteDocument(
+    await instrumentedDb.deleteDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       cartItemId,
@@ -220,7 +220,7 @@ const loadCart = async (req, res) => {
       return res.status(400).json({ error: "Missing userId" });
     }
 
-    const response = await db.listDocuments(
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       [Query.equal("userId", userId)],
@@ -265,7 +265,7 @@ const clearCartAfterOrder = async (req, res) => {
     }
 
     // Get all cart items for this user
-    const cartItems = await db.listDocuments(
+    const cartItems = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
       [Query.equal("userId", userId)],
@@ -273,7 +273,7 @@ const clearCartAfterOrder = async (req, res) => {
 
     // Delete all items
     const deletePromises = cartItems.documents.map((item) =>
-      db.deleteDocument(
+      instrumentedDb.deleteDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_CART_COLLECTION_ID,
         item.$id,

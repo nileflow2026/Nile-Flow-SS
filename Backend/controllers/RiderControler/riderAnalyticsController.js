@@ -1,5 +1,5 @@
 // controllers/riderAnalyticsController.js
-const {  } = require("../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../src/env");
 const { Query } = require("node-appwrite");
 
@@ -52,15 +52,15 @@ const calculateSuccessRate = async (riderId, startDate, endDate) => {
     const allDeliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const completedDeliveries = allDeliveries.documents.filter(
-      (d) => d.status === "delivered"
+      (d) => d.status === "delivered",
     );
 
     const failedDeliveries = allDeliveries.documents.filter(
-      (d) => d.status === "failed"
+      (d) => d.status === "failed",
     );
 
     const total = allDeliveries.total;
@@ -94,7 +94,7 @@ const calculateAvgDeliveryTime = async (riderId, startDate, endDate) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     if (deliveries.total === 0) {
@@ -142,7 +142,7 @@ const getCustomerRatings = async (riderId, startDate, endDate) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const ratings = deliveries.documents
@@ -193,7 +193,7 @@ const analyzePeakHours = async (riderId, startDate, endDate) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const hourlyData = Array(24).fill(0);
@@ -239,7 +239,7 @@ const calculateEarningsTrend = async (riderId, days = 30) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     // Group by date
@@ -284,7 +284,7 @@ const getDeliveryStatusBreakdown = async (riderId, startDate, endDate) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const breakdown = {
@@ -329,12 +329,12 @@ const calculateDistanceTraveled = async (riderId, startDate, endDate) => {
     const deliveries = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.DELIVERIES_COLLECTION_ID,
-      queries
+      queries,
     );
 
     const totalDistance = deliveries.documents.reduce(
       (sum, delivery) => sum + (delivery.distance || 0),
-      0
+      0,
     );
 
     return {
@@ -410,12 +410,12 @@ const riderAnalyticsController = {
       const earningsData = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.DELIVERIES_COLLECTION_ID,
-        earningsQueries
+        earningsQueries,
       );
 
       const totalEarnings = earningsData.documents.reduce(
         (sum, d) => sum + (d.riderEarning || 0),
-        0
+        0,
       );
 
       res.json({
@@ -514,32 +514,32 @@ const riderAnalyticsController = {
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          todayQueries
+          todayQueries,
         ),
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          yesterdayQueries
+          yesterdayQueries,
         ),
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          thisWeekQueries
+          thisWeekQueries,
         ),
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          lastWeekQueries
+          lastWeekQueries,
         ),
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          thisMonthQueries
+          thisMonthQueries,
         ),
         instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
           env.DELIVERIES_COLLECTION_ID,
-          lastMonthQueries
+          lastMonthQueries,
         ),
       ]);
 
@@ -604,19 +604,19 @@ const riderAnalyticsController = {
           calculateSuccessRate(
             riderId,
             startDate.toISOString(),
-            endDate.toISOString()
+            endDate.toISOString(),
           ),
           calculateAvgDeliveryTime(
             riderId,
             startDate.toISOString(),
-            endDate.toISOString()
+            endDate.toISOString(),
           ),
           getCustomerRatings(
             riderId,
             startDate.toISOString(),
-            endDate.toISOString()
+            endDate.toISOString(),
           ),
-        ]
+        ],
       );
 
       res.json({

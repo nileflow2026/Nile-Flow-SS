@@ -1,5 +1,5 @@
 const { Query } = require("node-appwrite");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 const usercheck = async (req, res) => {
@@ -8,7 +8,7 @@ const usercheck = async (req, res) => {
     const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID, // Replace with your users database ID
       env.APPWRITE_USER_COLLECTION_ID, // Replace with your users collection ID
-      [Query.equal("email", email)]
+      [Query.equal("email", email)],
     );
 
     if (documents.length > 0) {

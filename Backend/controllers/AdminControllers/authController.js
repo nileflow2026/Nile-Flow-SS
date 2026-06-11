@@ -1,5 +1,5 @@
 const { ID, Query } = require("node-appwrite");
-const { users, db, account } = require("../../src/appwrite");
+
 const { env } = require("../../src/env");
 
 const {
@@ -10,6 +10,11 @@ const {
   timeframeToMs,
   verifyAccessToken,
 } = require("../../utils/tokenManager");
+const {
+  instrumentedDb,
+  users,
+  account,
+} = require("../../services/appwriteService");
 
 // Ensure critical env values exist
 if (

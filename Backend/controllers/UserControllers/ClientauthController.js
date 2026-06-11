@@ -692,7 +692,7 @@ const handleRefreshToken = async (req, res) => {
     // 10) Revoke old token
     try {
       await revokeRefreshTokenById(record.$id);
-      await db
+      await instrumentedDb
         .updateDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,

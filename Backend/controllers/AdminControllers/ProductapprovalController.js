@@ -1,4 +1,4 @@
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 const {
@@ -15,7 +15,7 @@ const approveProduct = async (req, res) => {
     const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
-      productId
+      productId,
     );
 
     if (!product) {
@@ -41,7 +41,7 @@ const approveProduct = async (req, res) => {
         const vendor = await instrumentedDb.getDocument(
           env.VENDOR_DATABASE_ID,
           env.VENDOR_COLLECTION_ID,
-          product.vendorId
+          product.vendorId,
         );
 
         vendorEmail = vendor.email;
@@ -70,7 +70,7 @@ const approveProduct = async (req, res) => {
         approvedAt: new Date().toISOString(),
         approvedBy: adminId,
         updatedAt: new Date().toISOString(),
-      }
+      },
     );
 
     // 4. Notify the vendor (only if we have email)
@@ -93,7 +93,7 @@ const approveProduct = async (req, res) => {
       } catch (notificationError) {
         console.error(
           "Notification failed (continuing):",
-          notificationError.message
+          notificationError.message,
         );
         // Don't fail the whole request if notification fails
       }
@@ -111,7 +111,7 @@ const approveProduct = async (req, res) => {
           isLive: true,
           approvedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }
+        },
       );
     } catch (vendorUpdateError) {
       console.warn("Could not update vendor product:", vendorUpdateError);
@@ -141,7 +141,7 @@ const rejectProduct = async (req, res) => {
     const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
-      productId
+      productId,
     );
 
     // 2. Update product status
@@ -157,7 +157,7 @@ const rejectProduct = async (req, res) => {
         rejectedBy: adminId,
         rejectionReason: reason || "Does not meet our guidelines",
         updatedAt: new Date().toISOString(),
-      }
+      },
     );
 
     // 3. Notify the vendor
@@ -199,7 +199,7 @@ const getPendingProducts = async (req, res) => {
         Query.equal("status", "pending"),
         Query.orderDesc("submittedAt"),
         Query.limit(50),
-      ]
+      ],
     );
 
     res.json({
