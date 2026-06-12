@@ -4,9 +4,11 @@ import axiosClient from "@/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Alert } from "react-native";
@@ -26,52 +28,75 @@ const GlobalContext = createContext({
 
 export const useGlobalContext = () => useContext(GlobalContext);
 
-export const getCurrentUser = async () => {
-  /* console.log('➡️ getCurrentUser called...'); */
+// ── In-memory user cache to prevent redundant getCurrentUser() calls ──
+let _userCache = null;
+let _userCachePromise = null;
+const USER_CACHE_TTL = 60 * 1000; // 1 minute
 
-  try {
-    /* console.log(
-      "➡️ Making GET request to /api/customerauth/getCustomerProfile...",
-    ); */
-
-    // Use the cookie-based endpoint that matches your backend
-    const response = await axiosClient.get(
-      "/api/customerauth/getCustomerProfile",
-    );
-
-    // Adjust here depending on your API's response structure:
-    const user = response.data?.user || response.data;
-    /* console.log("⬅️ User data received:", user); */
-
-    if (!user || typeof user !== "object") {
-      /* console.warn("Invalid user data received"); */
-      return null; // Return null instead of throwing error
-    }
-
-    // Sanitize avatar fields to ensure they're strings or null (not arrays)
-    const sanitizedUser = {
-      ...user,
-      avatar: Array.isArray(user.avatar)
-        ? user.avatar.length > 0
-          ? user.avatar[0]
-          : null
-        : user.avatar,
-      avatarUrl: Array.isArray(user.avatarUrl)
-        ? user.avatarUrl.length > 0
-          ? user.avatarUrl[0]
-          : null
-        : user.avatarUrl,
-    };
-
-    /* console.log("✅ Sanitized user data:", sanitizedUser); */
-    return sanitizedUser;
-  } catch (error) {
-    console.log(
-      "Error fetching current user:",
-      error.response?.data?.error || error.message,
-    );
-    return null; // Return null instead of throwing error - allow browsing without auth
+const getCachedUser = () => {
+  if (_userCache && Date.now() - _userCache.ts < USER_CACHE_TTL) {
+    return _userCache.user;
   }
+  return null;
+};
+
+const setCachedUser = (user) => {
+  _userCache = { user, ts: Date.now() };
+};
+
+export const invalidateUserCache = () => {
+  _userCache = null;
+  _userCachePromise = null;
+};
+
+export const getCurrentUser = async (forceRefresh = false) => {
+  if (!forceRefresh) {
+    const cached = getCachedUser();
+    if (cached) return cached;
+  }
+
+  // Deduplicate in-flight requests
+  if (_userCachePromise) return _userCachePromise;
+
+  _userCachePromise = (async () => {
+    try {
+      const response = await axiosClient.get(
+        "/api/customerauth/getCustomerProfile",
+      );
+
+      const user = response.data?.user || response.data;
+
+      if (!user || typeof user !== "object") {
+        return null;
+      }
+
+      const sanitizedUser = {
+        ...user,
+        avatar: Array.isArray(user.avatar)
+          ? user.avatar.length > 0
+            ? user.avatar[0]
+            : null
+          : user.avatar,
+        avatarUrl: Array.isArray(user.avatarUrl)
+          ? user.avatarUrl.length > 0
+            ? user.avatarUrl[0]
+            : null
+          : user.avatarUrl,
+      };
+
+      setCachedUser(sanitizedUser);
+      return sanitizedUser;
+    } catch (error) {
+      console.log(
+        "Error fetching current user:",
+        error.response?.data?.error || error.message,
+      );
+      return null;
+    } finally {
+      _userCachePromise = null;
+    }
+  })();
+  return _userCachePromise;
 };
 
 export const signUp = async (

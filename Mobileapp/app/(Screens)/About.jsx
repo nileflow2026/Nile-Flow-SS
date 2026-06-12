@@ -2,6 +2,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import {
   Alert,
   Dimensions,
@@ -103,6 +104,20 @@ const About = () => {
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>About Nile Flow</Text>
+            <Text style={styles.headerSubtitle}>
+              Premium African Marketplace
+            </Text>
+          </View>
+        </View>
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -137,7 +152,12 @@ const About = () => {
               {stats.map((stat, index) => (
                 <View
                   key={index}
-                  style={[styles.statCard, index % 2 === 0 ? { borderColor: "#FDE68A" } : { borderColor: "#BBF7D0" }]}
+                  style={[
+                    styles.statCard,
+                    index % 2 === 0
+                      ? { borderColor: "#FDE68A" }
+                      : { borderColor: "#BBF7D0" },
+                  ]}
                 >
                   <MaterialIcons
                     name={stat.icon}
@@ -211,10 +231,7 @@ const About = () => {
 
             <View style={styles.valuesGrid}>
               {values.map((value, index) => (
-                <View
-                  key={index}
-                  style={styles.valueCard}
-                >
+                <View key={index} style={styles.valueCard}>
                   <View style={styles.valueIcon}>
                     <MaterialIcons
                       name={value.icon}
@@ -241,10 +258,7 @@ const About = () => {
 
             <View style={styles.teamGrid}>
               {teamMembers.map((member, index) => (
-                <View
-                  key={index}
-                  style={styles.teamCard}
-                >
+                <View key={index} style={styles.teamCard}>
                   <View style={styles.memberAvatar}>
                     <Text style={styles.memberAvatarEmoji}>
                       {member.avatar}
@@ -280,7 +294,9 @@ const About = () => {
                 }
               >
                 <View style={styles.contactCardInner}>
-                  <View style={[styles.contactIcon, { backgroundColor: "#EFF6FF" }]}>
+                  <View
+                    style={[styles.contactIcon, { backgroundColor: "#EFF6FF" }]}
+                  >
                     <MaterialIcons name="email" size={20} color="#3B82F6" />
                   </View>
                   <Text style={styles.contactTitle}>Email Support</Text>
@@ -298,8 +314,14 @@ const About = () => {
                 onPress={() => Linking.openURL("tel:+254703115359")}
               >
                 <View style={styles.contactCardInner}>
-                  <View style={[styles.contactIcon, { backgroundColor: "#DCFCE7" }]}>
-                    <MaterialIcons name="phone" size={20} color={premiumColors.accent} />
+                  <View
+                    style={[styles.contactIcon, { backgroundColor: "#DCFCE7" }]}
+                  >
+                    <MaterialIcons
+                      name="phone"
+                      size={20}
+                      color={premiumColors.accent}
+                    />
                   </View>
                   <Text style={styles.contactTitle}>Phone Support</Text>
                   <Text style={styles.contactValue}>+254 703 115 359</Text>
@@ -309,8 +331,14 @@ const About = () => {
 
               <View style={styles.contactCard}>
                 <View style={styles.contactCardInner}>
-                  <View style={[styles.contactIcon, { backgroundColor: "#FEF2F2" }]}>
-                    <MaterialIcons name="location-on" size={20} color="#EF4444" />
+                  <View
+                    style={[styles.contactIcon, { backgroundColor: "#FEF2F2" }]}
+                  >
+                    <MaterialIcons
+                      name="location-on"
+                      size={20}
+                      color="#EF4444"
+                    />
                   </View>
                   <Text style={styles.contactTitle}>Headquarters</Text>
                   <Text style={styles.contactValue}>Nairobi, Kenya</Text>
@@ -468,6 +496,37 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  // Header Styles
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   // Hero Section
   heroSection: {

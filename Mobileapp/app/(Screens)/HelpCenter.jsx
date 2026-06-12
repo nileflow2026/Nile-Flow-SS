@@ -233,6 +233,20 @@ const HelpCenter = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Help Center</Text>
+          <Text style={styles.headerSubtitle}>
+            Premium Assistance for African Shoppers
+          </Text>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
@@ -636,6 +650,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   heroSection: {
     paddingHorizontal: 20,

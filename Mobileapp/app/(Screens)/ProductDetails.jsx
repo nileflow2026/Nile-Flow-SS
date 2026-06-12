@@ -3,7 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Alert,
@@ -12,9 +12,9 @@ import {
   ScrollView,
   Share,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  BackHandler,
   View,
 } from "react-native";
 import axiosClient from "../../api";
@@ -33,6 +33,9 @@ import RatingModal from "../components/RatingModal";
 import RelatedProducts from "../components/RelatedProducts";
 import ReviewForm from "../components/ReviewForm";
 import ReviewList from "../components/ReviewList";
+import * as FileSystem from "expo-file-system/";
+import * as Sharing from "expo-sharing";
+
 /* import GroupBuyCard from "../components/GroupBuyCard";
 import GroupBuyStarter from "../components/GroupBuyStarter"; */
 
@@ -81,66 +84,6 @@ const StarRating = ({
 const ProductDetails = () => {
   const router = useRouter();
 
-  const navigation = useNavigation();
-
-  // DIAGNOSTIC: Check what navigation object looks like
-  /* console.log("🔍 [NAV] navigation type:", typeof navigation);
-  console.log(
-    "🔍 [NAV] navigation keys:",
-    navigation ? Object.keys(navigation).join(", ") : "null",
-  ); */
-  /*  console.log("🔍 [NAV] getState exists:", typeof navigation?.getState); */
-
-  // Log navigation state on mount
-  useEffect(() => {
-    try {
-      const state = navigation?.getState?.();
-      /*  console.log(
-        "� [NAV] state:",
-        state
-          ? JSON.stringify({
-              index: state.index,
-              routeCount: state.routes?.length,
-              routes: state.routes?.map((r) => r.name),
-            })
-          : "null",
-      ); */
-    } catch (e) {
-      console.log("🔍 [NAV] getState error:", e.message);
-    }
-  }, [navigation]);
-
-  // Log before each back button press
-  useEffect(() => {
-    const onBackPress = () => {
-      try {
-        const state = navigation?.getState?.();
-        if (state) {
-          console.log(
-            "⬅️ [BACK] index=%d  routes=[%s]  hasHistory=%s",
-            state.index,
-            state.routes?.map((r) => r.name).join(", "),
-            state.index > 0 ? "YES" : "NO",
-          );
-        } else {
-          console.log("⬅️ [BACK] state=null — navigation not ready");
-        }
-      } catch (_) {}
-
-      try {
-        router.back();
-      } catch (_) {
-        router.replace("/(tabs)/BottomTabs");
-      }
-      return true;
-    };
-
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      onBackPress,
-    );
-    return () => subscription.remove();
-  }, [router, navigation]);
   const params = useLocalSearchParams();
   const { item } = params;
   const [reviews, setReviews] = useState([]);
@@ -159,7 +102,8 @@ const ProductDetails = () => {
         ? reviews.slice(0, initialReviewCount)
         : [];
   }, [showAllReviews, reviews, initialReviewCount]);
-  const { user, isLogged } = useGlobalContext();
+  const { user, isLogged } =
+    useGlobalContext(); /* console.log("User in ProductDetails:", user); // Log user object for debugging */
 
   // Debug: Log navigation params
   useEffect(() => {
@@ -168,7 +112,6 @@ const ProductDetails = () => {
     console.log("item param:", item);
     console.log("item type:", typeof item);
   }, [item, params]);
-  /* console.log("User in ProductDetails:", user); // Log user object for debugging */
   const [ratings, setRatings] = useState({});
   const [selectedRating, setSelectedRating] = useState(null);
   const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
@@ -310,32 +253,33 @@ const ProductDetails = () => {
       fetchActiveGroups(product.$id).catch(() => {});
     }
     // This is a single, combined function to handle all related product logic
+    // This optimized function handles clean server-side scoped filtering
     const fetchRelatedData = async () => {
-      // Step 1: Fetch related products (no category query param — avoids Appwrite index requirement)
+      if (!product?.categoryId) return;
+
       let related = [];
       try {
         const response = await axiosClient.get(
           `/api/customerprofile/fetch-product-mobile`,
           {
             params: {
-              limit: 20,
+              limit: 15, // Ask for slightly fewer items since it's already filtered
+              category: product.categoryId, // Prefilter directly on the database level!
             },
           },
         );
+
         if (Array.isArray(response.data?.products)) {
-          // Filter by same category and exclude the current product client-side
+          // Exclude only the current active item out of the structured list
           related = response.data.products
-            .filter(
-              (p) => p.category === product.category && p.$id !== product.$id,
-            )
+            .filter((p) => p.$id !== product.$id)
             .slice(0, 10);
         }
       } catch (error) {
-        console.error("Error fetching related products:", error);
-        // On error, related remains an empty array
+        console.error("❌ Error fetching optimized related products:", error);
       }
 
-      // Step 2: Use bundled avgRating/totalRatings from fetch-product-mobile (no extra API calls)
+      // Use pre-bundled data fields with zero additional iteration
       const ratingsData = {};
       related.forEach((p) => {
         ratingsData[p.$id] = {
@@ -343,6 +287,7 @@ const ProductDetails = () => {
           totalCount: p.totalRatings ?? 0,
         };
       });
+
       setRelatedProducts(related);
       setRatings(ratingsData);
     };
@@ -736,6 +681,19 @@ const ProductDetails = () => {
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Product Details</Text>
+          <Text style={styles.headerSubtitle}> Premium African Products</Text>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -749,7 +707,7 @@ const ProductDetails = () => {
               borderRadius: 24,
               overflow: "hidden",
               marginHorizontal: 16,
-              marginTop: 60,
+              marginTop: 1,
             }}
           >
             {/* Horizontal paged ScrollView — swipe between images */}
@@ -786,7 +744,7 @@ const ProductDetails = () => {
                     <Image
                       source={{ uri: img }}
                       style={{ width: "100%", height: "100%" }}
-                      contentFit="contain"
+                      contentFit="cover"
                       cachePolicy="memory-disk"
                       transition={200}
                       recyclingKey={`pd-img-${img}`}
@@ -810,75 +768,6 @@ const ProductDetails = () => {
                 </View>
               )}
             </ScrollView>
-
-            {/* Premium Badge */}
-            <View
-              style={{
-                position: "absolute",
-                top: 16,
-                left: 16,
-                zIndex: 10,
-              }}
-            >
-              <View
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 20,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 4,
-                  backgroundColor: "#D97706",
-                }}
-              >
-                <MaterialIcons name="star" size={16} color="#fff" />
-                <Text
-                  style={{ color: "#fff", fontSize: 12, fontWeight: "bold" }}
-                >
-                  PREMIUM
-                </Text>
-              </View>
-            </View>
-
-            {/* Arrow buttons (complement swipe; hidden for single images) */}
-            {allImages.length > 1 && (
-              <>
-                <TouchableOpacity
-                  onPress={() => handleImageNavigation("prev")}
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "40%",
-                    zIndex: 10,
-                    width: 40,
-                    height: 40,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <MaterialIcons name="chevron-left" size={24} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleImageNavigation("next")}
-                  style={{
-                    position: "absolute",
-                    right: 12,
-                    top: "40%",
-                    zIndex: 10,
-                    width: 40,
-                    height: 40,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <MaterialIcons name="chevron-right" size={24} color="#fff" />
-                </TouchableOpacity>
-              </>
-            )}
 
             {/* Wishlist Button */}
             <TouchableOpacity
@@ -1457,122 +1346,6 @@ const ProductDetails = () => {
             onClose={() => setIsRatingModalVisible(false)}
             onSubmit={handleRatingSubmit}
           />
-          {/* ── Group Buying Section ────────────────────────────────── */}
-          {/* <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-            <View
-              style={{
-                backgroundColor: "#1a2e1a",
-                borderRadius: 16,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: "#2d4f2d",
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <MaterialIcons name="groups" size={20} color="#f59e0b" />
-                <Text
-                  style={{ color: "#f59e0b", fontSize: 16, fontWeight: "bold" }}
-                >
-                  Group Buying
-                </Text>
-              </View>
-
-              {productGroups.length > 0 ? (
-                <>
-                  <Text
-                    style={{ color: "#9ca3af", fontSize: 13, marginBottom: 10 }}
-                  >
-                    {productGroups.length} active group
-                    {productGroups.length > 1 ? "s" : ""} — join and save up to{" "}
-                    {productGroups[0].savingsPercent || ""}
-                  </Text>
-                  {productGroups.slice(0, 3).map((g) => (
-                    <GroupBuyCard
-                      key={g.$id}
-                      group={g}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/(Screens)/GroupOrderPage",
-                          params: { orderId: g.$id },
-                        })
-                      }
-                      onJoin={() =>
-                        router.push({
-                          pathname: "/(Screens)/GroupOrderPage",
-                          params: { orderId: g.$id },
-                        })
-                      }
-                    />
-                  ))}
-                  <TouchableOpacity
-                    onPress={() => setShowGroupStarter(true)}
-                    style={{ marginTop: 8, alignItems: "center" }}
-                  >
-                    <Text
-                      style={{
-                        color: "#f59e0b",
-                        fontSize: 13,
-                        fontWeight: "600",
-                      }}
-                    >
-                      + Start a new group
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text
-                    style={{ color: "#9ca3af", fontSize: 13, marginBottom: 12 }}
-                  >
-                    No active groups yet. Start one and invite friends to unlock
-                    a group price!
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setShowGroupStarter(true)}
-                    style={{
-                      backgroundColor: "#f59e0b",
-                      borderRadius: 10,
-                      paddingVertical: 12,
-                      alignItems: "center",
-                      flexDirection: "row",
-                      justifyContent: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <MaterialIcons name="add" size={18} color="#000" />
-                    <Text
-                      style={{
-                        color: "#000",
-                        fontWeight: "bold",
-                        fontSize: 15,
-                      }}
-                    >
-                      Start a Group Buy
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </View>
-          <GroupBuyStarter
-            visible={showGroupStarter}
-            onClose={() => setShowGroupStarter(false)}
-            product={product}
-            onCreated={(group) => {
-              setShowGroupStarter(false);
-              router.push({
-                pathname: "/(Screens)/GroupOrderPage",
-                params: { orderId: group.$id },
-              });
-            }}
-          /> */}
 
           <RelatedProducts
             relatedProducts={relatedProducts}
@@ -1585,7 +1358,7 @@ const ProductDetails = () => {
       <View
         style={{
           position: "absolute",
-          bottom: 20,
+          bottom: 60,
           left: 16,
           right: 16,
           flexDirection: "row",
@@ -1626,25 +1399,56 @@ const ProductDetails = () => {
             </Text>
           </View>
         </TouchableOpacity>
-
         <TouchableOpacity
           onPress={async () => {
             try {
-              const shareMessage = `${product?.productName || product?.name || "Product"}\n\n${product?.description || product?.details || ""}\n\nCheck it out here: ${product?.url || "https://nileflowafrica.com"}\n\nImage: ${product?.image || ""}`;
-              if (Platform.OS === "ios") {
-                // iOS handles URL better when passed separately
-                await Share.share({
-                  message: shareMessage,
-                  url: product?.imageUrl || product?.image, // May be previewed in iMessage
-                });
+              const imageUrl = product?.imageUrl || product?.image;
+              const productName =
+                product?.productName || product?.name || "Product";
+              const productDesc =
+                product?.description || product?.details || "";
+              const fallbackStoreUrl = "https://google.com";
+
+              const appLinkUrl = product?.url || fallbackStoreUrl;
+              const completeCaption = `${productName}\n\n${productDesc}\n\nCheck it out here: ${appLinkUrl}`;
+
+              if (imageUrl) {
+                // 1. Get the image file extension and sanitize the title for a safe filename
+                const cleanFileExtension =
+                  imageUrl.split(".").pop()?.split("?")[0] || "jpg";
+                const sanitizedSystemTitle = productName
+                  .replace(/[^a-zA-Z0-9]/g, "_")
+                  .substring(0, 20);
+
+                // 2. Download the image locally to the device cache as a temporary file
+                const storageDestinationUri = `${FileSystem.Paths.cacheDirectory}${sanitizedSystemTitle}.${cleanFileExtension}`;
+                const fileAssetResult = await FileSystem.downloadAsync(
+                  imageUrl,
+                  storageDestinationUri,
+                );
+
+                // 3. Share the downloaded image asset using the simplest native methods available
+                if (Platform.OS === "ios") {
+                  // iOS native share sheet handles the file URI and text message perfectly together
+                  await Share.share({
+                    message: completeCaption,
+                    url: fileAssetResult.uri, // This forces the actual image to show up
+                  });
+                } else {
+                  // Android shares the file via expo-sharing, using the title text as the bubble caption
+                  await Sharing.shareAsync(fileAssetResult.uri, {
+                    dialogTitle: completeCaption, // Becomes the shared caption in WhatsApp/Telegram
+                    mimeType: `image/${cleanFileExtension}`,
+                  });
+                }
               } else {
-                // Android works best with full text in one message
+                // Fallback simple share if there is no image at all
                 await Share.share({
-                  message: shareMessage,
+                  message: completeCaption,
                 });
               }
             } catch (error) {
-              console.log("Error sharing product:", error);
+              console.log("Error sharing product:", error?.message || error);
             }
           }}
           style={{
@@ -1670,3 +1474,37 @@ const ProductDetails = () => {
 };
 
 export default ProductDetails;
+
+const styles = StyleSheet.create({
+  // Header Styles
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
+  },
+});

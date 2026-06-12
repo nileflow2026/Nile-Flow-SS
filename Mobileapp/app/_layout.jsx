@@ -10,7 +10,7 @@ import { PremiumProvider } from "@/Context/PremiumContext";
 import { ThemeProvider } from "@/Context/ThemeProvider";
 import { GroupBuyProvider } from "../Context/GroupBuyContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { Stack, useRouter, usePathname } from "expo-router";
+import { Stack, useRouter, usePathname, useNavigation } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { BackHandler, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -73,11 +73,16 @@ SplashScreen.preventAutoHideAsync();
 function AppContent() {
   const router = useRouter();
   const posthog = usePostHog();
-  const pathname = usePathname(); // ✅ Track current screen path
+  const pathname = usePathname();
   const [user, setUser] = useState(null);
-  /* console.log("user in AppContent:", user);
-  posthog.capture("user_identified_test"); */
+  const hasIdentified = useRef(false);
+
+  // Get user from GlobalProvider context to avoid a 2nd API call
+  // GlobalProvider already calls getCurrentUser() at mount
   useEffect(() => {
+    // Use a lazy import or pass through context
+    // For now, just set the user from a single call
+    // The GlobalProvider already fetched the user — we read from the cache
     const fetchUser = async () => {
       try {
         const currentUser = await getCurrentUser();
@@ -90,8 +95,10 @@ function AppContent() {
     fetchUser();
   }, []);
 
+  // Identify user in PostHog only once
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || hasIdentified.current) return;
+    hasIdentified.current = true;
 
     posthog.identify(user.id, {
       email: user.email,
@@ -99,9 +106,7 @@ function AppContent() {
       role: user.role,
       phone: user.phone,
     });
-
-    /* console.log("PostHog user identified:", user.id); */
-  }, [user]);
+  }, [user?.id]);
 
   // Track screen views automatically on every navigation
   useEffect(() => {
@@ -113,9 +118,10 @@ function AppContent() {
 
   useEffect(() => {
     posthog.debug(true);
-    posthog.capture("app_opened"); // ✅ This will work
+    posthog.capture("app_opened");
     posthog.flush();
   }, [posthog]);
+
   const [fontsLoaded, fontError] = useFonts({
     "Poppins-Thin": require("../assets/fonts/Poppins-Thin.ttf"),
     "Poppins-ExtraLight": require("../assets/fonts/Poppins-ExtraLight.ttf"),
@@ -141,64 +147,34 @@ function AppContent() {
   }, [fontsLoaded, fontError]);
 
   // --- Android Hardware Back Button Handler ---
-  // In production (standalone APK), the Stack navigator sees only 1 route.
-  // Without this handler, pressing back on any deeply-navigated screen
-  // propagates to the root Stack and exits the entire app.
-  //
-  // Individual screens (Home, ProductDetails, etc.) already intercept
-  // BackHandler and call router.back() / setActiveTab(). This root handler
-  // acts as a safety net for Prod builds — if no screen-intercepting handler
-  // fires, we prevent Android from killing the app.
-  //
-  // KEY PRODUCTION FIX: When router.back() fails silently (no previous route
-  // in the native stack), we MUST NOT let the system exit. Instead we navigate
-  // back to the tabs home screen manually.
+  const navigation = useNavigation();
   const lastBackPress = useRef(0);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
 
     const onBackPress = () => {
-      const now = Date.now();
+      const navState = navigation?.getState?.();
+      const stackIndex = navState?.index ?? 0;
 
-      // Check if we're on a deeply-navigated screen (not a tab root)
-      // These paths are the tab roots — everything else is a pushed screen
-      const isTabRoot =
-        pathname === "/" ||
-        pathname === "/(tabs)" ||
-        pathname === "/(tabs)/BottomTabs" ||
-        pathname === "/BottomTabs" ||
-        pathname === "";
-
-      if (isTabRoot) {
-        // On the root (tabs) path, allow double-tap to exit
-        if (now - lastBackPress.current < 2000) {
-          return false; // Let the system handle (exits app)
-        }
-        lastBackPress.current = now;
-        Toast.show({
-          type: "info",
-          text1: "Press back again to exit",
-          visibilityTime: 2000,
-          position: "bottom",
-        });
-        return true; // Prevent premature app exit
+      if (stackIndex > 0) {
+        router.back();
+        return true;
       }
 
-      // We're on a pushed/modal screen (e.g. ProductDetails, Orders, etc.)
-      // router.back() should have already been attempted by the screen's own
-      // BackHandler. If it failed (no stack history), we need to manually
-      // navigate back to the tabs home — otherwise the app would exit.
-      //
-      // Using a small timeout to let any pending router.back() from the
-      // screen-level handler complete first. If the screen is still visible
-      // after the attempt, we force-navigate to tabs.
-      setTimeout(() => {
-        // Navigate back to the main tabs screen
-        router.replace("/(tabs)/BottomTabs");
-      }, 100);
+      const now = Date.now();
+      if (now - lastBackPress.current < 2000) {
+        return false;
+      }
 
-      return true; // Always prevent system exit on non-tab screens
+      lastBackPress.current = now;
+      Toast.show({
+        type: "info",
+        text1: "Press back again to exit",
+        visibilityTime: 2000,
+        position: "bottom",
+      });
+      return true;
     };
 
     const subscription = BackHandler.addEventListener(
@@ -206,7 +182,7 @@ function AppContent() {
       onBackPress,
     );
     return () => subscription.remove();
-  }, [pathname, router]);
+  }, [pathname, router, navigation]);
 
   // Keep splash visible until fonts resolve
   if (!fontsLoaded && !fontError) return null;
@@ -215,12 +191,6 @@ function AppContent() {
     <>
       <Stack screenOptions={{ headerShown: false }} />
       <Toast />
-      {/* 
-        StatusBar: Use minimal config compatible with Android 15+ edge-to-edge.
-        backgroundColor="auto" and the deprecated setStatusBarColor/setNavigationBarColor
-        methods have been replaced with the WindowInsets API in gradle.properties.
-        Using style="dark" for light-theme compatibility.
-      */}
       <StatusBar style="dark" />
     </>
   );
@@ -241,15 +211,11 @@ function RootLayout() {
       apiKey={posthogApiKey}
       options={{
         host: posthogHost,
-        // Analytics
         flushAt: 1,
         flushInterval: 0,
         captureDeepLinks: true,
         captureAppLifecycleEvents: false,
-
-        // Error Tracking
         captureExceptions: true,
-
         debug: __DEV__,
       }}
     >
@@ -283,5 +249,3 @@ function RootLayout() {
 }
 
 export default Sentry.wrap(RootLayout);
-
-// --- Currency Detection Logic ---

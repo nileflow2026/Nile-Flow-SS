@@ -1,4 +1,3 @@
- 
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -307,23 +306,22 @@ const Orders = () => {
             />
           }
         >
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.headerTitle}>Your Orders</Text>
+              <Text style={styles.headerSubtitle}>
+                Track your African shopping journey
+              </Text>
+            </View>
+          </View>
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <View
-              style={[
-                styles.premiumBadge,
-                { backgroundColor: "#FFFBEB", borderColor: "#FDE68A" },
-              ]}
-            >
-              <MaterialIcons
-                name="inventory"
-                size={18}
-                color={premiumColors.primary}
-              />
-              <Text style={styles.badgeText}>Your Orders</Text>
-              <MaterialIcons name="auto-awesome" size={16} color="#D97706" />
-            </View>
-
             <Text style={styles.heroTitle}>
               Your <Text style={styles.heroTitleAccent}>Orders</Text>
             </Text>
@@ -822,6 +820,36 @@ export default Orders;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   safeArea: {
     flex: 1,

@@ -448,7 +448,7 @@ const getProductsForMobile = async (req, res) => {
 
     let queries = [];
 
-    // Category filter (use categoryId for consistency)
+    // Category filter
     if (category && category !== "all") {
       queries.push(Query.contains("categoryId", category));
     }
@@ -463,88 +463,55 @@ const getProductsForMobile = async (req, res) => {
       queries.push(Query.search("productName", search));
     }
 
-    // ✅ Fetch ALL products regardless of approval status
+    // Pagination and Limit
     queries.push(Query.limit(parseInt(limit)));
     queries.push(Query.orderDesc("$createdAt"));
     if (cursor) {
       queries.push(Query.cursorAfter(cursor));
     }
 
+    // 1️⃣ ONE SINGLE DATABASE CALL GETS EVERYTHING
     const batch = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       queries,
     );
 
-    // ✅ ADD: Fetch review counts for all products in parallel
-    const productsWithReviews = await Promise.all(
-      batch.documents.map(async (doc) => {
-        try {
-          // Fetch review count and average rating
-          const reviews = await instrumentedDb.listDocuments(
-            env.APPWRITE_DATABASE_ID,
-            env.APPWRITE_REVIEW_COLLECTION_ID,
-            [Query.equal("productId", doc.$id), Query.select(["rating"])],
-          );
+    // 2️⃣ NO PROMISE.ALL loops. Simply map properties synchronously out of the document.
+    const productsWithReviews = batch.documents.map((doc) => {
+      // Gracefully fetch attributes stored directly on the product document
+      const totalRatings = doc.totalRatings || 0;
+      const avgRating = doc.avgRating || 0;
 
-          const reviewCount = reviews.total || 0;
-          const avgRating =
-            reviewCount > 0
-              ? reviews.documents.reduce((sum, r) => sum + (r.rating || 0), 0) /
-                reviewCount
-              : 0;
-
-          return {
-            $id: doc.$id,
-            productName: doc.productName,
-            price: doc.price,
-            brand: doc.brand,
-            image: doc.image,
-            images: doc.images || [],
-            description: doc.description,
-            stock: doc.stock,
-            category: doc.category,
-            categoryId: doc.categoryId,
-            subcategoryId: doc.subcategoryId || "",
-            vendorId: doc.vendorId,
-            isFeatured: doc.isFeatured || false,
-            // ✅ Include review data
-            reviewCount,
-            avgRating: parseFloat(avgRating.toFixed(1)),
-            totalRatings: reviewCount,
-          };
-        } catch (error) {
-          console.error(
-            `Error fetching reviews for product ${doc.$id}:`,
-            error,
-          );
-          // Return product without review data on error
-          return {
-            $id: doc.$id,
-            productName: doc.productName,
-            price: doc.price,
-            brand: doc.brand,
-            image: doc.image,
-            images: doc.images || [],
-            description: doc.description,
-            stock: doc.stock,
-            category: doc.category,
-            categoryId: doc.categoryId,
-            subcategoryId: doc.subcategoryId || "",
-            vendorId: doc.vendorId,
-            isFeatured: doc.isFeatured || false,
-            reviewCount: 0,
-            avgRating: 0,
-            totalRatings: 0,
-          };
-        }
-      }),
-    );
+      return {
+        $id: doc.$id,
+        productName: doc.productName,
+        price: doc.price,
+        brand: doc.brand,
+        image: doc.image,
+        images: doc.images || [],
+        description: doc.description,
+        stock: doc.stock,
+        category: doc.category,
+        categoryId: doc.categoryId,
+        subcategoryId: doc.subcategoryId || "",
+        vendorId: doc.vendorId,
+        isFeatured: doc.isFeatured || false,
+        // ✅ Pulled instantly from the pre-aggregated document properties
+        reviewCount: totalRatings,
+        avgRating: parseFloat(Number(avgRating).toFixed(1)),
+        totalRatings: totalRatings,
+      };
+    });
 
     // --- Currency enrichment ---
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
+
+    // NOTE: Ensure your getAllRates() service uses an internal cache/Redis
+    // so it doesn't query Appwrite on every API invocation.
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
+
     const enrichedProducts = enrichProductsWithCurrency(
       productsWithReviews,
       targetCurrency,
@@ -570,7 +537,6 @@ const getProductsForMobile = async (req, res) => {
       .json({ success: false, message: "Failed to fetch products" });
   }
 };
-
 // Normalize an images array (from Appwrite) to plain URL strings.
 // Handles: string URLs, objects like { url, id, filename }, and JSON-stringified objects.
 const normalizeImagesToUrls = (images) => {
@@ -661,7 +627,7 @@ const submitReview = async (req, res) => {
     const { productId, reviewText, rating, image, images } = req.body;
     console.log("Review body payload received:", req.body);
 
-    const user = req.user; // Ensure authentication middleware attaches `req.user`
+    const user = req.user; // Attached via authentication middleware
 
     if (!user || !user.userId) {
       return res
@@ -671,7 +637,7 @@ const submitReview = async (req, res) => {
 
     const userId = user.userId;
 
-    // Fetch user name and avatar
+    // 1️⃣ Fetch user profile fields directly from listDocuments
     const userDoc = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
@@ -691,9 +657,8 @@ const submitReview = async (req, res) => {
     const avatar =
       userProfile.avatarUrl ||
       "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin";
-    console.log("User profile document:", userProfile);
 
-    // Validate rating
+    // Validate rating integers
     let validatedRating = null;
     if (rating !== null && rating !== undefined) {
       const parsedRating = parseInt(rating, 10);
@@ -704,17 +669,15 @@ const submitReview = async (req, res) => {
       }
     }
 
-    // Handle image URLs (single or multiple)
+    // Handle string formatting for image data
     let imageUrl = "";
     if (images && Array.isArray(images) && images.length > 0) {
-      // Multiple images - store as JSON array string
       imageUrl = JSON.stringify(images);
     } else if (image && typeof image === "string") {
-      // Single image URL
       imageUrl = image;
     }
 
-    // Create review
+    // 2️⃣ Create the new review document
     const reviewPayload = {
       userId,
       productId,
@@ -733,8 +696,46 @@ const submitReview = async (req, res) => {
       reviewPayload,
     );
 
-    // Optional: Increment product ratings count (if implemented separately)
-    await incrementProductRatingsCountInternal(productId);
+    // 3️⃣ ROLLING AGGREGATE CALCULATION (Zero N+1 impact)
+    if (validatedRating !== null) {
+      try {
+        // Fetch the target product to get its existing structural scores
+        const product = await instrumentedDb.getDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_PRODUCT_COLLECTION_ID,
+          productId,
+        );
+
+        const currentTotal = product.totalRatings || 0;
+        const currentAvg = product.avgRating || 0;
+
+        // Mathematical algorithm for rolling averages without collection scans:
+        const newTotal = currentTotal + 1;
+        const newAvg = (currentAvg * currentTotal + validatedRating) / newTotal;
+
+        // Save aggregates back to the product document
+        await instrumentedDb.updateDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_PRODUCT_COLLECTION_ID,
+          productId,
+          {
+            totalRatings: newTotal,
+            avgRating: parseFloat(newAvg.toFixed(2)), // High-precision float
+          },
+        );
+
+        console.log(
+          `✅ Updated aggregate scores for product ${productId}. Total: ${newTotal}, Avg: ${newAvg.toFixed(2)}`,
+        );
+      } catch (productErr) {
+        console.error(
+          "⚠️ Failed to update rolling aggregates on product document:",
+          productErr.message,
+        );
+        // Note: Do not block user response if aggregate tracking fails silently
+      }
+    }
+
     return res
       .status(201)
       .json({ message: "Review submitted successfully", review });

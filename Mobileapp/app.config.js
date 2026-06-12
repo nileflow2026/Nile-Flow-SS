@@ -11,7 +11,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow-app",
-    version: "1.3.15",
+    version: "1.3.16",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
@@ -78,6 +78,8 @@ module.exports = () => ({
       "expo-router",
       "expo-localization",
       "expo-image",
+      "expo-sharing",
+
       [
         "expo-notifications",
         {

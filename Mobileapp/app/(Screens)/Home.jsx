@@ -2,7 +2,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   ScrollView,
@@ -13,10 +13,7 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import {
-  getCurrentUser,
-  updateCurrencyRates,
-} from "../../Context/GlobalProvider";
+import { getCurrentUser } from "../../Context/GlobalProvider";
 import i18n, { useLanguage } from "../../i18n";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
@@ -377,11 +374,6 @@ const Home = () => {
     };
 
     fetchCats();
-    updateCurrencyRates(); // Update currency on mount
-
-    const interval = setInterval(updateCurrencyRates, 4 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-     
   }, [retryKey]);
 
   if (isLoading) {

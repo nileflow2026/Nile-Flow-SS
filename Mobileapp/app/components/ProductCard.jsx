@@ -45,44 +45,17 @@ const ProductCard = ({
   const { addToCart } = useCart();
 
   useEffect(() => {
-    // If the product already has bundled rating data (from fetch-product-mobile), use it directly
-    if (
-      productData.totalRatings !== undefined &&
-      productData.avgRating !== undefined
-    ) {
-      setTotalRatings(productData.totalRatings);
-      setAverageRating(productData.avgRating);
-      return;
-    }
+    // Map either field variation coming from your mobile/search endpoints safely
+    const count = productData.reviewCount ?? productData.totalRatings ?? 0;
+    const avg = productData.avgRating ?? 0;
 
-    const fetchReviewCount = async () => {
-      try {
-        const reviewsData = await fetchReviews(String(productId));
-
-        if (!reviewsData || !Array.isArray(reviewsData)) {
-          setTotalRatings(0);
-          setAverageRating(0);
-          return;
-        }
-
-        setTotalRatings(reviewsData.length);
-
-        const totalRatingScore = reviewsData.reduce(
-          (acc, review) => acc + (review.rating || 0),
-          0,
-        );
-        const avgRating =
-          reviewsData.length > 0 ? totalRatingScore / reviewsData.length : 0;
-        setAverageRating(avgRating);
-      } catch (error) {
-        console.error("Failed to fetch reviews count:", error);
-      }
-    };
-
-    if (productId) {
-      fetchReviewCount();
-    }
-  }, [productId, productData.totalRatings, productData.avgRating]);
+    setTotalRatings(count);
+    setAverageRating(avg);
+  }, [
+    productData.reviewCount,
+    productData.totalRatings,
+    productData.avgRating,
+  ]);
 
   useEffect(() => {
     const stock = productData.stock || 10;

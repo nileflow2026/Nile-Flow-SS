@@ -1,9 +1,8 @@
- 
 /* eslint-disable react-hooks/exhaustive-deps */
- 
+
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,7 +11,9 @@ import {
   BackHandler,
   Dimensions,
   FlatList,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -106,7 +107,6 @@ const CategoryDetailsScreen = () => {
     if (categoryId) {
       loadData();
     }
-     
   }, [categoryId]);
 
   const handleSubcategoryClick = async (subId) => {
@@ -256,11 +256,40 @@ const CategoryDetailsScreen = () => {
             >
               <View style={styles.headerRow}>
                 <View style={styles.headerInfo}>
-                  <View style={styles.premiumTag}>
-                    <Ionicons name="sparkles" size={14} color="#D97706" />
-                    <Text style={styles.premiumTagText}>
-                      Premium Collection
-                    </Text>
+                  {/* Arrow-back header */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => router.back()}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        backgroundColor: "#F0FDF4",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 12,
+                      }}
+                    >
+                      <MaterialIcons
+                        name="arrow-back"
+                        size={24}
+                        color="#16A34A"
+                      />
+                    </TouchableOpacity>
+
+                    {/* Premium Tag */}
+                    <View style={styles.premiumTag}>
+                      <Ionicons name="sparkles" size={14} color="#D97706" />
+                      <Text style={styles.premiumTagText}>
+                        Premium Collection
+                      </Text>
+                    </View>
                   </View>
 
                   <Text style={styles.categoryTitle} numberOfLines={2}>

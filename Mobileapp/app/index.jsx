@@ -52,7 +52,7 @@ const Index = () => {
         {/* CTA — Green Gradient Button */}
         <CustomButton
           title="Explore African Excellence"
-          handlePress={() => router.push("/(tabs)/BottomTabs")}
+          handlePress={() => router.replace("/(tabs)/BottomTabs")}
           containerStyles="w-full"
         />
 

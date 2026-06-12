@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../Context/ThemeProvider"; //
+import { MaterialIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
@@ -133,6 +134,20 @@ const ReturnPolicy = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Return Policy</Text>
+            <Text style={styles.headerSubtitle}>
+              African Standards for Your Peace of Mind
+            </Text>
+          </View>
+        </View>
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.premiumBadge}>
@@ -355,6 +370,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
     borderBottomWidth: 1,
     borderBottomColor: "#BBF7D0",
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Poppins-Regular",
   },
   premiumBadge: {
     backgroundColor: "#FFFBEB",

@@ -15,10 +15,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import axiosClient, { setDetectedCurrency } from "../../api";
-import {
-  getCurrentUser,
-  updateCurrencyRates,
-} from "../../Context/GlobalProvider";
+import { getCurrentUser } from "../../Context/GlobalProvider";
 import CurrencyUpdater from "../components/CurrencyUpdater";
 import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import ProductCard from "../components/ProductCard";
@@ -179,10 +176,6 @@ const Explore = () => {
     };
 
     fetchCats();
-    updateCurrencyRates();
-
-    const interval = setInterval(updateCurrencyRates, 4 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // Fetch products on mount
