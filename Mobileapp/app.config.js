@@ -2,11 +2,6 @@ const { config } = require("dotenv");
 
 config({ path: ".env" });
 
-// Pre-build hook to fix netinfo paths on Windows
-if (process.env.EAS_BUILD || process.env.EXPO_PUBLIC_EAS_BUILD) {
-  require("./scripts/fix-netinfo-paths.js");
-}
-
 module.exports = () => ({
   expo: {
     name: "Nile Flow",

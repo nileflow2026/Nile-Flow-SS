@@ -80,7 +80,7 @@ export default function Login() {
           JSON.stringify({
             email: email,
             rememberMe: true,
-          })
+          }),
         );
       } else {
         // Remove saved credentials if remember me is unchecked
@@ -121,7 +121,7 @@ export default function Login() {
         JSON.stringify({
           email: email,
           rememberMe: true,
-        })
+        }),
       );
     }
   };
@@ -372,20 +372,6 @@ export default function Login() {
                 </div>
               </div>
             </form>
-
-            {/* Register Link */}
-            <div className="text-center pt-6 border-t border-[#E8D6B5] dark:border-[#3A3A3A]">
-              <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3]">
-                Don't have an admin account?{" "}
-                <Link
-                  to="/register"
-                  className="font-semibold text-[#D4A017] dark:text-[#FFD700] hover:underline inline-flex items-center gap-1"
-                >
-                  Request Access
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </p>
-            </div>
 
             {/* Footer */}
             <div className="mt-8 text-center">

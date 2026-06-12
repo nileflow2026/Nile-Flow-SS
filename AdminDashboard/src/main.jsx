@@ -30,7 +30,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
           {/* Login and Register should be publicly accessible */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
           {/* Dashboard is protected and only accessible by admin */}
           <Route path="/dashboard" element={<Dashboard />} />
@@ -42,5 +41,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </Routes>
       </ThemeProvider>
     </AuthProvider>
-  </Router>
+  </Router>,
 );
