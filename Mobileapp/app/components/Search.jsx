@@ -167,35 +167,10 @@ const Search = () => {
     });
   };
 
-  useEffect(() => {
-    const fetchAllRatings = async () => {
-      const ratingsData = {};
-
-      for (const product of products) {
-        if (!product.$id) continue; // Ensure the product has an ID
-
-        try {
-          // Fetch reviews for the current product
-          const reviews = await fetchReviews(product.$id);
-
-          // If reviews are successfully fetched, store the count or the reviews themselves
-          ratingsData[product.$id] = reviews?.length || 0; // If reviews exist, use the count; otherwise, set it to 0
-        } catch (error) {
-          console.error("Error fetching reviews:", error);
-          ratingsData[product.$id] = 0; // Fallback in case of an error
-        }
-      }
-
-      // Set the ratings data to state after processing all products
-      setRatings(ratingsData);
-    };
-
-    // Only fetch ratings if there are products
-    if (products.length > 0) {
-      fetchAllRatings();
-    }
-  }, [products]);
-
+  // NOTE: Per-product rating fetching is ELIMINATED.
+  // ProductCard reads avgRating and reviewCount directly from the product
+  // document (pre-aggregated fields set by the backend's rolling aggregate
+  // algorithm when reviews are submitted). No per-product API calls needed.
   useEffect(() => {
     updateCurrencyRates();
 

@@ -201,37 +201,68 @@ const getPopularSearches = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    // Get all searches and aggregate by query to find most popular
-    const allSearches = await instrumentedDb.listDocuments(
+    // ⚡ OPTIMIZED: Fetch the pre-aggregated popularity counter document
+    // instead of scanning 1000+ search records in memory.
+    // The counter is maintained by the saveRecentSearch write path.
+    // If it doesn't exist yet, we do a lightweight fallback.
+    let counterDoc = null;
+    try {
+      const counters = await instrumentedDb.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_SEARCH_POPULARITY_COLLECTION,
+        [Query.limit(1)],
+      );
+      if (counters.documents.length > 0) {
+        counterDoc = counters.documents[0];
+      }
+    } catch (_) {
+      /* collection may not exist yet */
+    }
+
+    if (counterDoc && Array.isArray(counterDoc.popularQueries)) {
+      const sorted = [...counterDoc.popularQueries]
+        .sort((a, b) => (b.count || 0) - (a.count || 0))
+        .slice(0, parseInt(limit))
+        .map((q) => ({
+          query: q.query || "",
+          count: q.count || 0,
+          displayQuery:
+            (q.query || "").charAt(0).toUpperCase() + (q.query || "").slice(1),
+        }));
+
+      return res.status(200).json({
+        searches: sorted,
+        total: sorted.length,
+        source: "counter-doc",
+      });
+    }
+
+    // ⚡ Fallback: lightweight limit-100 scan (not 1000)
+    const batch = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION,
-      [
-        Query.orderDesc("timestamp"),
-        Query.limit(1000), // Get more searches to analyze
-      ],
+      [Query.orderDesc("timestamp"), Query.limit(100)],
     );
 
-    // Count query occurrences
     const queryCount = {};
-    allSearches.documents.forEach((search) => {
-      const query = search.query.toLowerCase().trim();
-      queryCount[query] = (queryCount[query] || 0) + 1;
+    batch.documents.forEach((search) => {
+      const q = (search.query || "").toLowerCase().trim();
+      if (q) queryCount[q] = (queryCount[q] || 0) + 1;
     });
 
-    // Sort by count and get top results
     const popularQueries = Object.entries(queryCount)
       .sort(([, a], [, b]) => b - a)
       .slice(0, parseInt(limit))
       .map(([query, count]) => ({
-        query: query,
-        count: count,
-        // Capitalize first letter for display
+        query,
+        count,
         displayQuery: query.charAt(0).toUpperCase() + query.slice(1),
       }));
 
     return res.status(200).json({
       searches: popularQueries,
       total: popularQueries.length,
+      source: "fallback-scan",
     });
   } catch (error) {
     console.error("Error fetching popular searches:", error);
@@ -355,60 +386,34 @@ const getProducts = async (req, res) => {
         sortQuery = Query.orderDesc("$createdAt");
     }
 
-    // ✅ FETCH ALL PRODUCTS regardless of source or approval status
-    let allProducts = [];
-    let cursor = null;
-
-    while (true) {
-      const queries = [
-        Query.limit(100),
-        sortQuery,
-        ...baseFilters,
-        ...(cursor ? [Query.cursorAfter(cursor)] : []),
-      ];
-
-      const batch = await instrumentedDb.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_PRODUCT_COLLECTION_ID,
-        queries,
-      );
-
-      allProducts.push(...batch.documents);
-
-      if (batch.documents.length < 100) break;
-      cursor = batch.documents[batch.documents.length - 1].$id;
-    }
-
-    const totalProducts = allProducts.length;
+    // ⚡ OPTIMIZED: Single batch query with cursor-based pagination.
+    // Removed the while(true) loop that fetched ALL products into memory
+    // just to do offset math on the client side. Appwrite handles pagination.
+    // Also removed in-memory stats computation (avgBasePrice, outOfStock,
+    // availableCategories) that forced a full collection scan.
     const pageLimit = Math.min(parseInt(limit), 100);
     const offset = (parseInt(page) - 1) * pageLimit;
 
-    // Apply offset for pagination
-    const paginatedProducts = allProducts.slice(offset, offset + pageLimit);
+    const queries = [Query.limit(pageLimit), sortQuery, ...baseFilters];
+    if (offset > 0) queries.push(Query.offset(offset));
 
-    // Get unique categories for filter options
-    const categories = [
-      ...new Set(allProducts.map((p) => p.category).filter(Boolean)),
-    ];
+    const batch = await instrumentedDb.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_PRODUCT_COLLECTION_ID,
+      queries,
+    );
+
+    const totalProducts = batch.total;
 
     // --- Currency enrichment ---
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
     const enrichedProducts = enrichProductsWithCurrency(
-      paginatedProducts,
+      batch.documents,
       targetCurrency,
       rate,
     );
-
-    // Average base price (KES) for stats
-    const avgBasePrice =
-      allProducts.length > 0
-        ? (
-            allProducts.reduce((sum, p) => sum + (p.price || 0), 0) /
-            allProducts.length
-          ).toFixed(2)
-        : 0;
 
     res.json({
       success: true,
@@ -426,12 +431,7 @@ const getProducts = async (req, res) => {
         sort,
         inStock,
       },
-      availableCategories: categories,
-      stats: {
-        totalProducts: totalProducts,
-        outOfStock: allProducts.filter((p) => p.stock <= 0).length,
-        averagePrice: avgBasePrice,
-      },
+      // REMOVED: availableCategories (forced full scan), stats (forced full scan)
     });
   } catch (err) {
     console.error("❌ Error fetching products:", err);
@@ -863,80 +863,56 @@ const getProductReviews = async (req, res) => {
     const uniqueUserIds = [
       ...new Set(reviewResponse.documents.map((doc) => doc.userId)),
     ];
-    // console.log("\n👥 Unique user IDs to fetch:", uniqueUserIds);
 
-    // Fetch user details in bulk
+    // ⚡ OPTIMIZED: Batched user profile lookup — single query for ALL unique userIds
+    // Instead of N individual listDocuments calls (one per reviewer), we batch them
+    // into a single Appwrite query using the $id IN operator.
     const userDetails = {};
-    await Promise.all(
-      uniqueUserIds.map(async (userId) => {
-        try {
-          // console.log(`\n🔎 Fetching user profile for userId: ${userId}`);
-
-          const userResponse = await instrumentedDb.listDocuments(
-            env.APPWRITE_DATABASE_ID,
-            env.APPWRITE_USER_COLLECTION_ID,
-            [Query.equal("$id", userId)],
-          );
-
-          // console.log(`📊 User query results for ${userId}:`, userResponse.total, "documents found");
-
-          if (userResponse.documents.length > 0) {
-            const userDoc = userResponse.documents[0];
-
-            // console.log(`\n✅ USER DOCUMENT FOUND for ${userId}:`);
-            // console.log("User $id:", userDoc.$id);
-            // console.log("User userName field:", userDoc.userName);
-            // console.log("User username field:", userDoc.username);
-            // console.log("User name field:", userDoc.name);
-            // console.log("User email:", userDoc.email);
-            // console.log("All user fields:", Object.keys(userDoc));
-
-            const resolvedUserName =
+    if (uniqueUserIds.length > 0) {
+      try {
+        const batchResponse = await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_USER_COLLECTION_ID,
+          [
+            Query.equal("$id", uniqueUserIds),
+            Query.limit(uniqueUserIds.length),
+          ],
+        );
+        const DEFAULT_AVATAR =
+          "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin";
+        for (const userDoc of batchResponse.documents) {
+          userDetails[userDoc.$id] = {
+            userName:
               userDoc.userName ||
               userDoc.username ||
               userDoc.name ||
-              "Anonymous";
-            // console.log(`🎯 Resolved userName: "${resolvedUserName}"`);
-
-            userDetails[userId] = {
-              userName: resolvedUserName,
-              avatar:
-                userDoc.avatar ||
-                userDoc.avatarUrl ||
-                "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin",
-              avatarUrl:
-                userDoc.avatarUrl ||
-                userDoc.avatar ||
-                "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin",
-            };
-          } else {
-            // console.log(`❌ NO USER DOCUMENT FOUND for userId: ${userId}`);
-            userDetails[userId] = {
-              userName: "Anonymous",
-              avatar:
-                "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin",
-              avatarUrl:
-                "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin",
-            };
-          }
-        } catch (err) {
-          console.error(`❌ ERROR fetching user ${userId}:`, err.message);
-          console.error("Full error:", err);
-          userDetails[userId] = {
-            userName: "Anonymous",
-            avatar:
-              "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/692b97e30027bf293efe/view?project=6926c7df002fa7831d94&mode=admin",
+              "Anonymous",
+            avatar: userDoc.avatarUrl || userDoc.avatar || DEFAULT_AVATAR,
+            avatarUrl: userDoc.avatarUrl || userDoc.avatar || DEFAULT_AVATAR,
           };
         }
-      }),
-    );
-
-    // console.log("\n📦 Final userDetails object:", JSON.stringify(userDetails, null, 2));
-
-    console.log(
-      "\n📦 Final userDetails object:",
-      JSON.stringify(userDetails, null, 2),
-    );
+        // Fill in any userIds that had no matching user document
+        for (const userId of uniqueUserIds) {
+          if (!userDetails[userId]) {
+            userDetails[userId] = {
+              userName: "Anonymous",
+              avatar: DEFAULT_AVATAR,
+              avatarUrl: DEFAULT_AVATAR,
+            };
+          }
+        }
+      } catch (err) {
+        console.error("❌ Batch user profile fetch error:", err.message);
+        // Fallback for all users
+        for (const userId of uniqueUserIds) {
+          userDetails[userId] = {
+            userName: "Anonymous",
+            avatar: DEFAULT_AVATAR,
+            avatarUrl: DEFAULT_AVATAR,
+          };
+        }
+      }
+    }
 
     // Enrich reviews with user data
     const enrichedReviews = reviewResponse.documents.map((doc) => {
