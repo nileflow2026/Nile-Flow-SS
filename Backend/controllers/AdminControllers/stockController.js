@@ -1,4 +1,5 @@
-const { Query } = require("../../services/appwriteService");
+const { Query, ID } = require("node-appwrite");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 /**
@@ -28,7 +29,7 @@ const checkStockAvailability = async (cartItems) => {
         const product = await instrumentedDb.getDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCT_COLLECTION_ID,
-          productId
+          productId,
         );
 
         const currentStock = product.stock || 0;
@@ -106,7 +107,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
       const mainProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
-        productId
+        productId,
       );
 
       const currentStock = mainProduct.stock || 0;
@@ -114,7 +115,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
       // Validate stock availability
       if (currentStock < quantityToReduce) {
         throw new Error(
-          `Insufficient stock. Available: ${currentStock}, Requested: ${quantityToReduce}`
+          `Insufficient stock. Available: ${currentStock}, Requested: ${quantityToReduce}`,
         );
       }
 
@@ -131,7 +132,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
           updatedAt: new Date().toISOString(),
           salesCount: (mainProduct.salesCount || 0) + quantityToReduce,
           lastSoldAt: new Date().toISOString(),
-        }
+        },
       );
 
       // 3. Update VENDOR PRODUCT collection
@@ -145,12 +146,12 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
             {
               inventory: newStock,
               updatedAt: new Date().toISOString(),
-            }
+            },
           );
         } catch (vendorError) {
           console.warn(
             `Could not update vendor product ${mainProduct.vendorProductId}:`,
-            vendorError.message
+            vendorError.message,
           );
 
           // Fallback: Try to find vendor product by productId
@@ -161,7 +162,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
               [
                 Query.equal("vendorId", vendorId),
                 Query.equal("sku", mainProduct.sku || ""),
-              ]
+              ],
             );
 
             if (vendorProducts.documents.length > 0) {
@@ -172,7 +173,7 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
                 {
                   inventory: newStock,
                   updatedAt: new Date().toISOString(),
-                }
+                },
               );
             }
           } catch (fallbackError) {
@@ -199,12 +200,12 @@ const reduceProductStock = async (cartItems, orderId = "unknown") => {
       });
 
       console.log(
-        `✅ Stock updated for ${mainProduct.productName}: ${currentStock} → ${newStock} (Order: ${orderId})`
+        `✅ Stock updated for ${mainProduct.productName}: ${currentStock} → ${newStock} (Order: ${orderId})`,
       );
     } catch (error) {
       console.error(
         `❌ Failed to reduce stock for product ${productId}:`,
-        error
+        error,
       );
       results.success = false;
       results.errors.push({
@@ -244,7 +245,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
       const mainProduct = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_PRODUCT_COLLECTION_ID,
-        productId
+        productId,
       );
 
       const currentStock = mainProduct.stock || 0;
@@ -260,7 +261,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
           updatedAt: new Date().toISOString(),
           restoredAt: new Date().toISOString(),
           restorationReason: reason,
-        }
+        },
       );
 
       // Update vendor collection
@@ -273,7 +274,7 @@ const restoreProductStock = async (cartItems, reason = "order_cancelled") => {
             {
               inventory: newStock,
               updatedAt: new Date().toISOString(),
-            }
+            },
           );
         } catch (vendorError) {
           console.warn("Vendor stock restore failed:", vendorError);
