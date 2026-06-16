@@ -44,8 +44,10 @@ const HeroCarousel = () => {
 
   const fetchHeroProducts = async () => {
     try {
+      console.log("🎬 Fetching hero products...");
       const res = await axiosClient.get("/api/customerprofile/hero-products");
       const data = res.data;
+      console.log("✅ Hero products received:", data);
       // Preserve the type tag added by the backend; add a fallback in case the
       // backend did not enrich (e.g. older cached response).
       const combined = [
@@ -221,43 +223,72 @@ const HeroCarousel = () => {
 
   return (
     <View style={styles.container}>
-      <Animated.FlatList
-        ref={flatListRef}
-        data={slides}
-        renderItem={renderSlide}
-        keyExtractor={(item, index) => `${item.$id || item.id}-${index}`}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false },
-        )}
-        onMomentumScrollEnd={(event) => {
-          const newIndex = Math.round(
-            event.nativeEvent.contentOffset.x / SLIDE_WIDTH,
-          );
-          setCurrentIndex(newIndex);
-        }}
-      />
+      {loading && (
+        <View
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            height: 200,
+          }}
+        >
+          <ActivityIndicator size="large" color="#16A34A" />
+        </View>
+      )}
+      {!loading && slides.length === 0 && (
+        <View
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            height: 200,
+            backgroundColor: "#F0FDF4",
+          }}
+        >
+          <Text style={{ color: "#6B7280" }}>No products available</Text>
+        </View>
+      )}
+      {slides.length > 0 && (
+        <Animated.FlatList
+          ref={flatListRef}
+          data={slides}
+          renderItem={renderSlide}
+          keyExtractor={(item, index) => `${item.$id || item.id}-${index}`}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: false },
+          )}
+          onMomentumScrollEnd={(event) => {
+            const newIndex = Math.round(
+              event.nativeEvent.contentOffset.x / SLIDE_WIDTH,
+            );
+            setCurrentIndex(newIndex);
+          }}
+        />
+      )}
 
       {/* Pagination Dots */}
-      <View style={styles.pagination}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              {
-                backgroundColor:
-                  index === currentIndex ? "#FFF" : "rgba(255, 255, 255, 0.4)",
-                width: index === currentIndex ? 24 : 8,
-              },
-            ]}
-          />
-        ))}
-      </View>
+      {slides.length > 0 && (
+        <View style={styles.pagination}>
+          {slides.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                {
+                  backgroundColor:
+                    index === currentIndex
+                      ? "#FFF"
+                      : "rgba(255, 255, 255, 0.4)",
+                  width: index === currentIndex ? 24 : 8,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };

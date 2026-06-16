@@ -3,7 +3,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   Award,
   Camera,
@@ -51,6 +51,7 @@ import { usePremiumStatus } from "../../hooks/usePremiumStatus";
 import i18n, { useLanguage } from "../../i18n";
 import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import PremiumMonthlySummary from "./PremiumMonthlySummary";
+import { usePostHog } from "posthog-react-native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -75,6 +76,7 @@ const ProfilePage = () => {
   const [nileMilesLoading, setNileMilesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const posthog = usePostHog();
 
   // Responsive sizing
   const sectionTitleFontSize = width < 350 ? 16 : 18;
@@ -105,8 +107,13 @@ const ProfilePage = () => {
 
   useEffect(() => {
     fetchNileMiles();
-   
   }, [fetchNileMiles, retryKey]);
+
+  useFocusEffect(
+    useCallback(() => {
+      posthog.screen("/BottomTabs/Profile");
+    }, [posthog]),
+  );
 
   const handleRetry = () => {
     setHasError(false);
@@ -137,7 +144,6 @@ const ProfilePage = () => {
     };
 
     fetchOrders();
-   
   }, [isLogged, retryKey]);
 
   const handleImagePicker = async () => {
@@ -459,9 +465,7 @@ const ProfilePage = () => {
       </LinearGradient> */}
 
       {/* Order History */}
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View
@@ -565,9 +569,7 @@ const ProfilePage = () => {
                 style={styles.startShoppingButton}
                 onPress={() => router.push(isLogged ? "/" : "/sign-in")}
               >
-              <View
-                style={styles.startShoppingGradient}
-              >
+                <View style={styles.startShoppingGradient}>
                   {isLogged ? (
                     <Sparkles size={20} color="white" />
                   ) : (
@@ -576,7 +578,7 @@ const ProfilePage = () => {
                   <Text style={styles.startShoppingText}>
                     {isLogged ? "Start Shopping" : "Sign In"}
                   </Text>
-              </View>
+                </View>
               </TouchableOpacity>
             </View>
           )}
@@ -587,9 +589,7 @@ const ProfilePage = () => {
 
   const renderWishlistTab = () => (
     <View style={styles.tabContent}>
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View
@@ -644,9 +644,7 @@ const ProfilePage = () => {
               style={styles.startShoppingButton}
               onPress={() => router.push("/")}
             >
-              <View
-                style={styles.startShoppingGradient}
-              >
+              <View style={styles.startShoppingGradient}>
                 <ShoppingBag size={20} color="white" />
                 <Text style={styles.startShoppingText}>Start Shopping</Text>
               </View>
@@ -655,14 +653,12 @@ const ProfilePage = () => {
         )}
       </View>
     </View>
-  )
+  );
 
   const renderOrdersTab = () => (
     <View style={styles.tabContent}>
       {/* Order History */}
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View
@@ -766,9 +762,7 @@ const ProfilePage = () => {
                 style={styles.startShoppingButton}
                 onPress={() => router.push(isLogged ? "/" : "/sign-in")}
               >
-                <View
-                  style={styles.startShoppingGradient}
-                >
+                <View style={styles.startShoppingGradient}>
                   {isLogged ? (
                     <Sparkles size={20} color="white" />
                   ) : (
@@ -988,9 +982,7 @@ const ProfilePage = () => {
 
   const renderSettingsTab = () => (
     <View style={styles.tabContent}>
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={{ marginBottom: 32 }}>
           <View style={{ marginTop: 40, paddingHorizontal: 16 }}>
             <Text
@@ -1202,9 +1194,7 @@ const ProfilePage = () => {
   const renderProfileInfo = () => (
     <View style={styles.rightColumn}>
       {/* Profile Info Card */}
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Profile Information</Text>
         </View>
@@ -1263,9 +1253,7 @@ const ProfilePage = () => {
           style={styles.editProfileButton}
           onPress={() => router.push("/EditProfile")}
         >
-          <View
-            style={styles.editProfileGradient}
-          >
+          <View style={styles.editProfileGradient}>
             <Settings size={20} color="#16A34A" />
             <Text style={styles.editProfileText}>Edit Profile Information</Text>
           </View>
@@ -1273,9 +1261,7 @@ const ProfilePage = () => {
       </View>
 
       {/* Quick Actions */}
-      <View
-        style={styles.card}
-      >
+      <View style={styles.card}>
         <Text style={styles.cardTitle}>Quick Actions</Text>
 
         <View style={styles.quickActionsContainer}>
@@ -1348,9 +1334,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: "#FFFFFF" }]}
-    >
+    <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
       <SafeAreaView style={styles.container}>
         <ScrollView
           style={styles.scrollView}
@@ -1360,13 +1344,14 @@ const ProfilePage = () => {
           }
         >
           {/* Hero Section */}
-          <View
-            style={styles.heroSection}
-          >
+          <View style={styles.heroSection}>
             <View style={styles.profileHeader}>
               <View style={styles.profileImageContainer}>
                 <View
-                  style={[styles.profileImageGlow, { backgroundColor: "#16A34A", opacity: 0.2 }]}
+                  style={[
+                    styles.profileImageGlow,
+                    { backgroundColor: "#16A34A", opacity: 0.2 },
+                  ]}
                 />
                 <ExpoImage
                   source={{ uri: demoUser.profileImage }}
@@ -1382,7 +1367,10 @@ const ProfilePage = () => {
                   }
                 >
                   <View
-                    style={[styles.cameraGradient, { backgroundColor: "#16A34A" }]}
+                    style={[
+                      styles.cameraGradient,
+                      { backgroundColor: "#16A34A" },
+                    ]}
                   >
                     <Camera size={20} color="white" />
                   </View>
@@ -1400,14 +1388,20 @@ const ProfilePage = () => {
                   <Text style={styles.userName}>{demoUser.name}</Text>
                   {isLogged ? (
                     <View
-                      style={[styles.premiumBadge, { backgroundColor: "#16A34A" }]}
+                      style={[
+                        styles.premiumBadge,
+                        { backgroundColor: "#16A34A" },
+                      ]}
                     >
                       <Text style={styles.premiumText}>PREMIUM</Text>
                     </View>
                   ) : (
                     <TouchableOpacity onPress={() => router.push("/sign-in")}>
                       <View
-                        style={[styles.premiumBadge, { backgroundColor: "#DC2626" }]}
+                        style={[
+                          styles.premiumBadge,
+                          { backgroundColor: "#DC2626" },
+                        ]}
                       >
                         <Text style={styles.premiumText}>SIGN IN</Text>
                       </View>
@@ -1426,25 +1420,19 @@ const ProfilePage = () => {
 
             {/* Stats */}
             <View style={styles.statsContainer}>
-              <View
-                style={styles.statItem}
-              >
+              <View style={styles.statItem}>
                 <Text style={styles.statNumber}>
                   {isLogged ? orders?.length || 0 : "-"}
                 </Text>
                 <Text style={styles.statLabel}>Orders</Text>
               </View>
-              <View
-                style={styles.statItem}
-              >
+              <View style={styles.statItem}>
                 <Text style={styles.statNumber}>
                   {isLogged ? nileMilesData?.currentMiles || 0 : "-"}
                 </Text>
                 <Text style={styles.statLabel}>Miles</Text>
               </View>
-              <View
-                style={styles.statItem}
-              >
+              <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{isLogged ? "100%" : "-"}</Text>
                 <Text style={styles.statLabel}>Verified</Text>
               </View>

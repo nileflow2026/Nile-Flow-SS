@@ -968,262 +968,9 @@ const updateCustomerProfile = async (req, res) => {
   }
 };
 
-/**
- * Generate Google OAuth authorization URL
- */
-function getGoogleOAuthUrl(req, res) {
-  try {
-    const clientId = env.GOOGLE_CLIENT_ID;
-    const redirectUri = env.GOOGLE_REDIRECT_URI;
-
-    if (!clientId || !redirectUri) {
-      return res.status(500).json({
-        error: "Google OAuth not configured",
-      });
-    }
-
-    const state = crypto.randomBytes(16).toString("hex");
-    res.cookie("oauth_state", state, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      domain: "nileflowafrica.com",
-      maxAge: 10 * 60 * 1000,
-      path: "/",
-    });
-
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: "openid email profile",
-      access_type: "offline",
-      prompt: "consent",
-      state,
-    });
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    return res.json({ authUrl });
-  } catch (error) {
-    log.error("Google OAuth URL error:", error?.message || error);
-    return res
-      .status(500)
-      .json({ error: "Failed to generate Google auth URL" });
-  }
-}
-
-/**
- * Google OAuth callback: exchange code, upsert user, issue tokens, redirect
- */
-async function googleOAuthCallback(req, res) {
-  try {
-    const { code, state } = req.query;
-    const cookieState = req.cookies.oauth_state;
-
-    if (!code) {
-      return res.status(400).json({ error: "Missing authorization code" });
-    }
-    if (!state || !cookieState || state !== cookieState) {
-      return res.status(400).json({ error: "Invalid OAuth state" });
-    }
-
-    const tokenParams = new URLSearchParams({
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      code,
-      grant_type: "authorization_code",
-      redirect_uri: env.GOOGLE_REDIRECT_URI,
-    });
-
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: tokenParams.toString(),
-    });
-
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      log.warn("Google token exchange failed:", text);
-      return res.status(400).json({ error: "Token exchange failed" });
-    }
-
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
-
-    const profileRes = await fetch(
-      "https://www.googleapis.com/oauth2/v2/userinfo",
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-    );
-
-    if (!profileRes.ok) {
-      const text = await profileRes.text();
-      log.warn("Google userinfo fetch failed:", text);
-      return res.status(400).json({ error: "Failed to fetch user profile" });
-    }
-
-    const profile = await profileRes.json();
-    const email = profile.email;
-    const name = profile.name || profile.given_name || "Google User";
-    const avatarUrl = profile.picture || avatars.getInitials(name);
-
-    const userId = await upsertOAuthUser({ email, name, avatarUrl });
-    const accessPayload = { sub: userId, role: "customer" };
-    const accessJwt = signAccessToken(accessPayload);
-    const refreshPayload = { sub: userId };
-    const refreshJwt = signRefreshToken(refreshPayload);
-
-    try {
-      await persistRefreshToken({
-        userId,
-        refreshToken: refreshJwt,
-        ip: req.ip || null,
-        userAgent: req.headers?.["user-agent"] || null,
-        deviceId: null,
-        rotatedFrom: null,
-      });
-    } catch (e) {
-      log.error("Persist refresh token (Google) failed:", e?.message || e);
-    }
-
-    const redirectUrl = `${
-      env.FRONTEND_URL
-    }/oauth/callback?token=${encodeURIComponent(
-      accessJwt,
-    )}&refreshToken=${encodeURIComponent(refreshJwt)}`;
-    return res.redirect(302, redirectUrl);
-  } catch (error) {
-    log.error("Google OAuth callback error:", error?.message || error);
-    return res.status(500).json({ error: "Google OAuth failed" });
-  }
-}
-
-/**
- * Generate Facebook OAuth authorization URL
- */
-function getFacebookOAuthUrl(req, res) {
-  try {
-    const appId = env.FACEBOOK_APP_ID;
-    const redirectUri = env.FACEBOOK_REDIRECT_URI;
-
-    if (!appId || !redirectUri) {
-      return res.status(500).json({ error: "Facebook OAuth not configured" });
-    }
-
-    const state = crypto.randomBytes(16).toString("hex");
-    const cookieDomain = getCookieDomain(req);
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 10 * 60 * 1000,
-      path: "/",
-    };
-
-    if (cookieDomain) {
-      cookieOptions.domain = cookieDomain;
-    }
-
-    res.cookie("oauth_state", state, cookieOptions);
-
-    const params = new URLSearchParams({
-      client_id: appId,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: "email,public_profile",
-      state,
-    });
-
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
-    return res.json({ authUrl });
-  } catch (error) {
-    log.error("Facebook OAuth URL error:", error?.message || error);
-    return res
-      .status(500)
-      .json({ error: "Failed to generate Facebook auth URL" });
-  }
-}
-
-/**
- * Facebook OAuth callback: exchange code, upsert user, issue tokens, redirect
- */
-async function facebookOAuthCallback(req, res) {
-  try {
-    const { code, state } = req.query;
-    const cookieState = req.cookies.oauth_state;
-
-    if (!code) {
-      return res.status(400).json({ error: "Missing authorization code" });
-    }
-    if (!state || !cookieState || state !== cookieState) {
-      return res.status(400).json({ error: "Invalid OAuth state" });
-    }
-
-    const tokenParams = new URLSearchParams({
-      client_id: env.FACEBOOK_APP_ID,
-      client_secret: env.FACEBOOK_APP_SECRET,
-      code,
-      redirect_uri: env.FACEBOOK_REDIRECT_URI,
-    });
-
-    const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?${tokenParams.toString()}`;
-    const tokenRes = await fetch(tokenUrl, { method: "GET" });
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      log.warn("Facebook token exchange failed:", text);
-      return res.status(400).json({ error: "Token exchange failed" });
-    }
-
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
-
-    const profileUrl =
-      "https://graph.facebook.com/me?fields=id,name,email,picture.type(large)";
-    const profileRes = await fetch(
-      `${profileUrl}&access_token=${encodeURIComponent(accessToken)}`,
-    );
-    if (!profileRes.ok) {
-      const text = await profileRes.text();
-      log.warn("Facebook userinfo fetch failed:", text);
-      return res.status(400).json({ error: "Failed to fetch user profile" });
-    }
-
-    const profile = await profileRes.json();
-    const email = profile.email || `${profile.id}@facebook.local`;
-    const name = profile.name || "Facebook User";
-    const avatarUrl = profile?.picture?.data?.url || avatars.getInitials(name);
-
-    const userId = await upsertOAuthUser({ email, name, avatarUrl });
-    const accessPayload = { sub: userId, role: "customer" };
-    const accessJwt = signAccessToken(accessPayload);
-    const refreshPayload = { sub: userId };
-    const refreshJwt = signRefreshToken(refreshPayload);
-
-    try {
-      await persistRefreshToken({
-        userId,
-        refreshToken: refreshJwt,
-        ip: req.ip || null,
-        userAgent: req.headers?.["user-agent"] || null,
-        deviceId: null,
-        rotatedFrom: null,
-      });
-    } catch (e) {
-      log.error("Persist refresh token (Facebook) failed:", e?.message || e);
-    }
-
-    const redirectUrl = `${
-      env.FRONTEND_URL
-    }/oauth/callback?token=${encodeURIComponent(
-      accessJwt,
-    )}&refreshToken=${encodeURIComponent(refreshJwt)}`;
-    return res.redirect(302, redirectUrl);
-  } catch (error) {
-    log.error("Facebook OAuth callback error:", error?.message || error);
-    return res.status(500).json({ error: "Facebook OAuth failed" });
-  }
-}
+/* ====================================================================
+   OAuth Helpers
+   ==================================================================== */
 
 /**
  * Upsert user for OAuth flows using Appwrite Users and profile collection
@@ -1305,6 +1052,318 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
 
   return created.$id;
 }
+
+/* ====================================================================
+   Google OAuth
+   ==================================================================== */
+
+/**
+ * Generate Google OAuth authorization URL
+ * Supports optional ?redirect_uri query param for mobile deep links.
+ */
+function getGoogleOAuthUrl(req, res) {
+  try {
+    const clientId = env.GOOGLE_CLIENT_ID;
+    const redirectUri = env.GOOGLE_REDIRECT_URI;
+
+    if (!clientId || !redirectUri) {
+      return res.status(500).json({
+        error: "Google OAuth not configured",
+      });
+    }
+
+    // Accept optional redirect_uri from the client (e.g. nileflowapp://oauth/callback)
+    const clientRedirectUri = req.query.redirect_uri || "";
+
+    const state = crypto.randomBytes(16).toString("hex");
+    // Encode the client's desired redirect_uri into the state so we can
+    // use it in the callback instead of the default FRONTEND_URL
+    const statePayload = clientRedirectUri
+      ? `${state}:${encodeURIComponent(clientRedirectUri)}`
+      : state;
+
+    // For mobile OAuth flows the oauth_state cookie must not have a specific
+    // domain set, and must use Lax or None sameSite so it survives the redirect
+    // from the OAuth provider back to our callback endpoint.
+    const isMobile = Boolean(req.query.redirect_uri);
+    const cookieSecure = process.env.NODE_ENV === "production";
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      secure: cookieSecure,
+      sameSite: isMobile ? "lax" : "strict",
+      maxAge: 10 * 60 * 1000,
+      path: "/",
+    });
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      access_type: "offline",
+      prompt: "consent",
+      state: statePayload,
+    });
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    return res.json({ authUrl });
+  } catch (error) {
+    log.error("Google OAuth URL error:", error?.message || error);
+    return res
+      .status(500)
+      .json({ error: "Failed to generate Google auth URL" });
+  }
+}
+
+/**
+ * Google OAuth callback: exchange code, upsert user, issue tokens, redirect
+ * to the client-specified redirect_uri (or FRONTEND_URL by default).
+ */
+async function googleOAuthCallback(req, res) {
+  try {
+    const { code, state } = req.query;
+    const cookieState = req.cookies.oauth_state;
+
+    if (!code) {
+      return res.status(400).json({ error: "Missing authorization code" });
+    }
+
+    // Extract the CSRF token and optional client redirect_uri from state
+    let csrfState = state || "";
+    let clientRedirectUri = "";
+    if (csrfState.includes(":")) {
+      const colonIdx = csrfState.indexOf(":");
+      csrfState = csrfState.substring(0, colonIdx);
+      clientRedirectUri = decodeURIComponent(csrfState.substring(colonIdx + 1));
+    }
+
+    if (!csrfState || !cookieState || csrfState !== cookieState) {
+      return res.status(400).json({ error: "Invalid OAuth state" });
+    }
+
+    const tokenParams = new URLSearchParams({
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: env.GOOGLE_REDIRECT_URI,
+    });
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: tokenParams.toString(),
+    });
+
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      log.warn("Google token exchange failed:", text);
+      return res.status(400).json({ error: "Token exchange failed" });
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    const profileRes = await fetch(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+
+    if (!profileRes.ok) {
+      const text = await profileRes.text();
+      log.warn("Google userinfo fetch failed:", text);
+      return res.status(400).json({ error: "Failed to fetch user profile" });
+    }
+
+    const profile = await profileRes.json();
+    const email = profile.email;
+    const name = profile.name || profile.given_name || "Google User";
+    const avatarUrl = profile.picture || avatars.getInitials(name);
+
+    const userId = await upsertOAuthUser({ email, name, avatarUrl });
+    const accessPayload = { sub: userId, role: "customer" };
+    const accessJwt = signAccessToken(accessPayload);
+    const refreshPayload = { sub: userId };
+    const refreshJwt = signRefreshToken(refreshPayload);
+
+    try {
+      await persistRefreshToken({
+        userId,
+        refreshToken: refreshJwt,
+        ip: req.ip || null,
+        userAgent: req.headers?.["user-agent"] || null,
+        deviceId: null,
+        rotatedFrom: null,
+      });
+    } catch (e) {
+      log.error("Persist refresh token (Google) failed:", e?.message || e);
+    }
+
+    // Use client-specified redirect_uri when available (mobile deep link),
+    // otherwise fall back to the website FRONTEND_URL
+    const baseRedirect = clientRedirectUri || env.FRONTEND_URL;
+    const redirectUrl = `${baseRedirect}?token=${encodeURIComponent(accessJwt)}&refreshToken=${encodeURIComponent(refreshJwt)}`;
+    return res.redirect(302, redirectUrl);
+  } catch (error) {
+    log.error("Google OAuth callback error:", error?.message || error);
+    return res.status(500).json({ error: "Google OAuth failed" });
+  }
+}
+
+/* ====================================================================
+   Facebook OAuth
+   ==================================================================== */
+
+/**
+ * Generate Facebook OAuth authorization URL
+ * Supports optional ?redirect_uri query param for mobile deep links.
+ */
+function getFacebookOAuthUrl(req, res) {
+  try {
+    const appId = env.FACEBOOK_APP_ID;
+    const redirectUri = env.FACEBOOK_REDIRECT_URI;
+
+    if (!appId || !redirectUri) {
+      return res.status(500).json({ error: "Facebook OAuth not configured" });
+    }
+
+    // Accept optional redirect_uri from the client (e.g. nileflowapp://oauth/callback)
+    const clientRedirectUri = req.query.redirect_uri || "";
+
+    const state = crypto.randomBytes(16).toString("hex");
+    // Encode the client's desired redirect_uri into the state
+    const statePayload = clientRedirectUri
+      ? `${state}:${encodeURIComponent(clientRedirectUri)}`
+      : state;
+
+    const cookieDomain = getCookieDomain(req);
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 10 * 60 * 1000,
+      path: "/",
+    };
+
+    if (cookieDomain) {
+      cookieOptions.domain = cookieDomain;
+    }
+
+    res.cookie("oauth_state", state, cookieOptions);
+
+    const params = new URLSearchParams({
+      client_id: appId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "email,public_profile",
+      state: statePayload,
+    });
+
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
+    return res.json({ authUrl });
+  } catch (error) {
+    log.error("Facebook OAuth URL error:", error?.message || error);
+    return res
+      .status(500)
+      .json({ error: "Failed to generate Facebook auth URL" });
+  }
+}
+
+/**
+ * Facebook OAuth callback: exchange code, upsert user, issue tokens, redirect
+ * to the client-specified redirect_uri (or FRONTEND_URL by default).
+ */
+async function facebookOAuthCallback(req, res) {
+  try {
+    const { code, state } = req.query;
+    const cookieState = req.cookies.oauth_state;
+
+    if (!code) {
+      return res.status(400).json({ error: "Missing authorization code" });
+    }
+
+    // Extract the CSRF token and optional client redirect_uri from state
+    let csrfState = state || "";
+    let clientRedirectUri = "";
+    if (csrfState.includes(":")) {
+      const colonIdx = csrfState.indexOf(":");
+      clientRedirectUri = decodeURIComponent(csrfState.substring(colonIdx + 1));
+      csrfState = csrfState.substring(0, colonIdx);
+    }
+
+    if (!csrfState || !cookieState || csrfState !== cookieState) {
+      return res.status(400).json({ error: "Invalid OAuth state" });
+    }
+
+    const tokenParams = new URLSearchParams({
+      client_id: env.FACEBOOK_APP_ID,
+      client_secret: env.FACEBOOK_APP_SECRET,
+      code,
+      redirect_uri: env.FACEBOOK_REDIRECT_URI,
+    });
+
+    const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?${tokenParams.toString()}`;
+    const tokenRes = await fetch(tokenUrl, { method: "GET" });
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      log.warn("Facebook token exchange failed:", text);
+      return res.status(400).json({ error: "Token exchange failed" });
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    const profileUrl =
+      "https://graph.facebook.com/me?fields=id,name,email,picture.type(large)";
+    const profileRes = await fetch(
+      `${profileUrl}&access_token=${encodeURIComponent(accessToken)}`,
+    );
+    if (!profileRes.ok) {
+      const text = await profileRes.text();
+      log.warn("Facebook userinfo fetch failed:", text);
+      return res.status(400).json({ error: "Failed to fetch user profile" });
+    }
+
+    const profile = await profileRes.json();
+    const email = profile.email || `${profile.id}@facebook.local`;
+    const name = profile.name || "Facebook User";
+    const avatarUrl = profile?.picture?.data?.url || avatars.getInitials(name);
+
+    const userId = await upsertOAuthUser({ email, name, avatarUrl });
+    const accessPayload = { sub: userId, role: "customer" };
+    const accessJwt = signAccessToken(accessPayload);
+    const refreshPayload = { sub: userId };
+    const refreshJwt = signRefreshToken(refreshPayload);
+
+    try {
+      await persistRefreshToken({
+        userId,
+        refreshToken: refreshJwt,
+        ip: req.ip || null,
+        userAgent: req.headers?.["user-agent"] || null,
+        deviceId: null,
+        rotatedFrom: null,
+      });
+    } catch (e) {
+      log.error("Persist refresh token (Facebook) failed:", e?.message || e);
+    }
+
+    // Use client-specified redirect_uri when available (mobile deep link),
+    // otherwise fall back to the website FRONTEND_URL
+    const baseRedirect = clientRedirectUri || env.FRONTEND_URL;
+    const redirectUrl = `${baseRedirect}?token=${encodeURIComponent(accessJwt)}&refreshToken=${encodeURIComponent(refreshJwt)}`;
+    return res.redirect(302, redirectUrl);
+  } catch (error) {
+    log.error("Facebook OAuth callback error:", error?.message || error);
+    return res.status(500).json({ error: "Facebook OAuth failed" });
+  }
+}
+
+/* ====================================================================
+   Pickup Address
+   ==================================================================== */
 
 /**
  * Save customer pickup address

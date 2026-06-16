@@ -1389,10 +1389,21 @@ const getProductsByCategory = async (req, res) => {
 
     console.log(`✅ Found ${products.total} products`);
 
+    // --- Currency enrichment (same as getProductsForMobile) ---
+    const targetCurrency = validateCurrencyCode(req.currency) || "KES";
+    const rates = await getAllRates();
+    const rate = rates[targetCurrency] ?? 1;
+    const enrichedProducts = enrichProductsWithCurrency(
+      products.documents,
+      targetCurrency,
+      rate,
+    );
+
     res.status(200).json({
       success: true,
-      products: products.documents,
+      products: enrichedProducts,
       count: products.total,
+      currency: targetCurrency,
     });
   } catch (error) {
     console.error("❌ Failed to fetch products by category:", error);

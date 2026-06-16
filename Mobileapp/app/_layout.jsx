@@ -4,7 +4,10 @@ import * as Updates from "expo-updates";
 import Constants from "expo-constants";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
-import GlobalProvider, { getCurrentUser } from "@/Context/GlobalProvider";
+import GlobalProvider, {
+  useGlobalContext,
+  getCurrentUser,
+} from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
 import { ThemeProvider } from "@/Context/ThemeProvider";
@@ -77,23 +80,9 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const hasIdentified = useRef(false);
 
-  // Get user from GlobalProvider context to avoid a 2nd API call
-  // GlobalProvider already calls getCurrentUser() at mount
-  useEffect(() => {
-    // Use a lazy import or pass through context
-    // For now, just set the user from a single call
-    // The GlobalProvider already fetched the user — we read from the cache
-    const fetchUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  // User identity is handled by GlobalProvider at mount.
+  // Removed redundant getCurrentUser() call — GlobalProvider provides user through context.
+  // PostHog identify is handled via GlobalProvider context when available.
 
   // Identify user in PostHog only once
   useEffect(() => {
@@ -109,7 +98,7 @@ function AppContent() {
   }, [user?.id]);
 
   // Track screen views automatically on every navigation
-  useEffect(() => {
+  /*   useEffect(() => {
     if (pathname) {
       posthog.screen(pathname, {});
       posthog.flush();
@@ -120,7 +109,7 @@ function AppContent() {
     posthog.debug(true);
     posthog.capture("app_opened");
     posthog.flush();
-  }, [posthog]);
+  }, [posthog]); */
 
   const [fontsLoaded, fontError] = useFonts({
     "Poppins-Thin": require("../assets/fonts/Poppins-Thin.ttf"),
@@ -203,8 +192,8 @@ function RootLayout() {
   const posthogHost =
     Constants.expoConfig?.extra?.EXPO_PUBLIC_POSTHOG_HOST ||
     process.env.EXPO_PUBLIC_POSTHOG_HOST;
-  console.log("POSTHOG KEY:", posthogApiKey);
-  console.log("POSTHOG HOST:", posthogHost);
+  /*   console.log("POSTHOG KEY:", posthogApiKey);
+  console.log("POSTHOG HOST:", posthogHost); */
 
   return (
     <PostHogProvider

@@ -54,13 +54,18 @@ const SignIn = () => {
       setError("");
       setSubmitting(true);
 
-      // Get the OAuth URL from the backend
-      const res = await axiosClient.get(`/api/customerauth/oauth/${provider}`);
+      // The deep-link URI the OAuth provider should redirect back to.
+      // expo-web-browser intercepts this scheme and returns control to the app.
+      const REDIRECT = "nileflowapp://oauth/callback";
+
+      // Get the OAuth URL from the backend, passing the mobile redirect_uri
+      const res = await axiosClient.get(
+        `/api/customerauth/oauth/${provider}?redirect_uri=${encodeURIComponent(REDIRECT)}`,
+      );
       const authUrl = res.data?.authUrl;
       if (!authUrl) throw new Error("Failed to get auth URL");
 
       // Open in-app browser; expo-web-browser watches for the nileflowapp:// redirect
-      const REDIRECT = "nileflowapp://oauth/callback";
       const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT);
 
       if (result.type !== "success") return; // user cancelled

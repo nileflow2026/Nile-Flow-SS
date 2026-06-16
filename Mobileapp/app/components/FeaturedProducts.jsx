@@ -31,15 +31,18 @@ const FeaturedProducts = () => {
     setError(false);
     setLoading(true);
     try {
+      console.log("📦 Fetching featured products...");
       const response = await axiosClient.get(
         "/api/customerprofile/featured-products",
       );
+      console.log("✅ Featured products received:", response.data);
       const items = Array.isArray(response.data)
         ? response.data.filter(Boolean)
         : [];
       setProducts(items);
+      console.log("✅ Featured products set:", items.length, "items");
     } catch (err) {
-      console.error("Failed to fetch featured products:", err);
+      console.error("❌ Failed to fetch featured products:", err.message);
       setError(true);
     } finally {
       setLoading(false);
@@ -185,8 +188,28 @@ const FeaturedProducts = () => {
   }
 
   if (products.length === 0) {
-    return null;
+    console.log(
+      "📦 FeaturedProducts: No products, but still rendering section header",
+    );
+    return (
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="trophy" size={24} color="#16A34A" />
+            <Text style={styles.headerTitle}>Featured Products</Text>
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 20 }}>
+          <Text style={{ color: "#6B7280", textAlign: "center" }}>
+            No featured products available
+          </Text>
+        </View>
+      </View>
+    );
   }
+
+  console.log("✅ FeaturedProducts: Rendering %d products", products.length);
 
   return (
     <View style={styles.container}>

@@ -1,8 +1,8 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BackHandler,
   ScrollView,
@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
-import { getCurrentUser } from "../../Context/GlobalProvider";
+import { getCurrentUser, useGlobalContext } from "../../Context/GlobalProvider";
 import i18n, { useLanguage } from "../../i18n";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
@@ -22,7 +22,6 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import HeroCarousel from "../components/HeroCarousel";
 import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
-import { usePostHog } from "posthog-react-native";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -86,7 +85,7 @@ const HomeErrorFallback = ({ onRetry }) => (
         marginBottom: 36,
       }}
     >
-      We couldn’t reach Nile Flow right now. Check your connection and try
+      We couldn't reach Nile Flow right now. Check your connection and try
       again.
     </Text>
     <TouchableOpacity
@@ -276,6 +275,98 @@ const HomeSkeleton = () => (
 const Home = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
+  const { user, loading: userLoading } = useGlobalContext();
+  const [categories, setCategories] = useState([i18n.t("All")]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(i18n.t("All"));
+  const [selectedLanguageLabel, setSelectedLanguageLabel] = useState("English");
+  const [taglineIndex, setTaglineIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [dataReady, setDataReady] = useState(false);
+
+  const handleRetry = () => {
+    setHasError(false);
+    setIsLoading(true);
+    setDataReady(false);
+    setRetryKey((k) => k + 1);
+  };
+
+  // Rotating tagline
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaglineIndex((prev) => (prev + 1) % TAGLINES.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Consolidated startup: user + categories in parallel ──
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId;
+
+    const load = async () => {
+      // Safety net: if nothing completes in 10s, force dataReady
+      timeoutId = setTimeout(() => {
+        if (!cancelled) {
+          console.warn("⏱️ Home: safety timeout fired, forcing dataReady");
+          setDataReady(true);
+          setIsLoading(false);
+        }
+      }, 10000);
+
+      try {
+        // Fetch user (non-blocking for the UI — user can be null)
+        const currentUser = await getCurrentUser().catch(() => null);
+        if (currentUser) {
+          // user state is managed by GlobalProvider, not local state
+        }
+      } catch (_) {
+        // User fetch failure is non-fatal
+      }
+
+      try {
+        // Fetch categories
+        const res = await axiosClient.get("/api/customerprofile/categories");
+        if (!cancelled && Array.isArray(res.data)) {
+          const cats = ["All", ...res.data.map((cat) => cat.name)];
+          setCategories(cats);
+          setCategoryData(res.data);
+        } else if (
+          !cancelled &&
+          res.data.success &&
+          Array.isArray(res.data.categories)
+        ) {
+          const categoryNames = res.data.categories.map((cat) =>
+            typeof cat === "string" ? cat : cat.name,
+          );
+          setCategories(["All", ...categoryNames]);
+          if (res.data.categories[0]?.img) setCategoryData(res.data.categories);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("❌ Error fetching categories:", err.message);
+          // Graceful fallback — categories already default to ["All"]
+        }
+      }
+
+      if (!cancelled) {
+        clearTimeout(timeoutId);
+        setDataReady(true);
+        setIsLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [retryKey]);
+
+  // BackHandler
   useEffect(() => {
     const onBackPress = () => {
       try {
@@ -291,98 +382,30 @@ const Home = () => {
     );
     return () => subscription.remove();
   }, [router]);
-  const [user, setUser] = useState(null);
-  const posthog = usePostHog();
 
-  const [categories, setCategories] = useState([i18n.t("All")]);
-  const [categoryData, setCategoryData] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(i18n.t("All"));
-  const [selectedLanguageLabel, setSelectedLanguageLabel] = useState("English");
-  const [taglineIndex, setTaglineIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
-
-  const handleRetry = () => {
-    setHasError(false);
-    setIsLoading(true);
-    setRetryKey((k) => k + 1);
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTaglineIndex((prev) => (prev + 1) % TAGLINES.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [retryKey]);
-
-  // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCats = async () => {
-      try {
-        const res = await axiosClient.get("/api/customerprofile/categories");
-        /* console.log("Categories API response:", res.data); */
-
-        // Backend returns array of category objects directly
-        if (Array.isArray(res.data)) {
-          // Extract category names from objects
-          const categoryNames = res.data.map((cat) => cat.name);
-          const cats = ["All", ...categoryNames];
-
-          setCategories(cats);
-          setCategoryData(res.data); // Store full data with images
-          /* console.log("Categories set:", cats);
-              console.log("Category data with images:", res.data); */
-        } else if (res.data.success && Array.isArray(res.data.categories)) {
-          // Alternative format: { success: true, categories: [...] }
-          const categoryNames = res.data.categories.map((cat) =>
-            typeof cat === "string" ? cat : cat.name,
-          );
-          const cats = ["All", ...categoryNames];
-
-          setCategories(cats);
-          if (res.data.categories[0]?.img) {
-            setCategoryData(res.data.categories);
-          }
-          /* console.log("Categories set:", cats); */
-        } else {
-          console.warn("Unexpected category response format");
-          setCategories(["All"]);
-        }
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        console.error("Error details:", err.response?.data);
-        setHasError(true);
-        setCategories(["All"]);
-      }
-    };
-
-    fetchCats();
-  }, [retryKey]);
-
-  if (isLoading) {
+  // ── Show skeleton while loading ──
+  if ((isLoading || userLoading) && !dataReady) {
+    console.log(
+      "🎭 Home: Showing skeleton (isLoading=%s, userLoading=%s, dataReady=%s)",
+      isLoading,
+      userLoading,
+      dataReady,
+    );
     return <HomeSkeleton />;
   }
 
+  // ── Error state ──
   if (hasError) {
+    console.log("❌ Home: Showing error fallback");
     return <HomeErrorFallback onRetry={handleRetry} />;
   }
+
+  console.log(
+    "✅ Home: Rendering main content (isLoading=%s, userLoading=%s, dataReady=%s)",
+    isLoading,
+    userLoading,
+    dataReady,
+  );
 
   return (
     <View
@@ -397,17 +420,10 @@ const Home = () => {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Header Section */}
-        <LinearGradient
-          colors={["#16A34A", "#14532D"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerContainer}
-        >
-          {/* Decorative background circles */}
+        <View style={[styles.headerContainer, { backgroundColor: "#16A34A" }]}>
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
           <View style={styles.decorCircle3} />
-
           <View style={styles.greetingRow}>
             <View style={styles.profileContainer}>
               <View style={styles.avatarWrapper}>
@@ -434,18 +450,14 @@ const Home = () => {
               </View>
             </View>
           </View>
-
           {/* Rotating tagline pill */}
           <View style={styles.taglinePill}>
             <Text style={styles.taglineText}>{TAGLINES[taglineIndex]}</Text>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Hero Carousel */}
         <HeroCarousel />
-
-        {/* Premium Banner */}
-        {/* <PremiumBanner /> */}
 
         {/* Categories Section */}
         <Categories
@@ -458,12 +470,7 @@ const Home = () => {
 
         {/* Featured Products Section */}
         <FeaturedProducts />
-
-        {/* Premium Deals Section */}
-        <PremiumDeals />
       </ScrollView>
-      {/* AI Chat Assistant - Overlay on top */}
-      {/*  <AIChat /> */}
     </View>
   );
 };
@@ -575,7 +582,7 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "black", // Adjust based on your theme
+    color: "black",
   },
   cartButton: {
     paddingHorizontal: 16,

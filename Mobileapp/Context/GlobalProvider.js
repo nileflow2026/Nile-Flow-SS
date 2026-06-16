@@ -52,12 +52,21 @@ export const invalidateUserCache = () => {
 export const getCurrentUser = async (forceRefresh = false) => {
   if (!forceRefresh) {
     const cached = getCachedUser();
-    if (cached) return cached;
+    if (cached) {
+      console.log("📦 [getCurrentUser] Returning cached user");
+      return cached;
+    }
   }
 
   // Deduplicate in-flight requests
-  if (_userCachePromise) return _userCachePromise;
+  if (_userCachePromise) {
+    console.log("⏳ [getCurrentUser] In-flight request detected, awaiting...");
+    return _userCachePromise;
+  }
 
+  console.log(
+    "🌐 [getCurrentUser] Fetching from /api/customerauth/getCustomerProfile",
+  );
   _userCachePromise = (async () => {
     try {
       const response = await axiosClient.get(
@@ -67,6 +76,7 @@ export const getCurrentUser = async (forceRefresh = false) => {
       const user = response.data?.user || response.data;
 
       if (!user || typeof user !== "object") {
+        console.warn("⚠️ [getCurrentUser] Invalid user object:", user);
         return null;
       }
 
@@ -84,11 +94,12 @@ export const getCurrentUser = async (forceRefresh = false) => {
           : user.avatarUrl,
       };
 
+      console.log("✅ [getCurrentUser] Successfully fetched user");
       setCachedUser(sanitizedUser);
       return sanitizedUser;
     } catch (error) {
       console.log(
-        "Error fetching current user:",
+        "❌ [getCurrentUser] Error:",
         error.response?.data?.error || error.message,
       );
       return null;
@@ -715,8 +726,14 @@ const GlobalProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
+      console.log("🔄 [GlobalProvider] Starting fetchUser");
       try {
         const currentUser = await getCurrentUser();
+        console.log(
+          "✅ [GlobalProvider] getCurrentUser returned:",
+          currentUser ? "User object" : "null",
+        );
+
         if (currentUser) {
           setIsLogged(true);
 
@@ -734,9 +751,11 @@ const GlobalProvider = ({ children }) => {
           setUser(null);
         }
       } catch (error) {
+        console.error("❌ [GlobalProvider] fetchUser error:", error.message);
         setIsLogged(false);
         setUser(null);
       } finally {
+        console.log("✅ [GlobalProvider] Setting loading = false");
         setLoading(false);
       }
     };

@@ -25,6 +25,156 @@ import {
 } from "../../hooks/usePushNotifications";
 import { min } from "moment";
 
+const NotificationsSkeleton = () => (
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      {/* Controls bar skeleton */}
+      <View
+        style={{
+          marginHorizontal: 16,
+          marginVertical: 16,
+          padding: 24,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: "#E5E7EB",
+          backgroundColor: "#F9FAFB",
+        }}
+      >
+        {/* Filter buttons row */}
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+          {[90, 80, 100].map((w, i) => (
+            <View
+              key={i}
+              style={{
+                width: w,
+                height: 42,
+                borderRadius: 12,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          ))}
+        </View>
+        {/* Action buttons row */}
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <View
+            style={{
+              flex: 1,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: "#E5E7EB",
+            }}
+          />
+          <View
+            style={{
+              flex: 1,
+              height: 44,
+              borderRadius: 12,
+              backgroundColor: "#E5E7EB",
+            }}
+          />
+        </View>
+      </View>
+
+      {/* Notification card skeletons — 3 items */}
+      <View style={{ paddingHorizontal: 16, gap: 16 }}>
+        {[0, 1, 2].map((idx) => (
+          <View
+            key={idx}
+            style={{
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+              backgroundColor: "#FFFFFF",
+              padding: 16,
+              flexDirection: "row",
+              gap: 16,
+            }}
+          >
+            {/* Icon placeholder */}
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+            {/* Content */}
+            <View style={{ flex: 1 }}>
+              {/* First line: title + timestamp */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <View
+                  style={{
+                    width: "55%",
+                    height: 15,
+                    borderRadius: 4,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
+                <View
+                  style={{
+                    width: 80,
+                    height: 12,
+                    borderRadius: 4,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
+              </View>
+              {/* Description line */}
+              <View
+                style={{
+                  width: "75%",
+                  height: 13,
+                  borderRadius: 4,
+                  backgroundColor: "#E5E7EB",
+                  marginBottom: 10,
+                }}
+              />
+              {/* Action buttons row */}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View
+                  style={{
+                    width: 100,
+                    height: 30,
+                    borderRadius: 8,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
+                <View
+                  style={{
+                    width: 70,
+                    height: 30,
+                    borderRadius: 8,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
+              </View>
+            </View>
+            {/* Status dot */}
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: "#E5E7EB",
+                position: "absolute",
+                top: 16,
+                right: 16,
+              }}
+            />
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  </SafeAreaView>
+);
+
 export default function MyNotificationsScreen() {
   const [notifications, setNotifications] = useState([]);
   const { setNotificationCount } = useNotification();
@@ -68,38 +218,27 @@ export default function MyNotificationsScreen() {
   );
 
   // Refresh notifications list every time the screen comes into focus
+  // This is the SINGLE source of truth for notification fetching.
+  // The mount useEffect below has been removed to prevent double-fetch storms.
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
-      getCustomerNotification()
-        .then((data) => setNotifications(data))
-        .catch(() => {});
-    }, [user]),
-  );
-
-  useEffect(() => {
-    const initNotifications = async () => {
       if (!user) {
         setLoading(false);
+        setNotifications([]);
         return;
       }
-
-      try {
-        const notificationsData = await getCustomerNotification();
-        setNotifications(notificationsData);
-        setNotificationCount(notificationsData.length);
-      } catch (error) {
-        console.error("❌ Failed to fetch notifications:", error.message);
-        setHasError(true);
-        setNotifications([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initNotifications();
-     
-  }, [user, setNotificationCount, retryKey]);
+      getCustomerNotification()
+        .then((data) => {
+          setNotifications(data);
+          setNotificationCount(data.length);
+        })
+        .catch(() => {
+          setHasError(true);
+          setNotifications([]);
+        })
+        .finally(() => setLoading(false));
+    }, [user, setNotificationCount]),
+  );
 
   const handleRetry = () => {
     setHasError(false);
@@ -209,6 +348,11 @@ export default function MyNotificationsScreen() {
     if (type === "message") return ["#2563eb", "#1d4ed8"];
     return ["#059669", "#047857"];
   };
+
+  // ── Show skeleton while initial data is loading ──
+  if (loading) {
+    return <NotificationsSkeleton />;
+  }
 
   if (!loading && hasError) {
     return <NetworkErrorFallback onRetry={handleRetry} />;
@@ -354,176 +498,156 @@ export default function MyNotificationsScreen() {
           )}
         </View>
 
-        {/* Loading State */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <View style={styles.loadingSpinner}>
-              <ActivityIndicator size="large" color="#16A34A" />
-              <MaterialIcons
-                name="notifications"
-                size={40}
-                color="#16A34A"
-                style={styles.loadingIcon}
-              />
-            </View>
-            <Text style={styles.loadingTitle}>Loading Notifications</Text>
-            <Text style={styles.loadingDescription}>
-              Fetching your premium alerts...
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.notificationsContainer}>
-            {/* Notifications List */}
-            <View style={styles.notificationsList}>
-              {filteredNotifications.length > 0 ? (
-                filteredNotifications.map((notification) => (
-                  <View
-                    key={notification.$id}
-                    style={[
-                      styles.notificationCard,
-                      !notification.read && styles.unreadNotificationCard,
-                    ]}
-                  >
-                    <View style={styles.notificationContent}>
-                      {/* Notification Icon */}
-                      <View
-                        style={[
-                          styles.notificationIcon,
-                          notification.read
-                            ? styles.readNotificationIcon
-                            : styles.unreadNotificationIcon,
-                        ]}
-                      >
-                        <MaterialIcons
-                          name={getNotificationIcon(
-                            notification.type,
-                            notification.priority,
-                          )}
-                          size={24}
-                          color={notification.read ? "#6B7280" : "#ffffff"}
-                        />
-                      </View>
-
-                      {/* Message Content */}
-                      <View style={styles.messageContent}>
-                        <View style={styles.messageHeader}>
-                          <Text
-                            style={[
-                              styles.messageText,
-                              notification.read
-                                ? styles.readMessageText
-                                : styles.unreadMessageText,
-                            ]}
-                          >
-                            {notification.message}
-                          </Text>
-                          <View style={styles.messageTimestamp}>
-                            <MaterialIcons
-                              name="access-time"
-                              size={12}
-                              color="#9ca3af"
-                            />
-                            <Text style={styles.timestampText}>
-                              {new Date(
-                                notification.timestamp ||
-                                  notification.$createdAt,
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text style={styles.messageDescription}>
-                          {notification.description ||
-                            "Premium African marketplace update"}
-                        </Text>
-
-                        {!notification.read && (
-                          <View style={styles.newBadge}>
-                            <Text style={styles.newBadgeText}>NEW</Text>
-                          </View>
+        <View style={styles.notificationsContainer}>
+          {/* Notifications List */}
+          <View style={styles.notificationsList}>
+            {filteredNotifications.length > 0 ? (
+              filteredNotifications.map((notification) => (
+                <View
+                  key={notification.$id}
+                  style={[
+                    styles.notificationCard,
+                    !notification.read && styles.unreadNotificationCard,
+                  ]}
+                >
+                  <View style={styles.notificationContent}>
+                    {/* Notification Icon */}
+                    <View
+                      style={[
+                        styles.notificationIcon,
+                        notification.read
+                          ? styles.readNotificationIcon
+                          : styles.unreadNotificationIcon,
+                      ]}
+                    >
+                      <MaterialIcons
+                        name={getNotificationIcon(
+                          notification.type,
+                          notification.priority,
                         )}
-
-                        {/* Action Buttons */}
-                        <View style={styles.notificationActions}>
-                          {!notification.read && (
-                            <TouchableOpacity
-                              onPress={() => handleMarkAsRead(notification.$id)}
-                              style={styles.markReadButton}
-                            >
-                              <MaterialIcons
-                                name="done"
-                                size={16}
-                                color="#ffffff"
-                              />
-                              <Text style={styles.markReadButtonText}>
-                                Mark as Read
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-
-                          <TouchableOpacity
-                            onPress={() =>
-                              handleDeleteNotification(notification.$id)
-                            }
-                            style={styles.deleteButton}
-                          >
-                            <MaterialIcons
-                              name="delete"
-                              size={16}
-                              color="#fca5a5"
-                            />
-                            <Text style={styles.deleteButtonText}>Delete</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      {/* Status Indicator */}
-                      <View
-                        style={[
-                          styles.statusIndicator,
-                          notification.read
-                            ? styles.readStatusIndicator
-                            : styles.unreadStatusIndicator,
-                        ]}
+                        size={24}
+                        color={notification.read ? "#6B7280" : "#ffffff"}
                       />
                     </View>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyIcon}>
-                    <MaterialIcons
-                      name="notifications"
-                      size={48}
-                      color="#16A34A"
+
+                    {/* Message Content */}
+                    <View style={styles.messageContent}>
+                      <View style={styles.messageHeader}>
+                        <Text
+                          style={[
+                            styles.messageText,
+                            notification.read
+                              ? styles.readMessageText
+                              : styles.unreadMessageText,
+                          ]}
+                        >
+                          {notification.message}
+                        </Text>
+                        <View style={styles.messageTimestamp}>
+                          <MaterialIcons
+                            name="access-time"
+                            size={12}
+                            color="#9ca3af"
+                          />
+                          <Text style={styles.timestampText}>
+                            {new Date(
+                              notification.timestamp || notification.$createdAt,
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.messageDescription}>
+                        {notification.description ||
+                          "Premium African marketplace update"}
+                      </Text>
+
+                      {!notification.read && (
+                        <View style={styles.newBadge}>
+                          <Text style={styles.newBadgeText}>NEW</Text>
+                        </View>
+                      )}
+
+                      {/* Action Buttons */}
+                      <View style={styles.notificationActions}>
+                        {!notification.read && (
+                          <TouchableOpacity
+                            onPress={() => handleMarkAsRead(notification.$id)}
+                            style={styles.markReadButton}
+                          >
+                            <MaterialIcons
+                              name="done"
+                              size={16}
+                              color="#ffffff"
+                            />
+                            <Text style={styles.markReadButtonText}>
+                              Mark as Read
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          onPress={() =>
+                            handleDeleteNotification(notification.$id)
+                          }
+                          style={styles.deleteButton}
+                        >
+                          <MaterialIcons
+                            name="delete"
+                            size={16}
+                            color="#fca5a5"
+                          />
+                          <Text style={styles.deleteButtonText}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Status Indicator */}
+                    <View
+                      style={[
+                        styles.statusIndicator,
+                        notification.read
+                          ? styles.readStatusIndicator
+                          : styles.unreadStatusIndicator,
+                      ]}
                     />
                   </View>
-                  <Text style={styles.emptyTitle}>No Notifications</Text>
-                  <Text style={styles.emptyDescription}>
-                    {filter === "all"
-                      ? "You're all caught up! Check back later for updates on your orders and exclusive African product deals."
-                      : `No ${filter} notifications at the moment.`}
-                  </Text>
-                  {filter !== "all" && (
-                    <TouchableOpacity
-                      onPress={() => setFilter("all")}
-                      style={styles.viewAllButton}
-                    >
-                      <Text style={styles.viewAllButtonText}>
-                        View All Notifications
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-              )}
-            </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <MaterialIcons
+                    name="notifications"
+                    size={48}
+                    color="#16A34A"
+                  />
+                </View>
+                <Text style={styles.emptyTitle}>No Notifications</Text>
+                <Text style={styles.emptyDescription}>
+                  {filter === "all"
+                    ? "You're all caught up! Check back later for updates on your orders and exclusive African product deals."
+                    : `No ${filter} notifications at the moment.`}
+                </Text>
+                {filter !== "all" && (
+                  <TouchableOpacity
+                    onPress={() => setFilter("all")}
+                    style={styles.viewAllButton}
+                  >
+                    <Text style={styles.viewAllButtonText}>
+                      View All Notifications
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
-        )}
+        </View>
       </ScrollView>
 
       <Modal

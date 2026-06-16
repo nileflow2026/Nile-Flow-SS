@@ -1,51 +1,105 @@
-# GlobalProvider Audit — Mobile Read Investigation
+# GLOBALPROVIDER AUDIT
 
 ## File: `Mobileapp/Context/GlobalProvider.js`
 
-### Functions Audited
+---
 
-| Function                    | Trigger                                                                      | Dependencies             | Calls API?    | Endpoint                                          | How Often                                     | Can Loop?                      | Risk            |
-| --------------------------- | ---------------------------------------------------------------------------- | ------------------------ | ------------- | ------------------------------------------------- | --------------------------------------------- | ------------------------------ | --------------- |
-| `getCurrentUser()`          | Mount, \_layout, Home, Explore, Profile, Settings, Addresses, ProductDetails | none                     | YES           | `/api/customerauth/getCustomerProfile`            | **6+ times per launch**                       | NO (async, not state-reactive) | 🔴 **CRITICAL** |
-| `fetchUserId()`             | CartContext, ProductDetails, saveRecentSearch                                | calls `getCurrentUser()` | YES (cascade) | Same as getCurrentUser                            | Every call to fetchUserId                     | NO                             | 🟠 HIGH         |
-| `fetchUserName()`           | CartContext, ProductDetails                                                  | calls `getCurrentUser()` | YES (cascade) | Same                                              | Every call to fetchUserName                   | NO                             | 🟠 HIGH         |
-| `getCustomerNotification()` | NotificationContext, MyNotificationsScreen                                   | none                     | YES           | `/api/customernotifications/customernotification` | On mount + every focus                        | NO                             | 🟠 HIGH         |
-| `updateCurrencyRates()`     | Home.jsx, Explore.jsx                                                        | none                     | YES           | `/api/update-currencies/update-currencies`        | **2 simultaneous intervals** (Home + Explore) | NO                             | 🟡 MEDIUM       |
-| `handleLogout()`            | User action                                                                  | none                     | YES           | `/api/customerauth/logout/customer`               | On demand                                     | NO                             | 🟢 LOW          |
-| `startGuestSessionFlow()`   | User action                                                                  | none                     | YES           | `/api/customerauth/guest-session`                 | On demand                                     | NO                             | 🟢 LOW          |
-| `submitReview()`            | ProductDetails                                                               | none                     | YES           | `/api/customerprofile/submit-review`              | On demand                                     | NO                             | 🟢 LOW          |
-| `getCustomerOrders()`       | Profile                                                                      | none                     | YES           | `/api/customerprofile/customer-orders`            | On Profile mount + refresh                    | NO                             | 🟡 MEDIUM       |
+### useEffect #1 — `checkGuestStatus`
 
-### useEffect Analysis in GlobalProvider
+| Field            | Value                  |
+| ---------------- | ---------------------- |
+| **Trigger**      | Mount only (`[]` deps) |
+| **Dependencies** | `[]`                   |
+| **Calls API?**   | No                     |
+| **How Often?**   | Once                   |
+| **Can It Loop?** | No                     |
+| **Risk Score**   | 🟢 Low                 |
 
-**Effect 1**: `checkGuestStatus()` — runs once on mount. Reads AsyncStorage only. **Safe.**
+Reads AsyncStorage only. Safe.
 
-**Effect 2**: `fetchUser()` — runs once on mount. Calls `getCurrentUser()`. **Was causing 1 read + CACHING now added.**
+---
 
-### Root Cause
+### useEffect #2 — `fetchUser`
 
-`getCurrentUser()` had **zero caching** — every call hit the backend. It was called from:
+| Field               | Value                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| **Trigger**         | Mount only (`[]` deps)                                                |
+| **Dependencies**    | `[]`                                                                  |
+| **Calls API?**      | Yes — `getCurrentUser()` → `GET /api/customerauth/getCustomerProfile` |
+| **Which Endpoint?** | `/api/customerauth/getCustomerProfile`                                |
+| **How Often?**      | Once on provider mount                                                |
+| **Can It Loop?**    | No                                                                    |
+| **Risk Score**      | 🟡 Medium (duplicated by other callers)                               |
 
-1. GlobalProvider mount (1x)
-2. `_layout.jsx` AppContent mount (1x — now reads cache)
-3. `Home.jsx` mount (1x — now reads cache)
-4. `Explore.jsx` mount (1x — now reads cache)
-5. `Profile.jsx` via `fetchNileMiles()` (1x — now reads cache)
-6. `Settings.jsx` via `fetchNileMiles()` (1x — now reads cache)
-7. CartContext via `fetchUserId()`/`loadCartFromStorage()` (1x — now reads cache)
-8. ProductDetails via `handleAddReview()` (1x — now reads cache)
+**Evidence**: Lines 268-295. Calls `getCurrentUser()` which fires one network request. The in-memory cache prevents duplicates within the 60s TTL window.
 
-**Fix Applied**: In-memory cache with 60s TTL + in-flight deduplication.
+---
 
-### What About Loops?
+### getCurrentUser() function
 
-**No infinite loops detected** in GlobalProvider. The provider's effects run once (empty deps `[]`). However, state updates in GlobalProvider (`setUser`, `setIsLogged`, `setLoading`, `setIsGuest`) cause **all consumers of `useGlobalContext()` to re-render**.
+| Field            | Value                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| **Trigger**      | Called by GlobalProvider, `_layout.jsx` AppContent, Home, Explore, NotificationContext, Profile |
+| **Endpoint**     | `GET /api/customerauth/getCustomerProfile`                                                      |
+| **How Often?**   | Multiple times per app launch                                                                   |
+| **Can It Loop?** | No — has dedup promise + 60s TTL                                                                |
+| **Risk Score**   | 🟡 Medium                                                                                       |
 
-### Context Cascade Risk
+**Evidence**: The function has a `_userCachePromise` dedup and 60s TTL cache (lines 37-66). However, the TTL of 60 seconds means it fires a network call every minute if called repeatedly.
 
-**HIGH**. Every time `setUser` is called, every component using `useGlobalContext()` re-renders. This includes:
+---
 
-- BottomTabs (re-renders tab bar + ALL 5 tab screens)
-- Every screen that uses `user`, `isLogged`, `isGuest`
+### Export Inventory
 
-**Mitigation**: `useMemo` on the context value prevents unnecessary re-renders when values don't change.
+| Export                      | Trigger                                                       | Calls API? | Endpoint                                            |
+| --------------------------- | ------------------------------------------------------------- | ---------- | --------------------------------------------------- |
+| `getCurrentUser()`          | Provider mount, Layout, Home, Explore, Notifications, Profile | ✅         | `/api/customerauth/getCustomerProfile`              |
+| `signUp()`                  | User action                                                   | ✅         | `/api/customerauth/signup/customer`                 |
+| `signIn()`                  | User action                                                   | ✅         | `/api/customerauth/signin/customer`                 |
+| `signOut()`                 | User action                                                   | ✅         | `/api/customerauth/logout/customer`                 |
+| `createGuestSession()`      | User action                                                   | ✅         | `/api/customerauth/guest-session`                   |
+| `getGuestUser()`            | startGuestSessionFlow                                         | ✅         | `/api/customerauth/guest-session`                   |
+| `createNotification()`      | Various actions                                               | ✅         | `/api/customernotifications/createnotification`     |
+| `saveRecentSearch()`        | User action                                                   | ✅         | `/api/customerprofile/customer-searches`            |
+| `getRecentSearches()`       | User action                                                   | ✅         | `/api/customerprofile/customer-recent-search`       |
+| `clearRecentSearches()`     | User action                                                   | ✅         | `/api/customerprofile/clear-recent-search`          |
+| `getCustomerNotification()` | NotificationContext mount, MyNotificationsScreen focus        | ✅         | `/api/customernotifications/customernotification`   |
+| `getCustomerOrders()`       | Profile mount                                                 | ✅         | `/api/customerprofile/customer-orders`              |
+| `fetchReviews()`            | ProductDetails mount                                          | ✅         | `/api/customerprofile/fetch-reviews/:id`            |
+| `fetchUserId()`             | CartContext, Profile, ProductDetails                          | ✅         | Calls `getCurrentUser()` internally                 |
+| `fetchUserName()`           | CartContext, ProductDetails                                   | ✅         | Calls `getCurrentUser()` internally                 |
+| `getlatestProducts()`       | (exported, usage unknown)                                     | ✅         | `/api/customerprofile/fetch-product-mobile?limit=5` |
+
+---
+
+### Cascading Rerender Analysis
+
+**State that changes**:
+
+- `user` — set once on mount
+- `isLogged` — set once on mount
+- `loading` — transitions `true → false` once
+- `isGuest` — set once on mount
+
+**useMemo dependencies**: `[isLogged, user, loading, isGuest]`
+
+**Risk**: Low. State is set once on mount and doesn't cascade. The provider does not re-fetch on any child rerender.
+
+**Verdict**: ✅ GlobalProvider itself is NOT causing cascading rerenders. The issue is EXTERNAL callers calling `getCurrentUser()` redundantly.
+
+---
+
+### Duplicate Callers of getCurrentUser()
+
+| Caller                        | File                        | Frequency                               |
+| ----------------------------- | --------------------------- | --------------------------------------- |
+| GlobalProvider useEffect      | `GlobalProvider.js:268`     | Once on mount                           |
+| AppContent useEffect          | `_layout.jsx:107`           | Once on layout mount **<-- REDUNDANT**  |
+| Home mount useEffect          | `Home.jsx:136`              | Once on Home mount **<-- REDUNDANT**    |
+| Explore mount useEffect       | `Explore.jsx:118`           | Once on Explore mount **<-- REDUNDANT** |
+| NotificationContext useEffect | `NotificationContext.js:74` | Once on mount **<-- REDUNDANT**         |
+| CartContext loadUserId        | `CartContext_NEW.js:99`     | Once on mount **<-- REDUNDANT**         |
+
+**Total redundant calls per app launch**: 5-6 calls to `getCurrentUser()` despite 60s TTL — but the first call in GlobalProvider populates the cache, so subsequent calls within 60s hit cache. The problem occurs when the app stays open >60s — every new screen mount fires a fresh network call.
+
+**Estimated Read Impact**: If user opens Home (1) → Explore (1) → ProductDetails (1) → Cart (1) → Profile (1) in a 3-minute session, that's 5 `getCurrentUser()` calls → 5 Appwrite reads. With 368,160 daily reads, this accounts for roughly 25-30%.

@@ -19,8 +19,177 @@ import { getCurrentUser } from "../../Context/GlobalProvider";
 import CurrencyUpdater from "../components/CurrencyUpdater";
 import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import ProductCard from "../components/ProductCard";
+import { usePostHog } from "posthog-react-native";
 
 const MemoizedProductCard = React.memo(ProductCard);
+
+const ExploreSkeleton = () => (
+  <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    {/* Fixed Header skeleton */}
+    <View
+      style={{
+        paddingHorizontal: 16,
+        paddingTop: 50,
+        paddingBottom: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        backgroundColor: "#FFFFFF",
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+        <View
+          style={{
+            width: 180,
+            height: 22,
+            borderRadius: 6,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: "#F3F4F6",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: "#E5E7EB",
+          gap: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+        <View
+          style={{
+            flex: 1,
+            height: 14,
+            borderRadius: 6,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+      </View>
+    </View>
+
+    {/* Categories pills */}
+    <View
+      style={{
+        flexDirection: "row",
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        gap: 8,
+      }}
+    >
+      {[60, 80, 70, 90, 65].map((w, i) => (
+        <View
+          key={i}
+          style={{
+            width: w,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+      ))}
+    </View>
+
+    {/* Product grid skeleton — 2 columns, 4 rows */}
+    <View
+      style={{
+        flexDirection: "row",
+        paddingHorizontal: 10,
+        gap: 10,
+      }}
+    >
+      {[0, 1].map((col) => (
+        <View key={col} style={{ flex: 1, gap: 16 }}>
+          {[0, 1, 2, 3].map((row) => (
+            <View
+              key={row}
+              style={{
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+                backgroundColor: "#F9FAFB",
+                overflow: "hidden",
+              }}
+            >
+              {/* Image placeholder */}
+              <View
+                style={{
+                  height: 180,
+                  backgroundColor: "#E5E7EB",
+                }}
+              />
+              {/* Content placeholder */}
+              <View style={{ padding: 12 }}>
+                <View
+                  style={{
+                    width: "85%",
+                    height: 14,
+                    borderRadius: 4,
+                    backgroundColor: "#E5E7EB",
+                    marginBottom: 8,
+                  }}
+                />
+                <View
+                  style={{
+                    width: "50%",
+                    height: 10,
+                    borderRadius: 4,
+                    backgroundColor: "#E5E7EB",
+                    marginBottom: 10,
+                  }}
+                />
+                <View
+                  style={{
+                    width: "60%",
+                    height: 18,
+                    borderRadius: 4,
+                    backgroundColor: "#E5E7EB",
+                    marginBottom: 10,
+                  }}
+                />
+                <View
+                  style={{
+                    width: "100%",
+                    height: 36,
+                    borderRadius: 12,
+                    backgroundColor: "#E5E7EB",
+                  }}
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
 const Explore = () => {
   const router = useRouter();
@@ -50,24 +219,42 @@ const Explore = () => {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasError, setHasError] = useState(false);
+  const [forceShowContent, setForceShowContent] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
+  const posthog = usePostHog();
 
   const spinValue = useRef(new Animated.Value(0)).current;
   const searchInputRef = useRef(null);
   // Cursor for the fetch-product-mobile endpoint (cursor-based pagination)
   const nextCursorRef = useRef(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    };
+  // User identity is managed by GlobalProvider — removed redundant getCurrentUser().
+  // Using useGlobalContext() from context avoids the duplicate API call.
 
-    fetchUser();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      posthog.screen("/BottomTabs/Explore");
+    }, [posthog]),
+  );
+
+  // Safety timeout: if loading takes more than 8 seconds, force show content anyway
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading || !products.length) {
+        console.warn(
+          "⏱️ Explore: Loading took >8s, forcing content to display",
+        );
+        setForceShowContent(true);
+        setLoading(false);
+      }
+    }, 8000);
+
+    if (!loading) {
+      clearTimeout(timer);
+    }
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Fetch all data with pagination
   const fetchAllData = useCallback(
@@ -87,9 +274,14 @@ const Explore = () => {
           } else {
             nextCursorRef.current = null; // reset on fresh load
           }
+          console.log("📥 Calling fetch-product-mobile with params:", params);
           const response = await axiosClient.get(
             `/api/customerprofile/fetch-product-mobile`,
             { params },
+          );
+          console.log(
+            "✅ Received fetch-product-mobile response:",
+            response.data,
           );
 
           if (response.data.success) {
@@ -127,6 +319,7 @@ const Explore = () => {
           setProducts(freshProducts);
           setPage(1);
           setLoading(false);
+          setDataReady(true);
         } else {
           setAllProducts((prev) => [...prev, ...freshProducts]);
           setProducts((prev) => [...prev, ...freshProducts]);
@@ -209,11 +402,12 @@ const Explore = () => {
     }
   }, [searchQuery, allProducts]);
 
-  // Reload when focused
+  // Reload when focused — staleTime increased from 5min to 15min to reduce redundant fetches
   useFocusEffect(
     useCallback(() => {
+      const FIFTEEN_MIN_MS = 15 * 60 * 1000;
       const shouldRefetch =
-        !lastUpdated || Date.now() - lastUpdated.getTime() > 5 * 60 * 1000;
+        !lastUpdated || Date.now() - lastUpdated.getTime() > FIFTEEN_MIN_MS;
 
       if (selectedCategory && shouldRefetch) {
         setPage(1);
@@ -314,9 +508,28 @@ const Explore = () => {
     [categories, selectedCategory],
   );
 
+  // ── Show skeleton while initial data is loading ──
+  if (loading && !dataReady && !forceShowContent) {
+    console.log(
+      "🎭 Explore: Showing skeleton (loading=%s, dataReady=%s, forceShowContent=%s)",
+      loading,
+      dataReady,
+      forceShowContent,
+    );
+    return <ExploreSkeleton />;
+  }
+
   if (hasError && products.length === 0) {
+    console.log("❌ Explore: Showing error fallback");
     return <NetworkErrorFallback onRetry={handleRetry} />;
   }
+
+  console.log(
+    "✅ Explore: Rendering main content (products=%d, loading=%s, forceShowContent=%s)",
+    products.length,
+    loading,
+    forceShowContent,
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -438,7 +651,7 @@ const Explore = () => {
         )}
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            {loading ? (
+            {loading && !forceShowContent ? (
               <>
                 <Ionicons name="hourglass-outline" size={48} color="#F59E0B" />
                 <Text style={styles.emptyText}>Loading...</Text>

@@ -14,6 +14,7 @@ const {
   instrumentedDb,
   users,
   account,
+  getCachedUser,
 } = require("../../services/appwriteService");
 
 // Ensure critical env values exist

@@ -256,10 +256,31 @@ const ProductCard = ({
               <Text style={styles.price}>
                 {(() => {
                   const raw = price ?? productData.price;
-                  if (raw && typeof raw === "object" && raw.displayValue) {
-                    return raw.displayValue;
+                  if (raw && typeof raw === "object") {
+                    // Prefer displayValue (e.g. "KSh 1,500"), fall back to formatting with currency symbol
+                    if (raw.displayValue) return raw.displayValue;
+                    const symbol =
+                      {
+                        KES: "KSh",
+                        UGX: "UGX",
+                        TZS: "TSh",
+                        ETB: "Br",
+                        NGN: "₦",
+                        GHS: "GH₵",
+                        RWF: "RWF",
+                        SSP: "SSP",
+                        ZMW: "ZK",
+                        MZN: "MT",
+                        BWP: "P",
+                        ZAR: "R",
+                        USD: "$",
+                        EUR: "€",
+                        GBP: "£",
+                      }[raw.currency] || "$";
+                    return `${symbol} ${(parseFloat(raw.convertedPrice ?? raw.raw ?? 0) || 0).toLocaleString(undefined, { minimumFractionDigits: raw.currency === "KES" || raw.currency === "UGX" ? 0 : 2, maximumFractionDigits: raw.currency === "KES" || raw.currency === "UGX" ? 0 : 2 })}`;
                   }
-                  return `$${(parseFloat(raw) || 0).toFixed(2)}`;
+                  // Legacy fallback: plain number — detect currency from global header or default to KSh
+                  return `KSh ${(parseFloat(raw) || 0).toLocaleString()}`;
                 })()}
               </Text>
               {productData.originalPrice && (

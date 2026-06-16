@@ -60,48 +60,9 @@ export const NotificationProvider = ({ children }) => {
     initPush();
   }, [handleNotificationResponse]);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (!user) {
-          // User not logged in, skip notification initialization
-          console.log(
-            "User not logged in, skipping notification initialization",
-          );
-          return;
-        }
-
-        const notifications = await getCustomerNotification();
-        const unreadCount = notifications.filter((n) => !n.read).length;
-        setNotificationCount(unreadCount);
-      } catch (err) {
-        console.error("Error initializing notifications:", err);
-      }
-    };
-
-    init();
-
-    // Realtime subscription disabled to prevent connection errors when user is not authenticated
-    /* const unsubscribe = client.subscribe(
-      `databases.${Config.databaseId}.collections.${Config.NOTIFICATIONS_COLLECTION_ID}.documents`,
-      async (response) => {
-        const { payload, events } = response;
-        const user = await getCurrentUser();
-
-        if (
-          events.includes("databases.*.documents.*.create") &&
-          payload.userId === user.$id &&
-          payload.type === "userNotification" &&
-          payload.read === false
-        ) {
-          setNotificationCount((prev) => prev + 1);
-        }
-      }
-    );
-
-    return () => unsubscribe(); */
-  }, []);
+  // Notification fetch removed from provider level.
+  // MyNotificationsScreen's useFocusEffect is the single source of truth.
+  // This eliminates the redundant startup fetch storm (2 API calls per launch).
 
   return (
     <NotificationContext.Provider

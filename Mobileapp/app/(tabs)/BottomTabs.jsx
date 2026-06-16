@@ -174,8 +174,12 @@ const BottomTabs = () => {
 
   useFocusEffect(
     useCallback(() => {
+      console.log("📍 BottomTabs: Screen focused");
       setIsFocused(true);
-      return () => setIsFocused(false);
+      return () => {
+        console.log("📍 BottomTabs: Screen blurred");
+        setIsFocused(false);
+      };
     }, []),
   );
 
@@ -248,7 +252,26 @@ const BottomTabs = () => {
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <View style={{ flex: 1, paddingBottom: totalTabBarHeight }}>
-        {isFocused && <ActiveComponent />}
+        {/* Render only the active tab — prevents layout collapse from absolute positioning */}
+        {TABS.map((tab, index) => {
+          const TabComponent = tab.Component;
+          if (index === 0) {
+            console.log(
+              `🔄 BottomTabs: Tab 0 (Home) - isFocused=${isFocused}, activeTab=${activeTab}`,
+            );
+          }
+          return (
+            <View
+              key={tab.id}
+              style={{
+                flex: 1,
+                display: activeTab === index ? "flex" : "none",
+              }}
+            >
+              {activeTab === index && isFocused && <TabComponent />}
+            </View>
+          );
+        })}
       </View>
       {renderTabBar()}
     </View>

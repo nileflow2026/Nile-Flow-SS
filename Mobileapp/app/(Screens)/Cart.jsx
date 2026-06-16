@@ -1,4 +1,3 @@
- 
 /* eslint-disable no-unused-vars */
 
 import { Image } from "expo-image";
@@ -17,8 +16,310 @@ import { useCart } from "../../Context/CartContext_NEW";
 
 const { width } = Dimensions.get("window");
 
+const CartSkeleton = () => (
+  <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <ScrollView
+      style={{ flex: 1, paddingHorizontal: 16, paddingTop: 32 }}
+      contentContainerStyle={{ paddingBottom: 100 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header placeholders */}
+      <View
+        style={{
+          width: 200,
+          height: 32,
+          borderRadius: 6,
+          backgroundColor: "#E5E7EB",
+          alignSelf: "center",
+          marginBottom: 4,
+        }}
+      />
+      <View
+        style={{
+          width: 280,
+          height: 16,
+          borderRadius: 6,
+          backgroundColor: "#E5E7EB",
+          alignSelf: "center",
+          marginBottom: 24,
+        }}
+      />
+
+      {/* Summary row — 4 boxes */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginBottom: 24,
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              marginHorizontal: 4,
+              borderRadius: 16,
+              padding: 12,
+              alignItems: "center",
+              backgroundColor: "#F3F4F6",
+            }}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 22,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+                marginBottom: 4,
+              }}
+            />
+            <View
+              style={{
+                width: "70%",
+                height: 12,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          </View>
+        ))}
+      </View>
+
+      {/* Cart item cards — 2 items */}
+      {[0, 1].map((idx) => (
+        <View
+          key={idx}
+          style={{
+            backgroundColor: "#F9FAFB",
+            borderRadius: 18,
+            marginBottom: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: "#E5E7EB",
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+            }}
+          >
+            {/* Image */}
+            <View
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 12,
+                backgroundColor: "#E5E7EB",
+                marginRight: 16,
+              }}
+            />
+            {/* Text lines */}
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  width: "80%",
+                  height: 16,
+                  borderRadius: 4,
+                  backgroundColor: "#E5E7EB",
+                  marginBottom: 6,
+                }}
+              />
+              <View
+                style={{
+                  width: "40%",
+                  height: 16,
+                  borderRadius: 4,
+                  backgroundColor: "#E5E7EB",
+                  marginBottom: 4,
+                }}
+              />
+              <View
+                style={{
+                  width: "55%",
+                  height: 13,
+                  borderRadius: 4,
+                  backgroundColor: "#E5E7EB",
+                }}
+              />
+            </View>
+            {/* Quantity buttons */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginLeft: 8,
+              }}
+            >
+              <View
+                style={{
+                  width: 32,
+                  height: 28,
+                  borderRadius: 8,
+                  backgroundColor: "#E5E7EB",
+                  marginHorizontal: 2,
+                }}
+              />
+              <View
+                style={{
+                  width: 24,
+                  height: 16,
+                  borderRadius: 4,
+                  backgroundColor: "#E5E7EB",
+                  marginHorizontal: 6,
+                }}
+              />
+              <View
+                style={{
+                  width: 32,
+                  height: 28,
+                  borderRadius: 8,
+                  backgroundColor: "#E5E7EB",
+                  marginHorizontal: 2,
+                }}
+              />
+              <View
+                style={{
+                  width: 50,
+                  height: 28,
+                  borderRadius: 8,
+                  backgroundColor: "#E5E7EB",
+                  marginLeft: 8,
+                }}
+              />
+            </View>
+          </View>
+          {/* Total line */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              marginTop: 4,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 14,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+                marginRight: 8,
+              }}
+            />
+            <View
+              style={{
+                width: 80,
+                height: 16,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          </View>
+        </View>
+      ))}
+
+      {/* Order Summary box */}
+      <View
+        style={{
+          backgroundColor: "#F9FAFB",
+          borderRadius: 18,
+          padding: 20,
+          marginBottom: 32,
+          borderWidth: 1,
+          borderColor: "#E5E7EB",
+        }}
+      >
+        <View
+          style={{
+            width: 140,
+            height: 20,
+            borderRadius: 6,
+            backgroundColor: "#E5E7EB",
+            alignSelf: "center",
+            marginBottom: 16,
+          }}
+        />
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 8,
+            }}
+          >
+            <View
+              style={{
+                width: 70,
+                height: 15,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+            <View
+              style={{
+                width: 90,
+                height: 15,
+                borderRadius: 4,
+                backgroundColor: "#E5E7EB",
+              }}
+            />
+          </View>
+        ))}
+        {/* Total separator */}
+        <View
+          style={{
+            width: "100%",
+            height: 1,
+            backgroundColor: "#E5E7EB",
+            marginTop: 8,
+            marginBottom: 8,
+          }}
+        />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginBottom: 16,
+          }}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 18,
+              borderRadius: 4,
+              backgroundColor: "#E5E7EB",
+            }}
+          />
+          <View
+            style={{
+              width: 100,
+              height: 22,
+              borderRadius: 4,
+              backgroundColor: "#E5E7EB",
+            }}
+          />
+        </View>
+        {/* Checkout button */}
+        <View
+          style={{
+            width: "100%",
+            height: 50,
+            borderRadius: 12,
+            backgroundColor: "#E5E7EB",
+          }}
+        />
+      </View>
+    </ScrollView>
+  </View>
+);
+
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity, fetchCartItems } = useCart();
+  const [isLoadingCart, setIsLoadingCart] = useState(true);
 
   const router = useRouter();
   useEffect(() => {
@@ -43,10 +344,16 @@ const Cart = () => {
   const cartRef = useRef(cart);
   cartRef.current = cart;
 
+  // Track whether the initial cart fetch has completed
+  const initialFetchDone = useRef(false);
+
   useFocusEffect(
     useCallback(() => {
-      if (cartRef.current.length === 0) {
-        fetchCartItems();
+      if (cartRef.current.length === 0 && !initialFetchDone.current) {
+        initialFetchDone.current = true;
+        fetchCartItems().finally(() => setIsLoadingCart(false));
+      } else if (cartRef.current.length > 0) {
+        setIsLoadingCart(false);
       }
     }, [fetchCartItems]),
   );
@@ -119,6 +426,11 @@ const Cart = () => {
   const formattedShipping = fmt(shipping);
   const formattedTax = fmt(tax);
   const formattedTotal = fmt(total);
+
+  // ── Show skeleton while initial cart is loading ──
+  if (isLoadingCart && cart.length === 0) {
+    return <CartSkeleton />;
+  }
 
   const handleCheckout = () => {
     router.push("/(Screens)/Payments");
