@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import "./App.css";
 
 // src/App.jsx
@@ -134,15 +135,15 @@ function App() {
     console.log("🏁 App mounted");
 
     // Initialize developer tools protection
-    initializeDevToolsProtection();
+    /* initializeDevToolsProtection(); */
 
     return () => console.log("🏳️ App unmounted");
   }, []);
 
   // Check if maintenance mode is active
-  if (isMaintenanceModeActive()) {
+  /* if (isMaintenanceModeActive()) {
     return <MaintenancePage />;
-  }
+  } */
 
   return (
     <QueryClientProvider client={queryClient}>
