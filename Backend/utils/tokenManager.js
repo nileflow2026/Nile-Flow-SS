@@ -11,7 +11,7 @@ const { env } = require("../src/env");
 // Secrets must come from env. Throw early if missing.
 if (!env.JWT_SECRET || !env.JWT_REFRESH_SECRET) {
   throw new Error(
-    "Missing JWT secrets in env (JWT_SECRET / JWT_REFRESH_SECRET)."
+    "Missing JWT secrets in env (JWT_SECRET / JWT_REFRESH_SECRET).",
   );
 }
 

@@ -1,5 +1,5 @@
 const { Query } = require("node-appwrite");
-const { users } = require("../../services/appwriteService");
+const { users, instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 // controllers/adminController.js
@@ -35,7 +35,7 @@ const getUsers = async (_req, res) => {
   try {
     const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_USER_COLLECTION_ID
+      env.APPWRITE_USER_COLLECTION_ID,
     );
     res.json(documents);
   } catch (e) {
