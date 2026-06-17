@@ -133,11 +133,7 @@ let gamificationRoutes,
   careersRoutes,
   applyRoutes,
   productsrouter;
-let passwordRouter,
-  cartRoutes,
-  africanFactsRoutes,
-  orderTrackingRoutes,
-  forgotPasswordRoutes;
+let africanFactsRoutes, orderTrackingRoutes;
 
 try {
   PaymentRouter = require("../routes/paymentrouter");
@@ -152,11 +148,8 @@ try {
   careersRoutes = require("../routes/careersRoutes");
   applyRoutes = require("../routes/applyRoutes");
   productsrouter = require("../routes/productsRouter");
-  passwordRouter = require("../routes/passwordRoute");
-  cartRoutes = require("../routes/Cartrouter");
   africanFactsRoutes = require("../routes/africanFactsRoutes");
   orderTrackingRoutes = require("../routes/orderTrackingRoutes");
-  forgotPasswordRoutes = require("../routes/forgotPasswordRoutes");
   console.log("✅ Additional routes loaded successfully");
 } catch (additionalRouteError) {
   console.error(
@@ -164,6 +157,40 @@ try {
     additionalRouteError.message,
   );
   console.error("Server will continue with core functionality only");
+}
+
+// ========== PASSWORD ROUTES (loaded independently to avoid cascade failure) ==========
+let passwordRouter;
+try {
+  passwordRouter = require("../routes/passwordRoute");
+  console.log("✅ Password routes loaded successfully");
+} catch (passwordRouteError) {
+  console.error(
+    "⚠️  Password routes failed to load:",
+    passwordRouteError.message,
+  );
+}
+
+// ========== FORGOT PASSWORD ROUTES (loaded independently to avoid cascade failure) ==========
+let forgotPasswordRoutes;
+try {
+  forgotPasswordRoutes = require("../routes/forgotPasswordRoutes");
+  console.log("✅ Forgot password routes loaded successfully");
+} catch (forgotPasswordError) {
+  console.error(
+    "⚠️  Forgot password routes failed to load:",
+    forgotPasswordError.message,
+  );
+}
+
+// ========== CART ROUTES (loaded independently to avoid cascade failure) ==========
+let cartRoutes;
+try {
+  cartRoutes = require("../routes/Cartrouter");
+  console.log("✅ Cart routes loaded successfully");
+} catch (cartRouteError) {
+  console.error("⚠️  Cart routes failed to load:", cartRouteError.message);
+  console.error("Server will continue without cart functionality");
 }
 
 // Vendor Routes
