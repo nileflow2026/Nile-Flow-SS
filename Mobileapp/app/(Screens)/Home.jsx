@@ -417,7 +417,7 @@ const Home = () => {
       <CurrencyUpdater />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 10 }}
       >
         {/* Header Section */}
         <View style={[styles.headerContainer, { backgroundColor: "#16A34A" }]}>
@@ -471,6 +471,7 @@ const Home = () => {
         {/* Featured Products Section */}
         <FeaturedProducts />
       </ScrollView>
+      <AIChat />
     </View>
   );
 };

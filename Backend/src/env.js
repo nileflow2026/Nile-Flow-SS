@@ -66,6 +66,11 @@ const schema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().optional(),
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
   GOOGLE_REDIRECT_URI: Joi.string().uri().optional(),
+
+  // Google Generative AI
+  GOOGLE_GENERATIVE_AI_API_KEY: Joi.string().optional(),
+  // Google Cloud Translation API
+  GOOGLE_CLOUD_TRANSLATION_API_KEY: Joi.string().optional(),
   // Facebook OAuth
   FACEBOOK_APP_ID: Joi.string().optional(),
   FACEBOOK_APP_SECRET: Joi.string().optional(),

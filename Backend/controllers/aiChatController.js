@@ -1,5 +1,5 @@
 // controllers/aiChatController.js
-const { default: OpenAI } = require("openai");
+
 const { Query } = require("node-appwrite");
 const {
   instrumentedDb,
@@ -9,11 +9,12 @@ const AppwriteSessionService = require("../services/AppwriteSessionService");
 const logger = require("../utils/logger");
 const sanitizer = require("../utils/sanitizer");
 const { env } = require("../src/env");
+const { GoogleGenAI } = require("@google/genai");
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || env.OPENAI_API_KEY,
-});
+// Initialize Google Generative AI
+const genAI = new GoogleGenAI(
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY,
+);
 
 // Token usage limits for cost control
 const TOKEN_LIMITS = {
@@ -85,7 +86,6 @@ const getRelevantContext = async (message) => {
   try {
     // Ensure Appwrite connection
     await AppwriteSessionService.ensureConnected();
-    const db = AppwriteSessionService.getDatabases();
 
     const context = {
       products: [],
@@ -167,8 +167,6 @@ const classifyIntent = (message) => {
 const getUserContext = async (userId) => {
   try {
     await AppwriteSessionService.ensureConnected();
-    const users = AppwriteSessionService.getUsers();
-    const db = AppwriteSessionService.getDatabases();
 
     // Get user profile
     const userProfile = await getCachedUser(userId);
@@ -214,7 +212,6 @@ const getUserContext = async (userId) => {
 const getLatestOrderStatus = async (userId) => {
   try {
     await AppwriteSessionService.ensureConnected();
-    const db = AppwriteSessionService.getDatabases();
 
     const latestOrder = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
@@ -234,7 +231,7 @@ const getLatestOrderStatus = async (userId) => {
 };
 
 /**
- * Construct structured prompt for OpenAI
+ * Construct structured prompt for Google Generative AI
  */
 const constructPrompt = (
   intent,
@@ -375,22 +372,19 @@ const handleAiChat = async (req, res) => {
     const estimatedTokens = validateTokenUsage(prompts);
     logger.info(`Estimated tokens: ${estimatedTokens}`);
 
-    // 7. Call OpenAI Chat Completion with guardrails
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: prompts.systemPrompt },
-        { role: "user", content: prompts.userPrompt },
-      ],
-      max_tokens: TOKEN_LIMITS.MAX_OUTPUT_TOKENS,
-      temperature: 0.7,
-      top_p: 0.9,
-      frequency_penalty: 0.1,
-      presence_penalty: 0.1,
+    // 7. Call Google Generative AI with guardrails
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        maxOutputTokens: TOKEN_LIMITS.MAX_OUTPUT_TOKENS,
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      systemInstruction: prompts.systemPrompt,
     });
 
-    const reply = completion.choices[0].message.content.trim();
-    const tokensUsed = completion.usage;
+    const result = await model.generateContent(prompts.userPrompt);
+    const reply = result.response.text().trim();
 
     // 8. Log metrics for monitoring
     const responseTime = Date.now() - startTime;
@@ -399,7 +393,6 @@ const handleAiChat = async (req, res) => {
       sessionId,
       intent,
       responseTime: `${responseTime}ms`,
-      tokensUsed,
       estimatedTokens,
     });
 
@@ -410,8 +403,7 @@ const handleAiChat = async (req, res) => {
       sessionId,
       metadata: {
         responseTime: `${responseTime}ms`,
-        tokensUsed: tokensUsed?.total_tokens || 0,
-        model: "gpt-3.5-turbo",
+        model: "gemini-1.5-flash",
       },
     });
   } catch (error) {
@@ -432,7 +424,10 @@ const handleAiChat = async (req, res) => {
       });
     }
 
-    if (error.message.includes("exceeded your current quota")) {
+    if (
+      error.message.includes("quota") ||
+      error.message.includes("RESOURCE_EXHAUSTED")
+    ) {
       return res.status(503).json({
         error:
           "AI service is temporarily unavailable due to quota limits. Please try again later.",
@@ -440,14 +435,20 @@ const handleAiChat = async (req, res) => {
       });
     }
 
-    if (error.message.includes("API key")) {
+    if (
+      error.message.includes("API key") ||
+      error.message.includes("API_KEY_INVALID")
+    ) {
       return res.status(500).json({
         error: "AI service temporarily unavailable",
         code: "AI_SERVICE_ERROR",
       });
     }
 
-    if (error.message.includes("rate limit")) {
+    if (
+      error.message.includes("rate limit") ||
+      error.message.includes("RATE_LIMIT_EXCEEDED")
+    ) {
       return res.status(429).json({
         error: "Too many requests. Please try again later",
         code: "RATE_LIMITED",
@@ -472,7 +473,7 @@ const healthCheck = async (req, res) => {
   const healthStatus = {
     status: "healthy",
     services: {
-      openai: "unknown",
+      googleAI: "unknown",
       appwrite: "unknown",
     },
     timestamp: new Date().toISOString(),
@@ -492,39 +493,45 @@ const healthCheck = async (req, res) => {
       });
     }
 
-    // Test OpenAI connection (more expensive operation)
+    // Test Google Generative AI connection
     try {
-      const testCompletion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 5,
-      });
-      healthStatus.services.openai = "connected";
-    } catch (openaiError) {
-      healthStatus.services.openai = "disconnected";
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      await model.generateContent("Hi");
+      healthStatus.services.googleAI = "connected";
+    } catch (googleAIError) {
+      healthStatus.services.googleAI = "disconnected";
 
-      // Parse OpenAI specific errors
+      // Parse Google AI specific errors
       let errorType = "unknown";
-      let userFriendlyMessage = openaiError.message;
+      let userFriendlyMessage = googleAIError.message;
 
-      if (openaiError.message.includes("exceeded your current quota")) {
+      if (
+        googleAIError.message.includes("quota") ||
+        googleAIError.message.includes("RESOURCE_EXHAUSTED")
+      ) {
         errorType = "quota_exceeded";
         userFriendlyMessage =
-          "OpenAI quota exceeded. Please check billing and usage limits.";
-      } else if (openaiError.message.includes("rate limit")) {
+          "Google AI quota exceeded. Please check billing and usage limits.";
+      } else if (
+        googleAIError.message.includes("rate limit") ||
+        googleAIError.message.includes("RATE_LIMIT_EXCEEDED")
+      ) {
         errorType = "rate_limited";
         userFriendlyMessage =
-          "OpenAI rate limit exceeded. Please try again later.";
-      } else if (openaiError.message.includes("API key")) {
+          "Google AI rate limit exceeded. Please try again later.";
+      } else if (
+        googleAIError.message.includes("API key") ||
+        googleAIError.message.includes("API_KEY_INVALID")
+      ) {
         errorType = "invalid_api_key";
-        userFriendlyMessage = "Invalid or missing OpenAI API key.";
+        userFriendlyMessage = "Invalid or missing Google AI API key.";
       }
 
       healthStatus.issues.push({
-        service: "openai",
+        service: "googleAI",
         error: userFriendlyMessage,
         errorType: errorType,
-        originalError: openaiError.message,
+        originalError: googleAIError.message,
       });
     }
 
@@ -532,10 +539,10 @@ const healthCheck = async (req, res) => {
     const hasConnectedServices = Object.values(healthStatus.services).some(
       (status) => status === "connected",
     );
-    const hasOpenAI = healthStatus.services.openai === "connected";
+    const hasGoogleAI = healthStatus.services.googleAI === "connected";
     const hasAppwrite = healthStatus.services.appwrite === "connected";
 
-    if (hasOpenAI && hasAppwrite) {
+    if (hasGoogleAI && hasAppwrite) {
       healthStatus.status = "healthy";
       return res.status(200).json(healthStatus);
     } else if (hasConnectedServices) {

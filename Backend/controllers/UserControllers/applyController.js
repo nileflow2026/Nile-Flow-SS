@@ -5,7 +5,7 @@ const fs = require("fs");
 const { storage } = require("../../src/appwrite");
 const { ID, Query } = require("node-appwrite");
 const { env } = require("../../src/env");
-const { instrumentedDb } = require("../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 
 const submitApplication = async (req, res) => {
   try {

@@ -210,7 +210,7 @@ const SignIn = () => {
                       marginRight: 12,
                     }}
                   >
-                    <Ionicons name="crown" size={24} color="white" />
+                    <Ionicons name="star" size={24} color="white" />
                   </View>
                   <View className="flex-1">
                     <Text className="text-2xl font-bold text-gray-900">
@@ -408,36 +408,6 @@ const SignIn = () => {
                       }}
                     >
                       Google
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleFacebookSignIn}
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "#F9FAFB",
-                      borderWidth: 1,
-                      borderColor: "#E5E7EB",
-                      borderRadius: 12,
-                      paddingVertical: 16,
-                      paddingHorizontal: 16,
-                      gap: 8,
-                    }}
-                  >
-                    <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                    <Text
-                      style={{
-                        color: "#374151",
-                        fontSize: 14,
-                        fontWeight: "500",
-                        minWidth: 70,
-                        textAlign: "center",
-                      }}
-                    >
-                      Facebook
                     </Text>
                   </TouchableOpacity>
                 </View>

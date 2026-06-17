@@ -14,6 +14,7 @@ class AIChatService {
     this.knowledgeBase = {};
     this.userProfiles = {};
     this.learnedPatterns = {};
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -152,15 +153,12 @@ class AIChatService {
       // Try backend first (if available)
       let response = null;
       try {
-        const backendResponse = await axiosClient.post(
-          "/api/nilemart/questions/askedquestions",
-          {
-            userId,
-            question: message,
-            conversationHistory: this.conversationHistory,
-          },
-        );
-        response = backendResponse.data.answer;
+        const backendResponse = await axiosClient.post("/api/ai/chat", {
+          userId,
+          message,
+          sessionId: this.sessionId,
+        });
+        response = backendResponse.data.reply;
       } catch (backendError) {
         console.log("Backend unavailable, using local AI");
       }
@@ -171,7 +169,7 @@ class AIChatService {
       }
 
       // Learn from this interaction
-      this._learnFromInteraction(message, response, userId);
+      await this._learnFromInteraction(message, response, userId);
 
       // Add assistant response
       this.conversationHistory.push({
@@ -248,7 +246,7 @@ class AIChatService {
   /**
    * Learn from interactions and improve
    */
-  _learnFromInteraction(userMessage, response, userId) {
+  async _learnFromInteraction(userMessage, response, userId) {
     const key = userMessage.toLowerCase().trim();
 
     // Store user-response pairing for future learning
@@ -276,7 +274,7 @@ class AIChatService {
 
     // Save learned patterns periodically
     if (Object.keys(this.learnedPatterns).length % 5 === 0) {
-      this._saveLearning();
+      await this._saveLearning();
     }
   }
 
@@ -398,6 +396,14 @@ class AIChatService {
    */
   clearHistory() {
     this.conversationHistory = [];
+  }
+
+  /**
+   * Reset session (generates a new sessionId)
+   */
+  resetSession() {
+    this.conversationHistory = [];
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
