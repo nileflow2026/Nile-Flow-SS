@@ -1,6 +1,6 @@
 {
   "name": "nileflowbackend2",
-  "version": "2.1.14",
+  "version": "2.1.15",
   "description": "this is the backend for Nile Flow",
   "license": "ISC",
   "author": "",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.8.0",
+    "@google/generative-ai": "^0.24.1",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@sentry/node": "^10.53.1",
     "bcrypt": "^6.0.0",

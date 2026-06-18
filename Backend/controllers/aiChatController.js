@@ -1,5 +1,5 @@
 // controllers/aiChatController.js
-
+const { GoogleGenAI } = require("@google/genai");
 const { Query } = require("node-appwrite");
 const {
   instrumentedDb,
@@ -9,12 +9,13 @@ const AppwriteSessionService = require("../services/AppwriteSessionService");
 const logger = require("../utils/logger");
 const sanitizer = require("../utils/sanitizer");
 const { env } = require("../src/env");
-const { GoogleGenAI } = require("@google/genai");
 
 // Initialize Google Generative AI
-const genAI = new GoogleGenAI(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY,
-);
+const genAI = new GoogleGenAI({
+  apiKey:
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 
 // Token usage limits for cost control
 const TOKEN_LIMITS = {
@@ -373,18 +374,18 @@ const handleAiChat = async (req, res) => {
     logger.info(`Estimated tokens: ${estimatedTokens}`);
 
     // 7. Call Google Generative AI with guardrails
-    const model = genAI.getGenerativeModel({
+    const result = await genAI.models.generateContent({
       model: "gemini-1.5-flash",
-      generationConfig: {
+      contents: prompts.userPrompt,
+      config: {
+        systemInstruction: prompts.systemPrompt,
         maxOutputTokens: TOKEN_LIMITS.MAX_OUTPUT_TOKENS,
         temperature: 0.7,
         topP: 0.9,
       },
-      systemInstruction: prompts.systemPrompt,
     });
 
-    const result = await model.generateContent(prompts.userPrompt);
-    const reply = result.response.text().trim();
+    const reply = result.text.trim();
 
     // 8. Log metrics for monitoring
     const responseTime = Date.now() - startTime;
@@ -495,8 +496,10 @@ const healthCheck = async (req, res) => {
 
     // Test Google Generative AI connection
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      await model.generateContent("Hi");
+      await genAI.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: "Hi",
+      });
       healthStatus.services.googleAI = "connected";
     } catch (googleAIError) {
       healthStatus.services.googleAI = "disconnected";
