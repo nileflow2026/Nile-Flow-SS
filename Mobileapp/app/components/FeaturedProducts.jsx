@@ -35,12 +35,12 @@ const FeaturedProducts = () => {
       const response = await axiosClient.get(
         "/api/customerprofile/featured-products",
       );
-      console.log("✅ Featured products received:", response.data);
+      /* console.log("✅ Featured products received:", response.data); */
       const items = Array.isArray(response.data)
         ? response.data.filter(Boolean)
         : [];
       setProducts(items);
-      console.log("✅ Featured products set:", items.length, "items");
+      /*      console.log("✅ Featured products set:", items.length, "items"); */
     } catch (err) {
       console.error("❌ Failed to fetch featured products:", err.message);
       setError(true);
@@ -209,7 +209,7 @@ const FeaturedProducts = () => {
     );
   }
 
-  console.log("✅ FeaturedProducts: Rendering %d products", products.length);
+  /*  console.log("✅ FeaturedProducts: Rendering %d products", products.length); */
 
   return (
     <View style={styles.container}>

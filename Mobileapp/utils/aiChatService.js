@@ -20,7 +20,7 @@ class AIChatService {
   /**
    * Initialize the AI service - load stored data
    */
-  async initialize(userId) {
+  async initialize(userId, userName = "User") {
     try {
       // Load knowledge base
       const kb = await AsyncStorage.getItem("nile_knowledge_base");
@@ -128,9 +128,10 @@ class AIChatService {
    * Send a message and get intelligent response
    * @param {string} message - User's message
    * @param {string} userId - User ID for tracking
+   * @param {string} userName - User's name for personalized responses
    * @returns {Promise<string>} - AI response
    */
-  async sendMessage(message, userId) {
+  async sendMessage(message, userId, userName = "User") {
     if (!message.trim()) {
       throw new Error("Message cannot be empty");
     }
@@ -140,7 +141,7 @@ class AIChatService {
     try {
       // Initialize if needed
       if (!this.userProfiles[userId]) {
-        await this.initialize(userId);
+        await this.initialize(userId, userName);
       }
 
       // Add to conversation history
@@ -157,6 +158,7 @@ class AIChatService {
           userId,
           message,
           sessionId: this.sessionId,
+          userName: this._currentUserName, // ← add this
         });
         response = backendResponse.data.reply;
       } catch (backendError) {

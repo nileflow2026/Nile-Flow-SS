@@ -170,7 +170,7 @@ const getUserContext = async (userId) => {
     await AppwriteSessionService.ensureConnected();
 
     // Get user profile
-    const userProfile = await getCachedUser(userId);
+    /*  const userProfile = await getCachedUser(userId); */
 
     // Get last 5 orders
     const orders = await instrumentedDb.listDocuments(
@@ -187,8 +187,8 @@ const getUserContext = async (userId) => {
       profile: {
         id: userProfile.$id,
         name: userProfile.name,
-        email: userProfile.email,
-        phone: userProfile.phone || null,
+        /* email: userProfile.email,
+        phone: userProfile.phone || null, */
       },
       orders: orders.documents.map((order) => ({
         id: order.$id,
@@ -319,7 +319,10 @@ const handleAiChat = async (req, res) => {
 
   try {
     // 1. Validate and sanitize input
-    const { userId, message, sessionId } = sanitizer.sanitize(req.body);
+    // In handleAiChat — extract userName from request body
+    const { userId, message, sessionId, userName } = sanitizer.sanitize(
+      req.body,
+    );
 
     if (!userId || !message) {
       return res.status(400).json({
@@ -345,7 +348,7 @@ const handleAiChat = async (req, res) => {
     logger.info(`Classified intent: ${intent}`);
 
     // 3. Fetch user context (profile + recent orders)
-    const userContext = await getUserContext(userId);
+    const userContext = await getUserContext(userId, userName);
 
     // 4. Get additional context based on intent
     let additionalContext = {};

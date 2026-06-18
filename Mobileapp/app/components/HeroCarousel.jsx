@@ -47,7 +47,7 @@ const HeroCarousel = () => {
       console.log("🎬 Fetching hero products...");
       const res = await axiosClient.get("/api/customerprofile/hero-products");
       const data = res.data;
-      console.log("✅ Hero products received:", data);
+      /* console.log("✅ Hero products received:", data); */
       // Preserve the type tag added by the backend; add a fallback in case the
       // backend did not enrich (e.g. older cached response).
       const combined = [

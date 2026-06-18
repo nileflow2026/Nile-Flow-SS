@@ -276,6 +276,7 @@ const Home = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
   const { user, loading: userLoading } = useGlobalContext();
+  console.log("🏠 Home: user=%s, userLoading=%s", user);
   const [categories, setCategories] = useState([i18n.t("All")]);
   const [categoryData, setCategoryData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(i18n.t("All"));
