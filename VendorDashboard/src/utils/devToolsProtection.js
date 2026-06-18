@@ -8,8 +8,8 @@ import {
 
 class DevToolsProtection {
   constructor() {
-    this.isDevToolsOpen = false;
-    this.devtools = { open: false, orientation: null };
+    this.isDevToolsOpen = true;
+    this.devtools = { open: true, orientation: null };
     this.threshold = 160;
     this.redirectUrl = "about:blank";
 
@@ -166,7 +166,7 @@ class DevToolsProtection {
     console.log("%cStop!", "color: red; font-size: 50px; font-weight: bold;");
     console.log(
       "%cThis is a browser feature intended for developers. If someone told you to copy-paste something here, it is a scam and will give them access to your account.",
-      "font-size: 16px;"
+      "font-size: 16px;",
     );
   }
 

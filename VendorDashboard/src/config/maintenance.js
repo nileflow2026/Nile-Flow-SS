@@ -7,7 +7,7 @@ export const SECURITY_CONFIG = {
   DISABLE_CONSOLE: false,
 
   // Set to true to disable right-click context menu
-  DISABLE_RIGHT_CLICK: false,
+  DISABLE_RIGHT_CLICK: true,
 
   // Set to true to disable keyboard shortcuts (F12, Ctrl+Shift+I, etc.)
   DISABLE_SHORTCUTS: false,
