@@ -1,4 +1,5 @@
 // controllers/productController.js
+const { File } = require("node-fetch-native-with-agent");
 const { ID } = require("node-appwrite");
 const { db, storage } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
@@ -628,7 +629,7 @@ const productController = {
       const image = await storage.createFile(
         env.APPWRITE_STORAGE_ID || "product-images",
         ID.unique(),
-        req.file.buffer,
+        new File([req.file.buffer], req.file.originalname),
       );
 
       const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
@@ -748,7 +749,7 @@ const productController = {
           const image = await storage.createFile(
             env.APPWRITE_STORAGE_ID || "product-images",
             ID.unique(),
-            buffer,
+            new File([buffer], img.filename || "image.jpg"),
           );
 
           const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
@@ -829,12 +830,7 @@ const productController = {
       const file = await storage.createFile(
         env.APPWRITE_STORAGE_ID || "product-images",
         ID.unique(),
-        {
-          filename: fileName,
-          type: mimeType,
-          size: buffer.length,
-          buffer,
-        },
+        new File([buffer], fileName),
       );
 
       const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
