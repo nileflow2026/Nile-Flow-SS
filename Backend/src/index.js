@@ -934,6 +934,14 @@ try {
   console.warn("⚠️  API v1 router failed to load:", v1Error.message);
 }
 
+// ========== IMAGE PROXY ==========
+try {
+  const imageProxyRoute = require("../routes/imageProxyRoute");
+  safeMount("/api/image-proxy", imageProxyRoute, "Image Proxy");
+} catch (proxyError) {
+  console.warn("⚠️  Image proxy route failed to load:", proxyError.message);
+}
+
 // ========== PROMETHEUS METRICS SCRAPE ENDPOINT ==========
 // Restricted: localhost only, or requires INTERNAL_METRICS_KEY header in production
 app.get("/metrics", async (req, res) => {

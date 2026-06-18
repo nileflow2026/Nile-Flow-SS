@@ -6,6 +6,7 @@ import { productService } from "../../services/BackendServices/productService";
 import { useDropzone } from "react-dropzone";
 import SEOPanel from "../components/SEOPanel";
 import { generateSlug, generateAltText } from "../utils/seoService";
+import { proxyImageUrl } from "../utils/imageProxy";
 import {
   optimizeProductImage,
   getImageAltText,
@@ -1174,11 +1175,9 @@ const Products = () => {
                           >
                             {product.image ? (
                               <img
-                                src={product.image}
+                                src={proxyImageUrl(product.image)}
                                 alt={product.name}
                                 className="w-full h-full object-cover absolute inset-0"
-                                crossOrigin="anonymous"
-                                referrerPolicy="no-referrer"
                                 loading="lazy"
                                 onError={(e) => {
                                   console.error(
@@ -2499,7 +2498,7 @@ const Products = () => {
                             {formData.images.map((img, index) => (
                               <div key={index} className="relative group">
                                 <img
-                                  src={img}
+                                  src={proxyImageUrl(img)}
                                   alt={`Additional ${index + 1}`}
                                   className="w-20 h-20 object-cover rounded-lg border border-amber-200"
                                 />
