@@ -775,8 +775,10 @@ safeMount(
 // AI Chat Routes (with fallback)
 try {
   safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
+  console.log("✅ AI Chat routes loaded");
 } catch (aiError) {
-  console.log("⚠️  AI Chat routes not available:", aiError.message);
+  console.error("❌ AI Chat routes FAILED TO LOAD:", aiError); // full error object
+  console.error(aiError.stack); // full stack trace
 }
 
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");
