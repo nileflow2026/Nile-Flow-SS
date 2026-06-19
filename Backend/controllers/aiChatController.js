@@ -169,8 +169,19 @@ const getUserContext = async (userId) => {
   try {
     await AppwriteSessionService.ensureConnected();
 
-    // Get user profile
-    /*  const userProfile = await getCachedUser(userId); */
+    // Get user profile via cache service with fallback
+    let profile = { id: userId, name: "Customer" };
+    try {
+      const cachedUser = await getCachedUser(userId);
+      if (cachedUser) {
+        profile = {
+          id: cachedUser.$id,
+          name: cachedUser.name,
+        };
+      }
+    } catch (cacheErr) {
+      logger.warn("Could not fetch user profile:", cacheErr.message);
+    }
 
     // Get last 5 orders
     const orders = await instrumentedDb.listDocuments(
@@ -184,18 +195,13 @@ const getUserContext = async (userId) => {
     );
 
     return {
-      profile: {
-        id: userProfile.$id,
-        name: userProfile.name,
-        /* email: userProfile.email,
-        phone: userProfile.phone || null, */
-      },
+      profile,
       orders: orders.documents.map((order) => ({
         id: order.$id,
         status: order.status,
         total: order.total,
         createdAt: order.$createdAt,
-        items: order.items ? JSON.parse(order.items).slice(0, 3) : [], // Limit items for token control
+        items: order.items ? JSON.parse(order.items).slice(0, 3) : [],
       })),
     };
   } catch (error) {
@@ -319,7 +325,6 @@ const handleAiChat = async (req, res) => {
 
   try {
     // 1. Validate and sanitize input
-    // In handleAiChat — extract userName from request body
     const { userId, message, sessionId, userName } = sanitizer.sanitize(
       req.body,
     );
@@ -421,6 +426,7 @@ const handleAiChat = async (req, res) => {
     });
 
     // Handle specific error types
+
     if (error.message.includes("Input too long")) {
       return res.status(400).json({
         error: error.message,
@@ -441,7 +447,8 @@ const handleAiChat = async (req, res) => {
 
     if (
       error.message.includes("API key") ||
-      error.message.includes("API_KEY_INVALID")
+      error.message.includes("API_KEY_INVALID") ||
+      error.message.includes("default credentials")
     ) {
       return res.status(500).json({
         error: "AI service temporarily unavailable",
@@ -527,7 +534,8 @@ const healthCheck = async (req, res) => {
           "Google AI rate limit exceeded. Please try again later.";
       } else if (
         googleAIError.message.includes("API key") ||
-        googleAIError.message.includes("API_KEY_INVALID")
+        googleAIError.message.includes("API_KEY_INVALID") ||
+        googleAIError.message.includes("default credentials")
       ) {
         errorType = "invalid_api_key";
         userFriendlyMessage = "Invalid or missing Google AI API key.";
