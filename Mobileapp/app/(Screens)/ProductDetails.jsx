@@ -3,6 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
@@ -742,7 +743,7 @@ const ProductDetails = () => {
                     }}
                   >
                     <Image
-                      source={{ uri: img }}
+                      source={{ uri: imageForSize(img, IMAGE_SIZE.LARGE) }}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
                       cachePolicy="memory-disk"

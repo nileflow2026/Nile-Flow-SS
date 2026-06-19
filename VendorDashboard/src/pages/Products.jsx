@@ -2403,7 +2403,7 @@ const Products = () => {
                           </p>
                           <div className="relative inline-block">
                             <img
-                              src={formData.image}
+                              src={proxyImageUrl(formData.image)}
                               alt="Primary preview"
                               className="w-32 h-32 object-cover rounded-lg border border-amber-200"
                             />
@@ -2756,7 +2756,7 @@ const Products = () => {
                           </p>
                           <div className="relative inline-block">
                             <img
-                              src={editFormData.image}
+                              src={proxyImageUrl(editFormData.image)}
                               alt="Primary preview"
                               className="w-32 h-32 object-cover rounded-lg border border-amber-200"
                             />
@@ -2851,7 +2851,7 @@ const Products = () => {
                             {editFormData.images.map((img, index) => (
                               <div key={index} className="relative group">
                                 <img
-                                  src={img}
+                                  src={proxyImageUrl(img)}
                                   alt={`Additional ${index + 1}`}
                                   className="w-20 h-20 object-cover rounded-lg border border-amber-200"
                                 />
@@ -2942,7 +2942,7 @@ const Products = () => {
                           {deletingProduct.images &&
                           deletingProduct.images.length > 0 ? (
                             <img
-                              src={deletingProduct.images[0]}
+                              src={proxyImageUrl(deletingProduct.images[0])}
                               alt={deletingProduct.name}
                               className="w-full h-full object-cover"
                             />

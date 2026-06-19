@@ -13,6 +13,11 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
+import {
+  imageForSize,
+  IMAGE_SIZE,
+  preloadImages,
+} from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -92,10 +97,15 @@ const FeaturedProducts = () => {
             </View>
           </View>
 
-          {/* Product Image */}
+          {/* Product Image — optimized 200px WebP from Appwrite CDN */}
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: item.image || item.images?.[0] }}
+              source={{
+                uri: imageForSize(
+                  item.image || item.images?.[0],
+                  IMAGE_SIZE.MEDIUM,
+                ),
+              }}
               style={styles.productImage}
               contentFit="cover"
               cachePolicy="memory-disk"

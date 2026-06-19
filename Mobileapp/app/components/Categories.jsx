@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 
@@ -104,7 +105,9 @@ const Categories = ({
                     {/* Image */}
                     <View style={styles.imageContainer}>
                       <Image
-                        source={{ uri: cat.img }}
+                        source={{
+                          uri: imageForSize(cat.img, IMAGE_SIZE.MEDIUM),
+                        }}
                         style={styles.image}
                         contentFit="cover"
                         cachePolicy="memory-disk"

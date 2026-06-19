@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useCart } from "../../Context/CartContext_NEW";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 
@@ -532,10 +533,12 @@ const Cart = () => {
                 <View style={styles.cartItemRow}>
                   <Image
                     source={{
-                      uri:
+                      uri: imageForSize(
                         item.productImage ||
-                        item.image ||
-                        "https://placehold.co/100x100",
+                          item.image ||
+                          "https://placehold.co/100x100",
+                        IMAGE_SIZE.SMALL,
+                      ),
                     }}
                     style={styles.cartItemImage}
                     contentFit="cover"

@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 const SLIDE_WIDTH = width - 32;
@@ -204,9 +205,11 @@ const HeroCarousel = () => {
               <Image
                 key={`${item.$id || item.id}-${index}`}
                 source={{
-                  uri:
+                  uri: imageForSize(
                     item.image ||
-                    "https://via.placeholder.com/120x120/cccccc/666666?text=No+Image",
+                      "https://via.placeholder.com/120x120/cccccc/666666?text=No+Image",
+                    IMAGE_SIZE.HERO,
+                  ),
                 }}
                 style={styles.productImage}
                 contentFit="contain"

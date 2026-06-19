@@ -5,6 +5,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -174,7 +175,10 @@ const CategoryDetailsScreen = () => {
         <View style={styles.imageContainer}>
           <Image
             source={{
-              uri: item.image || "https://via.placeholder.com/300",
+              uri: imageForSize(
+                item.image || "https://via.placeholder.com/300",
+                IMAGE_SIZE.MEDIUM,
+              ),
             }}
             style={styles.productImage}
             contentFit="cover"

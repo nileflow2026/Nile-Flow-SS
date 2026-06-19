@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { usePremiumStatus } from "../../hooks/usePremiumStatus";
 import { premiumService } from "../../utils/premiumService";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
@@ -98,7 +99,12 @@ const PremiumDeals = () => {
           {/* Product Image */}
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: item.image || item.images?.[0] }}
+              source={{
+                uri: imageForSize(
+                  item.image || item.images?.[0],
+                  IMAGE_SIZE.MEDIUM,
+                ),
+              }}
               style={styles.dealImage}
               contentFit="cover"
               cachePolicy="memory-disk"

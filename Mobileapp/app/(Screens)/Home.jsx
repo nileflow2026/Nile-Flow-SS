@@ -15,6 +15,7 @@ import {
 import axiosClient from "../../api";
 import { getCurrentUser, useGlobalContext } from "../../Context/GlobalProvider";
 import i18n, { useLanguage } from "../../i18n";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
 import CurrencyUpdater from "../components/CurrencyUpdater";
@@ -430,12 +431,14 @@ const Home = () => {
               <View style={styles.avatarWrapper}>
                 <Image
                   source={{
-                    uri:
+                    uri: imageForSize(
                       user?.avatarUrl &&
-                      typeof user.avatarUrl === "string" &&
-                      user.avatarUrl.trim() !== ""
+                        typeof user.avatarUrl === "string" &&
+                        user.avatarUrl.trim() !== ""
                         ? user.avatarUrl
                         : "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94",
+                      IMAGE_SIZE.THUMBNAIL,
+                    ),
                   }}
                   style={styles.avatar}
                   contentFit="cover"

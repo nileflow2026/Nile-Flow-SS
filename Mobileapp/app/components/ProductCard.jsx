@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import images from "../../constants/images";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -198,7 +199,9 @@ const ProductCard = ({
         {/* Image Container */}
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: image || productData.image }}
+            source={{
+              uri: imageForSize(image || productData.image, IMAGE_SIZE.MEDIUM),
+            }}
             placeholder={images.Nilelogo}
             placeholderContentFit="contain"
             style={styles.productImage}
