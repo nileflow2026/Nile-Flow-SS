@@ -1,31 +1,22 @@
 /**
  * Nile Flow — Mobile Image Optimizer
  *
- * Two strategies for loading product images as fast as possible:
- *
- * 1. DIRECT (preferred): Load from Appwrite CDN directly with width/quality
- *    params. This bypasses the backend proxy entirely for most images.
- *    Only fall back to proxy for images that need CORS protection.
- *
- * 2. PROXY (fallback): For images that fail to load directly, or for
- *    environments where direct Appwrite access is blocked.
+ * Fix: Appwrite image transformations only work on the /preview endpoint,
+ * NOT on /view. This utility converts /view URLs to /preview and adds
+ * transformation params.  For non-Appwrite URLs it returns as-is.
  *
  * Usage:
- *   import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
- *   <Image source={{ uri: getOptimizedImageUrl(url, 200) }} .. />
+ *   import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
+ *   <Image source={{ uri: imageForSize(url, IMAGE_SIZE.SMALL) }} />
  */
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-const BACKEND_URL = "https://nile-flow-backend.onrender.com";
-
-// Images smaller than this (in bytes) won't be worth transforming
-const MIN_SIZE_FOR_TRANSFORM = 1024; // 1KB
 
 // Breakpoints for different display contexts
 export const IMAGE_SIZE = {
-  THUMBNAIL: 48, // Product table thumbnails
-  SMALL: 120, // Cart items, category cards
-  MEDIUM: 200, // Featured products grid
+  THUMBNAIL: 48, // Avatars
+  SMALL: 120, // Cart items
+  MEDIUM: 200, // Featured products / grid cards
   LARGE: 400, // Product details gallery
   HERO: 600, // Hero carousel
 };
@@ -40,192 +31,110 @@ const QUALITY = {
   FULL: 80,
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Appwrite project endpoints we can transform
+const APPWRITE_PATTERNS = ["cloud.appwrite.io", "appwrite", "/v1/storage/"];
 
-/**
- * Check if a URL is an Appwrite storage URL
- */
+// ── URL inspection ────────────────────────────────────────────────────────────
+
 export function isAppwriteUrl(url) {
   if (!url || typeof url !== "string") return false;
-  return (
-    url.includes("cloud.appwrite.io") ||
-    url.includes("appwrite") ||
-    url.includes("/v1/storage/")
-  );
+  const lower = url.toLowerCase();
+  return APPWRITE_PATTERNS.some((p) => lower.includes(p));
 }
 
 /**
- * Check if a URL is already going through our proxy
- */
-export function isProxiedUrl(url) {
-  if (!url || typeof url !== "string") return false;
-  return url.includes("/api/image-proxy");
-}
-
-/**
- * Extract the raw Appwrite URL from a proxied URL
- */
-export function extractOriginalUrl(proxiedUrl) {
-  if (!proxiedUrl || typeof proxiedUrl !== "string") return proxiedUrl;
-  const match = proxiedUrl.match(/[?&]url=([^&]+)/);
-  if (match) {
-    return decodeURIComponent(match[1]);
-  }
-  return proxiedUrl;
-}
-
-/**
- * Get the optimal image URL for a given display context.
+ * Convert an Appwrite /view URL to /preview so transformation params work.
+ * If the URL is already /preview or not Appwrite, return unchanged.
  *
- * Uses Appwrite's native image transformation query params directly
- * to avoid proxying through the backend.  Falls back to proxy if
- * the URL has CORS issues.
+ * Appwrite Storage URLs look like:
+ *   https://fra.cloud.appwrite.io/v1/storage/buckets/{bucketId}/files/{fileId}/view?project={projectId}
  *
- * @param {string} url - The original image URL (Appwrite or proxy)
- * @param {number} size - Target width in px (from IMAGE_SIZE or custom)
- * @param {boolean} preferDirect - If true, always try direct Appwrite first
- * @returns {string} - Optimized URL
+ * The /preview endpoint supports: ?width=N&height=N&quality=N&output=webp
+ * The /view endpoint does NOT support those params.
  */
-export function getOptimizedImageUrl(
-  url,
-  size = IMAGE_SIZE.MEDIUM,
-  preferDirect = true,
-) {
+function ensurePreviewEndpoint(url) {
+  if (!url || typeof url !== "string") return url;
+  // Only transform Appwrite URLs
+  if (!isAppwriteUrl(url)) return url;
+  // Only transform /view → /preview
+  if (!url.includes("/view")) return url;
+  return url.replace("/view", "/preview");
+}
+
+/**
+ * Get the optimal image URL for a given display size.
+ *
+ * For Appwrite Storage URLs: converts /view → /preview, adds transformation
+ * params (width, quality, output=webp).  Appwrite serves WebP automatically
+ * from the /preview endpoint when these params are present.
+ *
+ * For all other URLs (placeholders, external images): returns as-is.
+ *
+ * @param {string} url - The image URL
+ * @param {number} size - Target width in px (from IMAGE_SIZE constants)
+ * @returns {string} - Optimized URL (or original if non-Appwrite)
+ */
+export function imageForSize(url, size = IMAGE_SIZE.MEDIUM) {
   if (!url || typeof url !== "string") return url;
 
-  // If already proxied, extract the original and re-optimize
-  const originalUrl = extractOriginalUrl(url);
+  // 1. Handle case where url might be an already-optimized /preview URL
+  //    (idempotent — applying twice is safe)
+  const previewUrl = ensurePreviewEndpoint(url);
 
-  if (!isAppwriteUrl(originalUrl)) {
-    // Not an Appwrite URL — return as-is
-    return originalUrl;
+  // 2. If it's not an Appwrite URL, return as-is (no transformation)
+  if (!isAppwriteUrl(previewUrl)) {
+    return previewUrl;
   }
 
-  // Determine quality for this size
-  let quality;
+  // 3. Determine quality for this size
+  let quality = QUALITY.FULL;
   if (size <= IMAGE_SIZE.THUMBNAIL) quality = QUALITY.THUMBNAIL;
   else if (size <= IMAGE_SIZE.SMALL) quality = QUALITY.SMALL;
   else if (size <= IMAGE_SIZE.MEDIUM) quality = QUALITY.MEDIUM;
   else if (size <= IMAGE_SIZE.LARGE) quality = QUALITY.LARGE;
   else if (size <= IMAGE_SIZE.HERO) quality = QUALITY.HERO;
-  else quality = QUALITY.FULL;
 
+  // 4. Append transformation params via URL constructor (handles existing params)
   try {
-    const parsed = new URL(originalUrl);
-
-    // Remove existing transform params
-    parsed.searchParams.delete("width");
-    parsed.searchParams.delete("height");
-    parsed.searchParams.delete("quality");
-    parsed.searchParams.delete("output");
-
-    // Set Appwrite transformation params
+    const parsed = new URL(previewUrl);
     parsed.searchParams.set("width", String(size));
     parsed.searchParams.set("quality", String(quality));
     parsed.searchParams.set("output", "webp");
-
-    if (preferDirect) {
-      // Serve directly from Appwrite CDN — fastest path
-      return parsed.toString();
-    }
+    return parsed.toString();
   } catch {
-    // URL parsing failed, fall through to proxy
+    // URL parse failure — return original unchanged
+    return url;
   }
-
-  // Fallback: proxy with size hint
-  return `${BACKEND_URL}/api/image-proxy?url=${encodeURIComponent(originalUrl)}&width=${size}&quality=${quality}`;
-}
-
-/**
- * Get multiple sized URLs for the same image (used in galleries/carousels)
- *
- * @param {string} url
- * @param {Array<{size: number, label: string}>} sizes
- * @returns {Object} - { thumbnail: "...", small: "...", medium: "...", ... }
- */
-export function getSizedImageUrls(url, sizes) {
-  const result = {};
-  if (!url) return result;
-
-  sizes.forEach(({ size, label }) => {
-    result[label || String(size)] = getOptimizedImageUrl(url, size);
-  });
-
-  return result;
 }
 
 /**
  * Preload an image into the React Native image cache.
- * Call this for images that will be displayed soon (e.g. next slide in carousel).
+ * Best-effort — errors are silently swallowed.
  *
- * @param {string} url - The optimized URL to preload
+ * @param {string} url
  */
 export function preloadImage(url) {
   if (!url || typeof url !== "string") return;
-
   try {
     const { Image } = require("react-native");
-    Image.prefetch(url).catch(() => {
-      // Silent — preload is best-effort
-    });
+    Image.prefetch(url).catch(() => {});
   } catch {
-    // Module not available (testing environment)
+    // Not in RN environment
   }
 }
 
 /**
  * Preload multiple images in parallel (e.g. for FlatList items).
- *
- * @param {string[]} urls - Array of optimized URLs
  */
 export function preloadImages(urls) {
   if (!Array.isArray(urls) || urls.length === 0) return;
   urls.forEach((url) => preloadImage(url));
 }
 
-/**
- * Get an Appwrite image URL with direct transformation params,
- * completely bypassing the backend proxy.
- * This is the fastest possible path for image loading.
- */
-export function getDirectAppwriteUrl(url, width = 200, quality = 60) {
-  if (!url || !isAppwriteUrl(url)) return url;
-
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.set("width", String(width));
-    parsed.searchParams.set("quality", String(quality));
-    parsed.searchParams.set("output", "webp");
-    return parsed.toString();
-  } catch {
-    return url;
-  }
-}
-
-/**
- * Convert product.image (which may be an Appwrite or proxy URL) into the
- * fastest-loading URL for the given display size.
- *
- * This is the function you should use in most components:
- *
- *   import { imageForSize } from "../../utils/imageOptimizer";
- *   <Image source={{ uri: imageForSize(product.image, IMAGE_SIZE.SMALL) }} />
- *
- * @param {string} imageUrl - The product.image value (any format)
- * @param {number} size - Desired width in px (from IMAGE_SIZE constants)
- * @returns {string} - Optimized URL
- */
-export function imageForSize(imageUrl, size = IMAGE_SIZE.MEDIUM) {
-  return getOptimizedImageUrl(imageUrl, size, true);
-}
-
 export default {
-  getOptimizedImageUrl,
-  getSizedImageUrls,
+  imageForSize,
   preloadImage,
   preloadImages,
-  getDirectAppwriteUrl,
-  imageForSize,
   IMAGE_SIZE,
   isAppwriteUrl,
 };

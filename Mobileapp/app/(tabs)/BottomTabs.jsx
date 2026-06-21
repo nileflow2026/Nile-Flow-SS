@@ -1,13 +1,7 @@
 import { BlurView } from "expo-blur";
+import { Image as ExpoImage } from "expo-image";
 import React, { useState, useCallback } from "react";
-import {
-  Dimensions,
-  Image,
-  Platform,
-  Text,
-  View,
-  Pressable,
-} from "react-native";
+import { Dimensions, Platform, Text, View, Pressable } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -107,11 +101,11 @@ const TabIcon = ({ focused, icon, title, notificationCount = 0 }) => {
           />
         )}
 
-        {/* Icon */}
-        <Image
+        {/* Icon — using expo-image for reliable tint across tab switches */}
+        <ExpoImage
           source={icon}
           tintColor={focused ? "#16A34A" : "#6B7280"}
-          resizeMode="contain"
+          contentFit="contain"
           style={{ width: iconSize, height: iconSize }}
         />
 

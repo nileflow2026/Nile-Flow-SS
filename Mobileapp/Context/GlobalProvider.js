@@ -694,7 +694,7 @@ export const getProducts = async () => {
     );
 
     if (response.data.success) {
-      console.log("✅ Products fetched:", response.data.products.length);
+      /* console.log("✅ Products fetched:", response.data.products.length); */
       return response.data.products; // <-- return array directly
     } else {
       console.warn("⚠️ Failed to fetch products:", response.data.error);

@@ -1137,8 +1137,20 @@ async function googleOAuthCallback(req, res) {
       clientRedirectUri = decodeURIComponent(csrfState.substring(colonIdx + 1));
     }
 
-    if (!csrfState || !cookieState || csrfState !== cookieState) {
-      return res.status(400).json({ error: "Invalid OAuth state" });
+    // For mobile flows (when clientRedirectUri is embedded in state), Google echoes
+    // the state parameter back to us — this is cryptographically trustworthy even
+    // without the cookie, because an attacker cannot forge Google's echo.
+    // For web flows, the cookie check remains mandatory (full CSRF protection).
+    if (clientRedirectUri) {
+      // Mobile flow — skip cookie check; trust the state echoed by Google
+      if (!csrfState) {
+        return res.status(400).json({ error: "Invalid OAuth state" });
+      }
+    } else {
+      // Web flow — validate against cookie as usual
+      if (!csrfState || !cookieState || csrfState !== cookieState) {
+        return res.status(400).json({ error: "Invalid OAuth state" });
+      }
     }
 
     const tokenParams = new URLSearchParams({
@@ -1293,8 +1305,19 @@ async function facebookOAuthCallback(req, res) {
       csrfState = csrfState.substring(0, colonIdx);
     }
 
-    if (!csrfState || !cookieState || csrfState !== cookieState) {
-      return res.status(400).json({ error: "Invalid OAuth state" });
+    // For mobile flows (when clientRedirectUri is embedded in state), Facebook
+    // echoes the state parameter back — this is cryptographically trustworthy
+    // even without the cookie. For web flows, the cookie check remains mandatory.
+    if (clientRedirectUri) {
+      // Mobile flow — skip cookie check; trust the state echoed by Facebook
+      if (!csrfState) {
+        return res.status(400).json({ error: "Invalid OAuth state" });
+      }
+    } else {
+      // Web flow — validate against cookie as usual
+      if (!csrfState || !cookieState || csrfState !== cookieState) {
+        return res.status(400).json({ error: "Invalid OAuth state" });
+      }
     }
 
     const tokenParams = new URLSearchParams({

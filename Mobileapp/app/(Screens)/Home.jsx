@@ -475,7 +475,7 @@ const Home = () => {
         {/* Featured Products Section */}
         <FeaturedProducts />
       </ScrollView>
-      <AIChat />
+      {/* <AIChat /> */}
     </View>
   );
 };
