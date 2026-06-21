@@ -118,6 +118,7 @@ const productController = {
           images: images || [],
           sku: sku, // Add SKU field
           isActive: true,
+           isApproved: true, // Auto-approve for now; adjust as needed
           isFeatured: false,
           rating: 0,
           reviewCount: 0,
@@ -130,7 +131,7 @@ const productController = {
 
       try {
         // Check if vendor exists in main database
-        await db.getDocument(
+        await db.getDocument( 
           env.APPWRITE_DATABASE_ID,
           MAIN_VENDOR_COLLECTION_ID,
           vendorId,
