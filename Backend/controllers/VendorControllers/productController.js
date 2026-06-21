@@ -173,73 +173,76 @@ const productController = {
       // 2. ALSO create product in MAIN WEBSITE collection (with different schema)
       let mainProduct = null;
       try {
-        // Map vendor product fields to main product schema
+        // Build the main product document with only essential schema-safe fields
+        // Use a two-phase approach: create minimal document first, then add metadata fields
+        const mainProductData = {
+          // Core fields (must match admin.js addProduct schema)
+          productName: name.trim(),
+          type: type || "physical",
+          description: description?.trim() || "",
+          price: parseFloat(price),
+          brand: brand || vendorDetails.storeName,
+          details: details || description?.trim() || "",
+          currency: currency || "USD",
+          category: categoryId,
+          categoryId: [categoryId],
+          subcategoryId: subcategoryId || "",
+          image: image || "",
+          images: images || [],
+          specifications: typeof parsedAttributes === 'object' 
+            ? JSON.stringify(parsedAttributes) 
+            : (parsedAttributes || ''),
+          stock: parseInt(inventory) || 0,
+          sku: `VENDOR-${productId.slice(0, 8)}`,
+          
+          // Approval/status (must match ProductapprovalController expectations)
+          isActive: false,
+          isFeatured: false,
+          isApproved: false,
+          status: "pending",
+
+          // Vendor info
+          vendorId: vendorId,
+          vendorName: vendorDetails.storeName,
+        };
+
         mainProduct = await db.createDocument(
-          env.APPWRITE_DATABASE_ID, // Your main website database ID
-          env.APPWRITE_PRODUCT_COLLECTION_ID, // Your main website collection ID
-          productId, // Use same ID for consistency
-          {
-            // Map to main product schema
-            productName: name.trim(),
-            type: type || "physical",
-            description: description?.trim() || "",
-            price: parseFloat(price),
-            brand: brand || vendorDetails.storeName, // Use vendor store name as brand if not provided
-            details: details || description?.trim() || "", // Use description as details
-            currency: currency || "USD",
-
-            // Category mapping - CRITICAL: Use the same field names as your main product controller
-            category: categoryId, // This should be a string ID
-            categoryId: [categoryId], // Array of category IDs
-            subcategoryId: subcategoryId || "", // Optional subcategory
-
-            // Images
-            image: image || "",
-            images: images || [],
-
-            // Specifications - map attributes to specifications
-            specifications: parsedAttributes || {},
-
-            // Stock
-            stock: parseInt(inventory) || 0,
-            vendorId: vendorId, // Simple string reference
-            vendorName: vendorDetails.storeName,
-            vendorEmail: vendorDetails.email,
-            vendorPhone: vendorDetails.phone || "",
-            vendorRating: vendorDetails.rating || 0,
-            vendorProfilePicture: vendorDetails.profilePicture || "",
-            // Product status flags
-            isActive: false,
-            isFeatured: false,
-            isApproved: false, // Auto-approve or set to false for admin approval
-
-            // Additional fields for main products
-            sku: `VENDOR-${productId.slice(0, 8)}`, // Generate SKU
-            slug: name
-              .trim()
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^\w\-]+/g, ""),
-            weight: 0,
-            dimensions: [],
-
-            // Ratings and reviews
-            rating: 0,
-            reviewCount: 0,
-            reviews: [],
-
-            // Sales data
-            salesCount: 0,
-            views: 0,
-
-            // Metadata
-            status: "pending",
-            submittedAt: new Date().toISOString(),
-            publishedAt: new Date().toISOString(),
-            source: "vendor", // To identify this came from vendor platform
-            vendorProductId: productId, // Reference back to vendor's product
-          },
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_PRODUCT_COLLECTION_ID,
+          productId,
+          mainProductData,
         );
+
+        // Phase 2: Update with optional metadata fields (fails individually if schema doesn't have them)
+        const optionalUpdates = {
+          vendorEmail: vendorDetails.email,
+          vendorPhone: vendorDetails.phone || "",
+          vendorRating: vendorDetails.rating || 0,
+          vendorProfilePicture: vendorDetails.profilePicture || "",
+          slug: name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]+/g, ""),
+          weight: 0,
+          dimensions: [],
+          rating: 0,
+          reviewCount: 0,
+          reviews: [],
+          salesCount: 0,
+          views: 0,
+          submittedAt: new Date().toISOString(),
+          publishedAt: new Date().toISOString(),
+          source: "vendor",
+          vendorProductId: productId,
+        };
+
+        try {
+          await db.updateDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_PRODUCT_COLLECTION_ID,
+            productId,
+            optionalUpdates,
+          );
+        } catch (updateErr) {
+          console.warn("⚠️ Optional fields update failed (non-critical):", updateErr.message);
+        }
         console.log("✅ Product added to main collection (pending approval)");
 
         try {

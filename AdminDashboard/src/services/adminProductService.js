@@ -9,7 +9,6 @@ export const adminProductService = {
       const response = await axiosClient.get(
         "/api/admin/products/products/pending"
       );
-      console.log("Pending products fetched:", response.data);
       return response.data; 
     } catch (error) {
       console.error("Get pending products error:", error);
