@@ -118,7 +118,7 @@ const productController = {
           images: images || [],
           sku: sku, // Add SKU field
           isActive: true,
-           isApproved: true, // Auto-approve for now; adjust as needed
+          
           isFeatured: false,
           rating: 0,
           reviewCount: 0,

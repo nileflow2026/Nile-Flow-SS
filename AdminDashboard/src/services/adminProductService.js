@@ -10,7 +10,7 @@ export const adminProductService = {
         "/api/admin/products/products/pending"
       );
       console.log("Pending products fetched:", response.data);
-      return response.data;
+      return response.data; 
     } catch (error) {
       console.error("Get pending products error:", error);
       throw new Error(
