@@ -171,6 +171,8 @@ router.get("/", async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  // Allow this proxied image to be used cross-origin (override helmet's default CORP)
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
 
   // OPTIONS preflight
   if (req.method === "OPTIONS") {
