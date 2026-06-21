@@ -174,19 +174,27 @@ const productController = {
       if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
         const reason = "APPWRITE_PRODUCT_COLLECTION_ID not configured - skipping main store creation";
         console.warn("⚠️", reason);
+        console.warn("⚠️ env.APPWRITE_DATABASE_ID:", env.APPWRITE_DATABASE_ID);
+        console.warn("⚠️ env.APPWRITE_PRODUCT_COLLECTION_ID:", env.APPWRITE_PRODUCT_COLLECTION_ID);
         try {
-          await instrumentedDb.updateDocument(
+          const notConfiguredData = {
+            mainSync: {
+              success: false,
+              reason,
+              timestamp: new Date().toISOString(),
+            },
+          };
+          
+          console.log("[NOT CONFIGURED] Writing mainSync to vendor product:", JSON.stringify(notConfiguredData, null, 2));
+          
+          await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
-            {
-              mainSync: {
-                success: false,
-                reason,
-                timestamp: new Date().toISOString(),
-              },
-            },
+            notConfiguredData,
           );
+          
+          console.log("[NOT CONFIGURED] Successfully wrote mainSync info");
         } catch (uErr) {
           console.warn("⚠️ Failed to update vendor product with mainSync info:", uErr.message);
         }
@@ -378,18 +386,37 @@ const productController = {
           env.VENDOR_PRODUCTS_COLLECTION_ID,
           productId,
         );
+        console.log("[FRESH PRODUCT FETCH] Successfully fetched vendor product after create");
+        console.log("[FRESH PRODUCT FETCH] mainSync field present?:", !!freshVendorProduct?.mainSync);
+        console.log("[FRESH PRODUCT FETCH] mainSync value:", freshVendorProduct?.mainSync);
       } catch (fetchErr) {
         console.warn("⚠️ Failed to fetch updated vendor product for response:", fetchErr.message);
+        console.warn("⚠️ Will return original product from creation");
       }
 
       // Extract mainSync info if present (will be set if main product creation failed)
       const mainSyncInfo = freshVendorProduct?.mainSync || null;
+      
+      console.log("[RESPONSE BUILD] addedToMainStore:", !!mainProduct);
+      console.log("[RESPONSE BUILD] mainSyncInfo:", mainSyncInfo);
+      console.log("[RESPONSE BUILD] APPWRITE_PRODUCT_COLLECTION_ID configured:", !!env.APPWRITE_PRODUCT_COLLECTION_ID);
+      
+      // Build summary of what happened
+      let syncSummary = "";
+      if (mainProduct) {
+        syncSummary = "✅ Product successfully synced to main store (pending approval)";
+      } else if (mainSyncInfo) {
+        syncSummary = `⚠️ Main store sync failed: ${mainSyncInfo.reason || mainSyncInfo.error || "Unknown error"}`;
+      } else {
+        syncSummary = "⚠️ Main store sync status unknown - check backend logs";
+      }
 
       res.status(201).json({
         success: true,
         message:
           "Product created successfully and submitted for admin approval",
         status: "pending_approval",
+        syncSummary,
         data: {
           product: freshVendorProduct,
           addedToMainStore: !!mainProduct,
