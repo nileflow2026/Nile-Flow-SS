@@ -332,26 +332,37 @@ const productController = {
         console.error("❌ Failed to add product to main collection:", mainProductError);
         // Log the specific error details when available
         const errMsg = (mainProductError && mainProductError.message) || String(mainProductError);
-        console.error("Main product error:", errMsg);
+        console.error("Main product error message:", errMsg);
+        console.error("Main product error details:", {
+          code: mainProductError?.code,
+          response: mainProductError?.response?.data,
+          stack: mainProductError?.stack?.split('\n').slice(0, 5).join('\n'),
+        });
 
         // Persist sync failure into the vendor product so it's visible in vendor dashboard/logs
         try {
+          const syncFailureData = {
+            mainSync: {
+              success: false,
+              error: errMsg,
+              details:
+                mainProductError && mainProductError.response
+                  ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
+                  : (mainProductError?.toString && mainProductError.toString()),
+              timestamp: new Date().toISOString(),
+            },
+          };
+          
+          console.log("[MAIN SYNC FAILURE] Updating vendor product with mainSync:", JSON.stringify(syncFailureData, null, 2));
+          
           await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
-            {
-              mainSync: {
-                success: false,
-                error: errMsg,
-                details:
-                  mainProductError && mainProductError.response
-                    ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
-                    : null,
-                timestamp: new Date().toISOString(),
-              },
-            },
+            syncFailureData,
           );
+          
+          console.log("[MAIN SYNC FAILURE] Successfully persisted mainSync info to vendor product");
         } catch (uErr) {
           console.warn("⚠️ Failed to write mainSync info to vendor product:", uErr.message);
         }
@@ -371,6 +382,9 @@ const productController = {
         console.warn("⚠️ Failed to fetch updated vendor product for response:", fetchErr.message);
       }
 
+      // Extract mainSync info if present (will be set if main product creation failed)
+      const mainSyncInfo = freshVendorProduct?.mainSync || null;
+
       res.status(201).json({
         success: true,
         message:
@@ -380,6 +394,8 @@ const productController = {
           product: freshVendorProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
+          // Explicitly include mainSync info at top level for easier frontend access
+          mainSync: mainSyncInfo,
         },
       });
     } catch (error) {

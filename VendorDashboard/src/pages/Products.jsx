@@ -907,12 +907,26 @@ const Products = () => {
 
       // Create product
       const response = await productService.createProduct(productData);
+      
+      // Debug: Log the full response structure
+      console.log("[VENDOR PRODUCT CREATE] Full response:", JSON.stringify(response, null, 2));
+      console.log("[VENDOR PRODUCT CREATE] Response data:", response.data);
+      console.log("[VENDOR PRODUCT CREATE] Product object:", response.data?.product);
+      console.log("[VENDOR PRODUCT CREATE] MainSync:", response.data?.product?.mainSync);
+      console.log("[VENDOR PRODUCT CREATE] AddedToMainStore:", response.data?.addedToMainStore);
 
       if (response.success) {
+        // Check for mainSync error at both locations (nested in product AND top-level)
         const syncError =
+          response.data?.mainSync?.error ||
+          response.data?.mainSync?.reason ||
           response.data?.product?.mainSync?.error ||
           response.data?.product?.mainSync?.reason ||
           null;
+        
+        console.log("[VENDOR PRODUCT CREATE] Sync error extracted:", syncError);
+        console.log("[VENDOR PRODUCT CREATE] Full mainSync object (top-level):", response.data?.mainSync);
+        console.log("[VENDOR PRODUCT CREATE] Full mainSync object (nested):", response.data?.product?.mainSync);
 
         setMessage({
           type: "success",
