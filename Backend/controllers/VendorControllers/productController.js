@@ -1,7 +1,7 @@
 // controllers/productController.js
 const { File } = require("node-fetch-native-with-agent");
 const { ID } = require("node-appwrite");
-const { db, storage } = require("../../services/appwriteService");
+const { db, storage, instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const {
@@ -131,7 +131,7 @@ const productController = {
 
       try {
         // Check if vendor exists in main database
-        await db.getDocument( 
+        await db.getDocument(
           env.APPWRITE_DATABASE_ID,
           MAIN_VENDOR_COLLECTION_ID,
           vendorId,
@@ -170,9 +170,35 @@ const productController = {
         }
       }
 
+      // If the main product collection is not configured, record that and skip main creation
+      if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
+        const reason = "APPWRITE_PRODUCT_COLLECTION_ID not configured - skipping main store creation";
+        console.warn("⚠️", reason);
+        try {
+          await instrumentedDb.updateDocument(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_PRODUCTS_COLLECTION_ID,
+            productId,
+            {
+              mainSync: {
+                success: false,
+                reason,
+                timestamp: new Date().toISOString(),
+              },
+            },
+          );
+        } catch (uErr) {
+          console.warn("⚠️ Failed to update vendor product with mainSync info:", uErr.message);
+        }
+      }
+
       // 2. ALSO create product in MAIN WEBSITE collection (with different schema)
       let mainProduct = null;
       try {
+        // If product collection not configured, don't attempt creation
+        if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
+          throw new Error("Product collection not configured");
+        }
         // Build the main product document with only essential schema-safe fields
         // Use a two-phase approach: create minimal document first, then add metadata fields
         const mainProductData = {
@@ -206,7 +232,8 @@ const productController = {
           vendorName: vendorDetails.storeName,
         };
 
-        mainProduct = await db.createDocument(
+        // Use instrumentedDb for observability and consistency with admin controllers
+        mainProduct = await instrumentedDb.createDocument(
           env.APPWRITE_DATABASE_ID,
           env.APPWRITE_PRODUCT_COLLECTION_ID,
           productId,
@@ -234,7 +261,7 @@ const productController = {
         };
 
         try {
-          await db.updateDocument(
+          await instrumentedDb.updateDocument(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_PRODUCT_COLLECTION_ID,
             productId,
@@ -247,7 +274,7 @@ const productController = {
 
         try {
           // Get all admin users (or specific admin IDs)
-          const admins = await db.listDocuments(
+          const admins = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID, // Or your users database
             env.APPWRITE_ADMIN_COLLECTION_ID, // Your users collection
             [Query.equal("role", "admin"), Query.limit(10)],
@@ -302,23 +329,46 @@ const productController = {
           // Don't fail the whole request if notification fails
         }
       } catch (mainProductError) {
-        console.error(
-          "❌ Failed to add product to main collection:",
-          mainProductError,
-        );
-        // Log the specific error
-        if (mainProductError.response) {
-          console.error(
-            "Appwrite response status:",
-            mainProductError.response.status,
+        console.error("❌ Failed to add product to main collection:", mainProductError);
+        // Log the specific error details when available
+        const errMsg = (mainProductError && mainProductError.message) || String(mainProductError);
+        console.error("Main product error:", errMsg);
+
+        // Persist sync failure into the vendor product so it's visible in vendor dashboard/logs
+        try {
+          await db.updateDocument(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_PRODUCTS_COLLECTION_ID,
+            productId,
+            {
+              mainSync: {
+                success: false,
+                error: errMsg,
+                details:
+                  mainProductError && mainProductError.response
+                    ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
+                    : null,
+                timestamp: new Date().toISOString(),
+              },
+            },
           );
-          console.error(
-            "Appwrite response data:",
-            JSON.stringify(mainProductError.response.data, null, 2),
-          );
+        } catch (uErr) {
+          console.warn("⚠️ Failed to write mainSync info to vendor product:", uErr.message);
         }
         // Don't fail the whole request, but log for manual fix
         // You might want to implement a retry queue here
+      }
+
+      // Try to fetch latest vendor product (including any mainSync info)
+      let freshVendorProduct = vendorProduct;
+      try {
+        freshVendorProduct = await db.getDocument(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_PRODUCTS_COLLECTION_ID,
+          productId,
+        );
+      } catch (fetchErr) {
+        console.warn("⚠️ Failed to fetch updated vendor product for response:", fetchErr.message);
       }
 
       res.status(201).json({
@@ -327,7 +377,7 @@ const productController = {
           "Product created successfully and submitted for admin approval",
         status: "pending_approval",
         data: {
-          product: vendorProduct,
+          product: freshVendorProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
         },

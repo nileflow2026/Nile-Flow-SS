@@ -821,7 +821,7 @@ const Products = () => {
           text: "Name, price, and category are required",
         });
         setIsLoading(false);
-        return;
+        return; 
       }
 
       const productData = {
@@ -909,10 +909,17 @@ const Products = () => {
       const response = await productService.createProduct(productData);
 
       if (response.success) {
+        const syncError =
+          response.data?.product?.mainSync?.error ||
+          response.data?.product?.mainSync?.reason ||
+          null;
+
         setMessage({
           type: "success",
           text: response.data.addedToMainStore
             ? "Product created and added to store!"
+            : syncError
+            ? `Product created but not added to main store: ${syncError}`
             : "Product created (but not added to main store - check logs)",
         });
 

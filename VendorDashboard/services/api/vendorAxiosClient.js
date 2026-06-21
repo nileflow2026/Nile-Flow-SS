@@ -1,7 +1,8 @@
 // src/vendor/api/vendorAxiosClient.js
 import axios from "axios";
 
-const API_BASE_URL = "https://nile-flow-backend.onrender.com";
+// Read base URL from Vite env `VITE_API_BASE_URL` for local testing, fallback to localhost
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const vendorAxiosClient = axios.create({
   baseURL: API_BASE_URL,
