@@ -209,15 +209,20 @@
   }
 
   // Console access detection
-  Object.defineProperty(window, "console", {
-    get() {
-      handleDevToolsDetected();
-      return originalConsole;
-    },
-    set() {
-      handleDevToolsDetected();
-    },
-  });
+  try {
+    Object.defineProperty(window, "console", {
+      get() {
+        handleDevToolsDetected();
+        return originalConsole;
+      },
+      set() {
+        handleDevToolsDetected();
+      },
+    });
+  } catch (e) {
+    // Console is non-configurable in some environments, skip silently
+    console.log("[Protection] Console property already protected, skipping redefinition");
+  }
 
   // Start monitoring when page loads
   if (document.readyState === "loading") {

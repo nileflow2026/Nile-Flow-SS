@@ -1,7 +1,7 @@
 // controllers/productController.js
 const { File } = require("node-fetch-native-with-agent");
 const { ID } = require("node-appwrite");
-const { db, storage } = require("../../services/appwriteService");
+const { db, storage, instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const {
@@ -118,6 +118,7 @@ const productController = {
           images: images || [],
           sku: sku, // Add SKU field
           isActive: true,
+          
           isFeatured: false,
           rating: 0,
           reviewCount: 0,
@@ -169,81 +170,119 @@ const productController = {
         }
       }
 
+      // If the main product collection is not configured, record that and skip main creation
+      if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
+        const reason = "APPWRITE_PRODUCT_COLLECTION_ID not configured - skipping main store creation";
+        console.warn("⚠️", reason);
+        console.warn("⚠️ env.APPWRITE_DATABASE_ID:", env.APPWRITE_DATABASE_ID);
+        console.warn("⚠️ env.APPWRITE_PRODUCT_COLLECTION_ID:", env.APPWRITE_PRODUCT_COLLECTION_ID);
+        try {
+          const notConfiguredData = {
+            mainSync: {
+              success: false,
+              reason,
+              timestamp: new Date().toISOString(),
+            },
+          };
+          
+          console.log("[NOT CONFIGURED] Writing mainSync to vendor product:", JSON.stringify(notConfiguredData, null, 2));
+          
+          await db.updateDocument(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_PRODUCTS_COLLECTION_ID,
+            productId,
+            notConfiguredData,
+          );
+          
+          console.log("[NOT CONFIGURED] Successfully wrote mainSync info");
+        } catch (uErr) {
+          console.warn("⚠️ Failed to update vendor product with mainSync info:", uErr.message);
+        }
+      }
+
       // 2. ALSO create product in MAIN WEBSITE collection (with different schema)
       let mainProduct = null;
       try {
-        // Map vendor product fields to main product schema
-        mainProduct = await db.createDocument(
-          env.APPWRITE_DATABASE_ID, // Your main website database ID
-          env.APPWRITE_PRODUCT_COLLECTION_ID, // Your main website collection ID
-          productId, // Use same ID for consistency
-          {
-            // Map to main product schema
-            productName: name.trim(),
-            type: type || "physical",
-            description: description?.trim() || "",
-            price: parseFloat(price),
-            brand: brand || vendorDetails.storeName, // Use vendor store name as brand if not provided
-            details: details || description?.trim() || "", // Use description as details
-            currency: currency || "USD",
+        // If product collection not configured, don't attempt creation
+        if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
+          throw new Error("Product collection not configured");
+        }
+        // Build the main product document with only essential schema-safe fields
+        // Use a two-phase approach: create minimal document first, then add metadata fields
+        const mainProductData = {
+          // Core fields (must match admin.js addProduct schema)
+          productName: name.trim(),
+          type: type || "physical",
+          description: description?.trim() || "",
+          price: parseFloat(price),
+          brand: brand || vendorDetails.storeName,
+          details: details || description?.trim() || "",
+          currency: currency || "USD",
+          category: categoryId,
+          categoryId: [categoryId],
+          subcategoryId: subcategoryId || "",
+          image: image || "",
+          images: images || [],
+          specifications: typeof parsedAttributes === 'object' 
+            ? JSON.stringify(parsedAttributes) 
+            : (parsedAttributes || ''),
+          stock: parseInt(inventory) || 0,
+          sku: `VENDOR-${productId.slice(0, 8)}`,
+          
+          // Approval/status (must match ProductapprovalController expectations)
+          isActive: false,
+          isFeatured: false,
+          isApproved: false,
+          status: "pending",
 
-            // Category mapping - CRITICAL: Use the same field names as your main product controller
-            category: categoryId, // This should be a string ID
-            categoryId: [categoryId], // Array of category IDs
-            subcategoryId: subcategoryId || "", // Optional subcategory
+          // Vendor info
+          vendorId: vendorId,
+          vendorName: vendorDetails.storeName,
+        };
 
-            // Images
-            image: image || "",
-            images: images || [],
-
-            // Specifications - map attributes to specifications
-            specifications: parsedAttributes || {},
-
-            // Stock
-            stock: parseInt(inventory) || 0,
-            vendorId: vendorId, // Simple string reference
-            vendorName: vendorDetails.storeName,
-            vendorEmail: vendorDetails.email,
-            vendorPhone: vendorDetails.phone || "",
-            vendorRating: vendorDetails.rating || 0,
-            vendorProfilePicture: vendorDetails.profilePicture || "",
-            // Product status flags
-            isActive: false,
-            isFeatured: false,
-            isApproved: false, // Auto-approve or set to false for admin approval
-
-            // Additional fields for main products
-            sku: `VENDOR-${productId.slice(0, 8)}`, // Generate SKU
-            slug: name
-              .trim()
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^\w\-]+/g, ""),
-            weight: 0,
-            dimensions: [],
-
-            // Ratings and reviews
-            rating: 0,
-            reviewCount: 0,
-            reviews: [],
-
-            // Sales data
-            salesCount: 0,
-            views: 0,
-
-            // Metadata
-            status: "pending",
-            submittedAt: new Date().toISOString(),
-            publishedAt: new Date().toISOString(),
-            source: "vendor", // To identify this came from vendor platform
-            vendorProductId: productId, // Reference back to vendor's product
-          },
+        // Use instrumentedDb for observability and consistency with admin controllers
+        mainProduct = await instrumentedDb.createDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_PRODUCT_COLLECTION_ID,
+          productId,
+          mainProductData,
         );
+
+        // Phase 2: Update with optional metadata fields (fails individually if schema doesn't have them)
+        const optionalUpdates = {
+          vendorEmail: vendorDetails.email,
+          vendorPhone: vendorDetails.phone || "",
+          vendorRating: vendorDetails.rating || 0,
+          vendorProfilePicture: vendorDetails.profilePicture || "",
+          slug: name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]+/g, ""),
+          weight: 0,
+          dimensions: [],
+          rating: 0,
+          reviewCount: 0,
+          reviews: [],
+          salesCount: 0,
+          views: 0,
+          submittedAt: new Date().toISOString(),
+          publishedAt: new Date().toISOString(),
+          source: "vendor",
+          vendorProductId: productId,
+        };
+
+        try {
+          await instrumentedDb.updateDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_PRODUCT_COLLECTION_ID,
+            productId,
+            optionalUpdates,
+          );
+        } catch (updateErr) {
+          console.warn("⚠️ Optional fields update failed (non-critical):", updateErr.message);
+        }
         console.log("✅ Product added to main collection (pending approval)");
 
         try {
           // Get all admin users (or specific admin IDs)
-          const admins = await db.listDocuments(
+          const admins = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID, // Or your users database
             env.APPWRITE_ADMIN_COLLECTION_ID, // Your users collection
             [Query.equal("role", "admin"), Query.limit(10)],
@@ -298,23 +337,78 @@ const productController = {
           // Don't fail the whole request if notification fails
         }
       } catch (mainProductError) {
-        console.error(
-          "❌ Failed to add product to main collection:",
-          mainProductError,
-        );
-        // Log the specific error
-        if (mainProductError.response) {
-          console.error(
-            "Appwrite response status:",
-            mainProductError.response.status,
+        console.error("❌ Failed to add product to main collection:", mainProductError);
+        // Log the specific error details when available
+        const errMsg = (mainProductError && mainProductError.message) || String(mainProductError);
+        console.error("Main product error message:", errMsg);
+        console.error("Main product error details:", {
+          code: mainProductError?.code,
+          response: mainProductError?.response?.data,
+          stack: mainProductError?.stack?.split('\n').slice(0, 5).join('\n'),
+        });
+
+        // Persist sync failure into the vendor product so it's visible in vendor dashboard/logs
+        try {
+          const syncFailureData = {
+            mainSync: {
+              success: false,
+              error: errMsg,
+              details:
+                mainProductError && mainProductError.response
+                  ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
+                  : (mainProductError?.toString && mainProductError.toString()),
+              timestamp: new Date().toISOString(),
+            },
+          };
+          
+          console.log("[MAIN SYNC FAILURE] Updating vendor product with mainSync:", JSON.stringify(syncFailureData, null, 2));
+          
+          await db.updateDocument(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_PRODUCTS_COLLECTION_ID,
+            productId,
+            syncFailureData,
           );
-          console.error(
-            "Appwrite response data:",
-            JSON.stringify(mainProductError.response.data, null, 2),
-          );
+          
+          console.log("[MAIN SYNC FAILURE] Successfully persisted mainSync info to vendor product");
+        } catch (uErr) {
+          console.warn("⚠️ Failed to write mainSync info to vendor product:", uErr.message);
         }
         // Don't fail the whole request, but log for manual fix
         // You might want to implement a retry queue here
+      }
+
+      // Try to fetch latest vendor product (including any mainSync info)
+      let freshVendorProduct = vendorProduct;
+      try {
+        freshVendorProduct = await db.getDocument(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_PRODUCTS_COLLECTION_ID,
+          productId,
+        );
+        console.log("[FRESH PRODUCT FETCH] Successfully fetched vendor product after create");
+        console.log("[FRESH PRODUCT FETCH] mainSync field present?:", !!freshVendorProduct?.mainSync);
+        console.log("[FRESH PRODUCT FETCH] mainSync value:", freshVendorProduct?.mainSync);
+      } catch (fetchErr) {
+        console.warn("⚠️ Failed to fetch updated vendor product for response:", fetchErr.message);
+        console.warn("⚠️ Will return original product from creation");
+      }
+
+      // Extract mainSync info if present (will be set if main product creation failed)
+      const mainSyncInfo = freshVendorProduct?.mainSync || null;
+      
+      console.log("[RESPONSE BUILD] addedToMainStore:", !!mainProduct);
+      console.log("[RESPONSE BUILD] mainSyncInfo:", mainSyncInfo);
+      console.log("[RESPONSE BUILD] APPWRITE_PRODUCT_COLLECTION_ID configured:", !!env.APPWRITE_PRODUCT_COLLECTION_ID);
+      
+      // Build summary of what happened
+      let syncSummary = "";
+      if (mainProduct) {
+        syncSummary = "✅ Product successfully synced to main store (pending approval)";
+      } else if (mainSyncInfo) {
+        syncSummary = `⚠️ Main store sync failed: ${mainSyncInfo.reason || mainSyncInfo.error || "Unknown error"}`;
+      } else {
+        syncSummary = "⚠️ Main store sync status unknown - check backend logs";
       }
 
       res.status(201).json({
@@ -322,10 +416,13 @@ const productController = {
         message:
           "Product created successfully and submitted for admin approval",
         status: "pending_approval",
+        syncSummary,
         data: {
-          product: vendorProduct,
+          product: freshVendorProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
+          // Explicitly include mainSync info at top level for easier frontend access
+          mainSync: mainSyncInfo,
         },
       });
     } catch (error) {
@@ -632,7 +729,10 @@ const productController = {
         new File([req.file.buffer], req.file.originalname),
       );
 
-      const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      
+      // Proxy images through backend to avoid CORS/timeout issues
+      const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
       const uploadedImage = {
         id: image.$id,
@@ -661,7 +761,7 @@ const productController = {
           productId,
         );
         const existingUrls = (mainProduct.images || []).filter(
-          (u) => typeof u === "string" && !u.startsWith("{"),
+          (u) => typeof u === "string" && !u.includes("image-proxy"),
         );
         if (!existingUrls.includes(imageUrl)) {
           await db.updateDocument(
@@ -752,7 +852,10 @@ const productController = {
             new File([buffer], img.filename || "image.jpg"),
           );
 
-          const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+          const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+
+          // Proxy images through backend to avoid CORS/timeout issues
+          const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
           uploadedImages.push({
             id: image.$id,
@@ -833,7 +936,10 @@ const productController = {
         new File([buffer], fileName),
       );
 
-      const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+
+      // Proxy images through backend to avoid CORS/timeout issues
+      const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
       return res.status(201).json({
         success: true,

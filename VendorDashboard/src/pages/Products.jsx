@@ -821,7 +821,7 @@ const Products = () => {
           text: "Name, price, and category are required",
         });
         setIsLoading(false);
-        return;
+        return; 
       }
 
       const productData = {
@@ -907,13 +907,48 @@ const Products = () => {
 
       // Create product
       const response = await productService.createProduct(productData);
+      
+      // Debug: Log the full response structure
+      console.log("[VENDOR PRODUCT CREATE] Full response:", JSON.stringify(response, null, 2));
+      console.log("[VENDOR PRODUCT CREATE] Response data:", response.data);
+      console.log("[VENDOR PRODUCT CREATE] Product object:", response.data?.product);
+      console.log("[VENDOR PRODUCT CREATE] MainSync:", response.data?.product?.mainSync);
+      console.log("[VENDOR PRODUCT CREATE] AddedToMainStore:", response.data?.addedToMainStore);
+      console.log("[VENDOR PRODUCT CREATE] SyncSummary:", response.data?.syncSummary);
 
       if (response.success) {
+        // Check for mainSync error at both locations (nested in product AND top-level)
+        const syncError =
+          response.data?.mainSync?.error ||
+          response.data?.mainSync?.reason ||
+          response.data?.product?.mainSync?.error ||
+          response.data?.product?.mainSync?.reason ||
+          null;
+        
+        console.log("[VENDOR PRODUCT CREATE] Sync error extracted:", syncError);
+        console.log("[VENDOR PRODUCT CREATE] Full mainSync object (top-level):", response.data?.mainSync);
+        console.log("[VENDOR PRODUCT CREATE] Full mainSync object (nested):", response.data?.product?.mainSync);
+        console.log("[VENDOR PRODUCT CREATE] addedToMainStore:", response.data?.addedToMainStore);
+
+        // Determine message based on response from backend
+        let messageText = response.data?.syncSummary || "";
+        
+        if (!messageText) {
+          // Fallback logic if syncSummary not provided
+          if (response.data.addedToMainStore) {
+            messageText = "✅ Product created and added to store!";
+          } else if (syncError) {
+            messageText = `⚠️ Product created but not added to main store: ${syncError}`;
+          } else {
+            messageText = "⚠️ Product created (vendor collection only - main store sync needs attention). Check backend logs or contact admin.";
+          }
+        }
+        
+        console.log("[VENDOR PRODUCT CREATE] Final message:", messageText);
+
         setMessage({
           type: "success",
-          text: response.data.addedToMainStore
-            ? "Product created and added to store!"
-            : "Product created (but not added to main store - check logs)",
+          text: messageText,
         });
 
         // Reset form
