@@ -729,7 +729,10 @@ const productController = {
         new File([req.file.buffer], req.file.originalname),
       );
 
-      const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      
+      // Proxy images through backend to avoid CORS/timeout issues
+      const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
       const uploadedImage = {
         id: image.$id,
@@ -758,7 +761,7 @@ const productController = {
           productId,
         );
         const existingUrls = (mainProduct.images || []).filter(
-          (u) => typeof u === "string" && !u.startsWith("{"),
+          (u) => typeof u === "string" && !u.includes("image-proxy"),
         );
         if (!existingUrls.includes(imageUrl)) {
           await db.updateDocument(
@@ -849,7 +852,10 @@ const productController = {
             new File([buffer], img.filename || "image.jpg"),
           );
 
-          const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+          const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${image.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+
+          // Proxy images through backend to avoid CORS/timeout issues
+          const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
           uploadedImages.push({
             id: image.$id,
@@ -930,7 +936,10 @@ const productController = {
         new File([buffer], fileName),
       );
 
-      const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
+
+      // Proxy images through backend to avoid CORS/timeout issues
+      const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
 
       return res.status(201).json({
         success: true,

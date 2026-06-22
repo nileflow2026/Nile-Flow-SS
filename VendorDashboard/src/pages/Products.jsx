@@ -903,6 +903,12 @@ const Products = () => {
         images: formData.images,
       };
 
+      console.log("Creating product with data:", productData);
+
+      // Create product
+      const response = await productService.createProduct(productData);
+      
+      // Debug: Log the full response structure
       console.log("[VENDOR PRODUCT CREATE] Full response:", JSON.stringify(response, null, 2));
       console.log("[VENDOR PRODUCT CREATE] Response data:", response.data);
       console.log("[VENDOR PRODUCT CREATE] Product object:", response.data?.product);
