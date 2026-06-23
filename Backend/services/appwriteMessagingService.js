@@ -94,6 +94,20 @@ async function retryFindTarget(userId, type, identifier, maxRetries = 8) {
  */
 async function ensureEmailTarget(userId, email) {
   try {
+    // First verify user exists in Appwrite
+    try {
+      await users.get(userId);
+    } catch (userError) {
+      if (userError.message && userError.message.includes("could not be found")) {
+        console.warn(
+          `[AppwriteMessaging] Cannot create email target: user ${userId} not found in Appwrite`,
+        );
+        return null;
+      }
+      // Re-throw other errors
+      throw userError;
+    }
+
     // List existing email targets for this user
     const existing = await users.listTargets(userId);
     const emailTarget = existing.targets.find(
@@ -147,6 +161,20 @@ async function ensureEmailTarget(userId, email) {
  */
 async function ensureSmsTarget(userId, phone) {
   try {
+    // First verify user exists in Appwrite
+    try {
+      await users.get(userId);
+    } catch (userError) {
+      if (userError.message && userError.message.includes("could not be found")) {
+        console.warn(
+          `[AppwriteMessaging] Cannot create SMS target: user ${userId} not found in Appwrite`,
+        );
+        return null;
+      }
+      // Re-throw other errors
+      throw userError;
+    }
+
     // Normalize phone number
     let normalizedPhone = phone.replace(/[^0-9]/g, "");
     if (normalizedPhone.startsWith("0")) {
@@ -305,31 +333,49 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
       return;
     }
 
-    // Validate action parameter: must be string of 1-256 chars if provided
-    const validatedAction = action && typeof action === "string" && action.trim().length > 0 
-      ? action.substring(0, 256) 
-      : "";
+    // Validate and prepare action parameter
+    // IMPORTANT: Appwrite rejects EMPTY strings for action.
+    // Only include action if it's a non-empty, valid string (1-256 chars)
+    let actionParam = null;
+    if (action && typeof action === "string") {
+      const trimmedAction = action.trim();
+      if (trimmedAction.length > 0) {
+        // Truncate to 256 chars if too long
+        actionParam = trimmedAction.substring(0, 256);
+      }
+    }
 
-    await messaging.createPush(
-      ID.unique(),
-      title,
-      body,
-      [], // topics
-      [userId], // users — Appwrite resolves their push targets
-      [], // targets
-      data,
-      validatedAction,
-      "", // icon
-      "default", // sound
-      "", // color
-      "", // tag
-      1, // badge
-      false, // contentAvailable
-      false, // critical
-      "normal", // priority
-      false, // draft
-      "", // scheduledAt
-    );
+    try {
+      await messaging.createPush(
+        ID.unique(),
+        title,
+        body,
+        [], // topics
+        [userId], // users — Appwrite resolves their push targets
+        [], // targets
+        data,
+        actionParam || "", // Use empty string only as last resort (required parameter)
+        "", // icon
+        "default", // sound
+        "", // color
+        "", // tag
+        1, // badge
+        false, // contentAvailable
+        false, // critical
+        "normal", // priority
+        false, // draft
+        "", // scheduledAt
+      );
+    } catch (pushError) {
+      // If user doesn't exist, log it but don't crash
+      if (pushError.message && pushError.message.includes("could not be found")) {
+        console.warn(
+          `[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`,
+        );
+        return;
+      }
+      throw pushError;
+    }
   } catch (error) {
     console.warn(
       `[AppwriteMessaging] Failed to send push to ${userId}:`,
@@ -355,10 +401,17 @@ async function sendPushToTopic({ topic, title, body, data = {}, action = null })
       return;
     }
 
-    // Validate action parameter: must be string of 1-256 chars if provided
-    const validatedAction = action && typeof action === "string" && action.trim().length > 0 
-      ? action.substring(0, 256) 
-      : "";
+    // Validate and prepare action parameter
+    // IMPORTANT: Appwrite rejects EMPTY strings for action.
+    // Only include action if it's a non-empty, valid string (1-256 chars)
+    let actionParam = null;
+    if (action && typeof action === "string") {
+      const trimmedAction = action.trim();
+      if (trimmedAction.length > 0) {
+        // Truncate to 256 chars if too long
+        actionParam = trimmedAction.substring(0, 256);
+      }
+    }
 
     await messaging.createPush(
       ID.unique(),
@@ -368,7 +421,7 @@ async function sendPushToTopic({ topic, title, body, data = {}, action = null })
       [], // users
       [], // targets
       data,
-      validatedAction,
+      actionParam || "", // Use empty string only as last resort (required parameter)
       "", // icon
       "default", // sound
       "", // color
