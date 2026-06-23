@@ -12,6 +12,9 @@ const {
 const { createNotification } = require("../UserControllers/Clientnotification");
 const { ID, Query, Permission, Role } = require("node-appwrite");
 const { addNileMilesOnPurchase } = require("./rewardController");
+const {
+  sendOrderSuccessNotifications,
+} = require("../../services/orderNotificationService");
 // Import the stock helper functions
 const {
   checkStockAvailability,
@@ -122,7 +125,7 @@ async function processSuccessfulMpesaPayment(order, orderId, paymentDetails) {
       // Don't fail payment for premium processing errors
     }
 
-    // 5. Send notifications (non-blocking)
+    // 5. Send in-app notifications (non-blocking)
     try {
       await createNotification({
         userId: order.userId || order.users,
@@ -135,6 +138,18 @@ async function processSuccessfulMpesaPayment(order, orderId, paymentDetails) {
     } catch (notificationError) {
       console.warn("Notification error:", notificationError.message);
     }
+
+    // 6. Send Appwrite Messaging notifications (SMS, Email, Push)
+    sendOrderSuccessNotifications({
+      orderId,
+      customerName: order.username || "Customer",
+      amount: `KES ${amount}`,
+      paymentMethod: "M-Pesa",
+      cartItems: cart,
+      customerUserId: order.userId || order.users,
+      customerEmail: order.customerEmail,
+      customerPhone: phoneNumber,
+    });
 
     console.log(`✅ M-Pesa payment processing completed for order ${orderId}`);
   } catch (error) {
@@ -229,7 +244,7 @@ const cashonDelivery = async (req, res) => {
   let orderId; // Declare orderId at function scope
 
   try {
-    console.log("=== CASH ON DELIVERY REQUEST ===");
+    console.log("=== PAYMENT ON DELIVERY REQUEST ===");
     console.log("Request Body:", JSON.stringify(req.body, null, 2));
 
     const { cart, userId, customerEmail, username, totalAmount, currency } =
@@ -435,7 +450,7 @@ const cashonDelivery = async (req, res) => {
         customerName: username,
         orderId,
         orderTotal: parseFloat(trustedTotal),
-        paymentMethod: "Cash on Delivery",
+        paymentMethod: "Payment on Delivery",
         status: "Pending",
       });
       console.log("✅ Email confirmation sent");
@@ -447,7 +462,7 @@ const cashonDelivery = async (req, res) => {
     const responseData = {
       success: true,
       message:
-        "Cash on Delivery order created successfully. Stock has been updated.",
+        "Payment on Delivery order created successfully. Stock has been updated.",
       orderId: orderId,
       createdAt: orderDocument.createdAt,
       stockUpdate: {
@@ -472,6 +487,18 @@ const cashonDelivery = async (req, res) => {
     }
 
     res.status(201).json(responseData);
+
+    // Send Appwrite Messaging notifications (SMS, Email, Push)
+    sendOrderSuccessNotifications({
+      orderId,
+      customerName: username,
+      amount: `KES ${Math.round(parseFloat(trustedTotal))}`,
+      paymentMethod: "Payment on Delivery",
+      cartItems: cart,
+      customerUserId: finalUserId,
+      customerEmail,
+      customerPhone: "",
+    });
 
     console.log(`🎉 Order ${orderId} completed successfully`);
   } catch (error) {
