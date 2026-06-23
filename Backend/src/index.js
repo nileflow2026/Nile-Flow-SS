@@ -6,36 +6,33 @@ const Sentry = require("@sentry/node");
 // EMERGENCY DEBUG - Add to VERY TOP of index.js
 process.on("uncaughtException", (error) => {
   Sentry.captureException(error);
-  console.error("💥 UNCAUGHT EXCEPTION:");
-  console.error("Message:", error.message);
-  console.error("Stack:", error.stack);
-  console.error("Code:", error.code);
-  if (error.fileName) console.error("File:", error.fileName);
-  if (error.lineNumber) console.error("Line:", error.lineNumber);
+  console.error("[FATAL] UNCAUGHT EXCEPTION:", error.message);
+  console.error("  Stack:", error.stack);
+  console.error("  Code:", error.code);
 
   // Don't exit immediately - let us see the error
   setTimeout(() => {
-    console.error("Exiting due to uncaught exception...");
+    console.error("[FATAL] Exiting due to uncaught exception...");
     process.exit(1);
   }, 2000);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
   Sentry.captureException(reason);
-  console.error("💥 UNHANDLED REJECTION at:", promise);
-  console.error("Reason:", reason);
+  console.error("[FATAL] UNHANDLED REJECTION at:", promise);
+  console.error("  Reason:", reason);
   if (reason && reason.stack) {
-    console.error("Stack:", reason.stack);
+    console.error("  Stack:", reason.stack);
   }
 
   // Don't exit immediately - let us see the error
   setTimeout(() => {
-    console.error("Exiting due to unhandled promise rejection...");
+    console.error("[FATAL] Exiting due to unhandled promise rejection...");
     process.exit(1);
   }, 2000);
 });
 
-// Enhanced console logging with timestamps
+// Timestamp wrapper on console output
 const originalLog = console.log;
 const originalError = console.error;
 
@@ -46,8 +43,14 @@ console.log = (...args) => {
 
 console.error = (...args) => {
   const timestamp = new Date().toISOString();
-  originalError(`[${timestamp}] ERROR:`, ...args);
+  originalError(`[${timestamp}] [ERROR]`, ...args);
 };
+
+console.warn = (...args) => {
+  const timestamp = new Date().toISOString();
+  originalError(`[${timestamp}] [WARN]`, ...args);
+};
+
 // Import and configure Express app
 let app;
 let express, cookieParser, cors, morgan, helmet, fileUpload, rateLimit;
@@ -55,7 +58,6 @@ let appwriteService, securityHeaders, authLimiter, apiLimiter;
 let validateSignup, validateLogin, healthRoutes;
 
 try {
-  console.log("🏗️  Setting up Express application...");
   express = require("express");
   cookieParser = require("cookie-parser");
   cors = require("cors");
@@ -63,8 +65,6 @@ try {
   helmet = require("helmet");
   fileUpload = require("express-fileupload");
   rateLimit = require("express-rate-limit");
-
-  console.log("📦 Core dependencies loaded successfully");
 
   appwriteService = require("../services/AppwriteSessionService");
   securityHeaders = require("../middleware/security");
@@ -78,21 +78,16 @@ try {
 
   healthRoutes = require("../routes/health.routes");
 
-  console.log("🔒 Security and middleware loaded successfully");
-
   app = express();
-  console.log("✅ Express app created successfully");
 } catch (setupError) {
-  console.error("💥 CRITICAL: Failed to set up Express application:");
-  console.error("Error:", setupError.message);
-  console.error("Stack:", setupError.stack);
+  console.error("CRITICAL: Failed to set up Express application:", setupError.message);
+  console.error("  Stack:", setupError.stack);
   process.exit(1);
 }
 
 const PORT = process.env.PORT || 3000;
 
-// Load routes with error handling
-console.log("📍 Loading route modules...");
+// Load core routes
 let adminRouter,
   authRoutes,
   userRoutes,
@@ -113,10 +108,8 @@ try {
   ClientRoute = require("../routes/ClientauthRouter");
   ClientRouter = require("../routes/ClientRoutes");
   commissionRoutes = require("../routes/commissionRoutes");
-  console.log("✅ Core routes loaded successfully");
 } catch (routeError) {
-  console.error("❌ Failed to load core routes:", routeError.message);
-  console.error("Stack:", routeError.stack);
+  console.error("Failed to load core routes:", routeError.message);
   throw routeError;
 }
 
@@ -150,47 +143,33 @@ try {
   productsrouter = require("../routes/productsRouter");
   africanFactsRoutes = require("../routes/africanFactsRoutes");
   orderTrackingRoutes = require("../routes/orderTrackingRoutes");
-  console.log("✅ Additional routes loaded successfully");
 } catch (additionalRouteError) {
-  console.error(
-    "⚠️  Some additional routes failed to load:",
-    additionalRouteError.message,
-  );
-  console.error("Server will continue with core functionality only");
+  console.warn("Some additional routes failed to load:", additionalRouteError.message);
+  console.warn("  Server will continue with core functionality only");
 }
 
-// ========== PASSWORD ROUTES (loaded independently to avoid cascade failure) ==========
+// ========== PASSWORD ROUTES ==========
 let passwordRouter;
 try {
   passwordRouter = require("../routes/passwordRoute");
-  console.log("✅ Password routes loaded successfully");
 } catch (passwordRouteError) {
-  console.error(
-    "⚠️  Password routes failed to load:",
-    passwordRouteError.message,
-  );
+  console.warn("Password routes failed to load:", passwordRouteError.message);
 }
 
-// ========== FORGOT PASSWORD ROUTES (loaded independently to avoid cascade failure) ==========
+// ========== FORGOT PASSWORD ROUTES ==========
 let forgotPasswordRoutes;
 try {
   forgotPasswordRoutes = require("../routes/forgotPasswordRoutes");
-  console.log("✅ Forgot password routes loaded successfully");
 } catch (forgotPasswordError) {
-  console.error(
-    "⚠️  Forgot password routes failed to load:",
-    forgotPasswordError.message,
-  );
+  console.warn("Forgot password routes failed to load:", forgotPasswordError.message);
 }
 
-// ========== CART ROUTES (loaded independently to avoid cascade failure) ==========
+// ========== CART ROUTES ==========
 let cartRoutes;
 try {
   cartRoutes = require("../routes/Cartrouter");
-  console.log("✅ Cart routes loaded successfully");
 } catch (cartRouteError) {
-  console.error("⚠️  Cart routes failed to load:", cartRouteError.message);
-  console.error("Server will continue without cart functionality");
+  console.warn("Cart routes failed to load:", cartRouteError.message);
 }
 
 // Vendor Routes
@@ -209,10 +188,9 @@ try {
   analyticstroutes = require("../routes/Vendorroutes/analyticsRoutes");
   vendorOrdersRoutes = require("../routes/Vendorroutes/vendorOrdersRoutes");
   customerRoutes = require("../routes/Vendorroutes/customerRoutes");
-  console.log("✅ Vendor routes loaded successfully");
 } catch (vendorRouteError) {
-  console.error("⚠️  Vendor routes failed to load:", vendorRouteError.message);
-  console.error("Server will continue without vendor functionality");
+  console.warn("Vendor routes failed to load:", vendorRouteError.message);
+  console.warn("  Server will continue without vendor functionality");
 }
 
 // Rider Routes
@@ -222,26 +200,21 @@ try {
   riderRoutes = require("../routes/Riderroutes/riderRoutes");
   riderTrackingRoutes = require("../routes/riderTrackingRoutes");
   vendorNotificationRoutes = require("../routes/Vendorroutes/vendornotification");
-  console.log("✅ Rider routes loaded successfully");
 } catch (riderRouteError) {
-  console.error("⚠️  Rider routes failed to load:", riderRouteError.message);
-  console.error("Server will continue without rider functionality");
+  console.warn("Rider routes failed to load:", riderRouteError.message);
+  console.warn("  Server will continue without rider functionality");
 }
 
-// Configure Express middleware with error handling
-console.log("⚙️  Configuring Express middleware...");
-
+// ========== SECURITY HEADERS ==========
 try {
-  // Security headers
   if (securityHeaders) {
     securityHeaders(app);
-    console.log("✅ Security headers configured");
   }
 } catch (securityError) {
-  console.error("⚠️  Security headers failed:", securityError.message);
+  console.warn("Security headers failed:", securityError.message);
 }
 
-// ========== SECURITY MIDDLEWARE ==========
+// ========== HELMET ==========
 try {
   if (helmet) {
     app.use(
@@ -262,11 +235,9 @@ try {
         },
       }),
     );
-    console.log("✅ Helmet security middleware configured");
   }
 } catch (helmetError) {
-  console.error("⚠️  Helmet middleware failed:", helmetError.message);
-  console.log("Server will continue without Helmet security headers");
+  console.warn("Helmet middleware failed:", helmetError.message);
 }
 
 // ========== CORS CONFIGURATION ==========
@@ -274,7 +245,6 @@ try {
   if (cors) {
     const corsOptions = {
       origin: (origin, callback) => {
-        console.log("🌍 CORS Origin Check: ", origin);
         const allowedOrigins = [
           "http://localhost:5173",
           "http://localhost:5174",
@@ -295,18 +265,13 @@ try {
           "https://nile-flow-backend.onrender.com",
         ];
 
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) {
-          /* console.log("✅ CORS: Allowing request with no origin"); */
           return callback(null, true);
         }
 
         if (allowedOrigins.includes(origin)) {
-          console.log(`✅ CORS: Allowing origin ${origin}`);
           callback(null, true);
         } else {
-          console.warn(`❌ CORS BLOCKED: ${origin} not in allowed origins`);
-          console.warn("Allowed origins:", allowedOrigins);
           callback(new Error("Not allowed by CORS"));
         }
       },
@@ -327,26 +292,19 @@ try {
       credentials: true,
       exposedHeaders: ["X-CSRF-Token"],
       optionsSuccessStatus: 200,
-      maxAge: 86400, // 24 hours
-      preflightContinue: false, // Pass control to the next handler
+      maxAge: 86400,
+      preflightContinue: false,
     };
 
     app.use(cors(corsOptions));
-    console.log("✅ CORS middleware configured");
   }
 } catch (corsError) {
-  console.error("⚠️  CORS middleware failed:", corsError.message);
-  console.log("Server will continue without CORS middleware");
+  console.warn("CORS middleware failed:", corsError.message);
 }
 
-// Global CORS headers middleware - ALWAYS set these headers for admin requests
+// Global CORS headers middleware - admin requests
 app.use("/api/admin", (req, res, next) => {
   const origin = req.headers.origin;
-  console.log(
-    `🌐 Global admin CORS middleware - ${req.method} ${req.url} from ${origin}`,
-  );
-
-  // Always set CORS headers for admin routes
   if (origin && origin.includes("admin.nileflowafrica.com")) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
@@ -358,19 +316,13 @@ app.use("/api/admin", (req, res, next) => {
       "Access-Control-Allow-Headers",
       "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
     );
-    console.log(`✅ Global CORS headers set for admin origin: ${origin}`);
   }
   next();
 });
 
-// Global CORS headers middleware - ALWAYS set these headers for vendor requests
+// Global CORS headers middleware - vendor requests
 app.use("/api/vendor", (req, res, next) => {
   const origin = req.headers.origin;
-  console.log(
-    `🌐 Global vendor CORS middleware - ${req.method} ${req.url} from ${origin}`,
-  );
-
-  // Always set CORS headers for vendor routes
   if (origin && origin.includes("vendor.nileflowafrica.com")) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
@@ -382,14 +334,12 @@ app.use("/api/vendor", (req, res, next) => {
       "Access-Control-Allow-Headers",
       "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
     );
-    console.log(`✅ Global CORS headers set for vendor origin: ${origin}`);
   }
   next();
 });
 
 // Manual CORS fallback for OPTIONS preflight requests
 app.use((req, res, next) => {
-  // Handle preflight OPTIONS requests manually if CORS didn't handle them
   if (req.method === "OPTIONS") {
     const origin = req.headers.origin;
     const allowedOrigins = [
@@ -427,21 +377,16 @@ app.use((req, res, next) => {
       return res.status(200).end();
     }
   }
-
   next();
 });
 
 // ========== REQUEST PARSING ==========
 try {
-  console.log("🔧 Configuring request parsing middleware...");
-
-  // Preserve raw body for Stripe webhook signature verification
   if (express) {
     app.use(
       express.json({
         limit: "50mb",
         verify: (req, res, buf) => {
-          // Store raw body buffer for routes that need it (Stripe webhooks)
           req.rawBody = buf;
         },
       }),
@@ -450,33 +395,26 @@ try {
   }
 
   if (cookieParser) {
-    app.use(cookieParser()); // Apply to all routes
+    app.use(cookieParser());
   }
-
-  console.log("✅ Request parsing middleware configured");
 } catch (parsingError) {
-  console.error("⚠️  Request parsing middleware failed:", parsingError.message);
-} // ========== REQUEST TRACING (Correlation IDs + structured logging) ==========
+  console.warn("Request parsing middleware failed:", parsingError.message);
+}
+
+// ========== REQUEST TRACING (Correlation IDs + structured logging) ==========
 try {
   const requestTracing = require("../middleware/requestTracing");
   app.use(requestTracing);
-  console.log("✅ Request tracing middleware configured");
 } catch (tracingError) {
-  console.warn("⚠️  Request tracing middleware failed:", tracingError.message);
+  console.warn("Request tracing middleware failed:", tracingError.message);
 }
 
 // ========== PROMETHEUS HTTP METRICS ==========
 try {
-  const {
-    requestMetricsMiddleware,
-  } = require("./observability/requestMetrics");
+  const { requestMetricsMiddleware } = require("./observability/requestMetrics");
   app.use(requestMetricsMiddleware);
-  console.log("✅ Prometheus HTTP metrics middleware configured");
 } catch (metricsError) {
-  console.warn(
-    "⚠️  Prometheus metrics middleware failed:",
-    metricsError.message,
-  );
+  console.warn("Prometheus metrics middleware failed:", metricsError.message);
 }
 
 // ========== LOGGING ==========
@@ -485,10 +423,9 @@ try {
     app.use(
       morgan(":method :url :status :response-time ms - :res[content-length]"),
     );
-    console.log("✅ Morgan logging middleware configured");
   }
 } catch (loggingError) {
-  console.error("⚠️  Logging middleware failed:", loggingError.message);
+  console.warn("Logging middleware failed:", loggingError.message);
 }
 
 // ========== FILE UPLOAD ==========
@@ -498,27 +435,24 @@ try {
       fileUpload({
         useTempFiles: false,
         createParentPath: true,
-        limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+        limits: { fileSize: 50 * 1024 * 1024 },
         abortOnLimit: true,
       }),
     );
-    console.log("✅ File upload middleware configured");
   }
 } catch (uploadError) {
-  console.error("⚠️  File upload middleware failed:", uploadError.message);
+  console.warn("File upload middleware failed:", uploadError.message);
 }
 
 // ========== APPWRITE INITIALIZATION MIDDLEWARE ==========
-// Track last failed attempt to avoid hammering Appwrite on every request
 let appwriteLastFailedAt = 0;
-const APPWRITE_RETRY_COOLDOWN_MS = 30000; // 30 seconds between reconnect attempts
+const APPWRITE_RETRY_COOLDOWN_MS = 30000;
 
 app.use(async (req, res, next) => {
   if (appwriteService.isConnected) {
     return next();
   }
 
-  // If last attempt failed recently, don't try again — just serve 503
   const now = Date.now();
   if (now - appwriteLastFailedAt < APPWRITE_RETRY_COOLDOWN_MS) {
     if (
@@ -540,13 +474,11 @@ app.use(async (req, res, next) => {
   }
 
   try {
-    console.log("🔄 Initializing Appwrite connection...");
     await appwriteService.initialize();
-    console.log("✅ Appwrite connection established");
     next();
   } catch (error) {
     appwriteLastFailedAt = Date.now();
-    console.error("❌ Appwrite initialization failed:", error.message);
+    console.error("Appwrite initialization failed:", error.message);
 
     if (
       req.path === "/health" ||
@@ -568,10 +500,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Old scheduler removed - now handled in startServer function
-
 // ========== HEALTH CHECKS ==========
-// Simple health check that always works
 app.get("/", (req, res) => {
   try {
     res.json({
@@ -582,7 +511,6 @@ app.get("/", (req, res) => {
       version: require("../package.json").version || "unknown",
     });
   } catch (error) {
-    // Fallback if package.json can't be read
     res.json({
       status: "online",
       service: "Nile Flow Backend",
@@ -597,7 +525,6 @@ app.use("/health", healthRoutes);
 app.use("/api/health", healthRoutes);
 
 // ========== CACHE CONTROL HEADERS ==========
-// HTML must always be fresh; hashed assets are safe to cache forever.
 app.use((req, res, next) => {
   if (req.url === "/" || req.url.includes("index.html")) {
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -610,9 +537,6 @@ app.use((req, res, next) => {
 });
 
 // ========== VERSION CONTROL ENDPOINT ==========
-// Never cache this endpoint — clients rely on it to detect new deployments.
-// APP_VERSION env var should be set by CI/CD to the git SHA (e.g. git rev-parse --short HEAD).
-// Falls back to auto-detecting the SHA at runtime if the env var is absent.
 const getServerVersion = (() => {
   let cached;
   return () => {
@@ -644,64 +568,38 @@ app.get("/api/version", (req, res) => {
 
 // ========== CORS TEST ENDPOINT ==========
 app.get("/api/cors-test", (req, res) => {
-  /* console.log("🧪 CORS Test endpoint hit");
-  console.log("Origin:", req.headers.origin); */
-
   res.json({
     message: "CORS test successful",
     origin: req.headers.origin,
     timestamp: new Date().toISOString(),
     headers: {
-      "access-control-allow-origin": res.getHeader(
-        "Access-Control-Allow-Origin",
-      ),
-      "access-control-allow-credentials": res.getHeader(
-        "Access-Control-Allow-Credentials",
-      ),
+      "access-control-allow-origin": res.getHeader("Access-Control-Allow-Origin"),
+      "access-control-allow-credentials": res.getHeader("Access-Control-Allow-Credentials"),
     },
   });
 });
 
-// ========== COOKIE DEBUG ENDPOINT ==========
-// REMOVED: Debug endpoint exposed cookie data in production
-
 // ========== SENTRY VERIFICATION ENDPOINT (dev only) ==========
-// Hit GET /debug-sentry to confirm Sentry is receiving events.
-// Remove or gate behind auth before going to production.
 if (process.env.NODE_ENV !== "production") {
   app.get("/debug-sentry", function debugSentryHandler(req, res) {
     throw new Error("Sentry test error from nileflow-backend");
   });
 }
 
-// Helper function to safely mount routes
+// Helper function to safely mount routes (only logs on failure)
 function safeMount(path, router, description) {
   try {
     if (router) {
       app.use(path, router);
-      console.log(`✅ Mounted: ${description} at ${path}`);
-    } else {
-      console.log(`⚠️  Skipped: ${description} (router not available)`);
     }
   } catch (error) {
-    console.error(
-      `❌ Failed to mount ${description} at ${path}:`,
-      error.message,
-    );
+    console.error(`Failed to mount ${description} at ${path}:`, error.message);
   }
 }
 
 // ========== DIRECT ROUTE DEFINITIONS ==========
-console.log("🛣️  Mounting routes...");
 
-// Vendor Routes
-safeMount(
-  "/api/vendor/auth",
-  authLimiter ? [authLimiter, vendorauth].filter(Boolean) : vendorauth,
-  "Vendor Auth",
-);
-
-// Add explicit CORS headers for admin auth routes
+// Admin auth CORS headers middleware
 app.use("/api/admin/auth", (req, res, next) => {
   const origin = req.headers.origin;
   const allowedOrigins = [
@@ -730,17 +628,12 @@ app.use("/api/admin/auth", (req, res, next) => {
       "Access-Control-Allow-Headers",
       "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control",
     );
-    console.log(`🔧 Admin auth CORS headers set for origin: ${origin}`);
   }
   next();
 });
 
 // Admin Routes
-safeMount(
-  "/api/admin/auth",
-  authLimiter ? [authLimiter, authRoutes].filter(Boolean) : authRoutes,
-  "Admin Auth",
-);
+safeMount("/api/admin/auth", [authLimiter, authRoutes].filter(Boolean), "Admin Auth");
 safeMount("/api/admin/products", adminRouter, "Admin Products");
 safeMount("/api/orders", adminRouter, "Orders (Admin)");
 safeMount("/api/orders", orderTrackingRoutes, "Order Tracking");
@@ -749,38 +642,15 @@ safeMount("/api/deliveries", adminRouter, "Deliveries");
 safeMount("/api/admin/orderStatus", adminRouter, "Admin Order Status");
 safeMount("/api/admin/addproducts", adminRouter, "Admin Add Products");
 safeMount("/api/admin/commission", commissionRoutes, "Admin Commission");
-safeMount(
-  "/api/finance",
-  require("../routes/financeRoutes"),
-  "Finance & Tax Reporting",
-);
-safeMount(
-  "/api/admin/customer-messages",
-  adminRouter,
-  "Admin Customer Messages",
-);
+safeMount("/api/finance", require("../routes/financeRoutes"), "Finance & Tax Reporting");
+safeMount("/api/admin/customer-messages", adminRouter, "Admin Customer Messages");
 safeMount("/api/admin/staff", staffRoutes, "Admin Staff");
 safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");
-
-// User Routes
 safeMount("/api", userRoutes, "User Routes");
 safeMount("/api/notifications", notificationRoutes, "Notifications");
-safeMount(
-  "/api/customernotifications",
-  customernotifications,
-  "Customer Notifications",
-);
-
-// AI Chat Routes (with fallback)
-try {
-  safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
-  console.log("✅ AI Chat routes loaded");
-} catch (aiError) {
-  console.error("❌ AI Chat routes FAILED TO LOAD:", aiError); // full error object
-  console.error(aiError.stack); // full stack trace
-}
-
+safeMount("/api/customernotifications", customernotifications, "Customer Notifications");
+safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");
 safeMount("/api/users", userRoutes, "Users");
 safeMount("/api/settings", settingRoutes, "Settings");
@@ -793,108 +663,36 @@ safeMount("/api/nilemart", addressRoutes, "Nile Mart Addresses");
 safeMount("/api/nilemart/questions", questions, "Questions");
 safeMount("/api/nilemart/promotions", Promotion, "Promotions");
 safeMount("/api/nileflow/passwordchange", passwordRouter, "Password Change");
-safeMount(
-  "/api/nileflowafrica/passwordchange",
-  forgotPasswordRoutes,
-  "Forgot Password",
-);
+safeMount("/api/nileflowafrica/passwordchange", forgotPasswordRoutes, "Forgot Password");
 safeMount("/cart", cartRoutes, "Cart");
 safeMount("/api/group-orders", groupOrderRoutes, "Group Orders");
 safeMount("/api/gamification", gamificationRoutes, "Gamification");
 safeMount("/api/contact-nile-flow", clientmessages, "Contact Messages");
-
-// Social Commerce Routes
-try {
-  safeMount(
-    "/api/social",
-    require("../routes/SocialRoutes"),
-    "Social Commerce",
-  );
-} catch (socialError) {
-  console.log("⚠️  Social Commerce routes not available:", socialError.message);
-}
-
+safeMount("/api/social", require("../routes/SocialRoutes"), "Social Commerce");
 safeMount("/api/products", productsrouter, "Products");
 safeMount("/api/apply", applyRoutes, "Apply");
 safeMount("/api", africanFactsRoutes, "African Facts");
-
-// Currency routes (CAL)
-try {
-  safeMount(
-    "/api/currency",
-    require("../routes/currencyRoutes"),
-    "Currency CAL",
-  );
-} catch (currencyError) {
-  console.log("⚠️  Currency routes not available:", currencyError.message);
-}
-
-// Recommendations with fallback
-try {
-  safeMount(
-    "/api/recommendations",
-    require("../routes/recommendations"),
-    "Recommendations",
-  );
-} catch (recError) {
-  console.log("⚠️  Recommendations routes not available:", recError.message);
-}
-
+safeMount("/api/currency", require("../routes/currencyRoutes"), "Currency CAL");
+safeMount("/api/recommendations", require("../routes/recommendations"), "Recommendations");
 safeMount("/api/nileflow/addresses", addressRoutes, "Nileflow Addresses");
 
-// Vendor Routes (with safe mounting)
-safeMount(
-  "/api/vendor/auth",
-  authLimiter ? [authLimiter, vendorauth].filter(Boolean) : vendorauth,
-  "Vendor Auth (Primary)",
-);
+// Vendor Routes
+safeMount("/api/vendor/auth", [authLimiter, vendorauth].filter(Boolean), "Vendor Auth");
 safeMount("/api/vendors", vendorRoutes, "Vendor Management");
 safeMount("/api/vendor/products", productRoutes, "Vendor Products");
-safeMount(
-  "/api/vendor/notifications",
-  vendorNotificationRoutes,
-  "Vendor Notifications",
-);
+safeMount("/api/vendor/notifications", vendorNotificationRoutes, "Vendor Notifications");
 safeMount("/api/vendor", vendorDashboardRoutes, "Vendor Dashboard");
 safeMount("/api/vendor", analyticstroutes, "Vendor Analytics");
 safeMount("/api/vendor", vendorOrdersRoutes, "Vendor Orders");
 safeMount("/api/admin/customers", customerRoutes, "Admin Customers");
 
-// Subscription & Payment Routes (with safe mounting)
-try {
-  safeMount(
-    "/api/subscription",
-    require("../routes/subscriptionRoutes"),
-    "Subscription",
-  );
-} catch (subError) {
-  console.log("⚠️  Subscription routes not available:", subError.message);
-}
+// Subscription & Payment Routes
+safeMount("/api/subscription", require("../routes/subscriptionRoutes"), "Subscription");
+safeMount("/api/payments", require("../routes/paymentCallbackRoutes"), "Payment Callbacks");
+safeMount("/api/premium", require("../routes/premiumRoutes"), "Premium");
 
-try {
-  safeMount(
-    "/api/payments",
-    require("../routes/paymentCallbackRoutes"),
-    "Payment Callbacks",
-  );
-} catch (payError) {
-  console.log("⚠️  Payment callback routes not available:", payError.message);
-}
-
-try {
-  safeMount("/api/premium", require("../routes/premiumRoutes"), "Premium");
-} catch (premError) {
-  console.log("⚠️  Premium routes not available:", premError.message);
-}
-
-// Rider Routes (with safe mounting)
-safeMount(
-  "/api/rider/auth",
-  authLimiter
-    ? [authLimiter, riderAuthRoutes].filter(Boolean)
-    : riderAuthRoutes,
-  "Rider Auth",
-);
+// Rider Routes
+safeMount("/api/rider/auth", [authLimiter, riderAuthRoutes].filter(Boolean), "Rider Auth");
 safeMount("/api/rider", riderRoutes, "Rider Management");
 safeMount("/api/rider", riderTrackingRoutes, "Rider Tracking");
 
@@ -902,36 +700,24 @@ safeMount("/api/rider", riderTrackingRoutes, "Rider Tracking");
 try {
   const accountDeletionRoutes = require("../routes/accountDeletionRoutes");
   safeMount("/api/account/deletion", accountDeletionRoutes, "Account Deletion");
-  // Public status alias required by Google Play Data Safety policy
-  safeMount(
-    "/account-deletion",
-    accountDeletionRoutes,
-    "Account Deletion (Public)",
-  );
+  safeMount("/account-deletion", accountDeletionRoutes, "Account Deletion (Public)");
 } catch (deletionError) {
-  console.error(
-    "⚠️  Account deletion routes failed to load:",
-    deletionError.message,
-  );
+  console.warn("Account deletion routes failed to load:", deletionError.message);
 }
-
-console.log("🎯 All routes mounted successfully!");
 
 // ========== CACHE MIDDLEWARE FOR HIGH-TRAFFIC ROUTES ==========
 try {
   require("../middleware/applyCacheToRoutes")(app);
-  console.log("✅ Cache middleware applied to high-traffic routes");
 } catch (cacheError) {
-  console.warn("⚠️  Cache middleware setup failed:", cacheError.message);
+  console.warn("Cache middleware setup failed:", cacheError.message);
 }
 
 // ========== V1 API GATEWAY ROUTES ==========
 try {
   const v1Router = require("../routes/v1");
   app.use("/api/v1", v1Router);
-  console.log("✅ Mounted: API v1 Gateway at /api/v1");
 } catch (v1Error) {
-  console.warn("⚠️  API v1 router failed to load:", v1Error.message);
+  console.warn("API v1 router failed to load:", v1Error.message);
 }
 
 // ========== IMAGE PROXY ==========
@@ -939,11 +725,10 @@ try {
   const imageProxyRoute = require("../routes/imageProxyRoute");
   safeMount("/api/image-proxy", imageProxyRoute, "Image Proxy");
 } catch (proxyError) {
-  console.warn("⚠️  Image proxy route failed to load:", proxyError.message);
+  console.warn("Image proxy route failed to load:", proxyError.message);
 }
 
 // ========== PROMETHEUS METRICS SCRAPE ENDPOINT ==========
-// Restricted: localhost only, or requires INTERNAL_METRICS_KEY header in production
 app.get("/metrics", async (req, res) => {
   try {
     if (process.env.NODE_ENV === "production") {
@@ -961,10 +746,9 @@ app.get("/metrics", async (req, res) => {
 });
 
 // ========== ERROR HANDLING MIDDLEWARE ==========
-// Sentry must come before any other error handler so it captures all errors
 Sentry.setupExpressErrorHandler(app);
 
-// 404 — unknown routes (must be before the error handler)
+// 404 — unknown routes
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
@@ -974,53 +758,23 @@ app.use((req, res) => {
   });
 });
 
-// Centralized error handler — handles all errors passed via next(err)
+// Centralized error handler
 const errorHandler = require("../middleware/errorHandler");
 app.use(errorHandler);
 
 // ========== START SERVER ==========
 async function startServer() {
   try {
-    console.log("🚀 Starting Nile Mart Backend...");
-    console.log("Node.js version:", process.version);
-    console.log("Environment:", process.env.NODE_ENV || "development");
-    console.log("Port:", process.env.PORT || 3000);
-
     // Check critical environment variables first
-    console.log("🔍 Checking environment variables...");
     let env;
     try {
       const envModule = require("./env");
       env = envModule.env;
-      console.log("✅ Environment variables loaded successfully");
-
-      // Log critical variables (without exposing secrets)
-      console.log("🔍 Environment Check:");
-      console.log("  - NODE_ENV:", env.NODE_ENV);
-      console.log("  - PORT:", env.PORT);
-      console.log(
-        "  - APPWRITE_ENDPOINT:",
-        env.APPWRITE_ENDPOINT ? "✅ Set" : "❌ Missing",
-      );
-      console.log(
-        "  - APPWRITE_PROJECT_ID:",
-        env.APPWRITE_PROJECT_ID ? "✅ Set" : "❌ Missing",
-      );
-      console.log(
-        "  - APPWRITE_API_KEY:",
-        env.APPWRITE_API_KEY
-          ? "✅ Set (length: " + env.APPWRITE_API_KEY.length + ")"
-          : "❌ Missing",
-      );
-      console.log(
-        "  - APPWRITE_DATABASE_ID:",
-        env.APPWRITE_DATABASE_ID ? "✅ Set" : "❌ Missing",
-      );
     } catch (envError) {
-      console.error("❌ Environment validation failed:", envError.message);
+      console.error("Environment validation failed:", envError.message);
       if (envError.details) {
         console.error(
-          "Validation details:",
+          "  Validation details:",
           envError.details
             .map((d) => `${d.path.join(".")}: ${d.message}`)
             .join(", "),
@@ -1029,57 +783,32 @@ async function startServer() {
       throw new Error(`Environment validation failed: ${envError.message}`);
     }
 
-    // Initialize Appwrite first
-    console.log("Initializing Appwrite...");
+    // Initialize Appwrite
     await appwriteService.initialize();
-    console.log("✅ Appwrite initialized successfully");
 
     // Initialize subscription cron jobs
-    console.log("Initializing subscription services...");
     let SubscriptionCronService = null;
     try {
       SubscriptionCronService = require("../services/subscriptionCronService");
       await SubscriptionCronService.initialize();
-      console.log("✅ Subscription services initialized");
     } catch (subscriptionError) {
-      console.error(
-        "⚠️  Subscription service failed to initialize:",
-        subscriptionError.message,
-      );
-      console.error(
-        "This is non-critical - server will continue without subscription services",
-      );
-      // Continue without subscription service
+      console.warn("Subscription service failed to initialize:", subscriptionError.message);
     }
 
     // Initialize group buy cron jobs
-    console.log("Initializing group buy cron service...");
     try {
       const GroupBuyCronService = require("../services/groupBuyCronService");
       GroupBuyCronService.initialize();
-      console.log("✅ Group buy cron service initialized");
     } catch (groupBuyError) {
-      console.error(
-        "⚠️  Group buy cron service failed to initialize:",
-        groupBuyError.message,
-      );
-      // Non-critical — server continues
+      console.warn("Group buy cron service failed to initialize:", groupBuyError.message);
     }
 
     // Initialize account deletion cron (GDPR / Play Store compliance)
-    console.log("Initializing account deletion cron service...");
     try {
       const DeletionService = require("../services/DeletionService");
       DeletionService.initializeCron();
-      console.log(
-        "✅ Account deletion cron service initialized (runs daily at 03:00 AM)",
-      );
     } catch (deletionCronError) {
-      console.error(
-        "⚠️  Account deletion cron service failed to initialize:",
-        deletionCronError.message,
-      );
-      // Non-critical — server continues
+      console.warn("Account deletion cron service failed to initialize:", deletionCronError.message);
     }
 
     // Warm up exchange rate cache (non-blocking)
@@ -1087,14 +816,10 @@ async function startServer() {
       const { warmUpCache } = require("../services/exchangeRateService");
       warmUpCache();
     } catch (exchangeErr) {
-      console.warn(
-        "⚠️  Exchange rate cache warm-up skipped:",
-        exchangeErr.message,
-      );
+      console.warn("Exchange rate cache warm-up skipped:", exchangeErr.message);
     }
 
-    // Start BullMQ workers (non-critical — server runs without them)
-    console.log("Initializing BullMQ job workers...");
+    // Start BullMQ workers
     try {
       if (
         process.env.NODE_ENV === "production" ||
@@ -1103,151 +828,106 @@ async function startServer() {
         require("./jobs/workers/notificationWorker");
         require("./jobs/workers/nileMilesWorker");
         require("./jobs/workers/orderEventsWorker");
-        console.log("✅ BullMQ workers started (notifications, miles, orders)");
-      } else {
-        console.log(
-          "ℹ️  BullMQ workers skipped (set START_WORKERS=true to enable in dev)",
-        );
       }
     } catch (workerError) {
-      console.warn("⚠️  BullMQ workers failed to start:", workerError.message);
+      console.warn("BullMQ workers failed to start:", workerError.message);
     }
 
     // Start queue depth poller for Prometheus (non-critical)
     try {
-      const {
-        startQueueMetricsPoller,
-      } = require("./observability/queueMetrics");
+      const { startQueueMetricsPoller } = require("./observability/queueMetrics");
       startQueueMetricsPoller();
-      console.log("✅ Queue metrics poller started (15s interval)");
     } catch (pollerError) {
-      console.warn("⚠️  Queue metrics poller failed:", pollerError.message);
+      console.warn("Queue metrics poller failed:", pollerError.message);
     }
 
     // Initialize newsletter scheduled campaigns processor
-    console.log("Initializing newsletter scheduler...");
     let processScheduledCampaigns = null;
     try {
       const newsletterModule = require("../controllers/AdminControllers/newsletterController");
       processScheduledCampaigns = newsletterModule.processScheduledCampaigns;
-      console.log("✅ Newsletter controller loaded");
     } catch (newsletterError) {
-      console.error(
-        "⚠️  Newsletter scheduler failed to initialize:",
-        newsletterError.message,
-      );
-      console.error(
-        "This is non-critical - server will continue without newsletter scheduler",
-      );
-      // Continue without newsletter scheduler
+      console.warn("Newsletter scheduler failed to initialize:", newsletterError.message);
     }
 
-    // Process scheduled campaigns every 2 minutes (with error handling)
+    // Process scheduled campaigns every 2 minutes
     const schedulerInterval = setInterval(
       async () => {
         if (processScheduledCampaigns) {
           try {
             await processScheduledCampaigns();
           } catch (error) {
-            console.error("📧 Newsletter scheduler error:", error.message);
+            console.error("Newsletter scheduler error:", error.message);
           }
         }
       },
       2 * 60 * 1000,
-    ); // Check every 2 minutes
+    );
 
-    // Run once immediately to check for any pending campaigns (with error handling)
+    // Run once immediately to check for any pending campaigns
     setTimeout(async () => {
       if (processScheduledCampaigns) {
         try {
-          console.log("🔄 Running initial scheduled campaigns check...");
           await processScheduledCampaigns();
-          console.log("✅ Initial newsletter check completed");
         } catch (error) {
-          console.error("📧 Initial newsletter check error:", error.message);
+          console.error("Initial newsletter check error:", error.message);
         }
       }
-    }, 10000); // Wait 10 seconds after server start
+    }, 10000);
 
-    console.log("🌐 Starting HTTP server...");
     const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`
-✅ 🎉 SERVER STARTED SUCCESSFULLY! 🎉
-📍 Port: ${PORT}
-📡 Environment: ${process.env.NODE_ENV || "development"}  
-🔗 Health Check: http://localhost:${PORT}/health
-📚 API Docs: http://localhost:${PORT}/api/health
-⏰ Subscription Services: ${SubscriptionCronService ? "Active" : "Inactive"}
-📧 Newsletter Scheduler: Active (every 2 minutes)
-📍 WebSocket Service: Pending initialization...
-🚀 Server is ready to accept connections!
+  ✅  SERVER STARTED
+  📍 Port: ${PORT}
+  📡 Environment: ${process.env.NODE_ENV || "development"}
+  🔗 Health: http://localhost:${PORT}/health
       `);
     });
 
     // Handle server errors
     server.on("error", (error) => {
-      console.error("💥 HTTP Server error:");
-      console.error("Code:", error.code);
-      console.error("Message:", error.message);
-      console.error("Address:", error.address);
-      console.error("Port:", error.port);
+      console.error("HTTP Server error:");
+      console.error("  Code:", error.code);
+      console.error("  Message:", error.message);
+      console.error("  Port:", error.port);
 
       if (error.code === "EADDRINUSE") {
-        console.error(
-          `❌ Port ${PORT} is already in use. Try a different port.`,
-        );
+        console.error(`Port ${PORT} is already in use. Try a different port.`);
       } else if (error.code === "EACCES") {
-        console.error(`❌ Permission denied to bind to port ${PORT}.`);
+        console.error(`Permission denied to bind to port ${PORT}.`);
       }
 
       process.exit(1);
     });
 
-    server.on("listening", () => {
-      console.log("🎯 Server is now listening for connections");
-    });
-
-    // Initialize WebSocket for real-time tracking (with error handling)
+    // Initialize WebSocket for real-time tracking
     try {
-      console.log("Initializing WebSocket service...");
       const socketService = require("../services/socketService");
       socketService.initialize(server);
-      console.log("🔌 ✅ WebSocket service initialized for live tracking");
     } catch (socketError) {
-      console.error(
-        "⚠️  WebSocket service failed to initialize:",
-        socketError.message,
-      );
-      // Continue without WebSocket - server can still function
+      console.warn("WebSocket service failed to initialize:", socketError.message);
     }
 
     // Keep the process alive
     process.stdin.resume();
 
-    console.log("🎯 Server startup completed successfully!");
   } catch (error) {
-    console.error("❌ CRITICAL ERROR: Failed to start server:");
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error code:", error.code);
-    console.error("Error stack:", error.stack);
+    console.error("Failed to start server:");
+    console.error("  Name:", error.name);
+    console.error("  Message:", error.message);
+    console.error("  Code:", error.code);
+    console.error("  Stack:", error.stack);
 
-    // Try to identify specific error types
     if (error.message && error.message.includes("ENOTFOUND")) {
-      console.error("🌐 DNS Resolution Error - Check network connectivity");
+      console.error("  -> DNS Resolution Error - Check network connectivity");
     } else if (error.message && error.message.includes("ECONNREFUSED")) {
-      console.error("🔌 Connection Refused - External service may be down");
+      console.error("  -> Connection Refused - External service may be down");
     } else if (error.message && error.message.includes("ValidationError")) {
-      console.error(
-        "📝 Environment Variable Validation Error - Check your .env file",
-      );
+      console.error("  -> Environment Variable Validation Error - Check your .env file");
     } else if (error.code === "MODULE_NOT_FOUND") {
-      console.error("📦 Missing Dependency - Run npm install");
+      console.error("  -> Missing Dependency - Run npm install");
     }
 
-    console.error("Server will exit in 3 seconds...");
-
-    // Give time to see the error before exiting
     setTimeout(() => {
       process.exit(1);
     }, 3000);
