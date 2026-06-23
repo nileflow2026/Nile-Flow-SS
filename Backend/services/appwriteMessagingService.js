@@ -19,78 +19,9 @@ const messaging = new Messaging(client);
 const users = new Users(client);
 
 /**
- * Generate a stable, deterministic target ID based on type and identifier.
- * Ensures that concurrent requests for the same target use the same ID.
- * @private
- */
-function generateStableTargetId(type, identifier) {
-  // Hash the type+identifier to create a consistent ID
-  // This ensures same email/phone always gets same ID
-  const combined = `${type}:${identifier}`;
-  // Create a simple hash that's safe for Appwrite IDs (alphanumeric, underscore, hyphen)
-  let hash = 0;
-  for (let i = 0; i < combined.length; i++) {
-    const char = combined.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  // Convert hash to hex and pad to ensure it's long enough
-  const hexHash = Math.abs(hash).toString(16).padStart(16, "0");
-  return `${type}_${hexHash.substring(0, 24)}`;
-}
-
-/**
- * Delay for a given number of milliseconds.
- * Useful for retry logic with exponential backoff.
- * @private
- */
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Retry finding a target with exponential backoff after "already exists" error.
- * Handles database replication consistency delays.
- * @private
- */
-async function retryFindTarget(userId, type, identifier, maxRetries = 8) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    // Exponential backoff: 25ms, 50ms, 100ms, 200ms, 400ms, 800ms, 1600ms, 3200ms
-    const waitMs = 25 * Math.pow(2, attempt);
-    if (attempt > 0) {
-      await delay(waitMs);
-    }
-
-    try {
-      const targets = await users.listTargets(userId);
-      const found = targets.targets.find(
-        (t) => t.type === type && t.identifier === identifier,
-      );
-      if (found) {
-        if (attempt > 0) {
-          console.info(
-            `[AppwriteMessaging] Target found after ${attempt} retry attempts (waited ${waitMs * (attempt)}ms total)`,
-          );
-        }
-        return found.$id;
-      }
-    } catch (retryError) {
-      console.debug(
-        `[AppwriteMessaging] Retry attempt ${attempt + 1} failed:`,
-        retryError.message,
-      );
-    }
-  }
-  console.warn(
-    `[AppwriteMessaging] Target not found after ${maxRetries} retry attempts`,
-  );
-  return null; // Target not found after all retries
-}
-
-/**
  * Ensure a user has an email target registered in Appwrite.
  * Creates one if missing. Returns the target ID.
- * Handles race conditions with exponential backoff retry.
+ * Gracefully handles all errors without retrying.
  */
 async function ensureEmailTarget(userId, email) {
   try {
@@ -115,35 +46,21 @@ async function ensureEmailTarget(userId, email) {
     );
     if (emailTarget) return emailTarget.$id;
 
-    // Create new email target with stable ID
+    // Create new email target with unique ID
     try {
-      const stableId = generateStableTargetId("email", email);
       const target = await users.createTarget(
         userId,
-        stableId,
+        ID.unique(),
         "email",
         email,
       );
       return target.$id;
     } catch (createError) {
-      // Handle race condition: target was created by another request
-      if (createError.message && createError.message.includes("already exists")) {
-        console.warn(
-          `[AppwriteMessaging] Email target creation conflict for ${userId}, retrying with backoff...`,
-        );
-        // Retry with exponential backoff to account for database replication
-        const foundTargetId = await retryFindTarget(userId, "email", email);
-        if (foundTargetId) {
-          return foundTargetId;
-        }
-        // Target still not found after retries — log but don't fail
-        console.warn(
-          `[AppwriteMessaging] Email target not found after retries for ${userId}, will skip email notification`,
-        );
-        return null;
-      }
-      // Re-throw if not a duplicate error
-      throw createError;
+      // On ANY creation error, log and skip (don't retry)
+      console.warn(
+        `[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`,
+      );
+      return null;
     }
   } catch (error) {
     console.warn(
@@ -157,7 +74,7 @@ async function ensureEmailTarget(userId, email) {
 /**
  * Ensure a user has an SMS target registered in Appwrite.
  * Creates one if missing. Returns the target ID.
- * Handles race conditions with exponential backoff retry.
+ * Gracefully handles all errors without retrying.
  */
 async function ensureSmsTarget(userId, phone) {
   try {
@@ -171,7 +88,6 @@ async function ensureSmsTarget(userId, phone) {
         );
         return null;
       }
-      // Re-throw other errors
       throw userError;
     }
 
@@ -190,35 +106,21 @@ async function ensureSmsTarget(userId, phone) {
     );
     if (smsTarget) return smsTarget.$id;
 
-    // Create new SMS target with stable ID
+    // Create new SMS target with unique ID
     try {
-      const stableId = generateStableTargetId("sms", normalizedPhone);
       const target = await users.createTarget(
         userId,
-        stableId,
+        ID.unique(),
         "sms",
         normalizedPhone,
       );
       return target.$id;
     } catch (createError) {
-      // Handle race condition: target was created by another request
-      if (createError.message && createError.message.includes("already exists")) {
-        console.warn(
-          `[AppwriteMessaging] SMS target creation conflict for ${userId}, retrying with backoff...`,
-        );
-        // Retry with exponential backoff to account for database replication
-        const foundTargetId = await retryFindTarget(userId, "sms", normalizedPhone);
-        if (foundTargetId) {
-          return foundTargetId;
-        }
-        // Target still not found after retries — log but don't fail
-        console.warn(
-          `[AppwriteMessaging] SMS target not found after retries for ${userId}, will skip SMS notification`,
-        );
-        return null;
-      }
-      // Re-throw if not a duplicate error
-      throw createError;
+      // On ANY creation error, log and skip (don't retry)
+      console.warn(
+        `[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`,
+      );
+      return null;
     }
   } catch (error) {
     console.warn(
