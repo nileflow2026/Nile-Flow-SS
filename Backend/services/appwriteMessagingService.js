@@ -21,6 +21,7 @@ const users = new Users(client);
 /**
  * Ensure a user has an email target registered in Appwrite.
  * Creates one if missing. Returns the target ID.
+ * Handles race conditions where target already exists.
  */
 async function ensureEmailTarget(userId, email) {
   try {
@@ -32,13 +33,31 @@ async function ensureEmailTarget(userId, email) {
     if (emailTarget) return emailTarget.$id;
 
     // Create new email target
-    const target = await users.createTarget(
-      userId,
-      ID.unique(),
-      "email",
-      email,
-    );
-    return target.$id;
+    try {
+      const target = await users.createTarget(
+        userId,
+        ID.unique(),
+        "email",
+        email,
+      );
+      return target.$id;
+    } catch (createError) {
+      // Handle race condition: target was created by another request
+      if (createError.message && createError.message.includes("already exists")) {
+        // Re-fetch targets to find the newly created one
+        const retryExisting = await users.listTargets(userId);
+        const newTarget = retryExisting.targets.find(
+          (t) => t.type === "email" && t.identifier === email,
+        );
+        if (newTarget) {
+          console.warn(
+            `[AppwriteMessaging] Email target already exists for ${userId}, using existing target`,
+          );
+          return newTarget.$id;
+        }
+      }
+      throw createError;
+    }
   } catch (error) {
     console.warn(
       `[AppwriteMessaging] Failed to ensure email target for ${userId}:`,
@@ -51,6 +70,7 @@ async function ensureEmailTarget(userId, email) {
 /**
  * Ensure a user has an SMS target registered in Appwrite.
  * Creates one if missing. Returns the target ID.
+ * Handles race conditions where target already exists.
  */
 async function ensureSmsTarget(userId, phone) {
   try {
@@ -70,13 +90,31 @@ async function ensureSmsTarget(userId, phone) {
     if (smsTarget) return smsTarget.$id;
 
     // Create new SMS target
-    const target = await users.createTarget(
-      userId,
-      ID.unique(),
-      "sms",
-      normalizedPhone,
-    );
-    return target.$id;
+    try {
+      const target = await users.createTarget(
+        userId,
+        ID.unique(),
+        "sms",
+        normalizedPhone,
+      );
+      return target.$id;
+    } catch (createError) {
+      // Handle race condition: target was created by another request
+      if (createError.message && createError.message.includes("already exists")) {
+        // Re-fetch targets to find the newly created one
+        const retryExisting = await users.listTargets(userId);
+        const newTarget = retryExisting.targets.find(
+          (t) => t.type === "sms" && t.identifier === normalizedPhone,
+        );
+        if (newTarget) {
+          console.warn(
+            `[AppwriteMessaging] SMS target already exists for ${userId}, using existing target`,
+          );
+          return newTarget.$id;
+        }
+      }
+      throw createError;
+    }
   } catch (error) {
     console.warn(
       `[AppwriteMessaging] Failed to ensure SMS target for ${userId}:`,
@@ -181,14 +219,19 @@ async function sendSms({ userId, phone, content }) {
  * @param {string} options.title        - Push notification title
  * @param {string} options.body         - Push notification body
  * @param {object} [options.data]       - Extra payload
- * @param {string} [options.action]     - Deep link action
+ * @param {string} [options.action]     - Deep link action (1-256 chars, optional)
  */
-async function sendPush({ userId, title, body, data = {}, action = "" }) {
+async function sendPush({ userId, title, body, data = {}, action = null }) {
   try {
     if (!userId || !title || !body) {
       console.warn("[AppwriteMessaging] sendPush: missing required fields");
       return;
     }
+
+    // Validate action parameter: must be string of 1-256 chars if provided
+    const validatedAction = action && typeof action === "string" && action.trim().length > 0 
+      ? action.substring(0, 256) 
+      : "";
 
     await messaging.createPush(
       ID.unique(),
@@ -198,7 +241,7 @@ async function sendPush({ userId, title, body, data = {}, action = "" }) {
       [userId], // users — Appwrite resolves their push targets
       [], // targets
       data,
-      action,
+      validatedAction,
       "", // icon
       "default", // sound
       "", // color
@@ -226,13 +269,19 @@ async function sendPush({ userId, title, body, data = {}, action = "" }) {
  * @param {string} options.title        - Push notification title
  * @param {string} options.body         - Push notification body
  * @param {object} [options.data]       - Extra payload
+ * @param {string} [options.action]     - Deep link action (1-256 chars, optional)
  */
-async function sendPushToTopic({ topic, title, body, data = {} }) {
+async function sendPushToTopic({ topic, title, body, data = {}, action = null }) {
   try {
     if (!topic || !title || !body) {
       console.warn("[AppwriteMessaging] sendPushToTopic: missing required fields");
       return;
     }
+
+    // Validate action parameter: must be string of 1-256 chars if provided
+    const validatedAction = action && typeof action === "string" && action.trim().length > 0 
+      ? action.substring(0, 256) 
+      : "";
 
     await messaging.createPush(
       ID.unique(),
@@ -242,7 +291,7 @@ async function sendPushToTopic({ topic, title, body, data = {} }) {
       [], // users
       [], // targets
       data,
-      "", // action
+      validatedAction,
       "", // icon
       "default", // sound
       "", // color
