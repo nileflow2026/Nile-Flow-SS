@@ -19,6 +19,7 @@
 
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const authMiddleware = require("../middleware/authMiddleware");
 const {
   sendOtp,
@@ -42,8 +43,9 @@ const otpSendLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
   keyGenerator: (req) => {
-    // Key by authenticated userId if available, else by IP (handles IPv6 safely)
-    return req.user?.userId || req.ip || req.socket?.remoteAddress || "unknown";
+    // Key by authenticated userId if available, else by IP
+    // Uses ipKeyGenerator helper to properly handle IPv4 and IPv6 addresses
+    return req.user?.userId || ipKeyGenerator(req);
   },
   message: {
     error: "Too many OTP requests. You may request a new code after 1 hour.",
@@ -63,7 +65,7 @@ const initiationLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
   keyGenerator: (req) =>
-    req.user?.userId || req.ip || req.socket?.remoteAddress || "unknown",
+    req.user?.userId || ipKeyGenerator(req),
   message: {
     error: "Too many deletion attempts. Please try again after 1 hour.",
     code: "RATE_LIMITED",
@@ -76,6 +78,7 @@ const statusLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req),
   message: {
     error: "Too many status requests.",
     code: "RATE_LIMITED",

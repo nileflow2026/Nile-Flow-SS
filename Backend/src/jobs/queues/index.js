@@ -22,6 +22,7 @@ const { logger } = require("../../lib/logger");
 // ── Shared Redis connection config ───────────────────────────────────────────
 
 const redisUrl = process.env.REDIS_URL;
+const nodeEnv = process.env.NODE_ENV || "development";
 
 // BullMQ requires a separate connection from the cache client
 // because it sets blocking commands that conflict with regular key ops.
@@ -35,10 +36,13 @@ if (redisUrl) {
   });
 } else {
   // In-memory stub — queues will process but not survive restarts.
-  // Acceptable for development; real Redis required in production.
-  logger.warn(
-    "REDIS_URL not set — BullMQ using in-memory mode. Queues will not survive restarts.",
-  );
+  // Acceptable for development; real Redis REQUIRED in production.
+  const warningMsg = nodeEnv === "production" 
+    ? "⚠️  CRITICAL: REDIS_URL not set in production! BullMQ using in-memory mode. Queues will NOT survive restarts. Set REDIS_URL=redis://... in production .env"
+    : "⚠️  REDIS_URL not set — BullMQ using in-memory mode. Queues will not survive restarts. For production, set REDIS_URL in .env";
+  
+  logger.warn(warningMsg);
+  
   const IORedis = require("ioredis");
   connection = new IORedis({
     host: "127.0.0.1",
