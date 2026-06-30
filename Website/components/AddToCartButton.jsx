@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState } from "react";
-import { useCart } from "./CartContext";
+import { useCart } from "../Context/CartContext";
 
 const AddToCartButton = ({ product, className }) => {
   const { addItemToCart, addToCart } = useCart();

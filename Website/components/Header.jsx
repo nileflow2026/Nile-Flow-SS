@@ -1,18 +1,18 @@
 /* eslint-disable no-unused-vars */
 import React, { memo } from "react";
 import { Link } from "react-router-dom";
-import { useCart } from "./CartContext";
+import { useCart } from "../Context/CartContext";
 import {
-  FiBell,
-  FiChevronDown,
-  FiSearch,
-  FiShoppingCart,
-  FiMenu,
-  FiX,
-  FiUser,
-  FiSettings,
-  FiLogOut,
-} from "react-icons/fi";
+  Bell,
+  ChevronDown,
+  Search,
+  ShoppingCart,
+  Menu,
+  X,
+  User,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { useNotification } from "../Context/NotificationContext";
 import NotificationSettings from "./NotificationSettings";
 import i18n from "../i18n";
@@ -21,34 +21,18 @@ import { useState, useEffect } from "react";
 import { useCustomerAuth } from "../Context/CustomerAuthContext";
 import ThemeToggle from "./ThemeToggle";
 
-const africanGradients = [
-  "linear-gradient(135deg, #d4af37 0%, #c53030 50%, #2d5a27 100%)", // Gold, Red, Green
-  "linear-gradient(135deg, #e25822 0%, #f6b026 50%, #0d5c0d 100%)", // Terracotta, Sun, Forest
-  "linear-gradient(135deg, #1a237e 0%, #d4af37 50%, #b71c1c 100%)", // Indigo, Gold, Crimson
-  "linear-gradient(135deg, #5d4037 0%, #d4af37 50%, #1b5e20 100%)", // Earth, Gold, Emerald
-  "linear-gradient(135deg, #8b4513 0%, #ffd700 50%, #006400 100%)", // Sienna, Gold, Dark Green
-];
-
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [headerGradient, setHeaderGradient] = useState("");
   const [scrollEffect, setScrollEffect] = useState(false);
   const [notificationSettingsOpen, setNotificationSettingsOpen] =
     useState(false);
 
-  // ✅ Use the auth context instead of local state
   const { user, isLoading: userLoading } = useCustomerAuth();
   const { cart } = useCart();
   const { notificationCount, isNotificationsEnabled } = useNotification();
 
   useEffect(() => {
-    const randomGradient =
-      africanGradients[Math.floor(Math.random() * africanGradients.length)];
-    setHeaderGradient(randomGradient);
-
-    // Throttle scroll handler with requestAnimationFrame to avoid blocking
-    // the main thread on every scroll pixel in low-end devices
     let rafPending = false;
     const handleScroll = () => {
       if (!rafPending) {
@@ -64,26 +48,32 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const headerStyle = {
-    backgroundImage: headerGradient,
-    backgroundRepeat: "no-repeat",
-    backgroundAttachment: "fixed",
-    backdropFilter: scrollEffect ? "blur(10px)" : "none",
-    backgroundColor: scrollEffect
-      ? "rgba(0, 0, 0, 0.85)"
-      : "rgba(0, 0, 0, 0.1)",
-    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-  };
-
   return (
-    <header className="sticky top-0 z-50 shadow-2xl" style={headerStyle}>
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header
+      className="sticky top-0 z-50"
+      style={{
+        background: scrollEffect
+          ? "var(--nf-header-bg)"
+          : "rgba(255, 255, 255, 0.85)",
+        borderBottom: "1px solid var(--nf-header-border)",
+        backdropFilter: scrollEffect ? "blur(12px)" : "blur(8px)",
+        WebkitBackdropFilter: scrollEffect ? "blur(12px)" : "blur(8px)",
+        transition: "all 0.3s ease",
+        boxShadow: scrollEffect
+          ? "0 1px 3px rgba(0, 0, 0, 0.08)"
+          : "none",
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Announcement Bar */}
-        <div className="hidden md:flex justify-center py-1.5 bg-black/30 border-b border-amber-900/20">
-          <div className="flex items-center space-x-2 text-[color:var(--nf-accent)]/90 text-xs font-medium">
-            <span className="inline-block w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
+        <div className="hidden md:flex justify-center py-1.5 border-b border-[var(--nf-border-subtle)]">
+          <div className="flex items-center space-x-2 text-xs font-medium" style={{ color: "var(--nf-text-muted)" }}>
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ background: "var(--nf-accent)" }}
+            ></span>
             <span>
-              ✨ Premium African Marketplace • Express Delivery • 100% Authentic
+              Premium African Marketplace • Express Delivery • 100% Authentic
             </span>
           </div>
         </div>
@@ -92,104 +82,118 @@ const Header = () => {
         <div className="flex items-center justify-between py-2.5">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2.5 group">
-            <div className="relative">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full blur opacity-60 group-hover:opacity-90 transition duration-300"></div>
-              <img
-                src="/images/logo.png"
-                alt="Nile Flow"
-                className="relative h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-md"
-                loading="eager"
-                decoding="async"
-              />
-            </div>
-            <div className="hidden lg:flex flex-col">
-              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-300 to-emerald-200 bg-clip-text text-transparent font-serif tracking-wide">
-                NILE FLOW
-              </span>
-            </div>
+            <img
+              src="/images/logo.png"
+              alt="Nile Flow"
+              className="h-10 w-10 md:h-12 md:w-12 object-contain"
+              loading="eager"
+              decoding="async"
+            />
+            <span
+              className="hidden lg:inline text-lg md:text-xl font-bold tracking-wide"
+              style={{ color: "var(--nf-accent-dark)" }}
+            >
+              NILE FLOW
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-0.5">
+          <nav className="hidden lg:flex items-center space-x-1">
             {[
-              { to: "/home", label: i18n.t("Home") },
+              { to: "/", label: "Home" },
               { to: "/shop", label: "Shop" },
               { to: "/deals", label: "Deals" },
               { to: "/contact", label: "Contact Us" },
               { to: "/language", label: "Language" },
-              /*  { to: "/discover", label: "Discover Africa" },
-              { to: "/african-chronicles", label: "African Chronicles" }, */
             ].map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className="relative px-3 py-2 text-amber-50/90 font-medium text-sm hover:text-white transition-all duration-300 group whitespace-nowrap rounded-lg hover:bg-black/20"
+                className="px-3 py-2 text-sm font-medium rounded-md transition-all duration-200"
+                style={{
+                  color: "var(--nf-nav-link)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                  e.currentTarget.style.color = "var(--nf-nav-link-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--nf-nav-link)";
+                }}
               >
                 {item.label}
-                <span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-amber-400 to-emerald-400 group-hover:w-3/4 group-hover:left-1/8 transition-all duration-300"></span>
               </Link>
             ))}
           </nav>
 
           {/* Action Icons & Profile */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
+          <div className="flex items-center space-x-2">
             {/* Search */}
             <Link
               to="/search"
-              className="p-2 rounded-full bg-black/20 hover:bg-black/30 text-[color:var(--nf-text-secondary)] hover:text-white transition-all duration-300 transform hover:scale-105"
+              className="p-2 rounded-md transition-all duration-200"
+              style={{ color: "var(--nf-text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                e.currentTarget.style.color = "var(--nf-accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--nf-text-muted)";
+              }}
+              aria-label="Search products"
             >
-              <FiSearch size={18} />
+              <Search size={18} />
             </Link>
 
             {/* Cart */}
             <Link
               to="/cart"
-              className="relative p-2 rounded-full bg-black/20 hover:bg-black/30 text-[color:var(--nf-text-secondary)] hover:text-white transition-all duration-300 transform hover:scale-105"
+              className="relative p-2 rounded-md transition-all duration-200"
+              style={{ color: "var(--nf-text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                e.currentTarget.style.color = "var(--nf-accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--nf-text-muted)";
+              }}
+              aria-label={`Shopping cart with ${cart.length} items`}
             >
-              <FiShoppingCart size={18} />
+              <ShoppingCart size={18} />
               {cart.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-amber-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md">
+                <span
+                  className="absolute -top-1 -right-1 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                  style={{ background: "var(--nf-accent)" }}
+                >
                   {cart.length}
                 </span>
               )}
             </Link>
 
             {/* Notifications */}
-            {/* <div className="relative">
-              <Link
-                to="/notification"
-                className="relative p-2 rounded-full bg-black/20 hover:bg-black/30 text-[color:var(--nf-text-secondary)] hover:text-white transition-all duration-300 transform hover:scale-105"
-              >
-                <FiBell
-                  size={18}
-                  className={isNotificationsEnabled ? "text-emerald-300" : ""}
-                />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-amber-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center shadow-md">
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </span>
-                )}
-                {isNotificationsEnabled && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-black/20 animate-pulse"></div>
-                )}
-              </Link>
-               Notification Settings Button 
-              <button
-                onClick={() => setNotificationSettingsOpen(true)}
-                className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-gradient-to-r from-amber-600 to-amber-700 text-white text-xs hover:from-amber-700 hover:to-amber-800 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100"
-                title="Notification Settings"
-              >
-                <FiSettings size={10} />
-              </button>{" "}
-            </div> */}
-            {/* Notifications */}
             <Link
               to="/notification"
-              className="relative p-2.5 rounded-full bg-black/20 hover:bg-black/30 text-[color:var(--nf-text-secondary)] hover:text-white transition-all duration-300 transform hover:scale-110"
+              className="relative p-2 rounded-md transition-all duration-200"
+              style={{ color: "var(--nf-text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                e.currentTarget.style.color = "var(--nf-accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "var(--nf-text-muted)";
+              }}
+              aria-label="Notifications"
             >
-              <FiBell size={20} />
+              <Bell size={18} />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-amber-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span
+                  className="absolute -top-1 -right-1 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                  style={{ background: "var(--nf-error)" }}
+                >
                   {notificationCount > 9 ? "9+" : notificationCount}
                 </span>
               )}
@@ -205,22 +209,31 @@ const Header = () => {
                   <div className="relative">
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="flex items-center space-x-2 group"
+                      className="flex items-center space-x-2 p-1.5 rounded-md transition-all duration-200"
+                      style={{ color: "var(--nf-text-secondary)" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!dropdownOpen) e.currentTarget.style.background = "transparent";
+                      }}
+                      aria-label="User menu"
+                      aria-expanded={dropdownOpen}
                     >
-                      <div className="relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full blur opacity-0 group-hover:opacity-70 transition duration-300"></div>
-                        <img
-                          src={user.avatarUrl || "/images/logo.png"}
-                          alt="Profile"
-                          className="relative w-10 h-10 rounded-full border border-amber-300/40 object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                      <FiChevronDown
-                        className={`text-[color:var(--nf-text-secondary)] transition-transform duration-300 ${
-                          dropdownOpen ? "rotate-180" : ""
-                        }`}
+                      <img
+                        src={user.avatarUrl || "/images/logo.png"}
+                        alt={user.username || "Profile"}
+                        className="w-8 h-8 rounded-full object-cover"
+                        style={{ border: "2px solid var(--nf-border)" }}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <ChevronDown
+                        size={14}
+                        style={{
+                          transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                          transition: "transform 0.2s ease",
+                        }}
                       />
                     </button>
 
@@ -230,9 +243,9 @@ const Header = () => {
                           className="fixed inset-0 z-40"
                           onClick={() => setDropdownOpen(false)}
                         />
-                        <div className="absolute right-0 mt-3 w-56 z-50 animate-fadeIn">
+                        <div className="absolute right-0 mt-2 w-56 z-50">
                           <div
-                            className="rounded-2xl shadow-2xl overflow-hidden"
+                            className="rounded-xl overflow-hidden shadow-lg"
                             style={{
                               background: "var(--nf-bg-elevated)",
                               border: "1px solid var(--nf-border)",
@@ -241,18 +254,17 @@ const Header = () => {
                             <div
                               className="p-4"
                               style={{
-                                borderBottom:
-                                  "1px solid var(--nf-border-subtle)",
+                                borderBottom: "1px solid var(--nf-border-subtle)",
                               }}
                             >
                               <p
-                                className="font-bold truncate"
+                                className="font-semibold truncate"
                                 style={{ color: "var(--nf-text-primary)" }}
                               >
                                 {user.username}
                               </p>
                               <p
-                                className="text-xs"
+                                className="text-xs mt-0.5"
                                 style={{ color: "var(--nf-text-muted)" }}
                               >
                                 {user.email || "Member"}
@@ -261,33 +273,52 @@ const Header = () => {
                             <div className="p-2">
                               <Link
                                 to="/profile"
-                                className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-[var(--nf-btn-ghost-hover)] transition-all duration-200"
+                                className="flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200"
                                 style={{ color: "var(--nf-text-primary)" }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "transparent";
+                                }}
                                 onClick={() => setDropdownOpen(false)}
                               >
-                                <FiUser style={{ color: "var(--nf-accent)" }} />
-                                <span>Profile</span>
+                                <User size={16} style={{ color: "var(--nf-accent)" }} />
+                                <span className="text-sm">Profile</span>
                               </Link>
                               <Link
                                 to="/settings"
-                                className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-[var(--nf-btn-ghost-hover)] transition-all duration-200"
+                                className="flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200"
                                 style={{ color: "var(--nf-text-primary)" }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "transparent";
+                                }}
                                 onClick={() => setDropdownOpen(false)}
                               >
-                                <FiSettings
-                                  style={{ color: "var(--nf-accent)" }}
-                                />
-                                <span>Settings</span>
+                                <Settings size={16} style={{ color: "var(--nf-accent)" }} />
+                                <span className="text-sm">Settings</span>
                               </Link>
                               <button
-                                className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg hover:bg-red-900/20 text-red-300 transition-all duration-200"
+                                className="flex items-center space-x-3 w-full px-4 py-2.5 rounded-lg transition-all duration-200"
+                                style={{ color: "var(--nf-text-primary)" }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "var(--nf-error-surface)";
+                                  e.currentTarget.style.color = "var(--nf-error)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "transparent";
+                                  e.currentTarget.style.color = "var(--nf-text-primary)";
+                                }}
                                 onClick={async () => {
                                   await logoutCustomer();
                                   setDropdownOpen(false);
                                 }}
                               >
-                                <FiLogOut />
-                                <span>Logout</span>
+                                <LogOut size={16} />
+                                <span className="text-sm">Logout</span>
                               </button>
                             </div>
                           </div>
@@ -298,9 +329,19 @@ const Header = () => {
                 ) : (
                   <Link
                     to="/signin"
-                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-700 text-white font-semibold rounded-full hover:from-amber-600 hover:to-amber-800 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    className="px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200"
+                    style={{
+                      background: "var(--nf-btn-primary-bg)",
+                      color: "var(--nf-btn-primary-text)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--nf-btn-primary-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "var(--nf-btn-primary-bg)";
+                    }}
                   >
-                    Login
+                    Sign In
                   </Link>
                 )}
               </div>
@@ -308,27 +349,13 @@ const Header = () => {
 
             {/* Mobile Menu Button */}
             <button
-              className="lg:hidden p-2 min-w-[36px] min-h-[36px] rounded-full bg-black/40 hover:bg-black/60 text-[color:var(--nf-text-secondary)] hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+              className="lg:hidden p-2 rounded-md transition-all duration-200"
+              style={{ color: "var(--nf-text-muted)" }}
               onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle mobile menu"
-              style={{
-                willChange: "transform, background-color",
-                backfaceVisibility: "hidden",
-              }}
+              aria-label={menuOpen ? "Close mobile menu" : "Open mobile menu"}
+              aria-expanded={menuOpen}
             >
-              <div
-                className="transition-transform duration-300 ease-in-out"
-                style={{
-                  transform: menuOpen ? "rotate(90deg)" : "rotate(0deg)",
-                  willChange: "transform",
-                }}
-              >
-                {menuOpen ? (
-                  <FiX className="w-5 h-5" />
-                ) : (
-                  <FiMenu className="w-5 h-5" />
-                )}
-              </div>
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -336,17 +363,21 @@ const Header = () => {
 
       {/* Mobile Menu Overlay */}
       {menuOpen && (
-        <div className="mobile-menu-overlay lg:hidden animate-fadeIn">
+        <div className="lg:hidden">
           {/* Backdrop */}
           <div
-            className="mobile-menu-backdrop bg-black/70"
+            className="fixed inset-0 z-40"
+            style={{ background: "var(--nf-bg-overlay)" }}
             onClick={() => setMenuOpen(false)}
           />
 
           {/* Menu Panel */}
           <div
-            className="mobile-menu-panel w-80 shadow-2xl animate-slideInRight"
-            style={{ background: "var(--nf-bg-elevated)" }}
+            className="fixed top-0 right-0 h-full w-80 z-50 shadow-lg animate-slideInRight overflow-y-auto"
+            style={{
+              background: "var(--nf-bg-elevated)",
+              borderLeft: "1px solid var(--nf-border)",
+            }}
           >
             {/* Menu Header */}
             <div
@@ -357,14 +388,15 @@ const Header = () => {
                 <div className="flex items-center space-x-3">
                   <img
                     src={user.avatarUrl || "/images/logo.png"}
-                    alt="Profile"
-                    className="w-12 h-12 rounded-full border-2 border-amber-400/30"
+                    alt={user.username || "Profile"}
+                    className="w-12 h-12 rounded-full object-cover"
+                    style={{ border: "2px solid var(--nf-border)" }}
                     loading="lazy"
                     decoding="async"
                   />
                   <div>
                     <p
-                      className="font-bold"
+                      className="font-semibold"
                       style={{ color: "var(--nf-text-primary)" }}
                     >
                       {user.username}
@@ -378,15 +410,9 @@ const Header = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-emerald-500 flex items-center justify-center mb-3">
-                    <FiUser
-                      size={28}
-                      className="text-[color:var(--nf-text-primary)]"
-                    />
-                  </div>
+                <div className="text-center">
                   <p
-                    className="font-bold"
+                    className="font-semibold"
                     style={{ color: "var(--nf-text-primary)" }}
                   >
                     Welcome to Nile Flow
@@ -398,30 +424,37 @@ const Header = () => {
             {/* Menu Links */}
             <div className="p-4 space-y-1">
               {[
-                { to: "/home", label: i18n.t("Home"), icon: "🏠" },
-                { to: "/shop", label: "Shop", icon: "🛒" },
-                { to: "/deals", label: "Deals", icon: "🔥" },
-                { to: "/contact", label: "Contact Us", icon: "📞" },
-                { to: "/about-us", label: "About Us", icon: "ℹ️" },
-                { to: "/language", label: "Language", icon: "🌍" },
-                { to: "/profile", label: "Profile", icon: "👤" },
-                { to: "/settings", label: "Settings", icon: "⚙️" },
+                { to: "/", label: "Home" },
+                { to: "/shop", label: "Shop" },
+                { to: "/deals", label: "Deals" },
+                { to: "/contact", label: "Contact Us" },
+                { to: "/about-us", label: "About Us" },
+                { to: "/language", label: "Language" },
+                { to: "/profile", label: "Profile" },
+                { to: "/settings", label: "Settings" },
               ].map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className="flex items-center space-x-3 px-4 py-4 rounded-xl hover:bg-[var(--nf-btn-ghost-hover)] transition-all duration-200"
+                  className="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200"
                   style={{ color: "var(--nf-text-primary)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--nf-btn-ghost-hover)";
+                    e.currentTarget.style.color = "var(--nf-accent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--nf-text-primary)";
+                  }}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
+                  {item.label}
                 </Link>
               ))}
 
               {/* Auth Buttons */}
               <div
-                className="pt-6"
+                className="pt-4 mt-4"
                 style={{ borderTop: "1px solid var(--nf-border-subtle)" }}
               >
                 {user ? (
@@ -430,18 +463,38 @@ const Header = () => {
                       await logoutCustomer();
                       setMenuOpen(false);
                     }}
-                    className="flex items-center justify-center space-x-2 w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-xl hover:opacity-90 transition-all duration-300"
+                    className="flex items-center justify-center space-x-2 w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
+                    style={{
+                      background: "var(--nf-error)",
+                      color: "#ffffff",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--nf-btn-danger-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "var(--nf-error)";
+                    }}
                   >
-                    <FiLogOut />
+                    <LogOut size={16} />
                     <span>Logout</span>
                   </button>
                 ) : (
                   <Link
                     to="/signin"
-                    className="flex items-center justify-center space-x-2 w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-700 text-white rounded-xl hover:opacity-90 transition-all duration-300"
+                    className="flex items-center justify-center space-x-2 w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200"
+                    style={{
+                      background: "var(--nf-btn-primary-bg)",
+                      color: "var(--nf-btn-primary-text)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--nf-btn-primary-hover)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "var(--nf-btn-primary-bg)";
+                    }}
                     onClick={() => setMenuOpen(false)}
                   >
-                    <FiUser />
+                    <User size={16} />
                     <span>Sign In / Register</span>
                   </Link>
                 )}
@@ -449,9 +502,9 @@ const Header = () => {
             </div>
 
             {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-center">
+            <div className="p-6 text-center">
               <p className="text-xs" style={{ color: "var(--nf-text-muted)" }}>
-                © 2026 Nile Flow Africa. Premium African E-commerce
+                &copy; 2026 Nile Flow Africa. Premium African E-commerce
               </p>
             </div>
           </div>
@@ -467,5 +520,4 @@ const Header = () => {
   );
 };
 
-// React.memo prevents re-renders when parent context updates don't affect Header props
 export default memo(Header);

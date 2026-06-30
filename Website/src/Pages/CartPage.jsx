@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { useCart } from "../../components/CartContext";
+import { useCart } from "../../Context/CartContext";
 import { formatPrice } from "../../utils/priceFormatter";
 import { usePremiumContext } from "../../Context/PremiumContext";
 import premiumService from "../../utils/premiumService";

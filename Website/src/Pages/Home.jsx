@@ -8,7 +8,7 @@ import useStructuredData from "../hooks/useStructuredData";
 import { ORGANIZATION_SCHEMA } from "../constants/structuredData";
 
 // Lazy load non-critical components
-const HeroCarousel = lazy(() => import("../../components/HeroCarousel "));
+const HeroCarousel = lazy(() => import("../../components/HeroCarousel"));
 const FeaturedProducts = lazy(
   () => import("../../components/FeaturedProducts"),
 );

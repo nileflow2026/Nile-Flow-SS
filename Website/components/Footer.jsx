@@ -1,25 +1,27 @@
 /* eslint-disable no-unused-vars */
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faFacebookF,
-  faTwitter,
-  faTiktok,
-  faInstagram,
-  faLinkedinIn,
-} from "@fortawesome/free-brands-svg-icons";
-import {
-  faEnvelope,
-  faCheckCircle,
-  faArrowRight,
-  faGift,
-  faShieldAlt,
-  faTruckFast,
-  faHeadset,
-} from "@fortawesome/free-solid-svg-icons";
+  Mail,
+  CheckCircle,
+  ArrowRight,
+  Gift,
+  ShieldCheck,
+  Truck,
+  Headphones,
+  Facebook,
+  Instagram,
+  Linkedin,
+} from "lucide-react";
 import i18n from "../i18n";
 import { useState } from "react";
 import axiosClient from "../api";
 import { Link } from "react-router-dom";
+
+// Simple SVG icons for platforms not in Lucide
+const TikTokIcon = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+  </svg>
+);
 
 const Footer = () => {
   const [email, setEmail] = useState("");
@@ -94,14 +96,10 @@ const Footer = () => {
 
       {/* Trust Badges */}
       <div className="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-        {/* Mobile: Horizontal Scroll, Desktop: Grid */}
         <div className="flex overflow-x-auto gap-4 pb-2 sm:pb-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible scrollbar-thin scrollbar-thumb-amber-600 scrollbar-track-amber-900/20">
           <div className="bg-gradient-to-br from-amber-900/40 to-transparent backdrop-blur-sm rounded-2xl p-4 border border-[var(--nf-border-subtle)] flex items-center space-x-3 flex-shrink-0 min-w-[280px] md:min-w-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-yellow-800 flex items-center justify-center flex-shrink-0">
-              <FontAwesomeIcon
-                icon={faTruckFast}
-                className="text-[color:var(--nf-text-primary)] text-lg"
-              />
+              <Truck className="text-[color:var(--nf-text-primary)] text-lg" />
             </div>
             <div>
               <p className="font-bold text-[color:var(--nf-text-secondary)] text-sm">
@@ -115,10 +113,7 @@ const Footer = () => {
 
           <div className="bg-gradient-to-br from-emerald-900/40 to-transparent backdrop-blur-sm rounded-2xl p-4 border border-emerald-700/30 flex items-center space-x-3 flex-shrink-0 min-w-[280px] md:min-w-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-800 flex items-center justify-center flex-shrink-0">
-              <FontAwesomeIcon
-                icon={faShieldAlt}
-                className="text-[color:var(--nf-text-primary)] text-lg"
-              />
+              <ShieldCheck className="text-[color:var(--nf-text-primary)] text-lg" />
             </div>
             <div>
               <p className="font-bold text-emerald-100 text-sm">
@@ -130,10 +125,7 @@ const Footer = () => {
 
           <div className="bg-gradient-to-br from-red-900/40 to-transparent backdrop-blur-sm rounded-2xl p-4 border border-red-700/30 flex items-center space-x-3 flex-shrink-0 min-w-[280px] md:min-w-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center flex-shrink-0">
-              <FontAwesomeIcon
-                icon={faHeadset}
-                className="text-[color:var(--nf-text-primary)] text-lg"
-              />
+              <Headphones className="text-[color:var(--nf-text-primary)] text-lg" />
             </div>
             <div>
               <p className="font-bold text-red-100 text-sm">24/7 Support</p>
@@ -143,10 +135,7 @@ const Footer = () => {
 
           <div className="bg-gradient-to-br from-blue-900/40 to-transparent backdrop-blur-sm rounded-2xl p-4 border border-blue-700/30 flex items-center space-x-3 flex-shrink-0 min-w-[280px] md:min-w-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center flex-shrink-0">
-              <FontAwesomeIcon
-                icon={faGift}
-                className="text-[color:var(--nf-text-primary)] text-lg"
-              />
+              <Gift className="text-[color:var(--nf-text-primary)] text-lg" />
             </div>
             <div>
               <p className="font-bold text-blue-100 text-sm">Premium Quality</p>
@@ -195,10 +184,7 @@ const Footer = () => {
               }}
             >
               <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-4 text-center sm:text-left">
-                <FontAwesomeIcon
-                  icon={faEnvelope}
-                  className="text-amber-400 text-lg sm:text-xl"
-                />
+                <Mail className="text-amber-400 text-lg sm:text-xl" />
                 <h3 className="text-lg sm:text-xl font-bold text-[color:var(--nf-text-secondary)]">
                   Join Our Community
                 </h3>
@@ -211,10 +197,7 @@ const Footer = () => {
 
               {step === "subscribed" ? (
                 <div className="bg-gradient-to-r from-emerald-900/40 to-green-900/20 border border-emerald-700/50 rounded-xl p-4 text-center animate-fadeIn">
-                  <FontAwesomeIcon
-                    icon={faCheckCircle}
-                    className="text-emerald-400 text-2xl sm:text-3xl mb-2"
-                  />
+                  <CheckCircle className="text-emerald-400 text-2xl sm:text-3xl mb-2 mx-auto" />
                   <p className="font-bold text-emerald-100 text-base sm:text-lg">
                     Welcome to the Tribe!
                   </p>
@@ -262,7 +245,7 @@ const Footer = () => {
                           className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-semibold hover:from-amber-700 hover:to-amber-800 transition-all duration-300 flex items-center justify-center space-x-2 text-sm sm:text-base"
                         >
                           <span>{loading ? "Checking..." : "Subscribe"}</span>
-                          <FontAwesomeIcon icon={faArrowRight} />
+                          <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -308,7 +291,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Links Sections - Mobile: 2-column grid, Desktop: individual columns */}
+          {/* Links Sections */}
           <div className="md:col-span-2 lg:col-span-3 grid grid-cols-2 md:grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 lg:gap-10">
             <div className="space-y-3 md:space-y-4">
               <h3 className="text-base sm:text-lg md:text-xl font-bold text-[color:var(--nf-text-secondary)] mb-3 md:mb-4 lg:mb-6 pb-2 border-b border-[var(--nf-border)] inline-block">
@@ -397,10 +380,7 @@ const Footer = () => {
                 rel="noopener noreferrer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <FontAwesomeIcon
-                  icon={faFacebookF}
-                  className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300"
-                />
+                <Facebook className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300" />
               </a>
 
               <a
@@ -411,10 +391,7 @@ const Footer = () => {
                 rel="noopener noreferrer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-pink-600 to-purple-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <FontAwesomeIcon
-                  icon={faTiktok}
-                  className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300"
-                />
+                <TikTokIcon />
               </a>
 
               <a
@@ -425,10 +402,7 @@ const Footer = () => {
                 rel="noopener noreferrer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-pink-600 to-orange-500 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <FontAwesomeIcon
-                  icon={faInstagram}
-                  className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300"
-                />
+                <Instagram className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300" />
               </a>
 
               <a
@@ -439,10 +413,7 @@ const Footer = () => {
                 rel="noopener noreferrer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-700 to-blue-900 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <FontAwesomeIcon
-                  icon={faLinkedinIn}
-                  className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300"
-                />
+                <Linkedin className="text-[color:var(--nf-text-secondary)] group-hover:text-[color:var(--nf-text-primary)] relative z-10 transition-colors duration-300" />
               </a>
             </div>
           </div>

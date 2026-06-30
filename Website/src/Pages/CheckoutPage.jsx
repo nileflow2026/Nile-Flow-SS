@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCart } from "../../components/CartContext";
+import { useCart } from "../../Context/CartContext";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import PickupAddressModal from "../../components/PickupAddressModal";

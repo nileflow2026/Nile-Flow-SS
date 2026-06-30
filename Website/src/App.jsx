@@ -67,7 +67,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 
 // Keep essential components synchronous
-import { CartProvider } from "../components/CartContext";
+import { CartProvider } from "../Context/CartContext";
 // slick-carousel CSS is deferred in main.jsx — do NOT re-import here
 import { NotificationProvider } from "../Context/NotificationContext";
 import Maintenance from "../components/Maintenance";
@@ -85,19 +85,18 @@ import { ThemeProvider } from "../Context/ThemeProvider";
 import UpdateNotifier from "./components/UpdateNotifier";
 
 // ============================================================
-// Chunk Loading Error Handler — handles failed dynamic imports
+// Chunk Loading Error Handler — logs errors but does NOT reload
 // ============================================================
-// Listen for chunk loading errors and trigger page refresh
+// Previously auto-refreshed on chunk errors, causing infinite loops.
+// Now only logs to console and Sentry.
 window.addEventListener("error", (event) => {
   if (
     event.message &&
     event.message.includes("Failed to fetch dynamically imported module")
   ) {
-    console.error("🔴 Chunk loading failed:", event.message);
-
-    // Log to Sentry for monitoring
+    console.warn("Chunk loading error (non-fatal):", event.message);
     Sentry.captureException(new Error(`Chunk load failed: ${event.message}`), {
-      level: "error",
+      level: "warning",
       contexts: {
         chunk: {
           url: event.filename,
@@ -105,23 +104,6 @@ window.addEventListener("error", (event) => {
         },
       },
     });
-
-    // Show user-friendly error and suggest refresh
-    const isUserInteracting = sessionStorage.getItem("_nf_chunk_retry");
-    if (!isUserInteracting) {
-      sessionStorage.setItem("_nf_chunk_retry", "1");
-      setTimeout(() => {
-        if (
-          confirm(
-            "A resource failed to load. Would you like to refresh the page?",
-          )
-        ) {
-          // Hard refresh to clear stale cache
-          window.location.reload(true);
-        }
-        sessionStorage.removeItem("_nf_chunk_retry");
-      }, 100);
-    }
   }
 });
 
