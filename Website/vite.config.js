@@ -66,10 +66,6 @@ export default defineConfig(({ mode }) => {
 
       // Aggressive code splitting
       rollupOptions: {
-        // Exclude server-only packages from the browser bundle entirely.
-        // Without this, Rollup would attempt to resolve them and either fail
-        // or include large Node.js-only code paths.
-        external: SERVER_ONLY_PACKAGES,
         output: {
           // Manual chunk splitting for better caching - prevent empty chunks
           manualChunks: (id) => {
@@ -92,28 +88,19 @@ export default defineConfig(({ mode }) => {
               return "ui-lib";
             }
 
-            // Icons and visual components
-            if (
-              id.includes("react-icons") ||
-              id.includes("@fortawesome") ||
-              id.includes("lucide-react")
-            ) {
+            // Icons
+            if (id.includes("lucide-react")) {
               return "icons";
             }
 
-            // Carousel and sliders (only if they exist)
-            if (
-              id.includes("react-slick") ||
-              id.includes("slick-carousel") ||
-              id.includes("react-responsive-carousel")
-            ) {
+            // Carousel
+            if (id.includes("react-responsive-carousel")) {
               return "carousel";
             }
 
             // API and data
             if (
               id.includes("axios") ||
-              id.includes("appwrite") ||
               id.includes("socket.io-client")
             ) {
               return "api";
@@ -122,8 +109,7 @@ export default defineConfig(({ mode }) => {
             // Utilities and misc
             if (
               id.includes("jwt-decode") ||
-              id.includes("i18n-js") ||
-              id.includes("react-parallax")
+              id.includes("i18n-js")
             ) {
               return "utils";
             }
@@ -133,7 +119,7 @@ export default defineConfig(({ mode }) => {
               return "payment";
             }
 
-            // Monitoring (loaded async in main.jsx — keep isolated)
+            // Monitoring
             if (id.includes("@sentry/react")) {
               return "monitoring";
             }
@@ -188,11 +174,18 @@ export default defineConfig(({ mode }) => {
     server: {
       cors: true,
       proxy: {
-        // Forward /api/* to the backend in development
+        // Forward /api/* to the backend — but NOT /api.js or /api.css
         "/api": {
           target: "https://nile-flow-backend.onrender.com",
           changeOrigin: true,
           secure: true,
+          bypass: (req) => {
+            // Don't proxy local JS/CSS/image files that happen to start with /api
+            if (req.url.endsWith(".js") || req.url.endsWith(".css") || req.url.endsWith(".json")) {
+              return req.url;
+            }
+            return undefined; // proxy normally
+          },
         },
       },
     },

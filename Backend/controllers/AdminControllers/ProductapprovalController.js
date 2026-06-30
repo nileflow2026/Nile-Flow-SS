@@ -197,7 +197,7 @@ const getPendingProducts = async (req, res) => {
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       [
         Query.equal("status", "pending"),
-        Query.orderDesc("submittedAt"),
+        Query.orderDesc("$createdAt"),
         Query.limit(50),
       ],
     );

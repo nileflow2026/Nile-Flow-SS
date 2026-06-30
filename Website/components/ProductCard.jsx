@@ -3,11 +3,9 @@ import React, { useState, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
 import AddToCartButton from "./AddToCartButton";
 import {
-  faStar,
-  faStarHalfStroke,
-  faStar as faStarRegular,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  Star as LucideStar,
+  StarHalf,
+} from "lucide-react";
 import { useFavorites } from "../Context/FavoritesContext.jsx";
 import { formatPrice, resolveDisplayPrice } from "../utils/priceFormatter";
 import {
@@ -45,26 +43,23 @@ const StarRating = ({ rating }) => {
   const roundedRating = Math.round(rating * 2) / 2;
   for (let i = 1; i <= 5; i++) {
     if (i <= roundedRating) {
-      stars.push(
-        <FontAwesomeIcon
+  stars.push(
+        <LucideStar
           key={i}
-          icon={faStar}
-          className="text-yellow-400 fill-current w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 xl:w-4.5 xl:h-4.5 2xl:w-5 2xl:h-5"
+          className="text-yellow-400 fill-yellow-400 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 xl:w-4.5 xl:h-4.5 2xl:w-5 2xl:h-5"
         />,
       );
     } else if (i - 0.5 === roundedRating) {
       stars.push(
-        <FontAwesomeIcon
+        <StarHalf
           key={i}
-          icon={faStarHalfStroke}
-          className="text-yellow-400 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 xl:w-4.5 xl:h-4.5 2xl:w-5 2xl:h-5"
+          className="text-yellow-400 fill-yellow-400 w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 xl:w-4.5 xl:h-4.5 2xl:w-5 2xl:h-5"
         />,
       );
     } else {
       stars.push(
-        <FontAwesomeIcon
+        <LucideStar
           key={i}
-          icon={faStarRegular}
           className="text-[color:var(--nf-text-muted)] w-2 h-2 xs:w-2.5 xs:h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 xl:w-4.5 xl:h-4.5 2xl:w-5 2xl:h-5"
         />,
       );

@@ -41,22 +41,34 @@ const ProductApprovals = () => {
         adminProductService.getRejectedProducts(),
       ]);
 
+      let errors = [];
+
       if (pendingRes.status === "fulfilled" && pendingRes.value.success) {
         setPendingProducts(pendingRes.value.data.products || []);
       } else {
+        const msg = pendingRes.reason?.message || "Failed to fetch pending products";
         console.error("Failed to fetch pending products:", pendingRes.reason);
+        errors.push(msg);
       }
 
       if (approvedRes.status === "fulfilled" && approvedRes.value.success) {
         setApprovedProducts(approvedRes.value.data.products || []);
       } else {
+        const msg = approvedRes.reason?.message || "Failed to fetch approved products";
         console.error("Failed to fetch approved products:", approvedRes.reason);
+        errors.push(msg);
       }
 
       if (rejectedRes.status === "fulfilled" && rejectedRes.value.success) {
         setRejectedProducts(rejectedRes.value.data.products || []);
       } else {
+        const msg = rejectedRes.reason?.message || "Failed to fetch rejected products";
         console.error("Failed to fetch rejected products:", rejectedRes.reason);
+        errors.push(msg);
+      }
+
+      if (errors.length > 0) {
+        setError(errors.join(". "));
       }
     } catch (err) {
       setError(err.message || "Failed to load products");

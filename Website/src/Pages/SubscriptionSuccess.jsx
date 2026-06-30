@@ -1,231 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, Crown, Loader, XCircle } from "lucide-react";
+import React from "react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { usePremiumContext } from "../../Context/PremiumContext";
+import { Link } from "react-router-dom";
+import SeoHead from "../components/SeoHead";
+import { Construction } from "lucide-react";
 
-/**
- * SubscriptionSuccess - Handles return from Stripe checkout
- * Polls subscription status until confirmed
- */
-const SubscriptionSuccess = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { isPremium, refreshStatus } = usePremiumContext();
-  const [status, setStatus] = useState("checking"); // checking, success, failed
-  const [countdown, setCountdown] = useState(30);
-
-  const sessionId = searchParams.get("session_id");
-
-  useEffect(() => {
-    if (!sessionId) {
-      setStatus("failed");
-      return;
-    }
-
-    // Poll subscription status
-    let pollCount = 0;
-    const maxPolls = 30; // 60 seconds total (2 second intervals)
-
-    const checkStatus = setInterval(async () => {
-      try {
-        await refreshStatus();
-      } catch (error) {
-        console.error(`[Stripe Success] Error refreshing status:`, error);
-      }
-
-      pollCount++;
-
-      // Update countdown
-      setCountdown(60 - pollCount * 2);
-
-      // Stop polling after max attempts
-      if (pollCount >= maxPolls) {
-        clearInterval(checkStatus);
-        // Use functional update to avoid stale closure on status;
-        // only mark failed if success hasn't already been detected
-        setStatus((currentStatus) => {
-          if (currentStatus === "checking") return "failed";
-          return currentStatus;
-        });
-      }
-    }, 2000);
-
-    return () => clearInterval(checkStatus);
-    // Intentionally exclude isPremium — the separate effect below handles success.
-    // Including it would restart the interval on every status change.
-  }, [sessionId, refreshStatus]);
-
-  // Check if premium status changed — handles success independently of the polling interval
-  useEffect(() => {
-    if (isPremium && status === "checking") {
-      setStatus("success");
-
-      // Redirect to profile after 3 seconds
-      setTimeout(() => {
-        navigate("/profile?tab=premium");
-      }, 3000);
-    }
-  }, [isPremium, status, navigate]);
-
+const SubscriptionActive = () => {
   return (
-    <div className="min-h-screen bg-[var(--nf-bg-primary)] text-[color:var(--nf-text-primary)] flex flex-col">
+    <div className="min-h-screen bg-[var(--nf-bg-primary)] text-[color:var(--nf-text-primary)]">
+      <SeoHead title="Subscription Active | Nile Flow Africa" description="Your premium subscription is now active." noindex={true} />
       <Header />
-
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full">
-          {/* Checking Status */}
-          {status === "checking" && (
-            <div className="bg-[var(--nf-card-bg)] backdrop-blur-sm border border-purple-800/30 rounded-3xl p-12 text-center shadow-2xl">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-900/50">
-                <Loader className="w-12 h-12 text-[color:var(--nf-text-primary)] animate-spin" />
-              </div>
-
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-300 via-pink-300 to-blue-300 bg-clip-text text-transparent mb-4">
-                Processing Your Payment
-              </h1>
-
-              <p className="text-[color:var(--nf-text-muted)] text-lg mb-6">
-                Please wait while we confirm your premium subscription...
-              </p>
-
-              <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/10 backdrop-blur-sm border border-purple-800/30 rounded-xl p-6 mb-6">
-                <p className="text-purple-300 text-sm font-semibold mb-2">
-                  ⏱️ Verifying Payment
-                </p>
-                <p className="text-purple-100/70 text-sm">
-                  Stripe is confirming your payment. This can take up to 60
-                  seconds.
-                </p>
-                <div className="mt-4 text-purple-200/60 text-xs">
-                  Time remaining: {countdown} seconds
-                </div>
-                <div className="mt-2 text-purple-200/40 text-xs">
-                  Session ID: {sessionId?.slice(-20)}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center space-x-2 text-[color:var(--nf-text-muted)] text-sm">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse delay-75"></div>
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse delay-150"></div>
-              </div>
-            </div>
-          )}
-
-          {/* Success Status */}
-          {status === "success" && (
-            <div className="bg-[var(--nf-card-bg)] backdrop-blur-sm border border-emerald-800/30 rounded-3xl p-12 text-center shadow-2xl animate-fade-in">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-600 to-green-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-900/50">
-                <CheckCircle className="w-12 h-12 text-[color:var(--nf-text-primary)]" />
-              </div>
-
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-300 via-green-300 to-emerald-300 bg-clip-text text-transparent mb-4">
-                Welcome to Premium! 🎉
-              </h1>
-
-              <p className="text-[color:var(--nf-text-muted)] text-lg mb-6">
-                Your payment was successful and your premium subscription is now
-                active.
-              </p>
-
-              <div className="bg-gradient-to-r from-emerald-900/30 to-green-900/20 backdrop-blur-sm border border-emerald-800/30 rounded-xl p-6 mb-8">
-                <div className="flex items-center justify-center space-x-3 mb-4">
-                  <Crown className="w-6 h-6 text-emerald-400" />
-                  <h3 className="text-xl font-bold text-emerald-300">
-                    Premium Benefits Unlocked
-                  </h3>
-                </div>
-                <ul className="space-y-3 text-left max-w-md mx-auto">
-                  {[
-                    "2x Nile Miles on every purchase",
-                    "Priority delivery (1-2 days)",
-                    "Exclusive premium deals",
-                    "24/7 priority customer support",
-                  ].map((benefit, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center space-x-2 text-emerald-100/80"
-                    >
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span>{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button
-                onClick={() => navigate("/profile?tab=premium")}
-                className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-bold rounded-xl hover:from-emerald-700 hover:to-green-700 hover:scale-105 transition-all duration-300 shadow-xl shadow-emerald-900/50"
-              >
-                Go to Your Dashboard
-              </button>
-
-              <p className="text-[color:var(--nf-text-muted)] text-sm mt-4">
-                Redirecting automatically in 3 seconds...
-              </p>
-            </div>
-          )}
-
-          {/* Failed Status */}
-          {status === "failed" && (
-            <div className="bg-[var(--nf-card-bg)] backdrop-blur-sm border border-red-800/30 rounded-3xl p-12 text-center shadow-2xl">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-900/50">
-                <XCircle className="w-12 h-12 text-[color:var(--nf-text-primary)]" />
-              </div>
-
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-300 via-red-300 to-red-300 bg-clip-text text-transparent mb-4">
-                Payment Verification Failed
-              </h1>
-
-              <p className="text-[color:var(--nf-text-muted)] text-lg mb-6">
-                We couldn't verify your payment. This might be due to:
-              </p>
-
-              <div className="bg-gradient-to-r from-red-900/30 to-red-900/20 backdrop-blur-sm border border-red-800/30 rounded-xl p-6 mb-8">
-                <ul className="text-left max-w-md mx-auto space-y-2 text-red-100/80 mb-4">
-                  <li>
-                    • Stripe webhook hasn't arrived yet (can take 30-60 seconds)
-                  </li>
-                  <li>• Payment was cancelled or declined</li>
-                  <li>• Network connection issues</li>
-                  <li>• Payment is still being processed</li>
-                </ul>
-                <div className="mt-4 pt-4 border-t border-red-700/30">
-                  <p className="text-red-200/70 text-sm">
-                    <strong>Session ID:</strong> {sessionId?.slice(-20)}
-                  </p>
-                  <p className="text-red-200/60 text-xs mt-2">
-                    Check your profile in a few minutes - the subscription may
-                    activate soon.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => navigate("/profile?tab=premium")}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-blue-700 hover:scale-105 transition-all duration-300 shadow-xl shadow-purple-900/50"
-                >
-                  Try Again
-                </button>
-
-                <button
-                  onClick={() => navigate("/help-center")}
-                  className="px-8 py-4 bg-gradient-to-r from-gray-800 to-gray-900 text-[color:var(--nf-text-primary)] font-bold rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 border border-[var(--nf-border-subtle)]"
-                >
-                  Contact Support
-                </button>
-              </div>
-            </div>
-          )}
+      <main className="min-h-[60vh] flex flex-col items-center justify-center px-4 py-20">
+        <div className="text-center max-w-md">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-900/30 to-emerald-900/30 border border-[var(--nf-border-subtle)] mb-6">
+            <Construction className="w-10 h-10 text-amber-400" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3">{title}</h1>
+          <p className="text-[color:var(--nf-text-secondary)] mb-8">{desc}</p>
+          <Link
+            to="/"
+            className="inline-flex items-center px-6 py-3 rounded-lg font-medium bg-amber-500 hover:bg-amber-400 text-white transition-colors"
+          >
+            Go to Home
+          </Link>
         </div>
-      </div>
-
+      </main>
       <Footer />
     </div>
   );
 };
 
-export default SubscriptionSuccess;
+export default SubscriptionActive;

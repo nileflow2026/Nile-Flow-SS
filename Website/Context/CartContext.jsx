@@ -12,9 +12,11 @@ import React, {
   useState,
 } from "react";
 import { fetchUserId, fetchUserName } from "../CustomerServices";
-import axiosClient from "../api";
+
 import * as Toastify from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import axiosClient from "../axiosClient";
+
 
 const { toast } = Toastify;
 

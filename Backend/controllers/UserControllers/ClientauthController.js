@@ -140,7 +140,7 @@ async function persistRefreshToken({
   ).toISOString();
   const docId = ID.unique();
 
-  return db.createDocument(
+  return instrumentedDb.createDocument(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     docId,
@@ -163,7 +163,7 @@ async function persistRefreshToken({
  */
 async function findRefreshTokenRecordByHash(refreshToken) {
   const tokenHash = hashToken(refreshToken);
-  const result = await db.listDocuments(
+  const result = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("refreshToken", tokenHash)],
@@ -218,7 +218,7 @@ async function revokeRefreshTokenById(docId) {
  * Revoke all refresh tokens for a user
  */
 async function revokeAllUserRefreshTokens(userId) {
-  const res = await db.listDocuments(
+  const res = await instrumentedDb.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
     [Query.equal("userId", userId)],
@@ -229,7 +229,7 @@ async function revokeAllUserRefreshTokens(userId) {
   let count = 0;
   for (const doc of res.documents) {
     if (!doc.revoked) {
-      await db.updateDocument(
+      await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
         doc.$id,

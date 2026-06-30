@@ -56,7 +56,7 @@ export const CustomerAuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Listen for logout events from axios interceptor
+  // Listen for logout events from axios interceptor — never full page reload
   useEffect(() => {
     const handleLogout = () => {
       setUser(null);
@@ -64,23 +64,9 @@ export const CustomerAuthProvider = ({ children }) => {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
 
-      // Only redirect if on a protected route
-      const protectedRoutes = [
-        "/profile",
-        "/orders",
-        "/addresses",
-        "/settings",
-        "/redeem",
-        "/checkout",
-      ];
-      const currentPath = window.location.pathname;
-      const isProtectedRoute = protectedRoutes.some((route) =>
-        currentPath.startsWith(route),
-      );
-
-      if (isProtectedRoute) {
-        window.location.href = "/signin";
-      }
+      // Do NOT use window.location.href — that causes a full page reload
+      // which re-initializes everything and can create infinite loops.
+      // The Router will handle routing via AppContent's Routes.
     };
 
     window.addEventListener("auth:logout", handleLogout);

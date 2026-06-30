@@ -28,6 +28,8 @@ const {
   updatePremiumDeal,
 } = require("../controllers/AdminControllers/admin");
 const authenticateToken = require("../middleware/authMiddleware");
+const { instrumentedDb } = require("../services/appwriteService");
+const { env } = require("../src/env");
 const {
   getPendingProducts,
   approveProduct,
@@ -59,18 +61,13 @@ router.get("/products/subcategory/:id", getProductsBySubcategoryId);
 // POST a new subcategory under a specific category
 router.post("/:id/subcategories", authenticateToken, createSubcategory);
 
-// Import product approval controller
+// Product approval routes
 router.get("/products/pending", authenticateToken, getPendingProducts);
-router.get(
-  "/products/pending/:productId",
-  authenticateToken,
-  getPendingProducts,
-);
-router.post("/products/approve/:productId", authenticateToken, approveProduct);
-router.post("/products/reject/:productId", authenticateToken, rejectProduct);
-router.get("/products/pending", authenticateToken, getPendingProducts);
+router.get("/products/pending/:productId", authenticateToken, getPendingProducts);
 router.get("/products/approved", authenticateToken, getApprovedProducts);
 router.get("/products/rejected", authenticateToken, getRejectedProducts);
+router.post("/products/approve/:productId", authenticateToken, approveProduct);
+router.post("/products/reject/:productId", authenticateToken, rejectProduct);
 router.get("/products/:productId", authenticateToken, getSingleProductDetails);
 router.post("/assign-delivery", authenticateToken, assignDeliveryToRider);
 
@@ -78,7 +75,7 @@ router.get("/products/:productId/stock", async (req, res) => {
   try {
     const { productId } = req.params;
 
-    const product = await db.getDocument(
+    const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,

@@ -2,8 +2,11 @@
 
 import axios from "axios";
 
+// Use Vite env `VITE_API_BASE_URL` when available (local testing), fallback to localhost
+const API_BASE_URL = "https://nile-flow-backend-5dqm.onrender.com";
+
 const axiosClient = axios.create({
-  baseURL: "https://nile-flow-backend.onrender.com",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
