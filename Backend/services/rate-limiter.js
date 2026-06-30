@@ -1,5 +1,6 @@
 // rate-limiter.js
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const RedisStore = require("rate-limit-redis");
 const { redis } = require("./redisClient");
 
@@ -17,7 +18,12 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => `${req.ip}:${req.body.email || "unknown"}`,
+  // Use ipKeyGenerator helper to properly handle IPv4 and IPv6 addresses
+  keyGenerator: (req) => {
+    const emailKey = req.body?.email || "unknown";
+    const ipKey = ipKeyGenerator(req);
+    return `${ipKey}:${emailKey}`;
+  },
 });
 
 const sessionLimiter = rateLimit({
@@ -28,7 +34,8 @@ const sessionLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute per session
   skip: (req) => !req.cookies.session_id,
-  keyGenerator: (req) => req.cookies.session_id || req.ip,
+  // Use ipKeyGenerator helper for IPv6-safe rate limiting
+  keyGenerator: (req) => req.cookies.session_id || ipKeyGenerator(req),
 });
 
 module.exports = {

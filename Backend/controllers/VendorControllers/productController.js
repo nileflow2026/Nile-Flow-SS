@@ -7,6 +7,10 @@ const { Query } = require("node-appwrite");
 const {
   CreateProductApprovalNotification,
 } = require("../AdminControllers/notificationController");
+const {
+  sendEmail: sendAppwriteEmail,
+  sendSms: sendAppwriteSms,
+} = require("../../services/appwriteMessagingService");
 
 const productController = {
   // Create Product
@@ -280,7 +284,7 @@ const productController = {
         }
         console.log("✅ Product added to main collection (pending approval)");
 
-        try {
+          try {
           // Get all admin users (or specific admin IDs)
           const admins = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID, // Or your users database
@@ -328,7 +332,53 @@ const productController = {
             }),
           });
 
-          console.log("📢 Notifications sent to admin and vendor");
+          console.log("📢 In-app notifications sent to admin and vendor");
+
+          // ========== APPWRITE MESSAGING (SMS + Email to admin) ==========
+          // Fire-and-forget: never blocks the main flow
+          setImmediate(async () => {
+            try {
+              const productName = name;
+              const vendorStore = vendorDetails.storeName;
+              const productPrice = parseFloat(price);
+
+              for (const admin of admins.documents) {
+                // Send email via Appwrite Messaging
+                if (admin.email) {
+                  await sendAppwriteEmail({
+                    userId: admin.$id,
+                    email: admin.email,
+                    subject: `⚠️ New Product Pending Approval — ${productName}`,
+                    content: `<h2>New Product Submission</h2>
+                      <p>A vendor has submitted a new product for approval:</p>
+                      <ul>
+                        <li><strong>Product:</strong> ${productName}</li>
+                        <li><strong>Vendor:</strong> ${vendorStore}</li>
+                        <li><strong>Price:</strong> $${productPrice}</li>
+                        <li><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
+                      </ul>
+                      <p><a href="${env.FRONTEND_URL || "https://admin.nileflowafrica.com"}/admin/products/pending/${productId}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">Review Product</a></p>`,
+                  });
+                }
+
+                // Send SMS via Appwrite Messaging
+                if (admin.phone) {
+                  await sendAppwriteSms({
+                    userId: admin.$id,
+                    phone: admin.phone,
+                    content: `NileFlow: New product "${productName}" submitted by ${vendorStore} ($${productPrice}). Review it now on the admin panel.`,
+                  });
+                }
+              }
+            } catch (appwriteMsgErr) {
+              console.warn(
+                "[AppwriteMessaging] Product notification error:",
+                appwriteMsgErr.message,
+              );
+            }
+          });
+
+          console.log("📢 Appwrite SMS/Email notifications dispatched to admins");
         } catch (notificationError) {
           console.error(
             "Notification error (product still saved):",

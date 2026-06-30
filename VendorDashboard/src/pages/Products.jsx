@@ -12,6 +12,7 @@ import {
   getImageAltText,
   needsCompression,
 } from "../utils/imageOptimizer";
+import UploadProgressBar from "../components/UploadProgressBar";
 
 const Products = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -957,43 +958,24 @@ const Products = () => {
           shortDescription: "",
           description: "",
           brand: "",
-          sku: "",
-          barcode: "",
           type: "physical",
           condition: "new",
           categoryId: "",
           subcategoryId: "",
           tags: "",
           price: "",
-          compareAtPrice: "",
-          costPerItem: "",
           currency: "KES",
           taxable: true,
           inventory: "",
           lowStockThreshold: "5",
           trackInventory: true,
           allowBackorders: false,
-          weight: "",
-          weightUnit: "kg",
-          length: "",
-          width: "",
-          height: "",
-          dimensionUnit: "cm",
           freeShipping: false,
           shippingClass: "standard",
           deliveryEstimate: "",
           color: "",
           size: "",
           material: "",
-          customAttribute1Key: "",
-          customAttribute1Value: "",
-          customAttribute2Key: "",
-          customAttribute2Value: "",
-          seoTitle: "",
-          seoDescription: "",
-          slug: "",
-          metaTitle: "",
-          metaDescription: "",
           keywords: "",
           image: "",
           images: [],
@@ -1532,7 +1514,7 @@ const Products = () => {
                           <option value="refurbished">Refurbished</option>
                         </select>
                       </div>
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           SKU (Stock Keeping Unit)
                         </label>
@@ -1545,8 +1527,8 @@ const Products = () => {
                           placeholder="e.g. KKW-BLU-001"
                           disabled={isLoading}
                         />
-                      </div>
-                      <div>
+                      </div> */}
+                      {/* <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Barcode (UPC / EAN / ISBN)
                         </label>
@@ -1559,7 +1541,7 @@ const Products = () => {
                           placeholder="e.g. 123456789012"
                           disabled={isLoading}
                         />
-                      </div>
+                      </div> */}
                       <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Product Type
@@ -1762,14 +1744,14 @@ const Products = () => {
                             </p>
                           )}
                       </div>
-                      <div>
+                      {/*<div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Cost Per Item
                           <span className="ml-1 text-amber-400 font-normal text-xs">
                             (for profit tracking)
                           </span>
                         </label>
-                        <div className="relative">
+                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 font-semibold text-sm">
                             KES
                           </span>
@@ -1784,7 +1766,7 @@ const Products = () => {
                             placeholder="0.00"
                             disabled={isLoading}
                           />
-                        </div>
+                        </div> 
                         {formData.costPerItem && formData.price && (
                           <p className="text-blue-600 text-xs mt-1 font-medium">
                             Margin: KES{" "}
@@ -1794,7 +1776,7 @@ const Products = () => {
                             ).toFixed(2)}
                           </p>
                         )}
-                      </div>
+                      </div>*/}
                       <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Currency
@@ -1863,8 +1845,8 @@ const Products = () => {
                       <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Low Stock Alert Threshold
-                        </label>
-                        <input
+                        </label> 
+                         <input
                           type="number"
                           name="lowStockThreshold"
                           value={formData.lowStockThreshold}
@@ -1924,89 +1906,6 @@ const Products = () => {
                         Shipping
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-bold text-amber-900 mb-1">
-                            Weight
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="number"
-                              name="weight"
-                              value={formData.weight}
-                              onChange={handleInputChange}
-                              min="0"
-                              step="0.01"
-                              className="flex-1 border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                              placeholder="0.00"
-                              disabled={isLoading}
-                            />
-                            <select
-                              name="weightUnit"
-                              value={formData.weightUnit}
-                              onChange={handleInputChange}
-                              className="w-20 border border-amber-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80 text-sm"
-                              disabled={isLoading}
-                            >
-                              <option value="kg">kg</option>
-                              <option value="g">g</option>
-                              <option value="lb">lb</option>
-                              <option value="oz">oz</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-amber-900 mb-1">
-                            Dimensions (L × W × H)
-                          </label>
-                          <div className="flex gap-2 items-center">
-                            <input
-                              type="number"
-                              name="length"
-                              value={formData.length}
-                              onChange={handleInputChange}
-                              min="0"
-                              step="0.1"
-                              className="flex-1 border border-amber-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                              placeholder="L"
-                              disabled={isLoading}
-                            />
-                            <span className="text-amber-400">×</span>
-                            <input
-                              type="number"
-                              name="width"
-                              value={formData.width}
-                              onChange={handleInputChange}
-                              min="0"
-                              step="0.1"
-                              className="flex-1 border border-amber-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                              placeholder="W"
-                              disabled={isLoading}
-                            />
-                            <span className="text-amber-400">×</span>
-                            <input
-                              type="number"
-                              name="height"
-                              value={formData.height}
-                              onChange={handleInputChange}
-                              min="0"
-                              step="0.1"
-                              className="flex-1 border border-amber-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                              placeholder="H"
-                              disabled={isLoading}
-                            />
-                            <select
-                              name="dimensionUnit"
-                              value={formData.dimensionUnit}
-                              onChange={handleInputChange}
-                              className="w-16 border border-amber-200 rounded-xl px-1 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80 text-sm"
-                              disabled={isLoading}
-                            >
-                              <option value="cm">cm</option>
-                              <option value="in">in</option>
-                              <option value="m">m</option>
-                            </select>
-                          </div>
-                        </div>
                         <div>
                           <label className="block text-sm font-bold text-amber-900 mb-1">
                             Shipping Class
@@ -2118,7 +2017,7 @@ const Products = () => {
                           disabled={isLoading}
                         />
                       </div>
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-bold text-amber-900 mb-1">
                           Custom Attribute 1
                         </label>
@@ -2167,197 +2066,17 @@ const Products = () => {
                             disabled={isLoading}
                           />
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
-                  {/* ── Section 7: SEO ── */}
-                  <div className="border-t border-amber-100 pt-6">
-                    <h4 className="text-base font-bold text-amber-900 mb-1 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">
-                        7
-                      </span>
-                      SEO — Search Engine Optimization
-                    </h4>
-                    <p className="text-amber-500 text-xs mb-4">
-                      Help customers discover your product through search
-                      engines.
-                    </p>
+                 
 
-                    {/* SEO Intelligence Panel */}
-                    <div className="mb-5">
-                      <SEOPanel
-                        formData={formData}
-                        onApplyAutoFill={handleApplyAutoFill}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-amber-900 mb-1">
-                          SEO Title
-                          <span className="ml-2 text-amber-400 font-normal text-xs">
-                            ({formData.seoTitle.length}/70 characters)
-                          </span>
-                          {formData.seoTitle.length > 0 &&
-                            formData.seoTitle.length <= 70 && (
-                              <span className="ml-2 text-green-600 text-xs">
-                                ✓ Good length
-                              </span>
-                            )}
-                          {formData.seoTitle.length > 70 && (
-                            <span className="ml-2 text-red-500 text-xs">
-                              ⚠ Too long
-                            </span>
-                          )}
-                        </label>
-                        <input
-                          type="text"
-                          name="seoTitle"
-                          value={formData.seoTitle}
-                          onChange={handleInputChange}
-                          maxLength={70}
-                          className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                          placeholder="Leave blank to use product name"
-                          disabled={isLoading}
-                        />
-                        {/* Character progress bar */}
-                        <div className="mt-1 h-1 w-full bg-amber-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(100, (formData.seoTitle.length / 70) * 100)}%`,
-                              backgroundColor:
-                                formData.seoTitle.length === 0
-                                  ? "#fde68a"
-                                  : formData.seoTitle.length <= 70
-                                    ? "#22c55e"
-                                    : "#ef4444",
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-amber-900 mb-1">
-                          Meta Description
-                          <span className="ml-2 text-amber-400 font-normal text-xs">
-                            ({formData.seoDescription.length}/160 characters)
-                          </span>
-                          {formData.seoDescription.length >= 80 &&
-                            formData.seoDescription.length <= 160 && (
-                              <span className="ml-2 text-green-600 text-xs">
-                                ✓ Good length
-                              </span>
-                            )}
-                          {formData.seoDescription.length > 0 &&
-                            formData.seoDescription.length < 80 && (
-                              <span className="ml-2 text-amber-500 text-xs">
-                                ↑ Too short (aim 80+)
-                              </span>
-                            )}
-                          {formData.seoDescription.length > 160 && (
-                            <span className="ml-2 text-red-500 text-xs">
-                              ⚠ Too long
-                            </span>
-                          )}
-                        </label>
-                        <textarea
-                          name="seoDescription"
-                          value={formData.seoDescription}
-                          onChange={handleInputChange}
-                          rows={2}
-                          maxLength={160}
-                          className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                          placeholder="Brief description for search results (80–160 chars)"
-                          disabled={isLoading}
-                        />
-                        <div className="mt-1 h-1 w-full bg-amber-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(100, (formData.seoDescription.length / 160) * 100)}%`,
-                              backgroundColor:
-                                formData.seoDescription.length === 0
-                                  ? "#fde68a"
-                                  : formData.seoDescription.length >= 80 &&
-                                      formData.seoDescription.length <= 160
-                                    ? "#22c55e"
-                                    : formData.seoDescription.length < 80
-                                      ? "#f59e0b"
-                                      : "#ef4444",
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* URL Slug */}
-                      <div>
-                        <label className="block text-sm font-bold text-amber-900 mb-1">
-                          URL Slug
-                          <span className="ml-2 text-amber-400 font-normal text-xs">
-                            (auto-generated from name if empty)
-                          </span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-amber-400 text-sm font-mono shrink-0">
-                            /products/
-                          </span>
-                          <input
-                            type="text"
-                            name="slug"
-                            value={formData.slug}
-                            onChange={handleInputChange}
-                            className="flex-1 border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80 font-mono text-sm"
-                            placeholder={
-                              generateSlug(formData.name) || "your-product-slug"
-                            }
-                            disabled={isLoading}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Keywords */}
-                      <div>
-                        <label className="block text-sm font-bold text-amber-900 mb-1">
-                          Keywords
-                          <span className="ml-2 text-amber-400 font-normal text-xs">
-                            (comma-separated, e.g. leather wallet, minimalist,
-                            slim)
-                          </span>
-                        </label>
-                        <input
-                          type="text"
-                          name="keywords"
-                          value={formData.keywords}
-                          onChange={handleInputChange}
-                          className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white/80"
-                          placeholder="keyword1, keyword2, keyword3"
-                          disabled={isLoading}
-                        />
-                        {formData.keywords && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {formData.keywords
-                              .split(",")
-                              .filter((k) => k.trim())
-                              .map((kw, i) => (
-                                <span
-                                  key={i}
-                                  className="text-xs bg-amber-100 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5"
-                                >
-                                  {kw.trim()}
-                                </span>
-                              ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Section 8: Product Images ── */}
+                  {/* ── Section 7: Product Images ── */}
                   <div className="border-t border-amber-100 pt-6">
                     <h4 className="text-base font-bold text-amber-900 mb-4 flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">
-                        8
+                        7
                       </span>
                       Product Images
                     </h4>

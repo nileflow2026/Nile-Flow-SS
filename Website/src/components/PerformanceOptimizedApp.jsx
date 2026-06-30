@@ -21,7 +21,7 @@ const NotificationProvider = lazy(() =>
 // Keep critical providers synchronous
 import CustomerAuthProvider from "../Context/CustomerAuthContext";
 import { CurrencyProvider } from "../Context/CurrencyProvider";
-import { CartProvider } from "../../components/CartContext";
+import { CartProvider } from "../../Context/CartContext";
 
 const AppWrapper = ({ children }) => {
   return (

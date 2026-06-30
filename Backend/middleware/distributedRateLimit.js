@@ -28,6 +28,7 @@
  */
 
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const { metrics } = require("../src/observability/metrics");
 
 // Lazy-load RedisStore to avoid crash when prom-client or rate-limit-redis
@@ -90,6 +91,7 @@ const distributedAuthLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("auth"),
   message: { error: "Too many authentication attempts", code: "RATE_LIMITED" },
   ...makeMetricsHandler("auth"),
@@ -104,6 +106,7 @@ const distributedPaymentLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("payment"),
   message: { error: "Too many payment requests", code: "RATE_LIMITED" },
   ...makeMetricsHandler("payment"),
@@ -118,6 +121,7 @@ const distributedAiLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("ai"),
   message: { error: "AI request rate limit exceeded", code: "RATE_LIMITED" },
   ...makeMetricsHandler("ai"),
@@ -132,6 +136,7 @@ const distributedVendorLimiter = rateLimit({
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("vendor"),
   message: { error: "Vendor API rate limit exceeded", code: "RATE_LIMITED" },
   ...makeMetricsHandler("vendor"),
@@ -146,6 +151,7 @@ const distributedAdminLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("admin"),
   message: { error: "Admin API rate limit exceeded", code: "RATE_LIMITED" },
   ...makeMetricsHandler("admin"),
@@ -160,6 +166,7 @@ const distributedApiLimiter = rateLimit({
   max: 150,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("api"),
   message: { error: "Too many requests", code: "RATE_LIMITED" },
   ...makeMetricsHandler("api"),
@@ -174,6 +181,7 @@ const distributedSearchLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   store: makeStore("search"),
   message: { error: "Search rate limit exceeded", code: "RATE_LIMITED" },
   ...makeMetricsHandler("search"),

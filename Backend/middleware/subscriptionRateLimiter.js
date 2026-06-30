@@ -1,5 +1,6 @@
 // middleware/subscriptionRateLimiter.js
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const logger = require("../utils/logger");
 
 /**
@@ -15,8 +16,9 @@ const subscriptionLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
-    logger.warn(`Rate limit exceeded for subscription from IP: ${req.ip}`);
+    logger.warn(`Rate limit exceeded for subscription from IP: ${ipKeyGenerator(req)}`);
     res.status(429).json({
       error: "Too many subscription attempts",
       message: "Please wait 15 minutes before trying again",
@@ -39,8 +41,9 @@ const webhookLimiter = rateLimit({
   message: "Too many webhook requests",
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
-    logger.warn(`Webhook rate limit exceeded from IP: ${req.ip}`);
+    logger.warn(`Webhook rate limit exceeded from IP: ${ipKeyGenerator(req)}`);
     res.status(429).json({
       error: "Too many requests",
       message: "Rate limit exceeded for webhooks",
@@ -58,6 +61,7 @@ const statusCheckLimiter = rateLimit({
   message: "Too many status check requests",
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKeyGenerator,
   skipSuccessfulRequests: false,
 });
 

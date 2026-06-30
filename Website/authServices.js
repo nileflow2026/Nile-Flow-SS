@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import axiosClient from "./api";
+import axiosClient from "./api.js";
 
 /**
  * Generate or retrieve device ID for token scoping

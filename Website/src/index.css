@@ -3,11 +3,18 @@
 /* ============================================================
    NILE FLOW DESIGN SYSTEM — SEMANTIC TOKEN DEFINITIONS
    ============================================================
-   HOW TO USE:
-     - Always reference a token, never a raw color.
-     - Light theme is the default (:root).
-     - Dark theme overrides via [data-theme="dark"].
-     - To add a future theme, add a [data-theme="savannah"] block.
+   Matches Nile Flow Mobile Application Design System
+   
+   Mobile App Reference Colors:
+     Green accent (CTA): #16A34A
+     Dark green (headings): #14532D  
+     Gold (price/stars): #D97706
+     Page background: #FFFFFF
+     Card background: #F9FAFB
+     Primary text: #111827
+     Secondary text: #374151
+     Muted text: #6B7280
+     Border: #E5E7EB
 
    TOKEN NAMING CONVENTION:
      --nf-<layer>-<role>[-state]
@@ -17,29 +24,38 @@
 :root,
 [data-theme="light"] {
   /* ── Backgrounds ────────────────────────────────────────── */
-  --nf-bg-primary: #ffffff; /* main page background          */
-  --nf-bg-secondary: #f8f5f0; /* secondary surfaces, sidebars  */
-  --nf-bg-elevated: #ffffff; /* cards, modals, dropdowns      */
-  --nf-bg-subtle: #f2ede6; /* input fields, table rows      */
-  --nf-bg-overlay: rgba(0, 0, 0, 0.45); /* modal backdrops            */
+  --nf-bg-primary: #ffffff;         /* main page background        */
+  --nf-bg-secondary: #f9fafb;       /* secondary surfaces (was #F8F5F0) */
+  --nf-bg-elevated: #ffffff;        /* cards, modals, dropdowns    */
+  --nf-bg-subtle: #f3f4f6;         /* input fields, table rows    */
+  --nf-bg-overlay: rgba(0, 0, 0, 0.5); /* modal backdrops          */
+  --nf-bg-card-soft: #f9fafb;      /* card bg (matches mobile)    */
+  --nf-bg-card-green: #f0fdf4;     /* featured/premium sections   */
 
   /* ── Text ───────────────────────────────────────────────── */
-  --nf-text-primary: #1a1109; /* headings, key labels          */
-  --nf-text-secondary: #4a3728; /* body copy                     */
-  --nf-text-muted: #7d6555; /* placeholders, captions        */
-  --nf-text-inverse: #ffffff; /* text on dark surfaces         */
-  --nf-text-on-accent: #ffffff; /* text on accent-colored buttons */
+  --nf-text-primary: #111827;       /* headings, key labels (was #1A1109) */
+  --nf-text-secondary: #374151;     /* body copy (was #4A3728)   */
+  --nf-text-muted: #6b7280;        /* placeholders, captions (was #7D6555) */
+  --nf-text-inverse: #ffffff;       /* text on dark surfaces      */
+  --nf-text-on-accent: #ffffff;     /* text on accent buttons     */
 
   /* ── Borders ────────────────────────────────────────────── */
-  --nf-border: #ddd4c8; /* default borders               */
-  --nf-border-strong: #b8a898; /* focused inputs, active cards  */
-  --nf-border-subtle: rgba(180, 162, 143, 0.35); /* very faint dividers  */
+  --nf-border: #e5e7eb;            /* default borders (was #DDD4C8) */
+  --nf-border-strong: #d1d5db;     /* focused inputs, active cards */
+  --nf-border-subtle: rgba(0, 0, 0, 0.08); /* very faint dividers  */
 
-  /* ── Accent — Nile Flow amber/gold brand ───────────────── */
-  --nf-accent: #b45309; /* primary CTA, links            */
-  --nf-accent-light: #d97706; /* hover state                   */
-  --nf-accent-muted: #fde68a; /* badges, highlights (light)    */
-  --nf-accent-surface: #fef3c7; /* accent-tinted card bg         */
+  /* ── Accent — Nile Flow Green (matches mobile app) ─────── */
+  --nf-accent: #16a34a;            /* primary CTA, links (was #B45309) */
+  --nf-accent-hover: #15803d;      /* hover state                 */
+  --nf-accent-dark: #14532d;       /* dark green for headings     */
+  --nf-accent-light: #22c55e;      /* lighter green               */
+  --nf-accent-muted: #bbf7d0;      /* badges, highlights (light)  */
+  --nf-accent-surface: #f0fdf4;    /* accent-tinted card bg       */
+
+  /* ── Gold accent — for prices, stars (matches mobile app) ─ */
+  --nf-gold: #d97706;              /* prices, active stars        */
+  --nf-gold-hover: #b45309;        /* gold hover                  */
+  --nf-gold-surface: #fef3c7;      /* gold-tinted bg              */
 
   /* ── Emerald — secondary brand colour ──────────────────── */
   --nf-emerald: #065f46;
@@ -47,57 +63,85 @@
   --nf-emerald-surface: #d1fae5;
 
   /* ── Semantic states ────────────────────────────────────── */
-  --nf-success: #15803d;
+  --nf-success: #16a34a;
   --nf-success-surface: #dcfce7;
-  --nf-warning: #b45309;
+  --nf-warning: #d97706;
   --nf-warning-surface: #fef3c7;
   --nf-error: #dc2626;
   --nf-error-surface: #fee2e2;
-  --nf-info: #1d4ed8;
+  --nf-info: #2563eb;
   --nf-info-surface: #dbeafe;
 
   /* ── Header ─────────────────────────────────────────────── */
   --nf-header-bg: rgba(255, 255, 255, 0.95);
-  --nf-header-border: rgba(180, 83, 9, 0.15);
-  --nf-header-text: #1a1109;
-  --nf-header-text-muted: #7d6555;
+  --nf-header-border: rgba(22, 163, 74, 0.15);
+  --nf-header-text: #111827;
+  --nf-header-text-muted: #6b7280;
 
   /* ── Navigation ─────────────────────────────────────────── */
-  --nf-nav-link: #4a3728;
-  --nf-nav-link-hover: #b45309;
-  --nf-nav-link-active: #b45309;
+  --nf-nav-link: #374151;
+  --nf-nav-link-hover: #16a34a;
+  --nf-nav-link-active: #16a34a;
 
   /* ── Cards ───────────────────────────────────────────────── */
   --nf-card-bg: #ffffff;
-  --nf-card-border: rgba(180, 162, 143, 0.3);
-  --nf-card-shadow: 0 2px 12px rgba(26, 17, 9, 0.08);
-  --nf-card-hover-border: rgba(180, 83, 9, 0.4);
-  --nf-card-hover-shadow: 0 8px 32px rgba(180, 83, 9, 0.15);
+  --nf-card-border: rgba(0, 0, 0, 0.08);
+  --nf-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --nf-card-hover-border: rgba(22, 163, 74, 0.3);
+  --nf-card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   /* ── Buttons ─────────────────────────────────────────────── */
-  --nf-btn-primary-bg: #b45309;
+  --nf-btn-primary-bg: #16a34a;
   --nf-btn-primary-text: #ffffff;
-  --nf-btn-primary-hover: #92400e;
-  --nf-btn-secondary-bg: #f2ede6;
-  --nf-btn-secondary-text: #4a3728;
-  --nf-btn-secondary-hover: #e8e0d6;
-  --nf-btn-ghost-hover: rgba(180, 83, 9, 0.08);
+  --nf-btn-primary-hover: #15803d;
+  --nf-btn-secondary-bg: #f3f4f6;
+  --nf-btn-secondary-text: #374151;
+  --nf-btn-secondary-hover: #e5e7eb;
+  --nf-btn-ghost-hover: rgba(22, 163, 74, 0.08);
+  --nf-btn-danger-bg: #dc2626;
+  --nf-btn-danger-text: #ffffff;
+  --nf-btn-danger-hover: #b91c1c;
 
   /* ── Inputs ──────────────────────────────────────────────── */
   --nf-input-bg: #ffffff;
-  --nf-input-border: #ddd4c8;
-  --nf-input-border-focus: #b45309;
-  --nf-input-text: #1a1109;
-  --nf-input-placeholder: #7d6555;
+  --nf-input-border: #d1d5db;
+  --nf-input-border-focus: #16a34a;
+  --nf-input-text: #111827;
+  --nf-input-placeholder: #9ca3af;
 
   /* ── Footer ──────────────────────────────────────────────── */
-  --nf-footer-bg: #1a1109;
-  --nf-footer-text: #e8ddd3;
-  --nf-footer-muted: rgba(232, 221, 211, 0.6);
+  --nf-footer-bg: #111827;
+  --nf-footer-text: #f9fafb;
+  --nf-footer-muted: rgba(249, 250, 251, 0.6);
 
   /* ── Scrollbar ───────────────────────────────────────────── */
-  --nf-scrollbar-thumb: #b8a898;
-  --nf-scrollbar-track: #f2ede6;
+  --nf-scrollbar-thumb: #d1d5db;
+  --nf-scrollbar-track: #f3f4f6;
+
+  /* ── Spacing Scale ───────────────────────────────────────── */
+  --nf-space-1: 4px;
+  --nf-space-2: 8px;
+  --nf-space-3: 12px;
+  --nf-space-4: 16px;
+  --nf-space-5: 20px;
+  --nf-space-6: 24px;
+  --nf-space-8: 32px;
+  --nf-space-10: 40px;
+  --nf-space-12: 48px;
+  --nf-space-16: 64px;
+
+  /* ── Border Radius ───────────────────────────────────────── */
+  --nf-radius-sm: 6px;
+  --nf-radius-md: 8px;
+  --nf-radius-lg: 12px;
+  --nf-radius-xl: 16px;
+  --nf-radius-full: 9999px;
+
+  /* ── Elevation / Shadows ─────────────────────────────────── */
+  --nf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nf-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --nf-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --nf-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
 
   /* ── Transition ──────────────────────────────────────────── */
   --nf-theme-transition:
@@ -112,6 +156,8 @@
   --nf-bg-elevated: #1a1a1a;
   --nf-bg-subtle: #222222;
   --nf-bg-overlay: rgba(0, 0, 0, 0.7);
+  --nf-bg-card-soft: #1a1a1a;
+  --nf-bg-card-green: rgba(22, 163, 74, 0.08);
 
   /* ── Text ───────────────────────────────────────────────── */
   --nf-text-primary: #f5f0e8;
@@ -121,15 +167,22 @@
   --nf-text-on-accent: #ffffff;
 
   /* ── Borders ────────────────────────────────────────────── */
-  --nf-border: rgba(180, 83, 9, 0.25);
-  --nf-border-strong: rgba(180, 83, 9, 0.55);
-  --nf-border-subtle: rgba(180, 83, 9, 0.12);
+  --nf-border: rgba(255, 255, 255, 0.1);
+  --nf-border-strong: rgba(255, 255, 255, 0.2);
+  --nf-border-subtle: rgba(255, 255, 255, 0.05);
 
-  /* ── Accent ─────────────────────────────────────────────── */
-  --nf-accent: #d97706;
-  --nf-accent-light: #f59e0b;
-  --nf-accent-muted: rgba(217, 119, 6, 0.25);
-  --nf-accent-surface: rgba(217, 119, 6, 0.12);
+  /* ── Accent — Green ─────────────────────────────────────── */
+  --nf-accent: #22c55e;
+  --nf-accent-hover: #16a34a;
+  --nf-accent-dark: #4ade80;
+  --nf-accent-light: #34d399;
+  --nf-accent-muted: rgba(34, 197, 94, 0.25);
+  --nf-accent-surface: rgba(34, 197, 94, 0.12);
+
+  /* ── Gold ───────────────────────────────────────────────── */
+  --nf-gold: #f59e0b;
+  --nf-gold-hover: #d97706;
+  --nf-gold-surface: rgba(245, 158, 11, 0.12);
 
   /* ── Emerald ─────────────────────────────────────────────── */
   --nf-emerald: #34d399;
@@ -148,35 +201,38 @@
 
   /* ── Header ─────────────────────────────────────────────── */
   --nf-header-bg: rgba(10, 10, 10, 0.92);
-  --nf-header-border: rgba(180, 83, 9, 0.2);
+  --nf-header-border: rgba(34, 197, 94, 0.15);
   --nf-header-text: #f5f0e8;
   --nf-header-text-muted: #8a7a6a;
 
   /* ── Navigation ─────────────────────────────────────────── */
   --nf-nav-link: #d4c4b0;
   --nf-nav-link-hover: #f5f0e8;
-  --nf-nav-link-active: #d97706;
+  --nf-nav-link-active: #22c55e;
 
   /* ── Cards ───────────────────────────────────────────────── */
   --nf-card-bg: rgba(26, 26, 26, 0.9);
-  --nf-card-border: rgba(180, 83, 9, 0.2);
+  --nf-card-border: rgba(255, 255, 255, 0.08);
   --nf-card-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  --nf-card-hover-border: rgba(217, 119, 6, 0.55);
-  --nf-card-hover-shadow: 0 8px 32px rgba(180, 83, 9, 0.25);
+  --nf-card-hover-border: rgba(34, 197, 94, 0.4);
+  --nf-card-hover-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 
   /* ── Buttons ─────────────────────────────────────────────── */
-  --nf-btn-primary-bg: #d97706;
+  --nf-btn-primary-bg: #22c55e;
   --nf-btn-primary-text: #0a0a0a;
-  --nf-btn-primary-hover: #b45309;
+  --nf-btn-primary-hover: #16a34a;
   --nf-btn-secondary-bg: rgba(255, 255, 255, 0.07);
   --nf-btn-secondary-text: #d4c4b0;
   --nf-btn-secondary-hover: rgba(255, 255, 255, 0.12);
-  --nf-btn-ghost-hover: rgba(217, 119, 6, 0.12);
+  --nf-btn-ghost-hover: rgba(34, 197, 94, 0.12);
+  --nf-btn-danger-bg: #ef4444;
+  --nf-btn-danger-text: #ffffff;
+  --nf-btn-danger-hover: #dc2626;
 
   /* ── Inputs ──────────────────────────────────────────────── */
   --nf-input-bg: rgba(255, 255, 255, 0.05);
-  --nf-input-border: rgba(180, 83, 9, 0.3);
-  --nf-input-border-focus: #d97706;
+  --nf-input-border: rgba(255, 255, 255, 0.15);
+  --nf-input-border-focus: #22c55e;
   --nf-input-text: #f5f0e8;
   --nf-input-placeholder: #8a7a6a;
 
@@ -186,7 +242,7 @@
   --nf-footer-muted: rgba(212, 196, 176, 0.55);
 
   /* ── Scrollbar ───────────────────────────────────────────── */
-  --nf-scrollbar-thumb: rgba(180, 83, 9, 0.45);
+  --nf-scrollbar-thumb: rgba(255, 255, 255, 0.2);
   --nf-scrollbar-track: #111111;
 }
 
@@ -200,6 +256,7 @@ html {
 body {
   background-color: var(--nf-bg-primary);
   color: var(--nf-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Smooth theme switch on all elements except animations */
@@ -239,16 +296,8 @@ body {
   overflow-x: hidden;
   max-width: 100vw;
   direction: ltr;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  /* Remove contain property that interferes with fixed positioning */
-}
-
-/* Hide scrollbar for webkit browsers */
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 0px;
-  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--nf-scrollbar-thumb) var(--nf-scrollbar-track);
 }
 
 /* Ensure consistent height */
@@ -276,7 +325,6 @@ div[class*="max-w"] {
 /* Minimize main content reflow */
 main {
   min-height: calc(100vh - 200px);
-  /* Remove contain property that interferes with fixed positioning */
 }
 
 /* Optimize media loading */
@@ -285,7 +333,6 @@ video {
   max-width: 100%;
   height: auto;
   object-fit: cover;
-  loading: lazy;
 }
 
 /* Performance utilities */
@@ -310,7 +357,9 @@ svg {
 }
 
 .pill {
-  @apply rounded-full px-4 py-2 text-sm;
+  border-radius: var(--nf-radius-full);
+  padding: 8px 16px;
+  font-size: 0.875rem;
 }
 
 .line-clamp-2 {
@@ -318,7 +367,6 @@ svg {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Animation performance optimizations */
@@ -344,23 +392,18 @@ svg {
 
 /* Mobile menu animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    visibility: hidden;
-  }
-  to {
-    opacity: 1;
-    visibility: visible;
-  }
+  from { opacity: 0; visibility: hidden; }
+  to   { opacity: 1; visibility: visible; }
 }
 
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%) translateZ(0);
-  }
-  to {
-    transform: translateX(0) translateZ(0);
-  }
+  from { transform: translateX(100%) translateZ(0); }
+  to   { transform: translateX(0) translateZ(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0) translateZ(0); }
+  to   { transform: translateX(100%) translateZ(0); }
 }
 
 .animate-fadeIn {
@@ -376,7 +419,6 @@ svg {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   will-change: opacity;
-  /* Remove contain property for fixed positioning */
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -387,7 +429,6 @@ svg {
 
 .mobile-menu-panel {
   will-change: transform;
-  /* Remove contain property for fixed positioning */
   transform: translateZ(0);
   position: fixed !important;
   top: 0 !important;
@@ -398,7 +439,6 @@ svg {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Ensure mobile menu works at any scroll position */
 .mobile-menu-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -408,7 +448,7 @@ svg {
   z-index: 9997;
 }
 
-/* Ensure smooth transitions on mobile devices */
+/* Smooth transitions on mobile devices */
 @media (max-width: 1024px) {
   * {
     -webkit-tap-highlight-color: transparent;
@@ -419,4 +459,103 @@ svg {
   .transition-opacity {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
+}
+
+/* ── Typography System ──────────────────────────────────────────────────── */
+/* Heading styles */
+.nf-heading-1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--nf-text-primary);
+}
+
+.nf-heading-2 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--nf-text-primary);
+}
+
+.nf-heading-3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--nf-text-primary);
+}
+
+.nf-heading-4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--nf-text-primary);
+}
+
+.nf-body {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--nf-text-secondary);
+}
+
+.nf-body-small {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--nf-text-secondary);
+}
+
+.nf-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--nf-text-muted);
+}
+
+@media (max-width: 768px) {
+  .nf-heading-1 { font-size: 1.875rem; }
+  .nf-heading-2 { font-size: 1.5rem; }
+  .nf-heading-3 { font-size: 1.25rem; }
+  .nf-heading-4 { font-size: 1.125rem; }
+}
+
+/* ── Skip-to-content link ──────────────────────────────────────────────── */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  padding: 8px 16px;
+  background: var(--nf-accent);
+  color: var(--nf-text-on-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--nf-radius-md);
+  z-index: 10000;
+  transition: top 200ms ease;
+}
+
+.skip-to-content:focus {
+  top: 8px;
+}
+
+/* ── Focus indicators ──────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--nf-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Button focus override for custom buttons ──────────────────────────── */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--nf-accent);
+  outline-offset: 2px;
+}
+
+/* Remove default outline when using custom focus styles */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
 }

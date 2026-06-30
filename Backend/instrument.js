@@ -13,8 +13,9 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
   // Profile 10% of transactions in production for code-level insights
   profilesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
-  // Enable Spotlight for local debugging
-  spotlight: process.env.NODE_ENV === "development",
+  // Enable Spotlight for local debugging only if explicitly requested via SENTRY_SPOTLIGHT env var
+  // This prevents spurious warnings when Spotlight Sidecar is not running
+  spotlight: process.env.SENTRY_SPOTLIGHT === "true" && process.env.NODE_ENV === "development",
   // Enable debug mode in development only
   debug: process.env.NODE_ENV === "development",
   // Include request body in breadcrumbs for debugging
