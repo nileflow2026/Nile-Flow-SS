@@ -6,7 +6,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow-app",
-    version: "1.4.20",
+    version: "1.4.21",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
@@ -23,7 +23,7 @@ module.exports = () => ({
     },
     extra: {
       API_URL:
-        process.env.API_BASE_URL || "https://nile-flow-backend.onrender.com",
+        process.env.API_BASE_URL || "https://nile-flow-backend-5dqm.onrender.com",
       STRIPE_KEY: process.env.STRIPE_KEY || "",
       STRIPE_PUBLISH_KEY: process.env.STRIPE_PUBLISH_KEY || "",
       FLW_PUBLIC_KEY: process.env.FLW_PUBLIC_KEY || "",
