@@ -7,8 +7,7 @@ import Constants from "expo-constants";
 // BACKEND URL CONFIGURATION
 // ========================================
 const API_BASE_URL =
-  Constants.expoConfig?.extra?.API_BASE_URL ||
-  "https://nile-flow-backend.onrender.com" || "https://nile-flow-backend-5dqm.onrender.com";
+  Constants.expoConfig?.extra?.API_BASE_URL || "https://nile-flow-backend-5dqm.onrender.com";
 
 // ========================================
 // CLIENT-SIDE CURRENCY DETECTION
