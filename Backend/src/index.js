@@ -263,6 +263,7 @@ try {
           "https://admin.nileflowafrica.com",
           "https://vendor.nileflowafrica.com",
           "https://nile-flow-backend.onrender.com",
+          "https://nile-flow-backend-5dqm.onrender.com"
         ];
 
         if (!origin) {
