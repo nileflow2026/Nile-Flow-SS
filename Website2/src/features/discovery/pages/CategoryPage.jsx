@@ -65,7 +65,7 @@ function CategoryPage() {
         {products.length === 0 ? (
           <EmptyState title="No products yet" description="This category is being stocked. Check back soon." icon="📦" />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
               <Link key={p.id} to={`/products/${p.id}`} className="group rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6">
                 <p className="text-base font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)]">{p.name}</p>

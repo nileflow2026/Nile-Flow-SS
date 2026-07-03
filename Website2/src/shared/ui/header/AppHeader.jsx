@@ -91,9 +91,19 @@ function AppHeader() {
               {item.label}
             </NavLink>
           ))}
-          <Link to="/login" className="rounded-2xl border border-[var(--color-border)] px-3 py-3 text-sm font-semibold text-[var(--color-text-secondary)]">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              aria-label="Toggle color theme"
+            >
+              {isDark ? '☀️ Light mode' : '🌙 Dark mode'}
+            </button>
+            <Link to="/login" className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+              Sign in
+            </Link>
+          </div>
         </div>
       </div>
     </header>

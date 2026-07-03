@@ -38,7 +38,7 @@ function PremiumDealsPage() {
           </div>
         </Alert>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mockPremiumDeals.map((deal) => (
             <div key={deal.id} className="group relative rounded-[2rem] border border-[var(--color-accent)]/20 bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6">
               <div className="absolute right-4 top-4"><Badge variant="primary">Premium</Badge></div>
@@ -55,7 +55,7 @@ function PremiumDealsPage() {
 
         <div className="mt-12 rounded-[2rem] border border-[var(--color-accent)]/20 bg-gradient-to-br from-[var(--color-accent)]/5 to-transparent p-6 shadow-[var(--shadow-md)] sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--color-accent)]">Premium benefits</p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4">
             {benefits.map((b, i) => (
               <div key={i} className="flex items-center gap-3 rounded-[1.5rem] bg-[var(--color-surface)] p-4">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-sm">✓</span>

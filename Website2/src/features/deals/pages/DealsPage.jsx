@@ -44,7 +44,7 @@ function DealsPage() {
           ))}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mockDeals.map((deal) => (
             <Link key={deal.id} to={`/products/${deal.id}`} className="group rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6">
               <div className="flex items-start justify-between">

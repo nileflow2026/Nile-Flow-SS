@@ -24,7 +24,7 @@ function GroupBuyPage() {
       </div>
 
       <ResponsiveSection eyebrow="Active group buys" title="Join an existing group" description="Find a product you love and join a group that's already forming." className="py-10 sm:py-14 lg:py-16">
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mockGroupBuys.map((gb) => {
             const progress = Math.round((gb.current / gb.target) * 100)
             return (
