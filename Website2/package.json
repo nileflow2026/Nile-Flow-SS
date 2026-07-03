@@ -1,35 +1,33 @@
 {
-  "name": "nile-flow-website",
+  "name": "NileFlowWebsite",
   "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "generate:sitemap": "node scripts/generate-sitemap.mjs",
-    "prebuild": "npm run generate:sitemap",
-    "build": "npm run prebuild && react-router build",
     "dev": "vite",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@react-router/node": "8.0.0",
-    "@react-router/serve": "8.0.0",
-    "@sentry/react": "^10.62.0",
-    "axios": "^1.18.1",
-    "isbot": "^5.1.36",
-    "lucide-react": "^1.22.0",
-    "posthog-js": "^1.396.2",
+    "@tailwindcss/vite": "^4.3.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "8.0.0"
+    "react-router-dom": "^7.18.1",
+    "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
-    "@react-router/dev": "8.0.0",
-    "@tailwindcss/vite": "^4.3.1",
-    "@types/node": "^22",
-    "@types/react": "^19.2.14",
+    "@babel/core": "^7.29.7",
+    "@eslint/js": "^10.0.1",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "tailwindcss": "^4.3.1",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "@vitejs/plugin-react": "^6.0.3",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "vite": "^8.1.1"
   }
 }

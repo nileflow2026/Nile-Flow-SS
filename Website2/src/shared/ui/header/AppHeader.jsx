@@ -1,0 +1,103 @@
+import { useEffect, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import Button from '@shared/ui/button/Button'
+import { useTheme } from '@app/providers/ThemeProvider'
+
+const navItems = [
+  { label: 'Home', to: '/' },
+  { label: 'Products', to: '/products' },
+  { label: 'Cart', to: '/cart' },
+  { label: 'Checkout', to: '/checkout' },
+]
+
+function AppHeader() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+  const { isDark, toggleTheme } = useTheme()
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl">
+      <div className="responsive-shell flex items-center justify-between gap-4 py-3 sm:py-4">
+        <Link to="/" className="flex items-center gap-3" aria-label="Nile Flow home">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
+            NF
+          </div>
+          <div className="leading-tight">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Nile Flow</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Commerce OS</p>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `rounded-full px-4 py-2 text-sm font-medium transition ${
+                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="hidden md:flex">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="inline-flex h-11 min-w-11 items-center justify-center rounded-full border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              aria-label="Toggle color theme"
+            >
+              {isDark ? '☀️' : '🌙'}
+            </button>
+            <Link to="/login">
+              <Button variant="outline" className="px-4 py-2">Sign in</Button>
+            </Link>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] md:hidden"
+          onClick={() => setMobileOpen((value) => !value)}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav"
+          aria-label="Toggle navigation"
+        >
+          <span className="text-lg leading-none">☰</span>
+        </button>
+      </div>
+
+      <div id="mobile-nav" className={`overflow-hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 md:hidden ${mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="responsive-shell flex flex-col gap-2 py-3">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `rounded-2xl px-3 py-3 text-sm font-medium transition ${
+                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <Link to="/login" className="rounded-2xl border border-[var(--color-border)] px-3 py-3 text-sm font-semibold text-[var(--color-text-secondary)]">
+            Sign in
+          </Link>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+export default AppHeader
