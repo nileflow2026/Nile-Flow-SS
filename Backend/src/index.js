@@ -285,6 +285,8 @@ try {
         "X-CSRF-Token",
         "X-Platform",
         "x-platform",
+        "X-Device-Id",
+        "x-device-id",
         "X-Transaction-ID",
         "X-Currency",
         "X-Correlation-ID",
@@ -317,7 +319,7 @@ app.use("/api/admin", (req, res, next) => {
     );
     res.header(
       "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,Cache-Control,Pragma",
+      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,Cache-Control,Pragma",
     );
   }
   next();
@@ -335,7 +337,7 @@ app.use("/api/vendor", (req, res, next) => {
     );
     res.header(
       "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,Cache-Control,Pragma",
+      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,Cache-Control,Pragma",
     );
   }
   next();
@@ -373,7 +375,7 @@ app.use((req, res, next) => {
       );
       res.header(
         "Access-Control-Allow-Headers",
-        "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Transaction-ID,Cache-Control,Pragma",
+        "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Transaction-ID,Cache-Control,Pragma",
       );
       res.header("Access-Control-Allow-Credentials", "true");
       res.header("Access-Control-Max-Age", "86400");
