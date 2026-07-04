@@ -106,6 +106,7 @@ const allowedOrigins = [
   "https://vendor.nileflowafrica.com",
   "https://nile-flow-backend.onrender.com",
   "https://nile-flow-backend-5dqm.onrender.com",
+  "https://nileflow-oxpl.onrender.com",
 ];
 
 const corsAllowedHeaders =
@@ -374,6 +375,8 @@ app.use((req, res, next) => {
       "https://admin.nileflowafrica.com",
       "https://vendor.nileflowafrica.com",
       "https://nile-flow-backend.onrender.com",
+      "https://nile-flow-backend-5dqm.onrender.com",
+      "https://nileflow-oxpl.onrender.com"
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -624,6 +627,8 @@ app.use("/api/admin/auth", (req, res, next) => {
     "https://nile-flow-adminpanel.onrender.com",
     "https://nileflowafrica.com",
     "https://nile-flow-backend.onrender.com",
+    "https://nileflow-oxpl.onrender.com",
+    "https://nile-flow-backend-5dqm.onrender.com",
   ];
 
   if (!origin || allowedOrigins.includes(origin)) {
