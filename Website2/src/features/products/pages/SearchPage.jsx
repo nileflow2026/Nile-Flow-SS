@@ -8,6 +8,7 @@ import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Loader from '@shared/ui/loader/Loader'
 import Input from '@shared/ui/input/Input'
 import { searchService } from '@api/services'
+import { imageProxyUrl } from '@api/config'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
@@ -99,9 +100,14 @@ function SearchPage() {
                   >
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] overflow-hidden">
                       {item.image ? (
-                        <img src={item.image} alt={name} className="h-full w-full object-cover" loading="lazy" />
+                        <img
+                          src={item.image.includes('appwrite.io') ? imageProxyUrl(item.image, 150, 60) : item.image}
+                          alt={name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
                       ) : (
-                        <span className="text-2xl">🛍️</span>
+                        <img src="/logo.png" alt={name} className="h-full w-full object-cover" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

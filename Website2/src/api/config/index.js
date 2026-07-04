@@ -126,4 +126,14 @@ export const config = {
   },
 };
 
+/**
+ * Build an absolute URL for the image proxy, works in both dev (via Vite proxy)
+ * and production (absolute backend URL).
+ */
+export function imageProxyUrl(rawImage, width = 600, quality = 70) {
+  if (!rawImage) return ''
+  const base = config.api.baseURL || ''
+  return `${base}/api/image-proxy?url=${encodeURIComponent(rawImage)}&width=${width}&quality=${quality}`
+}
+
 export default config;

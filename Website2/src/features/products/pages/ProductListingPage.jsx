@@ -14,46 +14,32 @@ function ProductListingPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // categories stored as [{ name, id }] — id is the Appwrite doc ID for API filtering
-  const [categories, setCategories] = useState([{ name: 'All', id: null }])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
-  const [activeFilterId, setActiveFilterId] = useState(null) // null = All
+  const [categories, setCategories] = useState(['All'])
+  const [activeFilter, setActiveFilter] = useState('All')
   const [nextCursor, setNextCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const { push } = useToast()
 
-  // Fetch categories from the API on mount, preserve the Appwrite doc ID
+  // Fetch categories from the API on mount
   useEffect(() => {
     let cancelled = false
-    setCategoriesLoading(true)
     categoryService.getCategories().then((cats) => {
       if (cancelled) return
-      // Map API response to { name } pairs — the backend filters by category name
-      // (Query.contains on categoryId field which stores the category name string)
-      const entries = []
-      const seen = new Set()
-      for (const c of cats) {
-        const name = c.name || c.category || ''
-        if (name && !seen.has(name)) {
-          seen.add(name)
-          entries.push({ name })
-        }
-      }
-      entries.sort((a, b) => a.name.localeCompare(b.name))
-      setCategories([{ name: 'All' }, ...entries])
-      setCategoriesLoading(false)
+      const names = cats
+        .map((c) => c.name || c.category || '')
+        .filter(Boolean)
+      const unique = [...new Set(names)].sort((a, b) => a.localeCompare(b))
+      setCategories(['All', ...unique])
     }).catch(() => {
-      if (cancelled) return
-      setCategories([{ name: 'All', id: null }])
-      setCategoriesLoading(false)
+      // fallback — categories will just show "All"
     })
     return () => { cancelled = true }
   }, [])
 
-  const fetchProducts = useCallback(async (categoryId, cursor = null) => {
+  const fetchProducts = useCallback(async (filter, cursor = null) => {
     try {
       const result = await productService.getProducts({
-        category: categoryId, // send the Appwrite doc ID, not the display name
+        category: filter === 'All' ? undefined : filter,
         cursor,
       })
       return result
@@ -63,10 +49,10 @@ function ProductListingPage() {
     }
   }, [])
 
-  const loadProducts = useCallback(async (categoryId) => {
+  const loadProducts = useCallback(async (filter) => {
     setLoading(true)
     setError(null)
-    const result = await fetchProducts(categoryId)
+    const result = await fetchProducts(filter)
     setProducts(result.products)
     setNextCursor(result.nextCursor)
     setLoading(false)
@@ -75,22 +61,19 @@ function ProductListingPage() {
   const loadMore = useCallback(async () => {
     if (loadingMore || !nextCursor) return
     setLoadingMore(true)
-    const result = await fetchProducts(activeFilterId, nextCursor)
+    const result = await fetchProducts(activeFilter, nextCursor)
     setProducts((prev) => [...prev, ...result.products])
     setNextCursor(result.nextCursor)
     setLoadingMore(false)
-  }, [activeFilterId, nextCursor, loadingMore, fetchProducts])
+  }, [activeFilter, nextCursor, loadingMore, fetchProducts])
 
   useEffect(() => {
-    loadProducts(activeFilterId)
-  }, [activeFilterId, loadProducts])
+    loadProducts(activeFilter)
+  }, [activeFilter, loadProducts])
 
-  const handleFilterChange = (catId) => {
-    setActiveFilterId(catId)
+  const handleFilterChange = (filter) => {
+    setActiveFilter(filter)
   }
-
-  // Find currently active category name for the button highlight
-  const activeName = categories.find((c) => c.id === activeFilterId)?.name || 'All'
 
   return (
     <PageShell>
@@ -99,28 +82,23 @@ function ProductListingPage() {
           <p className="text-sm text-[var(--color-text-secondary)]">
             {loading ? 'Loading…' : `${products.length} products`}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {categoriesLoading
-              ? (
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <span key={i} className="h-8 w-20 animate-pulse rounded-full bg-[var(--color-surface-muted)]" />
-                  ))}
-                </div>
-              )
-              : categories.map((cat) => (
+          <div className="-mx-4 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0 sm:overflow-visible">
+            <div className="flex w-max gap-2 px-4 sm:w-auto sm:flex-wrap sm:px-0">
+              {categories.map((cat) => (
                 <button
-                  key={cat.id || 'all'}
-                  onClick={() => handleFilterChange(cat.id)}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold transition cursor-pointer ${
-                    cat.id === activeFilterId
+                  key={cat}
+                  type="button"
+                  onClick={() => handleFilterChange(cat)}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition cursor-pointer touch-manipulation ${
+                    cat === activeFilter
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                       : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                   }`}
                 >
-                  {cat.name}
+                  {cat}
                 </button>
               ))}
+            </div>
           </div>
         </div>
 
@@ -131,13 +109,13 @@ function ProductListingPage() {
             title="Failed to load products"
             description={error}
             icon="⚠️"
-            action={<PrimaryButton className="justify-center" onClick={() => loadProducts(activeFilterId)}>Try again</PrimaryButton>}
+            action={<PrimaryButton className="justify-center" onClick={() => loadProducts(activeFilter)}>Try again</PrimaryButton>}
           />
         ) : products.length === 0 ? (
           <EmptyState
             title="No products available"
             description="This category is being stocked. Check back soon or browse another category."
-            action={<PrimaryButton className="justify-center" onClick={() => handleFilterChange(null)}>View all products</PrimaryButton>}
+            action={<PrimaryButton className="justify-center" onClick={() => setActiveFilter('All')}>View all products</PrimaryButton>}
           />
         ) : (
           <>

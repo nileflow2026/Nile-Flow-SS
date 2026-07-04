@@ -12,6 +12,7 @@ import { productService } from '@api/services'
 import { cartService } from '@api/services'
 import { useAuth } from '@api/context/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { imageProxyUrl } from '@api/config'
 
 function ProductDetailPage() {
   const { productId } = useParams()
@@ -100,10 +101,36 @@ function ProductDetailPage() {
   }
 
   const name = product?.productName || product?.name || product?.title || 'Product'
-  const price = product?.price
-  const priceStr = typeof price === 'number' ? `KSh ${Math.round(price).toLocaleString()}` : price || '—'
+
+  // Price: handle number, currency-enriched object, or string
+  const rawPrice = product?.price
+  const displayPrice = product?.displayPrice
+  let priceStr
+  if (displayPrice) {
+    priceStr = displayPrice
+  } else if (typeof rawPrice === 'number') {
+    priceStr = `KSh ${Math.round(rawPrice).toLocaleString()}`
+  } else if (typeof rawPrice === 'object' && rawPrice?.displayValue) {
+    priceStr = rawPrice.displayValue
+  } else if (typeof rawPrice === 'string') {
+    priceStr = rawPrice
+  } else {
+    priceStr = '—'
+  }
+
   const description = product?.description || ''
-  const imageUrl = product?.image || product?.imageUrl || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80'
+
+  // Route Appwrite storage images through the backend proxy (works in dev & production)
+  const rawImage = product?.image || product?.imageUrl || ''
+  const FALLBACK_IMAGE = '/logo.png'
+  let imageUrl
+  if (rawImage && rawImage.includes('appwrite.io')) {
+    imageUrl = imageProxyUrl(rawImage, 800, 75)
+  } else if (rawImage) {
+    imageUrl = rawImage
+  } else {
+    imageUrl = FALLBACK_IMAGE
+  }
   const stock = product?.stock
   const inStock = stock === undefined || stock > 0
   const premium = Boolean(product?.premiumEligible)
