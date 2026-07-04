@@ -1,37 +1,42 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Badge from '@shared/ui/badge/Badge'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
+import Loader from '@shared/ui/loader/Loader'
 import Input from '@shared/ui/input/Input'
-
-const mockResults = [
-  { id: 1, name: 'Nile Premium Coffee', price: 'KES 1,200', category: 'Beverages', image: '☕' },
-  { id: 2, name: 'Handwoven Basket Set', price: 'KES 2,400', category: 'Home & Living', image: '🧺' },
-  { id: 3, name: 'Organic Shea Butter', price: 'KES 850', category: 'Beauty', image: '🧴' },
-  { id: 4, name: 'Maasai Beaded Bracelet', price: 'KES 450', category: 'Accessories', image: '📿' },
-]
+import { searchService } from '@api/services'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const handleSearch = (event) => {
-    event.preventDefault()
+  const handleSearch = useCallback(async (event) => {
+    event?.preventDefault()
     setSearched(true)
+    setError(null)
+
     if (!query.trim()) {
       setResults([])
       return
     }
-    const filtered = mockResults.filter((item) =>
-      item.name.toLowerCase().includes(query.toLowerCase()) ||
-      item.category.toLowerCase().includes(query.toLowerCase())
-    )
-    setResults(filtered)
-  }
+
+    setLoading(true)
+    try {
+      const result = await searchService.search(query.trim())
+      setResults(result.products)
+    } catch (err) {
+      setError(err?.message || 'Search failed. Please try again.')
+      setResults([])
+    } finally {
+      setLoading(false)
+    }
+  }, [query])
 
   return (
     <PageShell>
@@ -50,11 +55,24 @@ function SearchPage() {
               aria-label="Search products"
             />
           </div>
-          <PrimaryButton type="submit" className="shrink-0">Search</PrimaryButton>
+          <PrimaryButton type="submit" className="shrink-0" disabled={loading}>
+            {loading ? 'Searching…' : 'Search'}
+          </PrimaryButton>
         </form>
 
         <div className="mt-8">
-          {searched && results.length === 0 && (
+          {loading && <Loader label="Searching products…" />}
+
+          {error && !loading && (
+            <EmptyState
+              title="Search error"
+              description={error}
+              icon="⚠️"
+              action={<PrimaryButton onClick={handleSearch}>Try again</PrimaryButton>}
+            />
+          )}
+
+          {searched && !loading && !error && results.length === 0 && (
             <EmptyState
               title="No results found"
               description={`We couldn't find anything for "${query}". Try a different keyword or browse categories.`}
@@ -62,30 +80,49 @@ function SearchPage() {
             />
           )}
 
-          {results.length > 0 && (
+          {!loading && results.length > 0 && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--color-text-secondary)]">{results.length} result{results.length > 1 ? 's' : ''} found</p>
-              {results.map((item) => (
-                <Link key={item.id} to={`/products/${item.id}`} className="flex items-center gap-4 rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] text-2xl">
-                    {item.image}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <p className="text-base font-semibold text-[var(--color-text-primary)]">{item.name}</p>
-                      <Badge variant="neutral">{item.category}</Badge>
+              <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                {results.length} result{results.length > 1 ? 's' : ''} found
+              </p>
+              {results.map((item) => {
+                const id = item.$id || item.id
+                const name = item.productName || item.name || 'Product'
+                const price = item.price
+                  ? (typeof item.price === 'number' ? `KSh ${Math.round(item.price).toLocaleString()}` : item.price)
+                  : 'KSh —'
+                return (
+                  <Link
+                    key={id}
+                    to={`/products/${id}`}
+                    className="flex items-center gap-4 rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-5"
+                  >
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] overflow-hidden">
+                      {item.image ? (
+                        <img src={item.image} alt={name} className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <span className="text-2xl">🛍️</span>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-[var(--color-accent)] font-semibold">{item.price}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--color-primary)]">View →</span>
-                </Link>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{name}</p>
+                        {item.category && <Badge variant="neutral">{item.category}</Badge>}
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--color-accent)] font-semibold">{price}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--color-primary)] shrink-0">View →</span>
+                  </Link>
+                )
+              })}
             </div>
           )}
 
-          {!searched && (
+          {!searched && !loading && (
             <div className="mt-4">
-              <p className="text-sm text-[var(--color-text-muted)]">Popular: Coffee · Baskets · Shea Butter · Beaded Jewelry</p>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Try searching: Coffee · Baskets · Shea Butter · Beaded Jewelry
+              </p>
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Route } from 'react-router-dom'
 import { SeoHead } from '@shared/seo/SeoHead'
+import { ProtectedRoute } from '@api/context/ProtectedRoute'
 
 const HomePage = lazy(() => import('@features/home/pages/HomePage'))
 const LoginPage = lazy(() => import('@features/auth/pages/LoginPage'))
@@ -66,13 +67,18 @@ export const appRoutes = [
   },
   {
     path: '/login',
-    element: withSuspense(<LoginPage />, {
-      title: 'Sign in to Nile Flow',
-      description: 'Access your Nile Flow account to manage orders, saved favorites, and premium benefits.',
-      canonical: '/login',
-      robots: 'noindex,nofollow',
-      breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Sign in', href: '/login' }],
-    }),
+    element: withSuspense(
+      <ProtectedRoute guestOnly>
+        <LoginPage />
+      </ProtectedRoute>,
+      {
+        title: 'Sign in to Nile Flow',
+        description: 'Access your Nile Flow account to manage orders, saved favorites, and premium benefits.',
+        canonical: '/login',
+        robots: 'noindex,nofollow',
+        breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Sign in', href: '/login' }],
+      },
+    ),
   },
   {
     path: '/products',
@@ -130,13 +136,18 @@ export const appRoutes = [
   },
   {
     path: '/signup',
-    element: withSuspense(<SignupPage />, {
-      title: 'Create Account',
-      description: 'Join Nile Flow for seamless shopping and order tracking.',
-      canonical: '/signup',
-      robots: 'noindex,nofollow',
-      breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Sign up', href: '/signup' }],
-    }),
+    element: withSuspense(
+      <ProtectedRoute guestOnly>
+        <SignupPage />
+      </ProtectedRoute>,
+      {
+        title: 'Create Account',
+        description: 'Join Nile Flow for seamless shopping and order tracking.',
+        canonical: '/signup',
+        robots: 'noindex,nofollow',
+        breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Sign up', href: '/signup' }],
+      },
+    ),
   },
   {
     path: '/forgot-password',

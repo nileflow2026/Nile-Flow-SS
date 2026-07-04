@@ -2,22 +2,39 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Button from '@shared/ui/button/Button'
 import { useTheme } from '@app/providers/ThemeProvider'
+import { useAuth } from '@api/context/AuthContext'
 
 const navItems = [
   { label: 'Home', to: '/' },
   { label: 'Products', to: '/products' },
   { label: 'Cart', to: '/cart' },
-  { label: 'Checkout', to: '/checkout' },
 ]
 
 function AppHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const { isDark, toggleTheme } = useTheme()
+  const { isAuthenticated, user, signOut } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    await signOut()
+    setSigningOut(false)
+  }
+
+  const userName = user?.name || user?.username || user?.email?.split('@')[0] || 'Profile'
+
+  const authNavItems = isAuthenticated
+    ? [
+        { label: 'Orders', to: '/orders' },
+        { label: 'Profile', to: '/profile' },
+      ]
+    : []
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl">
@@ -33,7 +50,7 @@ function AppHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
-          {navItems.map((item) => (
+          {[...navItems, ...authNavItems].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -58,9 +75,20 @@ function AppHeader() {
             >
               {isDark ? '☀️' : '🌙'}
             </button>
-            <Link to="/login">
-              <Button variant="outline" className="px-4 py-2">Sign in</Button>
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Link to="/profile">
+                  <Button variant="outline" className="px-4 py-2">{userName}</Button>
+                </Link>
+                <Button variant="ghost" className="px-4 py-2 text-sm" onClick={handleSignOut} disabled={signingOut}>
+                  {signingOut ? '…' : 'Sign out'}
+                </Button>
+              </div>
+            ) : (
+              <Link to="/login">
+                <Button variant="outline" className="px-4 py-2">Sign in</Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -78,7 +106,7 @@ function AppHeader() {
 
       <div id="mobile-nav" className={`overflow-hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 md:hidden ${mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="responsive-shell flex flex-col gap-2 py-3">
-          {navItems.map((item) => (
+          {[...navItems, ...authNavItems].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -100,9 +128,19 @@ function AppHeader() {
             >
               {isDark ? '☀️ Light mode' : '🌙 Dark mode'}
             </button>
-            <Link to="/login" className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
-              Sign in
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-50"
+              >
+                {signingOut ? 'Signing out…' : `Sign out (${userName})`}
+              </button>
+            ) : (
+              <Link to="/login" className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </div>

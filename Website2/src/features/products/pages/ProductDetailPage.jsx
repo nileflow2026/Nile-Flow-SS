@@ -1,38 +1,164 @@
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Button from '@shared/ui/button/Button'
 import Badge from '@shared/ui/badge/Badge'
+import Loader from '@shared/ui/loader/Loader'
+import EmptyState from '@shared/ui/empty-state/EmptyState'
+import Alert from '@shared/ui/alert/Alert'
+import { productService } from '@api/services'
+import { cartService } from '@api/services'
+import { useAuth } from '@api/context/AuthContext'
+import { useToast } from '@shared/ui/toast/ToastProvider'
 
 function ProductDetailPage() {
+  const { productId } = useParams()
+  const { isAuthenticated } = useAuth()
+  const { push } = useToast()
+
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [addingToCart, setAddingToCart] = useState(false)
+
+  useEffect(() => {
+    if (!productId) return
+
+    const loadProduct = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        // Try fetching from all products first, then find by ID
+        const result = await productService.getProducts({ limit: 1 })
+        const allResult = await productService.getProducts()
+        const found = allResult.products?.find(
+          (p) => (p.$id || p.id) === productId,
+        )
+        if (found) {
+          setProduct(found)
+        } else {
+          setError('Product not found.')
+        }
+      } catch (err) {
+        setError(err?.message || 'Failed to load product details.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProduct()
+  }, [productId])
+
+  const handleAddToCart = async () => {
+    if (!product) return
+    if (!isAuthenticated) {
+      push({ title: 'Sign in required', message: 'Please sign in to add items to your cart.' })
+      return
+    }
+
+    setAddingToCart(true)
+    const result = await cartService.addToCart({
+      productId: product.$id || product.id,
+      productName: product.productName || product.name || 'Product',
+      price: product.price || 0,
+      image: product.image || '',
+    })
+    setAddingToCart(false)
+
+    if (result.success) {
+      push({ title: 'Added to cart', message: `${product.productName || product.name} added to your cart.` })
+    } else {
+      push({ title: 'Failed to add', message: result.error || 'Please try again.' })
+    }
+  }
+
+  if (loading) {
+    return (
+      <PageShell>
+        <div className="responsive-shell py-14">
+          <Loader label="Loading product details…" />
+        </div>
+      </PageShell>
+    )
+  }
+
+  if (error && !product) {
+    return (
+      <PageShell>
+        <ResponsiveSection eyebrow="Product" title="Product not found" className="py-10 sm:py-14 lg:py-16">
+          <EmptyState
+            title="Product not found"
+            description={error}
+            icon="🔍"
+            action={<Link to="/products"><PrimaryButton>Browse all products</PrimaryButton></Link>}
+          />
+        </ResponsiveSection>
+      </PageShell>
+    )
+  }
+
+  const name = product?.productName || product?.name || product?.title || 'Product'
+  const price = product?.price
+  const priceStr = typeof price === 'number' ? `KSh ${Math.round(price).toLocaleString()}` : price || '—'
+  const description = product?.description || ''
+  const imageUrl = product?.image || product?.imageUrl || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80'
+  const stock = product?.stock
+  const inStock = stock === undefined || stock > 0
+  const premium = Boolean(product?.premiumEligible)
+  const category = product?.category || ''
+
   return (
     <PageShell>
-      <ResponsiveSection eyebrow="Product" title="Product details" description="View complete product information, pricing, and availability." className="py-10 sm:py-14 lg:py-16">
+      <ResponsiveSection eyebrow={category || 'Product'} title={name} description={description} className="py-10 sm:py-14 lg:py-16">
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <div className="aspect-[4/3] rounded-[1.5rem] bg-[var(--color-surface-muted)]" />
+            <div className="aspect-[4/3] rounded-[1.5rem] bg-[var(--color-surface-muted)] overflow-hidden">
+              <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+            </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Badge variant="success">In stock</Badge>
+              {inStock ? (
+                <Badge variant="success">{stock ? `In stock (${stock})` : 'In stock'}</Badge>
+              ) : (
+                <Badge variant="danger">Out of stock</Badge>
+              )}
+              {premium && <Badge variant="warning">Premium eligible</Badge>}
               <Badge variant="neutral">Free delivery</Badge>
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">Nile Flow Essentials</p>
-            <h1 className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)] sm:text-3xl">Premium coffee bundle</h1>
-            <p className="mt-2 text-3xl font-bold text-[var(--color-accent)]">KES 1,250</p>
-            <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-              Freshly roasted single-origin coffee sourced directly from Ethiopian highlands. Notes of jasmine, stone fruit, and dark chocolate.
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
+              {category || 'Nile Flow'}
             </p>
-            <div className="mt-6 space-y-2 text-sm text-[var(--color-text-secondary)]">
-              <div className="flex justify-between border-b border-[var(--color-border)] pb-2"><span>Origin</span><span className="font-semibold text-[var(--color-text-primary)]">Ethiopia</span></div>
-              <div className="flex justify-between border-b border-[var(--color-border)] pb-2"><span>Roast</span><span className="font-semibold text-[var(--color-text-primary)]">Medium</span></div>
-              <div className="flex justify-between"><span>Weight</span><span className="font-semibold text-[var(--color-text-primary)]">500g</span></div>
-            </div>
+            <h1 className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)] sm:text-3xl">{name}</h1>
+            <p className="mt-2 text-3xl font-bold text-[var(--color-accent)]">{priceStr}</p>
+
+            {description && (
+              <p className="mt-4 text-sm leading-7 text-[var(--color-text-secondary)]">{description}</p>
+            )}
+
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <PrimaryButton className="w-full justify-center sm:w-auto sm:flex-1">Add to cart — KES 1,250</PrimaryButton>
+              <PrimaryButton
+                className="w-full justify-center sm:w-auto sm:flex-1"
+                onClick={handleAddToCart}
+                disabled={!inStock || addingToCart}
+              >
+                {addingToCart ? 'Adding…' : inStock ? `Add to cart — ${priceStr}` : 'Out of stock'}
+              </PrimaryButton>
               <Button variant="outline" className="w-full justify-center sm:w-auto">Save</Button>
             </div>
+
+            {!isAuthenticated && (
+              <div className="mt-4">
+                <Alert
+                  title="Sign in to purchase"
+                  description={<Link to="/login" className="text-[var(--color-primary)] font-semibold hover:underline">Sign in</Link>}
+                  tone="info"
+                />
+              </div>
+            )}
           </div>
         </div>
       </ResponsiveSection>

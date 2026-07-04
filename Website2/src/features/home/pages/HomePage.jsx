@@ -1,10 +1,14 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import InfoCard from '@shared/ui/card/InfoCard'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Button from '@shared/ui/button/Button'
-import Alert from '@shared/ui/alert/Alert'
+import ProductCard from '@shared/ui/product-card/ProductCard'
+import Loader from '@shared/ui/loader/Loader'
+import { productService } from '@api/services'
+import { useAuth } from '@api/context/AuthContext'
 
 const highlights = [
   {
@@ -25,12 +29,34 @@ const highlights = [
 ]
 
 function HomePage() {
+  const { isAuthenticated, user } = useAuth()
+  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadFeatured = async () => {
+      setLoading(true)
+      try {
+        const result = await productService.getProducts()
+        // Show up to 6 products, prefer featuring first few
+        setFeaturedProducts(result.products?.slice(0, 6) || [])
+      } catch {
+        setFeaturedProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadFeatured()
+  }, [])
+
   return (
     <PageShell>
       <section className="py-10 sm:py-14 lg:py-20">
         <div className="responsive-shell grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8 lg:p-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Nile Flow</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">
+              {isAuthenticated ? `Welcome, ${user?.name || user?.username || user?.email?.split('@')[0] || 'back'}!` : 'Nile Flow'}
+            </p>
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
               African commerce, trusted and delivered.
             </h1>
@@ -61,8 +87,29 @@ function HomePage() {
         </div>
       </section>
 
+      {featuredProducts.length > 0 && (
+        <ResponsiveSection eyebrow="Featured" title="Trending products" description="Popular products our customers love right now.">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {loading ? (
+              <div className="col-span-full"><Loader label="Loading products…" /></div>
+            ) : (
+              featuredProducts.map((product) => (
+                <ProductCard
+                  key={product.$id || product.id}
+                  product={product}
+                  href={`/products/${product.$id || product.id}`}
+                  compact
+                />
+              ))
+            )}
+          </div>
+          <div className="mt-6 text-center">
+            <Link to="/products"><Button variant="outline">View all products →</Button></Link>
+          </div>
+        </ResponsiveSection>
+      )}
+
       <ResponsiveSection eyebrow="Why Nile Flow" title="Built for African commerce" description="Every detail is designed for trust, speed, and clarity.">
-        <Alert title="Real products, real impact" description="Every purchase supports local artisans, farmers, and businesses across Africa." tone="success" />
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
           {highlights.map((item) => (
             <InfoCard key={item.title} title={item.title} description={item.description} badge={item.badge} />

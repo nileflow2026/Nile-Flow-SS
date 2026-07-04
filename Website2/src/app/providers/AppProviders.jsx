@@ -3,15 +3,18 @@ import AppRouter from '../router'
 import { SkipLink } from '@shared/ui/SkipLink'
 import { ThemeProvider } from './ThemeProvider'
 import { ToastProvider } from '@shared/ui/toast/ToastProvider'
+import { AuthProvider } from '@api/context/AuthContext'
 
 export default function AppProviders() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <SkipLink />
-          <AppRouter />
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <SkipLink />
+            <AppRouter />
+          </BrowserRouter>
+        </AuthProvider>
       </ToastProvider>
     </ThemeProvider>
   )

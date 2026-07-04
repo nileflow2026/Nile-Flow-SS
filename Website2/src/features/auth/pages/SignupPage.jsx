@@ -1,20 +1,37 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Alert from '@shared/ui/alert/Alert'
+import Loader from '@shared/ui/loader/Loader'
+import { useAuth } from '@api/context/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
 function SignupPage() {
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
-  const [error, setError] = useState('')
+  const { signUp } = useAuth()
+  const navigate = useNavigate()
   const { push } = useToast()
 
-  const handleSubmit = (event) => {
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [verificationSent, setVerificationSent] = useState(false)
+
+  const handleChange = (field) => (e) => {
+    setForm((cur) => ({ ...cur, [field]: e.target.value }))
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
 
-    if (!form.name || !form.email || !form.password) {
+    if (!form.username || !form.email || !form.password) {
       setError('Please fill in all required fields.')
       return
     }
@@ -27,8 +44,42 @@ function SignupPage() {
       return
     }
 
-    push({ title: 'Account created', message: 'Welcome to Nile Flow! Check your email to verify.' })
-    setForm({ name: '', email: '', password: '', confirmPassword: '' })
+    setLoading(true)
+    const result = await signUp(form.email, form.password, form.username, form.phone)
+    setLoading(false)
+
+    if (result.success) {
+      if (result.verificationNeeded) {
+        setVerificationSent(true)
+        push({ title: 'Almost there!', message: 'Check your email to verify your account.' })
+      } else {
+        push({ title: 'Account created', message: 'Welcome to Nile Flow!' })
+        navigate('/', { replace: true })
+      }
+    } else {
+      setError(result.error || 'Sign up failed. Please try again.')
+    }
+  }
+
+  if (verificationSent) {
+    return (
+      <PageShell>
+        <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+          <div className="w-full max-w-md rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Verify your email</p>
+            <h1 className="mt-4 text-2xl font-semibold text-[var(--color-text-primary)]">Check your inbox</h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+              We sent a verification code to <strong>{form.email}</strong>. Please check your email and enter the code to activate your account.
+            </p>
+            <div className="mt-6">
+              <PrimaryButton className="w-full justify-center" onClick={() => navigate('/login')}>
+                Go to sign in
+              </PrimaryButton>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    )
   }
 
   return (
@@ -43,53 +94,76 @@ function SignupPage() {
 
           {error && <Alert title="Something's off" description={error} tone="warning" />}
 
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-              Full name
-              <input
-                value={form.name}
-                onChange={(e) => setForm((cur) => ({ ...cur, name: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
-                placeholder="Jane Doe"
-                required
-              />
-            </label>
-            <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-              Email
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((cur) => ({ ...cur, email: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
-                placeholder="you@example.com"
-                required
-              />
-            </label>
-            <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-              Password
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm((cur) => ({ ...cur, password: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
-                placeholder="Min. 8 characters"
-                required
-                minLength={8}
-              />
-            </label>
-            <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
-              Confirm password
-              <input
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm((cur) => ({ ...cur, confirmPassword: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
-                placeholder="Repeat password"
-                required
-              />
-            </label>
-            <PrimaryButton className="w-full justify-center" type="submit">Create account</PrimaryButton>
-          </form>
+          {loading ? (
+            <div className="mt-6">
+              <Loader label="Creating your account…" />
+            </div>
+          ) : (
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+                Full name *
+                <input
+                  value={form.username}
+                  onChange={handleChange('username')}
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  placeholder="Jane Doe"
+                  required
+                  autoComplete="name"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+                Email *
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange('email')}
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+                Phone (optional)
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={handleChange('phone')}
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  placeholder="+254 712 345 678"
+                  autoComplete="tel"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+                Password *
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange('password')}
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  placeholder="Min. 8 characters"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+                Confirm password *
+                <input
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={handleChange('confirmPassword')}
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  placeholder="Repeat password"
+                  required
+                  autoComplete="new-password"
+                />
+              </label>
+              <PrimaryButton className="w-full justify-center" type="submit" disabled={loading}>
+                Create account
+              </PrimaryButton>
+            </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
             Already have an account?{' '}

@@ -1,320 +1,343 @@
-# Nile Flow Website2 Architecture
+# Nile Flow Website 2 — API Integration Architecture
 
-This document defines the target filesystem architecture for Website2. It is designed for long-term growth from a commerce web app into a multi-product ecosystem spanning commerce, AI, loyalty, payments, education, health, and digital identity.
+## Overview
 
-## 1. Architectural Goals
+This document describes the complete frontend integration layer for Website2. The architecture is an enterprise-grade, clean, modular, and scalable backend integration designed for plug-and-play connectivity with the existing Nile Flow backend.
 
-- Feature-first and domain-driven
-- Scalable from 50 pages to 500+ pages
-- Clear ownership boundaries
-- Strong shared design system
-- API-first integration
-- AI-ready foundation
-- Mobile and web alignment
-- Testability and maintainability
+**Design Principles:**
+- Zero API logic in React components
+- Single HTTP client for all services
+- Completely decoupled from UI
+- Environment-driven configuration
+- Normalized error handling everywhere
+- Token management isolated from components
+- Ready for future services (Nile Pay, Nile Miles, AI, etc.)
 
-## 2. Problems in the Current Website Structure
+---
 
-The current Website app is useful, but it shows several architectural weaknesses:
+## Directory Structure
 
-- A flat structure with mixed responsibilities under components, hooks, Pages, core, and utilities
-- Shared and feature-specific concerns are not clearly separated
-- API call logic is scattered instead of centralized
-- Routing and layout responsibilities are not isolated enough for large-scale growth
-- Business domains such as payments, premium, loyalty, and marketplace are not first-class modules
-- A single app shell is likely to become difficult to evolve as the product expands
-
-The new Website2 architecture avoids those problems by dividing the app into clear layers and domains.
-
-## 3. Target Folder Tree
-
-```txt
-Website2/
-├── README.md
-├── ARCHITECTURE.md
-├── CONTRIBUTING.md
-├── index.html
-├── package.json
-├── vite.config.js
-├── public/
-├── src/
-│   ├── app/
-│   │   ├── bootstrap/
-│   │   ├── router/
-│   │   │   ├── public/
-│   │   │   ├── authenticated/
-│   │   │   ├── customer/
-│   │   │   ├── vendor/
-│   │   │   └── admin/
-│   │   ├── providers/
-│   │   ├── config/
-│   │   ├── theme/
-│   │   ├── store/
-│   │   ├── analytics/
-│   │   ├── error-boundary/
-│   │   └── seo/
-│   ├── shared/
-│   │   ├── ui/
-│   │   │   ├── button/
-│   │   │   ├── card/
-│   │   │   ├── input/
-│   │   │   ├── badge/
-│   │   │   ├── modal/
-│   │   │   ├── drawer/
-│   │   │   ├── tabs/
-│   │   │   ├── table/
-│   │   │   ├── dropdown/
-│   │   │   ├── avatar/
-│   │   │   ├── toast/
-│   │   │   └── skeleton/
-│   │   ├── layouts/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   ├── constants/
-│   │   ├── styles/
-│   │   ├── types/
-│   │   ├── validators/
-│   │   ├── icons/
-│   │   └── lib/
-│   ├── features/
-│   │   ├── home/
-│   │   ├── auth/
-│   │   ├── products/
-│   │   ├── search/
-│   │   ├── catalog/
-│   │   ├── cart/
-│   │   ├── checkout/
-│   │   ├── orders/
-│   │   ├── wishlist/
-│   │   ├── reviews/
-│   │   ├── vendors/
-│   │   ├── profile/
-│   │   ├── notifications/
-│   │   ├── support/
-│   │   ├── premium/
-│   │   ├── loyalty/
-│   │   ├── payments/
-│   │   └── content/
-│   ├── commerce/
-│   │   ├── cart/
-│   │   ├── checkout/
-│   │   ├── pricing/
-│   │   ├── discounts/
-│   │   ├── inventory/
-│   │   ├── fulfillment/
-│   │   └── returns/
-│   ├── platform/
-│   │   ├── identity/
-│   │   ├── nile-pay/
-│   │   ├── nile-miles/
-│   │   ├── marketplace/
-│   │   ├── analytics/
-│   │   ├── admin-portal/
-│   │   └── vendor-portal/
-│   ├── ai/
-│   │   ├── assistant/
-│   │   ├── memory/
-│   │   ├── recommendations/
-│   │   ├── voice/
-│   │   ├── chat/
-│   │   └── prompts/
-│   ├── api/
-│   │   ├── client/
-│   │   ├── auth/
-│   │   ├── products/
-│   │   ├── orders/
-│   │   ├── payments/
-│   │   ├── vendors/
-│   │   ├── search/
-│   │   ├── recommendations/
-│   │   ├── notifications/
-│   │   └── analytics/
-│   ├── assets/
-│   │   ├── images/
-│   │   ├── illustrations/
-│   │   ├── icons/
-│   │   ├── logos/
-│   │   ├── animations/
-│   │   └── fonts/
-│   ├── layouts/
-│   │   ├── main/
-│   │   ├── auth/
-│   │   ├── checkout/
-│   │   ├── admin/
-│   │   ├── vendor/
-│   │   └── minimal/
-│   ├── tests/
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   └── e2e/
-│   └── styles/
-│       ├── tokens/
-│       ├── themes/
-│       └── utilities/
-└── docs/
-    ├── architecture/
-    ├── runbooks/
-    └── api/
+```
+src/api/
+├── client/
+│   ├── HttpClient.js          # Core HTTP client (singleton)
+│   └── index.js               # initializeApi() — register interceptors, bootstrap auth
+├── config/
+│   └── index.js               # Environment configuration (all from env vars)
+├── interceptors/
+│   ├── requestInterceptors.js  # Auth, Correlation ID, Device, Locale, Timezone
+│   └── responseInterceptors.js # Token refresh, Maintenance mode, Logging
+├── middleware/
+│   └── (future)               # Retry dedup, offline queue, caching
+├── auth/
+│   ├── AuthManager.js          # Authentication orchestration (signin, signup, OAuth, etc.)
+│   └── TokenManager.js         # Token storage & lifecycle (memory/localStorage/sessionStorage)
+├── services/
+│   ├── index.js                # Barrel exports
+│   ├── productService.js       # Products
+│   ├── categoryService.js      # Categories
+│   ├── cartService.js          # Shopping cart
+│   ├── orderService.js         # Orders & cancellations
+│   ├── reviewService.js        # Product reviews & ratings
+│   ├── searchService.js        # Product search, recent/popular searches
+│   ├── paymentService.js       # Stripe, M-Pesa, subscriptions
+│   ├── notificationService.js  # Customer notifications
+│   ├── uploadService.js        # File uploads
+│   ├── addressService.js       # User addresses
+│   ├── groupBuyService.js      # Group buying
+│   └── discoveryService.js     # African facts & proverbs
+├── utils/
+│   ├── errorNormalizer.js      # Error normalization & classification
+│   └── helpers.js              # Device ID, URL builder, retry, etc.
+├── types/
+│   └── index.js                # JSDoc type definitions
+├── hooks/
+│   └── useAsync.js             # Generic async state hook
+├── validation/
+│   └── (future)                # Input validation schemas
+└── README.md                   # Expanded documentation
 ```
 
-## 4. Purpose of Each Top-Level Folder
+## File Responsibilities
 
-### src/app
-Owns application bootstrapping, providers, routing, global configuration, analytics, error handling, and state setup.
+| File | Responsibility |
+|------|---------------|
+| `client/HttpClient.js` | Single axios-based HTTP client with retry, dedup, upload, download, offline detection |
+| `client/index.js` | `initializeApi()` — registers all interceptors, bootstraps auth session validation |
+| `config/index.js` | All env vars centralized. Never hardcode URLs/keys elsewhere |
+| `interceptors/requestInterceptors.js` | 5 modular request interceptors: auth, correlation ID, device, locale, timezone |
+| `interceptors/responseInterceptors.js` | 3 modular response interceptors: token refresh, maintenance mode, logging |
+| `auth/AuthManager.js` | Orchestrates signup, signin, signout, OAuth, password reset, email verification, pickup address |
+| `auth/TokenManager.js` | In-memory (default) or persistent token storage. JWT decode. Refresh dedup |
+| `services/*.js` | One service per domain. Each returns normalized data. Components never call httpClient |
+| `utils/errorNormalizer.js` | Normalizes all errors to `{ code, message, status, details }`. Classifies errors |
+| `utils/helpers.js` | Device ID, URL builder, pagination parser, sleep, retry, dev logging |
+| `hooks/useAsync.js` | `useReducer`-based hook: `{ status, data, error, loading, execute, reset }` |
 
-### src/shared
-Contains reusable UI, hooks, utilities, design-system primitives, constants, and cross-cutting infrastructure that is not tied to one business feature.
+## Service Responsibilities
 
-### src/features
-Contains business-facing modules such as auth, products, cart, checkout, premium, loyalty, and profile. Each feature owns its own pages, components, hooks, services, and types.
+| Service | Backend Endpoints Used |
+|---------|----------------------|
+| `productService` | `/api/customerprofile/fetch-product`, `/api/customerprofile/fetch-products`, `/api/admin/products/products/:id/stock` |
+| `categoryService` | `/api/customerprofile/categories`, `/api/customerprofile/fetch-product` (with category) |
+| `cartService` | `/cart/fetch/:userId`, `/cart/load/:userId`, `/cart/add`, `/cart/remove/:id`, `/cart/update/:id`, `/cart/clear/:userId`, `/cart/validate-stock` |
+| `orderService` | `/api/orders/orders`, `/api/customerprofile/customer-orders`, `/api/orders/cancel-request`, `/api/orders/track/:id` |
+| `reviewService` | `/api/customerprofile/fetch-reviews/:id`, `/api/customerprofile/submit-review`, `/api/customerprofile/increment-rating` |
+| `searchService` | `/api/customerprofile/fetch-product` (with search), `/api/customerprofile/customer-searches`, `/api/customerprofile/customer-recent-search`, `/api/customerprofile/popular-searches`, `/api/customerprofile/clear-recent-search` |
+| `paymentService` | `/api/subscription/subscribe`, `/api/subscription/status`, `/api/subscription/cancel`, `/api/subscription/renew`, `/api/subscription/payment-status/:id`, `/api/subscription/monthly-summary`, `/api/subscription/premium-deals`, `/api/premium/calculate-discount` |
+| `notificationService` | `/api/customernotifications/customernotification`, `/api/customernotifications/createnotification` |
+| `uploadService` | `/api/admin/upload-image` |
+| `addressService` | `/api/addresses`, `/api/add/address`, `/api/addresses/:id` |
+| `groupBuyService` | `/api/group-orders/:id`, `/api/group-orders/active`, `/api/group-orders/create`, `/api/group-orders/:id/join`, `/api/group-orders/:id/leave`, `/api/group-orders/:id/share` |
+| `discoveryService` | `/api/africa/facts`, `/api/africa/proverbs` |
 
-### src/commerce
-Contains commerce infrastructure that is shared across multiple features, including pricing, discounts, inventory, fulfillment, and returns.
+## Authentication Flow
 
-### src/platform
-Contains platform-level capabilities that represent Nile Flow as a broader ecosystem: identity, payments, marketplace, analytics, admin, and vendor portals.
+```
+User submits credentials
+        │
+        v
+AuthManager.signIn({ email, password, rememberMe })
+        │
+        v
+httpClient.post('/api/customerauth/signin/customer', { email, password, deviceId })
+        │
+        ├── Backend validates credentials
+        ├── Backend sets httpOnly cookies (refresh token)
+        ├── Backend returns JSON { accessToken, user }
+        │
+        v
+TokenManager stores accessToken (memory / localStorage)
+AuthManager caches user data
+AuthManager notifies login listeners
+AuthManager returns { success: true, data }
 
-### src/ai
-Prepares the product for AI-first commerce experiences such as search assistance, chat, recommendations, voice commerce, and memory.
+--- On subsequent requests ---
 
-### src/api
-Centralizes all API contracts, request clients, and domain-specific service adapters. No feature should call Appwrite or backend endpoints directly from components.
+Request Interceptor automatically attaches:
+    Authorization: Bearer <accessToken>
+    X-Correlation-ID: <uuid>
+    X-Platform: web
+    X-Device-ID: <deviceId>
+    Accept-Language: en
+    X-Currency: KES
+    X-Timezone: Africa/Nairobi
 
-### src/assets
-Holds images, icons, illustrations, logos, animations, and fonts. All asset imports should be centralized here.
+--- On 401 response ---
 
-### src/layouts
-Defines shell layouts for main app, auth, checkout, admin, vendor, and minimal experiences.
+Token Refresh Interceptor:
+    1. Queue the failed request
+    2. POST /api/customerauth/refresh { deviceId }
+    3. If success: store new tokens, retry all queued requests
+    4. If failure: clear tokens, dispatch 'auth:logout' event
+```
 
-### src/tests
-Contains unit, integration, and end-to-end testing structure for future automation.
+## Token Lifecycle
 
-### src/styles
-Stores design tokens, themes, utilities, and global styling primitives.
+```
+┌─────────────────────────────────────────────────┐
+│                  TokenManager                    │
+│  ┌─────────────┐  ┌──────────┐  ┌───────────┐  │
+│  │ Access Token │  │Refresh   │  │ User Data │  │
+│  │ (memory/    │  │Token     │  │ (cached)  │  │
+│  │  storage)   │  │(storage) │  │           │  │
+│  └─────────────┘  └──────────┘  └───────────┘  │
+│                                                   │
+│  Methods:                                         │
+│  getAccessToken()   setAccessToken(token)         │
+│  hasAccessToken()   isTokenExpired()              │
+│  refreshToken(fn)   clearTokens()                 │
+│  decodeToken()      reset()                       │
+└─────────────────────────────────────────────────┘
 
-## 5. Why This Architecture Is Better Than the Current Website Structure
+Storage backends (configurable via VITE_TOKEN_STORAGE):
+  memory (default)    → Map in JS memory. Lost on page refresh. Most XSS-safe.
+  localStorage         → Persists across sessions. Use with "remember me".
+  sessionStorage       → Persists within a tab session.
+```
 
-This model is superior because it:
+## Request Lifecycle
 
-- separates business domains from shared infrastructure
-- prevents the app from turning into a single giant folder of components
-- makes ownership clear for teams and features
-- supports lazy loading and route-based code splitting naturally
-- helps scale to 500+ pages without creating a maintenance burden
-- provides a clean foundation for AI, fintech, and multi-product expansion
-- aligns with the long-term vision of Nile Flow as a platform rather than a simple storefront
+```
+Component / Hook
+        │
+        v
+Service method (e.g., productService.getProducts())
+        │
+        v
+HttpClient.get('/api/customerprofile/fetch-product', { category, search })
+        │
+        ├── Offline check → reject with OFFLINE error
+        ├── Deduplication check (GET only) → return in-flight promise
+        │
+        v
+Request Interceptors (in order):
+    1. Auth interceptor → attach Bearer token
+    2. Correlation ID → attach X-Correlation-ID
+    3. Device interceptor → attach X-Platform, X-App-Version, X-Device-ID
+    4. Locale interceptor → attach Accept-Language, X-Currency
+    5. Timezone interceptor → attach X-Timezone
+        │
+        v
+Axios instance → send request
+        │
+        v
+Response Interceptors (in order):
+    1. Token refresh → catch 401, attempt refresh, retry
+    2. Maintenance mode → check X-Maintenance-Mode header
+    3. Logging → log timing in dev mode
+        │
+        ├── Success → HttpClient normalizes response shape
+        ├── Error → HttpClient normalizes via errorNormalizer
+        │
+        v
+Service method returns cleaned data
+        │
+        v
+Component receives { success, data, message }
+```
 
-## 6. Scaling Strategy for 10, 50, and 100 Developers
+## Error Handling Strategy
 
-### 10 developers
-A feature-first layout is enough for fast delivery. Teams can own feature folders independently while sharing the design system and platform layer.
-
-### 50 developers
-Domain ownership becomes critical. Each major domain such as commerce, payments, loyalty, marketplace, and platform services should have its own team and clear boundaries.
-
-### 100 developers
-The architecture becomes a true platform structure. Shared infrastructure, platform services, and contract boundaries must be standardized, and the app layer should enforce clear governance around shared modules and public APIs.
-
-## 7. Recommended Path Aliases
-
-Use aliases to avoid deep relative imports.
+All errors flow through `errorNormalizer.normalizeError()` which produces:
 
 ```js
 {
-  "@": "/src",
-  "@app": "/src/app",
-  "@shared": "/src/shared",
-  "@features": "/src/features",
-  "@commerce": "/src/commerce",
-  "@platform": "/src/platform",
-  "@ai": "/src/ai",
-  "@api": "/src/api",
-  "@assets": "/src/assets",
-  "@layouts": "/src/layouts",
-  "@styles": "/src/styles"
+  code: 'VALIDATION_ERROR',     // Domain error code
+  message: 'Human-readable message',
+  status: 400,                  // HTTP status (0 for network)
+  details: [                    // Field-level errors
+    { field: 'email', message: 'Email is required' }
+  ],
+  _normalized: true             // Prevents double-normalization
 }
 ```
 
-## 8. Naming Conventions
+### Error Codes
 
-### Folders
-- lowercase
-- singular where appropriate
-- descriptive
-- no vague names such as misc, common, utils-only, or shared-old
+| HTTP Status | Code | Description |
+|-------------|------|-------------|
+| 400 | VALIDATION_ERROR | Invalid input |
+| 401 | UNAUTHORIZED | Expired/missing token |
+| 403 | FORBIDDEN | Insufficient permissions |
+| 404 | NOT_FOUND | Resource not found |
+| 409 | CONFLICT | Resource conflict |
+| 422 | UNPROCESSABLE_ENTITY | Semantic validation failure |
+| 429 | RATE_LIMITED | Too many requests |
+| 500 | INTERNAL_SERVER_ERROR | Server error |
+| 502-504 | BAD_GATEWAY / SERVICE_UNAVAILABLE / GATEWAY_TIMEOUT | Server unavailable |
+| 0 | UNKNOWN_ERROR | Network failure / offline |
 
-### Files
-- Feature modules: use descriptive names such as product-listing, checkout-summary, premium-banner
-- React components: PascalCase
-- Hooks: useFeatureName
-- Services: featureService or featureApi
-- Types: feature.types.ts
-- Constants: feature.constants.ts
+### Error Classification Helpers
 
-## 9. File Organization Conventions
+```js
+import { isAuthError, isNetworkError, isRetryable, isRateLimited } from '@api/utils/errorNormalizer'
 
-Each feature should follow a predictable shape:
-
-```txt
-feature-name/
-  components/
-  hooks/
-  pages/
-  services/
-  api/
-  types/
-  constants/
-  utils/
-  routes/
-  index.ts
+if (isAuthError(error)) → redirect to login
+if (isNetworkError(error)) → show "check connection" UI
+if (isRetryable(error)) → auto-retry with backoff
+if (isRateLimited(error)) → show "try later" message
 ```
 
-This consistency keeps the codebase easy to scan and easy to extend.
+## Retry Logic
 
-## 10. Import Conventions
+The HttpClient has built-in retry with exponential backoff:
 
-- Prefer aliases over relative imports
-- Keep imports from the nearest public boundary
-- Do not import from deep internal implementation paths across domains
-- Use barrel exports for stable feature entry points
-- Avoid circular dependencies
+- Default: 3 retries, 1s base delay
+- Retry only on: 408, 429, 500, 502, 503, 504
+- Does NOT retry: 400, 401, 403, 404, 409, 422
+- Access token refreshes are excluded from retry
+- Per-request override via `_retryCount` and `_retryDelay` options
 
-## 11. Expansion Strategy for Future Nile Flow Ecosystem Capabilities
+## Environment Configuration Guide
 
-### Nile Pay
-Add a dedicated platform module under src/platform/nile-pay with its own payments, wallets, settlement, and compliance boundaries.
+Copy `.env.example` to `.env` and configure:
 
-### Nile Miles
-Create dedicated loyalty modules under src/platform/nile-miles and src/features/loyalty.
+```env
+# Required
+VITE_API_BASE_URL=https://nile-flow-backend-5dqm.onrender.com
 
-### AI Commerce Assistant
-Use src/ai/assistant and src/ai/recommendations for conversational commerce, product discovery, and shopping support.
+# Optional defaults
+VITE_API_TIMEOUT=30000
+VITE_API_RETRY_COUNT=3
+VITE_TOKEN_STORAGE=memory     # memory | localStorage | sessionStorage
+VITE_LOCALE=en
+VITE_CURRENCY=KES
+```
 
-### Spatial Commerce
-Introduce future modules under src/features/spatial or src/platform/commerce-experience without disturbing the core commerce structure.
+All configuration is read in `src/api/config/index.js` via `import.meta.env`. Never use `process.env` or hardcoded URLs anywhere else.
 
-### Marketplace
-Use src/platform/marketplace alongside feature-specific marketplace modules such as vendor discovery, listings, and onboarding.
+## Integration Guide for Future Developers
 
-### Vendor Portal
-Use src/platform/vendor-portal and feature modules such as inventory, orders, payouts, and analytics.
+### How to Add a New Service
 
-### Admin Dashboard
-Use src/platform/admin-portal with dedicated routes and feature modules for operations, moderation, and reporting.
+1. Create `src/api/services/yourService.js`
+2. Use `httpClient` for all API calls
+3. Normalize errors with `normalizeError()`
+4. Return clean data — never raw axios responses
+5. Export from `src/api/services/index.js`
 
-### Analytics
-Use src/platform/analytics and src/api/analytics as the canonical location for observability, business metrics, and experimentation.
+Example:
+```js
+// src/api/services/exampleService.js
+import { httpClient } from '@api/client/HttpClient'
 
-### Loyalty
-Use src/features/loyalty and src/platform/nile-miles for membership, rewards, retention, and engagement loops.
+export const exampleService = {
+  async getData(params) {
+    const response = await httpClient.get('/api/v1/data', params)
+    return response.data
+  }
+}
+```
 
-### Fintech
-Use src/platform/nile-pay and src/commerce/pricing for financial primitives, settlement logic, and transaction orchestration.
+### How to Consume a Service in a Component
 
-### Health and Education
-Add new product domains under src/features/content, src/platform/identity, and src/features/education or src/features/health without restructuring the whole app.
+```jsx
+// Option 1: useAsync hook
+import { useAsync } from '@api/hooks/useAsync'
+import { productService } from '@api/services'
 
-## 12. Final Direction
+function ProductList() {
+  const { data, loading, error, execute } = useAsync(
+    () => productService.getProducts({ category: 'electronics' }),
+  )
 
-This architecture is designed to make Website2 feel like the foundation of a modern multi-product technology platform, not a single-page storefront. It gives Nile Flow the structure to grow into a continental digital infrastructure layer with strong product boundaries, clear ownership, and long-term maintainability.
+  useEffect(() => { execute() }, [])
+
+  if (loading) return <Loader />
+  if (error) return <Error message={error.message} />
+  return <Grid>{data?.products.map(p => <ProductCard key={p.$id} product={p} />)}</Grid>
+}
+```
+
+### How to Add a New Interceptor
+
+1. Add the interceptor function in `interceptors/requestInterceptors.js` or `responseInterceptors.js`
+2. Register it in `client/index.js` inside `initializeApi()`
+
+```js
+// In client/index.js
+httpClient.addRequestInterceptor(...Object.values(yourNewInterceptor()));
+```
+
+### How to Add a New Auth Method
+
+Add it to `auth/AuthManager.js`. Follow the existing pattern:
+- Use `httpClient` for API calls
+- Use `tokenManager` for token operations
+- Return `{ success, data, error }` shape
+- Call `this._notifyLogin(user)` on successful authentication
+
+## Future-Proofing
+
+The architecture is designed to support:
+
+- **Nile Pay**: Add `paymentService.nilePay()` method
+- **Nile Miles**: Add `milesService.js` with loyalty operations
+- **AI Commerce**: Add `aiService.js` for conversational flows
+- **Vendor Portal**: Add `vendorService.js` for marketplace operations
+- **Streaming**: HttpClient already supports `responseType: 'stream'`
+- **Redux/Zustand**: Services remain unchanged — state management sits above them
+- **React Query**: Wrap services in useQuery hooks — services don't change
+
+The architecture scales horizontally: new domains = new service files. No existing code needs to change.

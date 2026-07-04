@@ -1,19 +1,32 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Alert from '@shared/ui/alert/Alert'
-import { useToast } from '@shared/ui/toast/ToastProvider'
+import Loader from '@shared/ui/loader/Loader'
+import { useAuth } from '@api/context/AuthContext'
 
 function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
-  const { push } = useToast()
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!email) return
-    push({ title: 'Reset link sent', message: 'Check your email inbox for instructions.' })
-    setSent(true)
+
+    setError('')
+    setLoading(true)
+    const result = await forgotPassword(email)
+    setLoading(false)
+
+    if (result.success) {
+      setSent(true)
+    } else {
+      setError(result.message || 'Failed to send reset link. Please try again.')
+    }
   }
 
   return (
@@ -34,7 +47,13 @@ function ForgotPasswordPage() {
             />
           )}
 
-          {!sent && (
+          {error && <Alert title="Unable to send" description={error} tone="warning" />}
+
+          {loading ? (
+            <div className="mt-6">
+              <Loader label="Sending reset link…" />
+            </div>
+          ) : !sent ? (
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
               <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 Email address
@@ -45,10 +64,17 @@ function ForgotPasswordPage() {
                   className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
                   placeholder="you@example.com"
                   required
+                  autoComplete="email"
                 />
               </label>
               <PrimaryButton className="w-full justify-center" type="submit">Send reset link</PrimaryButton>
             </form>
+          ) : (
+            <div className="mt-6">
+              <Link to="/login">
+                <PrimaryButton className="w-full justify-center">Back to sign in</PrimaryButton>
+              </Link>
+            </div>
           )}
         </div>
       </section>
