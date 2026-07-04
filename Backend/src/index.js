@@ -243,6 +243,9 @@ try {
 // ========== CORS CONFIGURATION ==========
 try {
   if (cors) {
+    const corsAllowedHeaders =
+      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Timezone,x-timezone,X-Transaction-ID,X-Currency,X-Correlation-ID,X-Request-ID,Cache-Control,Pragma,Origin,Access-Control-Request-Method,Access-Control-Request-Headers";
+
     const corsOptions = {
       origin: (origin, callback) => {
         const allowedOrigins = [
@@ -277,23 +280,7 @@ try {
         }
       },
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Accept",
-        "X-CSRF-Token",
-        "X-Platform",
-        "x-platform",
-        "X-Device-Id",
-        "x-device-id",
-        "X-Transaction-ID",
-        "X-Currency",
-        "X-Correlation-ID",
-        "X-Request-ID",
-        "Cache-Control",
-        "Pragma",
-      ],
+      allowedHeaders: ["*"],
       credentials: true,
       exposedHeaders: ["X-CSRF-Token"],
       optionsSuccessStatus: 200,
@@ -317,10 +304,8 @@ app.use("/api/admin", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,Cache-Control,Pragma",
-    );
+    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
 });
@@ -335,10 +320,8 @@ app.use("/api/vendor", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,Cache-Control,Pragma",
-    );
+    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
 });
@@ -373,10 +356,8 @@ app.use((req, res, next) => {
         "Access-Control-Allow-Methods",
         "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       );
-      res.header(
-        "Access-Control-Allow-Headers",
-        "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Transaction-ID,Cache-Control,Pragma",
-      );
+      const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+      res.header("Access-Control-Allow-Headers", requestedHeaders);
       res.header("Access-Control-Allow-Credentials", "true");
       res.header("Access-Control-Max-Age", "86400");
       return res.status(200).end();
