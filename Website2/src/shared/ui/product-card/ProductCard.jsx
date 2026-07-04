@@ -6,12 +6,34 @@ function ProductCard({ product, href = '#', compact = false }) {
   // and mock/demo shape (id, title, name, price, image)
   const id = product?.$id || product?.id
   const title = product?.productName || product?.title || product?.name || 'Nile Flow product'
-  const imageUrl = product?.image || product?.imageUrl || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80'
 
-  // Price handling: string display or numeric
+  // Route Appwrite storage images through the backend proxy to avoid browser auth issues
+  const rawImage = product?.image || product?.imageUrl || ''
+  const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80'
+  let imageUrl
+  if (rawImage && rawImage.includes('appwrite.io')) {
+    imageUrl = `/api/image-proxy?url=${encodeURIComponent(rawImage)}&width=600&quality=70`
+  } else if (rawImage) {
+    imageUrl = rawImage
+  } else {
+    imageUrl = FALLBACK_IMAGE
+  }
+
+  // Price handling: string display or numeric, or currency-enriched object
   const rawPrice = product?.price
   const displayPrice = product?.displayPrice
-  const priceStr = displayPrice || (typeof rawPrice === 'number' ? `KSh ${rawPrice.toLocaleString()}` : rawPrice) || 'KSh —'
+  let priceStr
+  if (displayPrice) {
+    priceStr = displayPrice
+  } else if (typeof rawPrice === 'number') {
+    priceStr = `KSh ${rawPrice.toLocaleString()}`
+  } else if (typeof rawPrice === 'object' && rawPrice?.displayValue) {
+    priceStr = rawPrice.displayValue
+  } else if (typeof rawPrice === 'string') {
+    priceStr = rawPrice
+  } else {
+    priceStr = 'KSh —'
+  }
 
   const description = product?.description || product?.subtitle || ''
   const premium = Boolean(product?.premiumEligible || product?.premium || product?.isPremium)
