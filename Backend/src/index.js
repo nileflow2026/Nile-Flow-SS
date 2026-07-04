@@ -87,6 +87,46 @@ try {
 
 const PORT = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://localhost:3000",
+  "https://nile-mart-backend-2.onrender.com",
+  "https://nileflow-com.onrender.com",
+  "https://nileflowafrica.com",
+  "https://www.nileflowafrica.com",
+  "https://nileflow.co.ke",
+  "https://new-nile-flow-backend.onrender.com",
+  "https://nileflowvendordashboard.onrender.com",
+  "https://nile-flow-adminpanel.onrender.com",
+  "https://nile-flow-website.onrender.com",
+  "https://admin.nileflowafrica.com",
+  "https://vendor.nileflowafrica.com",
+  "https://nile-flow-backend.onrender.com",
+  "https://nile-flow-backend-5dqm.onrender.com",
+];
+
+const corsAllowedHeaders =
+  "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Timezone,x-timezone,X-Transaction-ID,X-Currency,X-Correlation-ID,X-Request-ID,Cache-Control,Pragma,Origin,Access-Control-Request-Method,Access-Control-Request-Headers";
+
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"] || corsAllowedHeaders,
+    );
+    res.header("Access-Control-Max-Age", "86400");
+    return true;
+  }
+  return false;
+}
+
 // Load core routes
 let adminRouter,
   authRoutes,
@@ -240,35 +280,21 @@ try {
   console.warn("Helmet middleware failed:", helmetError.message);
 }
 
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    if (applyCorsHeaders(req, res)) {
+      return res.sendStatus(204);
+    }
+    return res.sendStatus(403);
+  }
+  next();
+});
+
 // ========== CORS CONFIGURATION ==========
 try {
   if (cors) {
-    const corsAllowedHeaders =
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Timezone,x-timezone,X-Transaction-ID,X-Currency,X-Correlation-ID,X-Request-ID,Cache-Control,Pragma,Origin,Access-Control-Request-Method,Access-Control-Request-Headers";
-
     const corsOptions = {
       origin: (origin, callback) => {
-        const allowedOrigins = [
-          "http://localhost:5173",
-          "http://localhost:5174",
-          "http://localhost:5175",
-          "http://localhost:5176",
-          "http://localhost:3000",
-          "https://nile-mart-backend-2.onrender.com",
-          "https://nileflow-com.onrender.com",
-          "https://nileflowafrica.com",
-          "https://www.nileflowafrica.com",
-          "https://nileflow.co.ke",
-          "https://new-nile-flow-backend.onrender.com",
-          "https://nileflowvendordashboard.onrender.com",
-          "https://nile-flow-adminpanel.onrender.com",
-          "https://nile-flow-website.onrender.com",
-          "https://admin.nileflowafrica.com",
-          "https://vendor.nileflowafrica.com",
-          "https://nile-flow-backend.onrender.com",
-          "https://nile-flow-backend-5dqm.onrender.com"
-        ];
-
         if (!origin) {
           return callback(null, true);
         }
