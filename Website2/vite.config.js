@@ -3,6 +3,8 @@ import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const BACKEND_URL = 'https://nile-flow-backend-5dqm.onrender.com'
+
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   build: {
@@ -22,6 +24,20 @@ export default defineConfig({
       '@assets': fileURLToPath(new URL('./src/assets', import.meta.url)),
       '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
       '@styles': fileURLToPath(new URL('./src/styles', import.meta.url)),
+    },
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        secure: true,
+      },
+      '/cart': {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 })

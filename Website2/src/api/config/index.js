@@ -15,12 +15,19 @@ const getEnv = (key, fallback = '') => {
 
 export const config = {
   // ── Backend API ───────────────────────────────────────────────────
+  // Detect if running in dev (Vite proxy handles /api/*)
+  _isDev: typeof import.meta !== 'undefined' && import.meta.env?.DEV === true,
+
   api: {
-    baseURL: getEnv('VITE_API_BASE_URL', 'https://nile-flow-backend-5dqm.onrender.com'),
-    timeout: getEnv('VITE_API_TIMEOUT', 30000),
+    // In dev mode, use relative URLs so the Vite proxy handles them (avoid CORS).
+    // In production, use the absolute backend URL.
+    baseURL: (typeof import.meta !== 'undefined' && import.meta.env?.DEV)
+      ? ''
+      : getEnv('VITE_API_BASE_URL', 'https://nile-flow-backend-5dqm.onrender.com'),
+    timeout: parseInt(getEnv('VITE_API_TIMEOUT', 30000), 10),
     retryCount: parseInt(getEnv('VITE_API_RETRY_COUNT', 3), 10),
     retryDelay: parseInt(getEnv('VITE_API_RETRY_DELAY', 1000), 10),
-    withCredentials: true,
+    withCredentials: false, // No credentials needed when proxying through Vite
   },
 
   // ── Authentication ────────────────────────────────────────────────

@@ -9,6 +9,7 @@ const SignupPage = lazy(() => import('@features/auth/pages/SignupPage'))
 const ForgotPasswordPage = lazy(() => import('@features/auth/pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@features/auth/pages/ResetPasswordPage'))
 const OAuthCallbackPage = lazy(() => import('@features/auth/pages/OAuthCallbackPage'))
+const VerifyEmailPage = lazy(() => import('@features/auth/pages/VerifyEmailPage'))
 const ProductListingPage = lazy(() => import('@features/products/pages/ProductListingPage'))
 const ProductDetailPage = lazy(() => import('@features/products/pages/ProductDetailPage'))
 const SearchPage = lazy(() => import('@features/products/pages/SearchPage'))
@@ -177,6 +178,16 @@ export const appRoutes = [
       canonical: '/auth/callback',
       robots: 'noindex,nofollow',
       breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Auth', href: '/auth/callback' }],
+    }),
+  },
+  {
+    path: '/verify-email',
+    element: withSuspense(<VerifyEmailPage />, {
+      title: 'Verify Your Email',
+      description: 'Enter the verification code sent to your email to activate your Nile Flow account.',
+      canonical: '/verify-email',
+      robots: 'noindex,nofollow',
+      breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Verify Email', href: '/verify-email' }],
     }),
   },
   {

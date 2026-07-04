@@ -61,25 +61,11 @@ function SignupPage() {
     }
   }
 
+  // After successful signup, redirect to verification page
   if (verificationSent) {
-    return (
-      <PageShell>
-        <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-          <div className="w-full max-w-md rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Verify your email</p>
-            <h1 className="mt-4 text-2xl font-semibold text-[var(--color-text-primary)]">Check your inbox</h1>
-            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
-              We sent a verification code to <strong>{form.email}</strong>. Please check your email and enter the code to activate your account.
-            </p>
-            <div className="mt-6">
-              <PrimaryButton className="w-full justify-center" onClick={() => navigate('/login')}>
-                Go to sign in
-              </PrimaryButton>
-            </div>
-          </div>
-        </section>
-      </PageShell>
-    )
+    const encodedEmail = encodeURIComponent(form.email)
+    navigate(`/verify-email?email=${encodedEmail}`, { replace: true })
+    return null
   }
 
   return (
