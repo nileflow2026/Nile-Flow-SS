@@ -39,27 +39,45 @@ class TokenManager {
 
   /**
    * Store an access token.
+   * Always persists to localStorage for session recovery across page refreshes.
    * @param {string} token
    */
   setAccessToken(token) {
     if (!token) return;
     this._accessToken = token;
-    if (this.backend !== STORAGE_BACKENDS.memory) {
+    // Always persist to localStorage for session survival across page refresh
+    try {
+      localStorage.setItem(config.tokens.accessTokenKey, token);
+    } catch {
+      // Storage quota or private browsing — silently degrade
+    }
+    if (this.backend !== STORAGE_BACKENDS.memory && this.backend !== localStorage) {
       try {
         this.backend.setItem(config.tokens.accessTokenKey, token);
       } catch {
-        // Storage quota or private browsing — silently degrade to memory
+        // Silent degrade
       }
     }
   }
 
   /**
    * Retrieve the current access token.
+   * Checks memory first, then falls back to localStorage for cross-refresh recovery.
    * @returns {string|null}
    */
   getAccessToken() {
     if (this._accessToken) return this._accessToken;
-    if (this.backend !== STORAGE_BACKENDS.memory) {
+    // Always check localStorage for session recovery after page refresh
+    try {
+      const stored = localStorage.getItem(config.tokens.accessTokenKey);
+      if (stored) {
+        this._accessToken = stored;
+        return stored;
+      }
+    } catch {
+      // Silent degrade
+    }
+    if (this.backend !== STORAGE_BACKENDS.memory && this.backend !== localStorage) {
       try {
         return this.backend.getItem(config.tokens.accessTokenKey);
       } catch {
@@ -101,25 +119,39 @@ class TokenManager {
 
   /**
    * Store user profile data for quick access.
+   * Persists to localStorage for cross-refresh availability.
    * @param {Object} userData
    */
   setUserData(userData) {
     if (!userData) return;
+    // Always persist to localStorage so user data is available on refresh
     try {
-      this.backend.setItem(
-        config.tokens.userDataKey,
-        JSON.stringify(userData),
-      );
+      localStorage.setItem(config.tokens.userDataKey, JSON.stringify(userData));
     } catch {
       // Silent degrade
+    }
+    if (this.backend !== STORAGE_BACKENDS.memory && this.backend !== localStorage) {
+      try {
+        this.backend.setItem(config.tokens.userDataKey, JSON.stringify(userData));
+      } catch {
+        // Silent degrade
+      }
     }
   }
 
   /**
    * Retrieve cached user profile data.
+   * Checks localStorage first for cross-refresh recovery.
    * @returns {Object|null}
    */
   getUserData() {
+    // Always check localStorage first for recovery after page refresh
+    try {
+      const stored = localStorage.getItem(config.tokens.userDataKey);
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // Silent degrade
+    }
     try {
       const raw = this.backend.getItem(config.tokens.userDataKey);
       return raw ? JSON.parse(raw) : null;

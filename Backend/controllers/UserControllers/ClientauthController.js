@@ -403,6 +403,7 @@ const signupcustomer = async (req, res) => {
 
     return res.status(201).json({
       message: "Customer account created successfully.",
+      accessToken,
       user: {
         id: createdUser.$id,
         email: createdUser.email,
@@ -523,6 +524,7 @@ const signincustomer = async (req, res) => {
 
     return res.status(200).json({
       message: "Signin successful",
+      accessToken,
       user: sanitizeUser(user),
     });
   } catch (error) {

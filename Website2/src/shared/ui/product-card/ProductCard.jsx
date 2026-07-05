@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Badge from '../badge/Badge'
+import StarRating from '../star-rating/StarRating'
 import { imageProxyUrl } from '@api/config'
 
 function ProductCard({ product, href = '#', compact = false }) {
@@ -36,6 +37,9 @@ function ProductCard({ product, href = '#', compact = false }) {
     priceStr = 'KSh —'
   }
 
+  // Rating: the backend returns `rating` (avg) and `ratingsCount` (total count)
+  const rating = parseFloat(product?.rating) || parseFloat(product?.avgRating) || 0
+  const reviewCount = parseInt(product?.ratingsCount, 10) || parseInt(product?.totalRatings, 10) || parseInt(product?.reviewCount, 10) || 0
   const description = product?.description || product?.subtitle || ''
   const premium = Boolean(product?.premiumEligible || product?.premium || product?.isPremium)
   const featured = Boolean(product?.featured || product?.isFeatured)
@@ -74,6 +78,8 @@ function ProductCard({ product, href = '#', compact = false }) {
             <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2">{description}</p>
           )}
         </div>
+
+        <StarRating rating={rating} count={reviewCount} />
 
         <div className="flex items-center justify-between gap-3">
           <div>

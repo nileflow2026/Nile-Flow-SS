@@ -197,12 +197,10 @@ class AuthManager {
     }
 
     this._sessionCheckPromise = (async () => {
-      // First check if we have a cached token
-      if (!tokenManager.hasAccessToken()) {
-        this._isAuthenticated = false;
-        return { isAuthenticated: false, user: null };
-      }
-
+      // The backend puts the access token in an httpOnly cookie (not readable by JS).
+      // We cannot check tokenManager.hasAccessToken() here because the cookie
+      // is invisible to JavaScript. Always attempt the API call — if the cookie
+      // is valid the backend returns user data; if not we get a 401.
       try {
         const response = await httpClient.get(
           '/api/customerauth/getCustomerProfile',
@@ -212,6 +210,8 @@ class AuthManager {
         const user = response.data?.user || response.data;
         if (user) {
           tokenManager.setUserData(user);
+          // Persist a flag in localStorage so hasAccessToken() works for non-API checks
+          tokenManager.setAccessToken('session_cookie');
           this._isAuthenticated = true;
           this._notifyLogin(user);
           return { isAuthenticated: true, user };
@@ -220,7 +220,7 @@ class AuthManager {
         this._isAuthenticated = false;
         return { isAuthenticated: false, user: null };
       } catch {
-        // Session invalid or expired — clear tokens
+        // Session invalid or expired
         tokenManager.clearTokens();
         this._isAuthenticated = false;
         return { isAuthenticated: false, user: null };

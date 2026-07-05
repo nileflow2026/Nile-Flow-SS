@@ -41,7 +41,7 @@ function AppHeader() {
       <div className="responsive-shell flex items-center justify-between gap-4 py-3 sm:py-4">
         <Link to="/" className="flex items-center gap-3" aria-label="Nile Flow home">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
-            NF
+            <img src="/logo.png" alt="Nile Flow" className="h-15 w-32 object-cover" />
           </div>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">Nile Flow</p>
