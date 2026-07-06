@@ -1,22 +1,68 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Badge from '@shared/ui/badge/Badge'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
+import { ProtectedRoute } from '@api/context/ProtectedRoute'
+import { notificationService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
-const mockNotifications = [
-  { id: 1, icon: '📦', title: 'Order shipped', description: 'Order NF-2024-003 is on its way.', time: '2 hours ago', read: false },
-  { id: 2, icon: '🏷️', title: 'Flash sale starts soon', description: 'Up to 50% off on selected items for the next 6 hours.', time: '5 hours ago', read: false },
-  { id: 3, icon: '⭐', title: 'Rate your purchase', description: 'How was your Nile Premium Coffee? Leave a review.', time: '1 day ago', read: true },
-  { id: 4, icon: '💳', title: 'Payment confirmed', description: 'Your payment of KES 2,400 for Order NF-2024-001 was successful.', time: '2 days ago', read: true },
-  { id: 5, icon: '🎉', title: 'Welcome to Nile Flow', description: 'Thanks for joining! Start exploring our curated collection.', time: '1 week ago', read: true },
-]
+function formatRelativeTime(dateString) {
+  if (!dateString) return ''
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffMs = now - date
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+  const diffWeek = Math.floor(diffDay / 7)
+
+  if (diffSec < 60) return 'just now'
+  if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`
+  if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? 's' : ''} ago`
+  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`
+  if (diffWeek < 4) return `${diffWeek} week${diffWeek !== 1 ? 's' : ''} ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function getIconFromType(type) {
+  const lower = (type || '').toLowerCase()
+  if (lower === 'order' || lower.includes('order')) return '📦'
+  if (lower === 'promo' || lower.includes('promo') || lower.includes('deal')) return '🏷️'
+  if (lower === 'payment' || lower.includes('payment') || lower.includes('pay')) return '💳'
+  if (lower === 'review' || lower.includes('review') || lower.includes('rate')) return '⭐'
+  if (lower === 'welcome' || lower.includes('welcome')) return '🎉'
+  return '🔔'
+}
 
 function NotificationPage() {
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
   const { push } = useToast()
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchNotifications() {
+      setLoading(true)
+      const data = await notificationService.getNotifications()
+      if (cancelled) return
+      const mapped = (data || []).map((n) => ({
+        id: n.$id || n.id || Math.random().toString(36).slice(2),
+        title: n.title || 'Notification',
+        description: n.message || n.description || '',
+        time: formatRelativeTime(n.createdAt || n.$createdAt),
+        read: n.read === true,
+        icon: getIconFromType(n.type || n.notificationType || ''),
+      }))
+      setNotifications(mapped)
+      setLoading(false)
+    }
+    fetchNotifications()
+    return () => { cancelled = true }
+  }, [])
+
   const unread = notifications.filter((n) => !n.read).length
 
   const markAllRead = () => {
@@ -25,40 +71,46 @@ function NotificationPage() {
   }
 
   return (
-    <PageShell>
-      <ResponsiveSection eyebrow="Notifications" title="Your activity" description="Stay updated on orders, deals, and account activity." className="py-10 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-2xl">
-          <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm text-[var(--color-text-secondary)]">{unread} unread notification{unread !== 1 ? 's' : ''}</p>
-            {unread > 0 && <button onClick={markAllRead} className="min-h-11 rounded-full bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)] hover:text-white">Mark all read</button>}
-          </div>
-
-          {notifications.length === 0 ? (
-            <EmptyState title="No notifications" description="You're all caught up! New notifications will appear here." icon="🔔" />
-          ) : (
-            <div className="space-y-2">
-              {notifications.map((n) => (
-                <div key={n.id} className={`flex items-start gap-4 rounded-[1.5rem] border p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6 ${
-                  n.read ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-primary)]/20 bg-[var(--color-primary)]/[0.03]'
-                }`}>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-lg">
-                    {n.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">{n.title}</p>
-                      {!n.read && <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />}
-                    </div>
-                    <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{n.description}</p>
-                    <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{n.time}</p>
-                  </div>
-                </div>
-              ))}
+    <ProtectedRoute requireAuth>
+      <PageShell>
+        <ResponsiveSection eyebrow="Notifications" title="Your activity" description="Stay updated on orders, deals, and account activity." className="py-10 sm:py-14 lg:py-16">
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <p className="text-sm text-[var(--color-text-secondary)]">{unread} unread notification{unread !== 1 ? 's' : ''}</p>
+              {unread > 0 && <button onClick={markAllRead} className="min-h-11 rounded-full bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)] hover:text-white">Mark all read</button>}
             </div>
-          )}
-        </div>
-      </ResponsiveSection>
-    </PageShell>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)]" />
+              </div>
+            ) : notifications.length === 0 ? (
+              <EmptyState title="No notifications" description="You're all caught up! New notifications will appear here." icon="🔔" />
+            ) : (
+              <div className="space-y-2">
+                {notifications.map((n) => (
+                  <div key={n.id} className={`flex items-start gap-4 rounded-[1.5rem] border p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6 ${
+                    n.read ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-primary)]/20 bg-[var(--color-primary)]/[0.03]'
+                  }`}>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-lg">
+                      {n.icon}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">{n.title}</p>
+                        {!n.read && <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />}
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{n.description}</p>
+                      <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{n.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ResponsiveSection>
+      </PageShell>
+    </ProtectedRoute>
   )
 }
 

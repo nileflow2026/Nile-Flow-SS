@@ -10,6 +10,13 @@ const navItems = [
   { label: 'Cart', to: '/cart' },
 ]
 
+const ProfileIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+)
+
 function AppHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
@@ -63,6 +70,19 @@ function AppHeader() {
               {item.label}
             </NavLink>
           ))}
+          {isAuthenticated && (
+            <NavLink
+              to="/profile"
+              className={({ isActive }) =>
+                `inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
+                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
+                }`
+              }
+              aria-label="Profile"
+            >
+              <ProfileIcon />
+            </NavLink>
+          )}
         </nav>
 
         <div className="hidden md:flex">

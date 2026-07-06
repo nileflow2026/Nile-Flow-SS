@@ -31,7 +31,7 @@ export const config = {
     timeout: parseInt(getEnv('VITE_API_TIMEOUT', 90000), 10),
     retryCount: parseInt(getEnv('VITE_API_RETRY_COUNT', 3), 10),
     retryDelay: parseInt(getEnv('VITE_API_RETRY_DELAY', 1000), 10),
-    withCredentials: false,
+    withCredentials: true,
   },
 
   // ── Authentication ────────────────────────────────────────────────

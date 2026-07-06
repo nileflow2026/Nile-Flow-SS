@@ -30,6 +30,7 @@ const PremiumDealsPage = lazy(() => import('@features/premium/pages/PremiumDeals
 const GroupBuyPage = lazy(() => import('@features/group-buy/pages/GroupBuyPage'))
 const CareersPage = lazy(() => import('@features/careers/pages/CareersPage'))
 const CancelOrderPage = lazy(() => import('@features/info/pages/CancelOrderPage'))
+const AccountDeletionPage = lazy(() => import('@features/user/pages/AccountDeletionPage'))
 const TermsPage = lazy(() => import('@features/info/pages/TermsPage'))
 const AboutPage = lazy(() => import('@features/info/pages/AboutPage'))
 const ContactPage = lazy(() => import('@features/info/pages/ContactPage'))
@@ -342,6 +343,16 @@ export const appRoutes = [
       canonical: '/cancel-order',
       robots: 'noindex,nofollow',
       breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Cancel Order', href: '/cancel-order' }],
+    }),
+  },
+  {
+    path: '/account-deletion',
+    element: withSuspense(<AccountDeletionPage />, {
+      title: 'Delete Account & Data',
+      description: 'Permanently remove your Nile Flow account and all associated personal data. GDPR and Play Store compliant.',
+      canonical: '/account-deletion',
+      robots: 'noindex,nofollow',
+      breadcrumbs: [{ label: 'Home', href: '/' }, { label: 'Delete Account', href: '/account-deletion' }],
     }),
   },
   {

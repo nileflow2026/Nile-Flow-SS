@@ -35,6 +35,16 @@ function processQueue(error, success = false) {
  * On refresh failure, dispatches a logout event.
  */
 export function tokenRefreshInterceptor() {
+  // Routes that should never trigger a token refresh
+  const NO_REFRESH_ROUTES = [
+    '/api/customerauth/signin',
+    '/api/customerauth/signup',
+    '/api/customerauth/refresh',
+    '/api/customerauth/verify',
+    '/api/customerauth/resend-code',
+    '/api/customerauth/getCustomerProfile',
+  ];
+
   return {
     onFulfilled: (response) => response,
     onRejected: async (error) => {
@@ -43,6 +53,12 @@ export function tokenRefreshInterceptor() {
 
       // Only handle 401
       if (status !== 401 || originalRequest?._retry) {
+        return Promise.reject(error);
+      }
+
+      // Don't refresh on auth-related endpoints (signin, signup, refresh, verify)
+      const requestUrl = originalRequest?.url || '';
+      if (NO_REFRESH_ROUTES.some((route) => requestUrl.startsWith(route))) {
         return Promise.reject(error);
       }
 
