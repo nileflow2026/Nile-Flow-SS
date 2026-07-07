@@ -1,15 +1,58 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
+import Loader from '@shared/ui/loader/Loader'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { httpClient } from '@api/client/index'
 
 function SettingsPage() {
   const [form, setForm] = useState({ language: 'en', theme: 'system', emailPromos: true, orderUpdates: true, smsAlerts: false })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const { push } = useToast()
 
-  const handleSave = () => {
-    push({ title: 'Settings saved', message: 'Your preferences have been updated.' })
+  useEffect(() => {
+    let cancelled = false
+    async function fetchPreferences() {
+      setLoading(true)
+      try {
+        const res = await httpClient.get('/api/customerauth/preferences')
+        const prefs = res?.data?.preferences || {}
+        if (cancelled) return
+        setForm({
+          language: prefs.language || 'en',
+          theme: prefs.theme || 'system',
+          emailPromos: prefs.emailPromos !== false,
+          orderUpdates: prefs.orderUpdates !== false,
+          smsAlerts: prefs.smsAlerts === true,
+        })
+      } catch {
+        // Use defaults
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchPreferences()
+    return () => { cancelled = true }
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await httpClient.put('/api/customerauth/preferences', {
+        language: form.language,
+        theme: form.theme,
+        emailPromos: form.emailPromos,
+        orderUpdates: form.orderUpdates,
+        smsAlerts: form.smsAlerts,
+      })
+      push({ title: 'Settings saved', message: 'Your preferences have been updated.' })
+    } catch {
+      push({ title: 'Failed to save', message: 'Please try again.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

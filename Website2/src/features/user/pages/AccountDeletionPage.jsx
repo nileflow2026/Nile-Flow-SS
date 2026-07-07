@@ -255,22 +255,22 @@ function AccountDeletionPage() {
               {error && <Alert title="Error" description={error} tone="warning" />}
 
               <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div className="flex justify-center gap-2">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`d-otp-${index}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="h-14 w-12 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface-muted)] text-center text-xl font-bold text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
-                      aria-label={`Digit ${index + 1}`}
-                    />
-                  ))}
-                </div>
+                  <div className="flex justify-center gap-1.5 sm:gap-2">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        id={`d-otp-${index}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        className="h-12 w-9 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface-muted)] text-center text-lg font-bold text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)] sm:h-14 sm:w-12 sm:text-xl"
+                        aria-label={`Digit ${index + 1}`}
+                      />
+                    ))}
+                  </div>
 
                 <PrimaryButton type="submit" className="w-full justify-center" disabled={loading || otp.join('').length !== 6}>
                   {loading ? 'Verifying…' : 'Confirm deletion'}

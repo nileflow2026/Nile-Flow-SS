@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
@@ -6,30 +6,49 @@ import Button from '@shared/ui/button/Button'
 import Badge from '@shared/ui/badge/Badge'
 import Modal from '@shared/ui/modal/Modal'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
+import Loader from '@shared/ui/loader/Loader'
 import { useToast } from '@shared/ui/toast/ToastProvider'
-
-const initialAddresses = [
-  { id: 1, label: 'Home', street: '123 Moi Avenue', city: 'Nairobi', phone: '+254 712 345 678', default: true },
-  { id: 2, label: 'Office', street: '456 Kenyatta Blvd', city: 'Mombasa', phone: '+254 723 456 789', default: false },
-]
+import { addressService } from '@api/services'
 
 function AddressesPage() {
-  const [addresses, setAddresses] = useState(initialAddresses)
+  const [addresses, setAddresses] = useState([])
+  const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ label: '', street: '', city: '', phone: '' })
   const { push } = useToast()
 
-  const handleAdd = () => {
+  const fetchAddresses = useCallback(async () => {
+    setLoading(true)
+    const data = await addressService.getAddresses()
+    setAddresses(Array.isArray(data) ? data : [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [fetchAddresses])
+
+  const handleAdd = async () => {
     if (!form.label || !form.street || !form.city || !form.phone) return
-    setAddresses((cur) => [...cur, { ...form, id: Date.now(), default: false }])
-    setForm({ label: '', street: '', city: '', phone: '' })
-    setModalOpen(false)
-    push({ title: 'Address added', message: 'Your new address has been saved.' })
+    const result = await addressService.addAddress(form)
+    if (result.success) {
+      push({ title: 'Address added', message: 'Your new address has been saved.' })
+      setForm({ label: '', street: '', city: '', phone: '' })
+      setModalOpen(false)
+      fetchAddresses()
+    } else {
+      push({ title: 'Failed to add address', message: result.error || 'Please try again.' })
+    }
   }
 
-  const handleDelete = (id) => {
-    setAddresses((cur) => cur.filter((a) => a.id !== id))
-    push({ title: 'Address removed', message: 'Address has been deleted.' })
+  const handleDelete = async (id) => {
+    const ok = await addressService.deleteAddress(id)
+    if (ok) {
+      push({ title: 'Address removed', message: 'Address has been deleted.' })
+      fetchAddresses()
+    } else {
+      push({ title: 'Failed to delete address', message: 'Please try again.' })
+    }
   }
 
   return (

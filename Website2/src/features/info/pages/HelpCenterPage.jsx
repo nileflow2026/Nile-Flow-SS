@@ -39,7 +39,7 @@ function HelpCenterPage() {
       </section>
 
       <ResponsiveSection eyebrow="Popular questions" title="Support topics that matter most" description="These are the common questions we hear from shoppers and merchants every day.">
-        <div className="space-y-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {faqs.map((item) => (
             <div key={item.question} className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{item.question}</h3>

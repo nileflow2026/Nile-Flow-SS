@@ -32,7 +32,7 @@ function PrivacyPage() {
       </section>
 
       <ResponsiveSection eyebrow="What we protect" title="A privacy-first commerce experience" description="We keep our practices straightforward and easy to understand, so it is clear how your data is used and protected.">
-        <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {points.map((item) => (
             <div key={item.title} className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{item.title}</h3>

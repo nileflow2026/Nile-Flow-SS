@@ -32,7 +32,7 @@ function ReturnPolicyPage() {
       </section>
 
       <ResponsiveSection eyebrow="How it works" title="A support-first return experience" description="Returns are handled with clear expectations so there is less uncertainty and faster resolution.">
-        <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {policyPoints.map((item) => (
             <div key={item.title} className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{item.title}</h3>

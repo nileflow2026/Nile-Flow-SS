@@ -41,7 +41,7 @@ function AboutPage() {
       </section>
 
       <ResponsiveSection eyebrow="What drives us" title="A platform shaped by trust, inclusion, and everyday convenience" description="We design every touchpoint to feel calm, clear, and dependable for shoppers, merchants, and delivery teams.">
-        <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {pillars.map((item) => (
             <div key={item.title} className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{item.title}</h3>

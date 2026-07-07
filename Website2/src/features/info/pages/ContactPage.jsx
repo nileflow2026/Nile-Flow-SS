@@ -54,7 +54,7 @@ function ContactPage() {
       </section>
 
       <ResponsiveSection eyebrow="Quick answers" title="Most common questions" description="Support, delivery, and merchant inquiries are handled through the same fast, human-friendly workflow.">
-        <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Orders</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--color-text-secondary)]">Track progress or ask for shipping help in a few taps.</p>

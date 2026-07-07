@@ -110,7 +110,7 @@ function HomePage() {
       )}
 
       <ResponsiveSection eyebrow="Why Nile Flow" title="Built for African commerce" description="Every detail is designed for trust, speed, and clarity.">
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           {highlights.map((item) => (
             <InfoCard key={item.title} title={item.title} description={item.description} badge={item.badge} />
           ))}

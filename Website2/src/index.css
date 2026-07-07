@@ -58,6 +58,7 @@ html {
   background-color: var(--color-background);
   color: var(--color-text-primary);
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -69,6 +70,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 * {
