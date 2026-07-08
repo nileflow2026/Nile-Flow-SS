@@ -83,7 +83,7 @@ function SearchPage() {
 
           {!loading && results.length > 0 && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 {results.length} result{results.length > 1 ? 's' : ''} found
               </p>
               {results.map((item) => {
@@ -96,9 +96,9 @@ function SearchPage() {
                   <Link
                     key={id}
                     to={`/products/${id}`}
-                    className="flex items-center gap-4 rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-5"
+                    className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-5"
                   >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] overflow-hidden">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-gray-100 overflow-hidden dark:bg-gray-800">
                       {item.image ? (
                         <img
                           src={item.image.includes('appwrite.io') ? imageProxyUrl(item.image, 150, 60) : item.image}
@@ -112,12 +112,12 @@ function SearchPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
-                        <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{name}</p>
+                        <p className="text-base font-semibold text-gray-900 truncate dark:text-white">{name}</p>
                         {item.category && <Badge variant="neutral">{item.category}</Badge>}
                       </div>
-                      <p className="mt-1 text-sm text-[var(--color-accent)] font-semibold">{price}</p>
+                      <p className="mt-1 text-sm text-amber-600 font-semibold dark:text-amber-400">{price}</p>
                     </div>
-                    <span className="text-sm font-semibold text-[var(--color-primary)] shrink-0">View →</span>
+                    <span className="text-sm font-semibold text-emerald-600 shrink-0 dark:text-emerald-400">View →</span>
                   </Link>
                 )
               })}
@@ -126,7 +126,7 @@ function SearchPage() {
 
           {!searched && !loading && (
             <div className="mt-4">
-              <p className="text-sm text-[var(--color-text-muted)]">
+              <p className="text-sm text-gray-500 dark:text-gray-500">
                 Try searching: Coffee · Baskets · Shea Butter · Beaded Jewelry
               </p>
             </div>

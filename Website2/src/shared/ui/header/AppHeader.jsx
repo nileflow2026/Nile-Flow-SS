@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Button from '@shared/ui/button/Button'
 import { useTheme } from '@app/providers/ThemeProvider'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 
 const navItems = [
   { label: 'Home', to: '/' },
@@ -63,7 +63,7 @@ function AppHeader() {
               to={item.to}
               className={({ isActive }) =>
                 `rounded-full px-4 py-2 text-sm font-medium transition ${
-                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
+                  isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-[var(--color-text-secondary)] hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
                 }`
               }
             >
@@ -75,7 +75,7 @@ function AppHeader() {
               to="/profile"
               className={({ isActive }) =>
                 `inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
-                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
+                  isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-[var(--color-text-secondary)] hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
                 }`
               }
               aria-label="Profile"
@@ -132,7 +132,7 @@ function AppHeader() {
               to={item.to}
               className={({ isActive }) =>
                 `rounded-2xl px-3 py-3 text-sm font-medium transition ${
-                  isActive ? 'bg-[var(--color-accent-soft)] text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)]'
+                  isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-[var(--color-text-secondary)] hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
                 }`
               }
             >

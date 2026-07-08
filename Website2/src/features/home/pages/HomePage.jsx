@@ -1,32 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
-import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
-import InfoCard from '@shared/ui/card/InfoCard'
-import PrimaryButton from '@shared/ui/button/PrimaryButton'
-import Button from '@shared/ui/button/Button'
 import ProductCard from '@shared/ui/product-card/ProductCard'
-import Loader from '@shared/ui/loader/Loader'
+import Button from '@shared/ui/button/Button'
 import { productService } from '@api/services'
-import { useAuth } from '@api/context/AuthContext'
-
-const highlights = [
-  {
-    title: 'Curated African marketplace',
-    description: 'Authentic products sourced directly from artisans and producers across the continent.',
-    badge: 'Trusted',
-  },
-  {
-    title: 'Secure payments',
-    description: 'Pay with card or M-Pesa through our encrypted checkout flow.',
-    badge: 'Safe',
-  },
-  {
-    title: 'Fast delivery network',
-    description: 'Reliable last-mile delivery across East Africa with real-time tracking.',
-    badge: 'Reliable',
-  },
-]
+import { useAuth } from '@auth/AuthContext'
+import HeroSection from '../components/HeroSection'
+import MarketplaceSection from '../components/MarketplaceSection'
+import WhyNileFlow from '../components/WhyNileFlow'
+import AfricaMap from '../components/AfricaMap'
+import CommunityImpact from '../components/CommunityImpact'
+import MerchantSection from '../components/MerchantSection'
+import AIAssistantSection from '../components/AIAssistantSection'
+import NileVerseSection from '../components/NileVerseSection'
+import TestimonialsSection from '../components/TestimonialsSection'
 
 function HomePage() {
   const { isAuthenticated, user } = useAuth()
@@ -38,7 +25,6 @@ function HomePage() {
       setLoading(true)
       try {
         const result = await productService.getProducts()
-        // Show up to 6 products, prefer featuring first few
         setFeaturedProducts(result.products?.slice(0, 6) || [])
       } catch {
         setFeaturedProducts([])
@@ -51,71 +37,111 @@ function HomePage() {
 
   return (
     <PageShell>
-      <section className="py-10 sm:py-14 lg:py-20">
-        <div className="responsive-shell grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8 lg:p-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">
-              {isAuthenticated ? `Welcome, ${user?.name || user?.username || user?.email?.split('@')[0] || 'back'}!` : 'Nile Flow'}
-            </p>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
-              African commerce, trusted and delivered.
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base sm:leading-8">
-              Discover authentic products, secure payments, and dependable delivery designed for modern everyday shopping across Africa.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/products"><PrimaryButton className="w-full justify-center sm:w-auto">Shop products</PrimaryButton></Link>
-              <Link to="/deals"><Button variant="outline" className="w-full justify-center sm:w-auto">View deals</Button></Link>
+      {/* Hero Section — Cinematic African Technology Experience */}
+      <HeroSection />
+
+      {/* African Marketplace Categories */}
+      <MarketplaceSection />
+
+      {/* Why Nile Flow — Premium Feature Cards */}
+      <WhyNileFlow />
+
+      {/* Featured Products (legacy section, kept to maintain existing functionality) */}
+      {featuredProducts.length > 0 && (
+        <section className="relative overflow-hidden bg-white py-20 dark:bg-gray-950">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-3xl text-center">
+              {isAuthenticated ? (
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
+                  Welcome, {user?.name || user?.username || user?.email?.split('@')[0] || 'back'}!
+                </p>
+              ) : (
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
+                  Featured
+                </p>
+              )}
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
+                Trending <span className="text-emerald-600 dark:text-emerald-400">Products</span>
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg">
+                Popular products our customers love right now.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {loading ? (
+                <div className="col-span-full flex items-center justify-center py-12">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+                    Loading products...
+                  </div>
+                </div>
+              ) : (
+                featuredProducts.map((product) => (
+                  <ProductCard
+                    key={product.$id || product.id}
+                    product={product}
+                    href={`/products/${product.$id || product.id}`}
+                    compact
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link to="/products">
+                <Button variant="outline" className="px-6 py-3">
+                  View all products →
+                </Button>
+              </Link>
             </div>
           </div>
+        </section>
+      )}
 
-          <div className="grid gap-4">
-            <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6 sm:p-8">
-              <p className="text-sm font-semibold text-[var(--color-primary)]">Real-time tracking</p>
-              <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)] sm:text-xl">Know where your order is, every step of the way.</p>
-            </div>
-            <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)] sm:p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--color-text-primary)]">Premium members save more</p>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Exclusive deals, early access, and free delivery.</p>
-                </div>
-                <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">Premium</span>
-              </div>
-            </div>
+      {/* Interactive Africa Map */}
+      <AfricaMap />
+
+      {/* Community Impact — Live Metrics */}
+      <CommunityImpact />
+
+      {/* Merchant Section */}
+      <MerchantSection />
+
+      {/* AI Assistant Section */}
+      <AIAssistantSection />
+
+      {/* NileVerse Ecosystem */}
+      <NileVerseSection />
+
+      {/* Trust & Testimonials */}
+      <TestimonialsSection />
+
+      {/* Final CTA */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-amber-900 py-20">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            Ready to Join Africa's <span className="text-amber-400">Commerce Revolution</span>?
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
+            Whether you're shopping, selling, or building — Nile Flow is your platform for the future of African commerce.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link
+              to="/products"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-amber-600/30 transition-all hover:bg-amber-600 hover:shadow-xl hover:scale-105"
+            >
+              Start Shopping
+            </Link>
+            <Link
+              to="/signup"
+              className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/30 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/50"
+            >
+              Create Account
+            </Link>
           </div>
         </div>
       </section>
-
-      {featuredProducts.length > 0 && (
-        <ResponsiveSection eyebrow="Featured" title="Trending products" description="Popular products our customers love right now.">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {loading ? (
-              <div className="col-span-full"><Loader label="Loading products…" /></div>
-            ) : (
-              featuredProducts.map((product) => (
-                <ProductCard
-                  key={product.$id || product.id}
-                  product={product}
-                  href={`/products/${product.$id || product.id}`}
-                  compact
-                />
-              ))
-            )}
-          </div>
-          <div className="mt-6 text-center">
-            <Link to="/products"><Button variant="outline">View all products →</Button></Link>
-          </div>
-        </ResponsiveSection>
-      )}
-
-      <ResponsiveSection eyebrow="Why Nile Flow" title="Built for African commerce" description="Every detail is designed for trust, speed, and clarity.">
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {highlights.map((item) => (
-            <InfoCard key={item.title} title={item.title} description={item.description} badge={item.badge} />
-          ))}
-        </div>
-      </ResponsiveSection>
     </PageShell>
   )
 }

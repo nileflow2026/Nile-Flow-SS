@@ -3,7 +3,7 @@ import AppRouter from '../router'
 import { SkipLink } from '@shared/ui/SkipLink'
 import { ThemeProvider } from './ThemeProvider'
 import { ToastProvider } from '@shared/ui/toast/ToastProvider'
-import { AuthProvider } from '@api/context/AuthContext'
+import { AuthProvider } from '@auth/AuthContext'
 
 export default function AppProviders() {
   return (

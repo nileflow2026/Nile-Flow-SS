@@ -14,15 +14,12 @@ function ProductListingPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  // categories: array of { id: docId (filter value), name: display label }
   const [categoryFilters, setCategoryFilters] = useState([{ id: null, name: 'All' }])
-  const [activeFilterId, setActiveFilterId] = useState(null) // null = All
+  const [activeFilterId, setActiveFilterId] = useState(null)
   const [nextCursor, setNextCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const { push } = useToast()
 
-  // Fetch categories API → build { id: name } lookup map
-  // Then fetch initial products
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -34,7 +31,6 @@ function ProductListingPage() {
     ]).then(([cats, result]) => {
       if (cancelled) return
 
-      // Build docId → displayName map
       const nameMap = {}
       for (const c of (cats || [])) {
         const cid = c.$id || c.id
@@ -42,7 +38,6 @@ function ProductListingPage() {
         if (cid && cname) nameMap[cid] = cname
       }
 
-      // Extract unique category doc IDs from product data
       const ids = new Set()
       for (const p of (result.products || [])) {
         const raw = p.category || p.categoryId || p.categoryName
@@ -54,7 +49,6 @@ function ProductListingPage() {
         }
       }
 
-      // Build filter buttons: use doc ID as filter key, name from API map
       const filters = [{ id: null, name: 'All' }]
       for (const id of [...ids].sort()) {
         filters.push({ id, name: nameMap[id] || id })
@@ -73,7 +67,6 @@ function ProductListingPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Load products when filter changes
   const loadProducts = useCallback(async (filterId, cursor) => {
     setLoading(true)
     setError(null)
@@ -92,7 +85,6 @@ function ProductListingPage() {
     setLoading(false)
   }, [])
 
-  // Trigger reload on filter change (skip the initial mount)
   const initialLoadDone = useRef(false)
 
   useEffect(() => {
@@ -124,7 +116,7 @@ function ProductListingPage() {
     <PageShell>
       <ResponsiveSection eyebrow="Shop" title="Discover curated products" description="Browse our handpicked collection of authentic African products." className="py-10 sm:py-14 lg:py-16">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {loading ? 'Loading…' : `${products.length} products`}
           </p>
           <div className="-mx-4 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0 sm:overflow-visible">
@@ -136,8 +128,8 @@ function ProductListingPage() {
                   onClick={() => handleFilterChange(cat.id)}
                   className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition cursor-pointer touch-manipulation ${
                     cat.id === activeFilterId
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                      : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-emerald-400'
                   }`}
                 >
                   {cat.name}
@@ -189,10 +181,10 @@ function ProductListingPage() {
           </>
         )}
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
           <div>
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Can't find what you're looking for?</p>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Try searching our full catalog or browse by category.</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Can't find what you're looking for?</p>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Try searching our full catalog or browse by category.</p>
           </div>
           <div className="flex gap-3">
             <Link to="/search"><Button variant="outline">Search</Button></Link>

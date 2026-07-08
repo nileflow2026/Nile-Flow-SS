@@ -4,7 +4,7 @@ import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Alert from '@shared/ui/alert/Alert'
 import Loader from '@shared/ui/loader/Loader'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
 function ResetPasswordPage() {
@@ -50,10 +50,10 @@ function ResetPasswordPage() {
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-        <div className="w-full max-w-md rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">New password</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--color-text-primary)]">Reset your password</h1>
-          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">New password</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Reset your password</h1>
+          <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
             Choose a strong password you haven't used before.
           </p>
 
@@ -78,38 +78,38 @@ function ResetPasswordPage() {
             </div>
           ) : !loading && (
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
                 Email address
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((cur) => ({ ...cur, email: e.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
                 New password
                 <input
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm((cur) => ({ ...cur, password: e.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   placeholder="Min. 8 characters"
                   required
                   minLength={8}
                   autoComplete="new-password"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
                 Confirm new password
                 <input
                   type="password"
                   value={form.confirmPassword}
                   onChange={(e) => setForm((cur) => ({ ...cur, confirmPassword: e.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   placeholder="Repeat password"
                   required
                   autoComplete="new-password"
@@ -119,8 +119,8 @@ function ResetPasswordPage() {
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
-            <Link to="/login" className="font-semibold text-[var(--color-primary)] hover:text-[var(--color-accent)]">Back to sign in</Link>
+          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+            <Link to="/login" className="font-semibold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400">Back to sign in</Link>
           </p>
         </div>
       </section>

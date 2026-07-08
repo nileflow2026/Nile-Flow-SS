@@ -20,6 +20,7 @@ export default defineConfig({
       '@commerce': fileURLToPath(new URL('./src/commerce', import.meta.url)),
       '@platform': fileURLToPath(new URL('./src/platform', import.meta.url)),
       '@ai': fileURLToPath(new URL('./src/ai', import.meta.url)),
+      '@auth': fileURLToPath(new URL('./src/auth', import.meta.url)),
       '@api': fileURLToPath(new URL('./src/api', import.meta.url)),
       '@assets': fileURLToPath(new URL('./src/assets', import.meta.url)),
       '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),

@@ -4,7 +4,7 @@ import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Alert from '@shared/ui/alert/Alert'
 import Loader from '@shared/ui/loader/Loader'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
 function SignupPage() {
@@ -71,10 +71,10 @@ function SignupPage() {
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-        <div className="w-full max-w-md rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Get started</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[var(--color-text-primary)]">Create your account</h1>
-          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Get started</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Create your account</h1>
+          <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
             Join Nile Flow for seamless shopping, order tracking, and exclusive member benefits.
           </p>
 
@@ -86,60 +86,60 @@ function SignupPage() {
             </div>
           ) : (
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Full name *
                 <input
                   value={form.username}
                   onChange={handleChange('username')}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-400"
                   placeholder="Jane Doe"
                   required
                   autoComplete="name"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email *
                 <input
                   type="email"
                   value={form.email}
                   onChange={handleChange('email')}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-400"
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Phone (optional)
                 <input
                   type="tel"
                   value={form.phone}
                   onChange={handleChange('phone')}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-400"
                   placeholder="+254 712 345 678"
                   autoComplete="tel"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password *
                 <input
                   type="password"
                   value={form.password}
                   onChange={handleChange('password')}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-400"
                   placeholder="Min. 8 characters"
                   required
                   minLength={8}
                   autoComplete="new-password"
                 />
               </label>
-              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirm password *
                 <input
                   type="password"
                   value={form.confirmPassword}
                   onChange={handleChange('confirmPassword')}
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-emerald-400"
                   placeholder="Repeat password"
                   required
                   autoComplete="new-password"
@@ -151,9 +151,9 @@ function SignupPage() {
             </form>
           )}
 
-          <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
+          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-[var(--color-primary)] hover:text-[var(--color-accent)]">Sign in</Link>
+            <Link to="/login" className="font-semibold text-emerald-600 hover:text-amber-600 dark:text-emerald-400 dark:hover:text-amber-400">Sign in</Link>
           </p>
         </div>
       </section>

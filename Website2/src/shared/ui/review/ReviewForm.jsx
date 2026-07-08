@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import PrimaryButton from '../button/PrimaryButton'
 import { reviewService } from '@api/services'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 import { useToast } from '../toast/ToastProvider'
 
 const STAR_LABELS = ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']

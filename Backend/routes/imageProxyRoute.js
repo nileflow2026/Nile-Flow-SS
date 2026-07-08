@@ -20,22 +20,33 @@ const { imageCache } = require("../utils/imageCache");
 
 // ── Connection pooling ────────────────────────────────────────────────────────
 // Reuse agent so DNS resolution and TCP handshakes are shared across requests.
-const KEEP_ALIVE_MS = 60000; // 60s
+// Use a shorter keep-alive to reduce stale-connection risk on network changes.
+const KEEP_ALIVE_MS = 10000; // 10s — short enough to avoid staleness
+const FREE_SOCKET_TIMEOUT = 5000; // 5s — close idle sockets quickly
 const MAX_SOCKETS = 25;
 
 const httpsAgent = new https.Agent({
   keepAlive: true,
   keepAliveMsecs: KEEP_ALIVE_MS,
   maxSockets: MAX_SOCKETS,
-  timeout: 15000,
+  timeout: 20000,
+  freeSocketTimeout: FREE_SOCKET_TIMEOUT,
 });
 
 const httpAgent = new http.Agent({
   keepAlive: true,
   keepAliveMsecs: KEEP_ALIVE_MS,
   maxSockets: MAX_SOCKETS,
-  timeout: 15000,
+  timeout: 20000,
+  freeSocketTimeout: FREE_SOCKET_TIMEOUT,
 });
+
+// Periodically destroy idle sockets to force fresh connections
+// (mitigates ERR_NETWORK_CHANGED caused by stale keep-alive sockets)
+setInterval(() => {
+  httpsAgent.destroy();
+  httpAgent.destroy();
+}, 60000); // every 60s
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const ALLOWED_HOSTS = ["fra.cloud.appwrite.io", "cloud.appwrite.io"];

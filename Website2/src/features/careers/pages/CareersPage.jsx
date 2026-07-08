@@ -22,30 +22,32 @@ const culture = [
 function CareersPage() {
   return (
     <PageShell>
-      <section className="bg-gradient-to-br from-[var(--color-primary)]/5 via-transparent to-[var(--color-accent)]/5 px-4 py-14 text-center sm:px-6 sm:py-20">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Careers</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">Join the Nile Flow team</h1>
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-[var(--color-text-secondary)]">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 dark:from-emerald-950/20 dark:to-amber-950/20 px-4 py-14 text-center sm:px-6 sm:py-20">
+        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Careers</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Join the Nile Flow team</h1>
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-gray-600 dark:text-gray-400">
           We're building the digital commerce backbone for Africa. Come shape the future with us.
         </p>
         <PrimaryButton className="mt-6">View open positions</PrimaryButton>
       </section>
 
+      {/* Open Positions */}
       <ResponsiveSection eyebrow="Open positions" title="Join our team" description="We're looking for passionate people to help us transform African commerce." className="py-10 sm:py-14 lg:py-16">
         <div className="grid gap-6 sm:grid-cols-2">
           {openPositions.map((job, i) => (
-            <div key={i} className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6">
+            <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 hover:shadow-lg transition-all">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-base font-semibold text-[var(--color-text-primary)]">{job.title}</p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-white">{job.title}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant="neutral">{job.location}</Badge>
                     <Badge variant="primary">{job.type}</Badge>
                   </div>
                 </div>
               </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">{job.description}</p>
-              <button className="mt-4 min-h-11 rounded-full bg-[var(--color-primary)]/10 px-5 py-2.5 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)] hover:text-white">
+              <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">{job.description}</p>
+              <button className="mt-4 min-h-11 rounded-full border border-gray-300 dark:border-gray-700 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-800">
                 Apply now
               </button>
             </div>
@@ -53,15 +55,16 @@ function CareersPage() {
         </div>
       </ResponsiveSection>
 
-      <div className="bg-[var(--color-surface-muted)] px-4 py-14 sm:px-6 sm:py-20">
+      {/* Culture Section */}
+      <div className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 dark:from-emerald-950/20 dark:to-amber-950/20 px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Culture</p>
-          <h2 className="mt-3 text-center text-2xl font-bold text-[var(--color-text-primary)] sm:text-3xl">How we work</h2>
+          <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Culture</p>
+          <h2 className="mt-3 text-center text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">How we work</h2>
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {culture.map((item, i) => (
-              <div key={i} className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center sm:p-6">
-                <p className="font-semibold text-[var(--color-text-primary)]">{item.title}</p>
-                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{item.description}</p>
+              <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 text-center">
+                <p className="font-semibold text-gray-900 dark:text-white">{item.title}</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
               </div>
             ))}
           </div>

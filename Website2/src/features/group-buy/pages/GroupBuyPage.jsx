@@ -14,10 +14,10 @@ const mockGroupBuys = [
 function GroupBuyPage() {
   return (
     <PageShell>
-      <div className="relative overflow-hidden bg-gradient-to-br from-[var(--color-primary)]/5 via-[var(--color-accent)]/5 to-transparent px-4 py-14 text-center sm:px-6 sm:py-20">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-primary)]">Group buying</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">Buy together, save more</h1>
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-[var(--color-text-secondary)]">
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/30 via-amber-50/30 to-transparent px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-emerald-950/10 dark:via-amber-950/10">
+        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Group buying</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Buy together, save more</h1>
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-gray-600 dark:text-gray-400">
           Team up with other shoppers to unlock lower prices. The more people join, the less everyone pays.
         </p>
         <PrimaryButton className="mt-6">Start a group buy</PrimaryButton>
@@ -28,25 +28,25 @@ function GroupBuyPage() {
           {mockGroupBuys.map((gb) => {
             const progress = Math.round((gb.current / gb.target) * 100)
             return (
-              <div key={gb.id} className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] sm:p-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] text-2xl">{gb.image}</div>
-                <p className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">{gb.name}</p>
+              <div key={gb.id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-gray-100 text-2xl dark:bg-gray-800">{gb.image}</div>
+                <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{gb.name}</p>
                 <div className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between text-[var(--color-text-secondary)]"><span>Group price</span><span className="font-semibold text-[var(--color-accent)]">{gb.price}</span></div>
-                  <div className="flex justify-between text-[var(--color-text-secondary)]"><span>Regular</span><span className="line-through">{gb.fullPrice}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--color-text-secondary)]">Savings</span><Badge variant="warning">{gb.savings}</Badge></div>
+                  <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>Group price</span><span className="font-semibold text-amber-600 dark:text-amber-400">{gb.price}</span></div>
+                  <div className="flex justify-between text-gray-600 dark:text-gray-400"><span>Regular</span><span className="line-through">{gb.fullPrice}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Savings</span><Badge variant="warning">{gb.savings}</Badge></div>
                 </div>
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
                     <span>{gb.current}/{gb.target} joined</span>
                     <span>{progress}%</span>
                   </div>
-                  <div className="mt-1 h-2 rounded-full bg-[var(--color-surface-muted)]">
-                    <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${progress}%` }} />
+                  <div className="mt-1 h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+                    <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${progress}%` }} />
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-[var(--color-text-muted)]">Ends in {gb.ends}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-500">Ends in {gb.ends}</span>
                   <Button variant="primary" className="text-xs">Join group</Button>
                 </div>
               </div>

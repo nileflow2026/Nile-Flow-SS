@@ -1,0 +1,131 @@
+/**
+ * OrderEvents — Event-driven notification and audit dispatch system.
+ *
+ * Every significant order action emits typed events that can trigger:
+ * - In-app notifications
+ * - Email notifications (via Resend / Appwrite Messaging)
+ * - SMS notifications
+ * - Push notifications
+ * - Audit log entries
+ *
+ * This is the ONLY module that should call notification and audit services.
+ * Adding a new channel (e.g. Slack, webhook) requires only a new handler here.
+ *
+ * @module orders/OrderEvents
+ */
+
+'use strict';
+
+const { ORDER_EVENT_TYPE } = require('./OrderTypes');
+const { logAudit } = require('../utils/auditLogger');
+
+// ── Handlers registry — extend by adding new channel handlers here ──────────
+
+const handlers = {
+  /**
+   * Log to the audit trail.
+   */
+  audit: async (event, payload) => {
+    try {
+      await logAudit({
+        action: event,
+        performedBy: payload.actor || 'system',
+        entityType: 'Order',
+        entityId: payload.orderId || payload.orderNumber,
+        details: {
+          ...payload.metadata,
+          event,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      console.warn(`[OrderEvents] Audit log failed for ${event}:`, err.message);
+    }
+  },
+
+  /**
+   * Create an in-app notification for the user.
+   */
+  inApp: async (event, payload) => {
+    try {
+      const { createNotification } = require('../controllers/UserControllers/Clientnotification');
+      await createNotification({
+        userId: payload.userId,
+        message: payload.message || `Order event: ${event}`,
+        type: 'order',
+        username: payload.username || 'Customer',
+        email: payload.email || '',
+      });
+    } catch (err) {
+      console.warn(`[OrderEvents] In-app notification failed for ${event}:`, err.message);
+    }
+  },
+
+  /**
+   * Send email via Appwrite Messaging (fire-and-forget).
+   */
+  email: async (event, payload) => {
+    try {
+      const { sendOrderSuccessNotifications } = require('../services/orderNotificationService');
+      // Only dispatch for meaningful customer-facing events
+      if (['order.created', 'order.status_changed', 'order.cancellation_approved'].includes(event)) {
+        sendOrderSuccessNotifications({
+          orderId: payload.orderId,
+          customerName: payload.username || 'Customer',
+          amount: payload.amount ? `KES ${Math.round(payload.amount)}` : '—',
+          paymentMethod: payload.paymentMethod || 'Cash on Delivery',
+          cartItems: payload.cartItems || [],
+          customerUserId: payload.userId,
+          customerEmail: payload.email,
+          customerPhone: payload.phone || '',
+        });
+      }
+    } catch (err) {
+      console.warn(`[OrderEvents] Email notification failed for ${event}:`, err.message);
+    }
+  },
+};
+
+// ── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Dispatch an order event to all registered handlers.
+ *
+ * Handlers run asynchronously and independently — a failure in one handler
+ * never blocks another or throws to the caller.
+ *
+ * @param {string} event   — One of ORDER_EVENT_TYPE values
+ * @param {object} payload — Contextual data (orderId, userId, actor, etc.)
+ */
+function dispatch(event, payload) {
+  if (!event || !payload) {
+    console.warn('[OrderEvents] dispatch called without event or payload');
+    return;
+  }
+
+  // Run all handlers asynchronously (fire-and-forget)
+  Object.values(handlers).forEach((handler) => {
+    setImmediate(() => {
+      handler(event, payload).catch((err) => {
+        console.warn(`[OrderEvents] Handler error for ${event}:`, err.message);
+      });
+    });
+  });
+}
+
+/**
+ * Register a custom handler function.
+ * Useful for third-party integrations or channel-specific logic.
+ *
+ * @param {string} name    — Handler identifier
+ * @param {Function} fn    — Async function (event, payload) => void
+ */
+function registerHandler(name, fn) {
+  if (typeof fn !== 'function') throw new Error('Handler must be a function');
+  handlers[name] = fn;
+}
+
+module.exports = {
+  dispatch,
+  registerHandler,
+};

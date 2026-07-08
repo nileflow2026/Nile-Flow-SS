@@ -652,8 +652,10 @@ app.use("/api/admin/auth", (req, res, next) => {
 // Admin Routes
 safeMount("/api/admin/auth", [authLimiter, authRoutes].filter(Boolean), "Admin Auth");
 safeMount("/api/admin/products", adminRouter, "Admin Products");
-safeMount("/api/orders", adminRouter, "Orders (Admin)");
+// Order tracking routes must be mounted BEFORE order management routes
+// to prevent `/:orderId` catching `/tracking/:orderId` paths.
 safeMount("/api/orders", orderTrackingRoutes, "Order Tracking");
+safeMount("/api/orders", adminRouter, "Orders (Admin)");
 safeMount("/api/products", adminRouter, "Products (Admin)");
 safeMount("/api/deliveries", adminRouter, "Deliveries");
 safeMount("/api/admin/orderStatus", adminRouter, "Admin Order Status");
@@ -735,6 +737,14 @@ try {
   app.use("/api/v1", v1Router);
 } catch (v1Error) {
   console.warn("API v1 router failed to load:", v1Error.message);
+}
+
+// ========== ORDER MANAGEMENT SYSTEM ROUTES ==========
+try {
+  const orderRoutes = require("../routes/orderRoutes");
+  safeMount("/api/orders", orderRoutes, "Order Management");
+} catch (orderRouteError) {
+  console.warn("Order management routes failed to load:", orderRouteError.message);
 }
 
 // ========== IMAGE PROXY ==========

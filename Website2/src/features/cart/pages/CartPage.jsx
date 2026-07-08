@@ -8,7 +8,7 @@ import Alert from '@shared/ui/alert/Alert'
 import Loader from '@shared/ui/loader/Loader'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import { cartService } from '@api/services'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
 function CartPage() {
@@ -96,9 +96,9 @@ function CartPage() {
             ) : error ? (
               <EmptyState title="Error loading cart" description={error} icon="⚠️" />
             ) : items.length === 0 ? (
-              <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center">
-                <p className="text-base font-semibold text-[var(--color-text-primary)]">Your cart is empty</p>
-                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Add items from our product catalog to get started.</p>
+              <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg dark:border-gray-800 dark:bg-gray-900">
+                <p className="text-base font-semibold text-gray-900 dark:text-white">Your cart is empty</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Add items from our product catalog to get started.</p>
                 <Link to="/products" className="mt-4 inline-block">
                   <PrimaryButton>Browse products</PrimaryButton>
                 </Link>
@@ -114,8 +114,8 @@ function CartPage() {
                   const image = item?.image || ''
 
                   return (
-                    <div key={itemId} className="flex items-center gap-4 rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] sm:p-5">
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] overflow-hidden">
+                    <div key={itemId} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1rem] bg-gray-100 dark:bg-gray-800 overflow-hidden">
                         {image ? (
                           <img src={image} alt={name} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
@@ -123,9 +123,9 @@ function CartPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{name}</p>
-                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Qty: {qty}</p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--color-accent)]">{priceStr}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Qty: {qty}</p>
+                        <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">{priceStr}</p>
                       </div>
                       <Button
                         variant="outline"
@@ -149,20 +149,20 @@ function CartPage() {
             )}
           </div>
 
-          <div className="h-fit rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--color-primary)]">Summary</p>
-            <div className="mt-5 space-y-3 text-sm text-[var(--color-text-secondary)]">
+          <div className="h-fit rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Summary</p>
+            <div className="mt-5 space-y-3 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex justify-between">
                 <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
-                <span className="font-semibold text-[var(--color-text-primary)]">KSh {subtotal.toLocaleString()}</span>
+                <span className="font-semibold text-gray-900 dark:text-white">KSh {subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Delivery</span>
-                <span className="font-semibold text-[var(--color-text-primary)]">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {subtotal >= 1000 ? 'Free' : 'KSh 150'}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-[var(--color-border)] pt-3 text-base font-semibold text-[var(--color-text-primary)]">
+              <div className="flex justify-between border-t border-gray-200 dark:border-gray-800 pt-3 text-base font-semibold text-gray-900 dark:text-white">
                 <span>Total</span>
                 <span>KSh {(subtotal + (subtotal >= 1000 ? 0 : 150)).toLocaleString()}</span>
               </div>

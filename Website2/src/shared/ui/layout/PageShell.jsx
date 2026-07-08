@@ -109,7 +109,10 @@ function PageShell({ children }) {
 
       <ScrollToTopButton />
 
-      <footer className="mt-16 border-t border-[var(--color-border)] bg-[var(--color-surface)]/80">
+      <footer className="mt-16 border-t border-[var(--color-border)] bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        {/* African pattern divider */}
+        <div className="h-[3px] w-full bg-[repeating-linear-gradient(90deg,transparent,transparent_8px,#16a34a_8px,#16a34a_12px,transparent_12px,transparent_20px,#d97706_20px,#d97706_24px,transparent_24px,transparent_32px)]" />
+
         {/* App download banner */}
         <div className={`border-b border-[var(--color-border)] ${
           isDark
@@ -148,12 +151,12 @@ function PageShell({ children }) {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-[1.15fr_0.7fr_0.7fr_0.8fr]">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
                   NF
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-text-primary)]">Nile Flow</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">Trusted African commerce</p>
+                  <p className="text-xs text-emerald-500 dark:text-emerald-400">Commerce OS</p>
                 </div>
               </div>
 
@@ -162,10 +165,10 @@ function PageShell({ children }) {
               </p>
 
               <div className="flex flex-wrap gap-3">
-                <Link to="/products" className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+                <Link to="/products" className="rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 shadow-[var(--shadow-sm)]">
                   Shop now
                 </Link>
-                <a href="mailto:hello@nileflow.com" className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                <a href="mailto:hello@nileflow.com" className="rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 shadow-[var(--shadow-sm)]">
                   Contact us
                 </a>
               </div>
@@ -176,7 +179,7 @@ function PageShell({ children }) {
               <ul className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
                 {shopLinks.map((item) => (
                   <li key={item.label}>
-                    <Link to={item.to} className="transition hover:text-[var(--color-primary)]">
+                    <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
                       {item.label}
                     </Link>
                   </li>
@@ -190,11 +193,11 @@ function PageShell({ children }) {
                 {supportLinks.map((item) => (
                   <li key={item.label}>
                     {item.to.startsWith('mailto:') ? (
-                      <a href={item.to} className="transition hover:text-[var(--color-primary)]">
+                      <a href={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
                         {item.label}
                       </a>
                     ) : (
-                      <Link to={item.to} className="transition hover:text-[var(--color-primary)]">
+                      <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
                         {item.label}
                       </Link>
                     )}
@@ -209,11 +212,11 @@ function PageShell({ children }) {
                 {companyLinks.map((item) => (
                   <li key={item.label}>
                     {item.to.startsWith('mailto:') ? (
-                      <a href={item.to} className="transition hover:text-[var(--color-primary)]">
+                      <a href={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
                         {item.label}
                       </a>
                     ) : (
-                      <Link to={item.to} className="transition hover:text-[var(--color-primary)]">
+                      <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
                         {item.label}
                       </Link>
                     )}
@@ -236,7 +239,7 @@ function PageShell({ children }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={item.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] transition hover:scale-105"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] transition hover:scale-105 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                 >
                   <item.icon className="h-4.5 w-4.5" />
                 </a>

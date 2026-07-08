@@ -4,7 +4,9 @@ import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Alert from '@shared/ui/alert/Alert'
+import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { orderService } from '@api/services'
 
 const reasons = [
   'Changed my mind',
@@ -19,15 +21,36 @@ const reasons = [
 
 function CancelOrderPage() {
   const [searchParams] = useSearchParams()
+  const { user } = useAuth()
   const [form, setForm] = useState({ orderId: searchParams.get('orderId') || '', reason: '', details: '' })
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [serverError, setServerError] = useState(null)
   const { push } = useToast()
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!form.orderId || !form.reason) return
-    push({ title: 'Cancellation requested', message: `Order ${form.orderId} has been submitted for cancellation.` })
-    setSubmitted(true)
+
+    setSubmitting(true)
+    setServerError(null)
+
+    const result = await orderService.cancelOrder({
+      orderId: form.orderId,
+      reason: form.reason,
+      additionalDetails: form.details,
+      customerEmail: user?.email,
+      customerName: user?.name || user?.username,
+    })
+
+    setSubmitting(false)
+
+    if (result.success) {
+      push({ title: 'Cancellation requested', message: `Order ${form.orderId} has been submitted for cancellation.` })
+      setSubmitted(true)
+    } else {
+      setServerError(result.error || 'Failed to submit cancellation request.')
+    }
   }
 
   return (

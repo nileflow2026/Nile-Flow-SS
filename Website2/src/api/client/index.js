@@ -3,28 +3,26 @@
  *
  * Call `initializeApi()` once at app startup to:
  * 1. Initialize the HttpClient with interceptors
- * 2. Restore any persisted auth session
+ * 2. Register the HTTP interceptor pipeline
  *
- * Import this in your app's entry point.
+ * Session validation is now handled by AuthService/AuthProvider.
+ * This function only sets up HTTP infrastructure.
  */
 
 import { httpClient } from '@api/client/HttpClient';
-import { authManager } from '@api/auth/AuthManager';
 import { authInterceptor, correlationIdInterceptor, deviceInterceptor, localeInterceptor, timezoneInterceptor } from '@api/interceptors/requestInterceptors';
 import { tokenRefreshInterceptor, maintenanceModeInterceptor, loggingInterceptor } from '@api/interceptors/responseInterceptors';
-import { config } from '@api/config';
 
 /**
- * Initialize the API layer.
+ * Initialize the API layer (HTTP interceptors only).
  * Call this once in the app bootstrap before any components mount.
  *
- * @param {Object} [options]
- * @param {boolean} [options.validateSession=true] - Whether to check auth on init
- * @returns {Promise<{isAuthenticated: boolean, user: Object|null}>}
+ * Session validation is done by the AuthService — not here.
+ * This separation ensures the HTTP layer and auth layer are independent.
+ *
+ * @returns {void}
  */
-export async function initializeApi(options = {}) {
-  const { validateSession = true } = options;
-
+export function initializeApi() {
   // Register request interceptors (order matters)
   httpClient.addRequestInterceptor(...Object.values(authInterceptor()));
   httpClient.addRequestInterceptor(...Object.values(correlationIdInterceptor()));
@@ -37,32 +35,13 @@ export async function initializeApi(options = {}) {
   httpClient.addResponseInterceptor(...Object.values(maintenanceModeInterceptor()));
   httpClient.addResponseInterceptor(...Object.values(loggingInterceptor()));
 
-  // Initialize the Axios instance
+  // Initialize the Axios instance with all interceptors
   httpClient.initialize();
 
-  // Check for an access token in localStorage (session recovery)
-  if (config.tokens.storage !== 'memory') {
-    // TokenManager already handles this through its backend
-  } else {
-    // If memory mode, check localStorage for a persisted token on first load
-    try {
-      const persistedToken = localStorage.getItem(config.tokens.accessTokenKey);
-      if (persistedToken) {
-        const { tokenManager } = await import('@api/auth/TokenManager');
-        tokenManager.setAccessToken(persistedToken);
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  // Validate existing session
-  if (validateSession) {
-    const session = await authManager.validateSession();
-    return session;
-  }
-
-  return { isAuthenticated: false, user: null };
+  // NOTE: Token recovery from storage is intentionally REMOVED.
+  // Previously, this code block read JWT tokens from localStorage (CRITICAL XSS vulnerability).
+  // Refresh tokens are handled by the backend via HttpOnly cookies.
+  // Access tokens are managed by the SecureTokenManager in memory only.
 }
 
 /**
@@ -74,11 +53,6 @@ export function getHttpClient() {
 }
 
 /**
- * Get the AuthManager instance.
- * @returns {import('@api/auth/AuthManager').AuthManager}
+ * Get the HttpClient instance (alias).
  */
-export function getAuthManager() {
-  return authManager;
-}
-
-export { httpClient, authManager };
+export { httpClient };

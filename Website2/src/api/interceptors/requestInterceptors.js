@@ -11,7 +11,7 @@
  * 4. Device interceptor (platform identification)
  */
 
-import { tokenManager } from '@api/auth/TokenManager';
+import { secureTokenManager } from '@auth/tokenManager';
 import { createRequestId, getDeviceId, getDeviceName } from '@api/utils/helpers';
 import { config } from '@api/config';
 
@@ -24,7 +24,7 @@ import { config } from '@api/config';
 export function authInterceptor() {
   return {
     onFulfilled: (requestConfig) => {
-      const token = tokenManager.getAccessToken();
+      const token = secureTokenManager.getAccessToken();
       if (token && requestConfig.headers) {
         requestConfig.headers.Authorization = `Bearer ${token}`;
       }

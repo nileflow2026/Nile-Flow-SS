@@ -6,7 +6,7 @@ import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Button from '@shared/ui/button/Button'
 import Alert from '@shared/ui/alert/Alert'
 import Loader from '@shared/ui/loader/Loader'
-import { useAuth } from '@api/context/AuthContext'
+import { useAuth } from '@auth/AuthContext'
 import { httpClient } from '@api/client/index'
 
 const DATA_CATEGORIES = [

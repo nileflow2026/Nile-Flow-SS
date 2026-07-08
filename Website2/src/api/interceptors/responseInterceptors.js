@@ -5,7 +5,7 @@
  * Each interceptor handles one cross-cutting concern.
  */
 
-import { tokenManager } from '@api/auth/TokenManager';
+import { secureTokenManager } from '@auth/tokenManager';
 import { httpClient } from '@api/client/HttpClient';
 import { config } from '@api/config';
 import { normalizeError } from '@api/utils/errorNormalizer';
@@ -81,12 +81,12 @@ export function tokenRefreshInterceptor() {
           { _retryCount: 0 }, // Don't retry the refresh itself
         );
 
-        // If the backend returns new tokens, store them
+        // If the backend returns new tokens, store them securely in memory
         if (refreshResponse?.data?.accessToken) {
-          tokenManager.setAccessToken(refreshResponse.data.accessToken);
-        }
-        if (refreshResponse?.data?.refreshToken) {
-          tokenManager.setRefreshToken(refreshResponse.data.refreshToken);
+          secureTokenManager.setAccessToken(
+            refreshResponse.data.accessToken,
+            refreshResponse.data.expiresIn,
+          );
         }
 
         // Process queued requests
@@ -100,7 +100,7 @@ export function tokenRefreshInterceptor() {
         processQueue(refreshError, false);
 
         // Clear tokens
-        tokenManager.clearTokens();
+        secureTokenManager.clearTokens();
 
         // Dispatch logout event (only once)
         if (!window.__nf_auth_logout_triggered) {

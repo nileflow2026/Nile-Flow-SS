@@ -42,8 +42,8 @@ export const searchService = {
    */
   async saveRecentSearch(query) {
     try {
-      const { authManager } = await import('@api/auth/AuthManager');
-      const user = authManager.getCurrentUser();
+      const { secureTokenManager } = await import('@auth/tokenManager');
+      const user = secureTokenManager.getUserData();
       const userId = user?.$id || user?.id;
       if (!userId) return;
 

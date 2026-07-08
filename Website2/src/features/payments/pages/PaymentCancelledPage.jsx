@@ -9,11 +9,11 @@ function PaymentCancelledPage() {
     <PageShell>
       <section className="flex items-center justify-center px-4 py-16 sm:px-6 sm:py-20 lg:py-28">
         <div className="w-full max-w-lg text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[var(--color-warning)]/10 sm:h-28 sm:w-28">
-            <span className="text-5xl">⚠</span>
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-amber-100 sm:h-28 sm:w-28 dark:bg-amber-900/30">
+            <span className="text-5xl text-amber-600 dark:text-amber-400">⚠</span>
           </div>
-          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-[var(--color-text-primary)]">Payment cancelled</h1>
-          <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+          <h1 className="mt-6 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Payment cancelled</h1>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
             Your payment was not processed. No charges have been made to your account.
           </p>
 
