@@ -31,21 +31,38 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize auth state on mount
   useEffect(() => {
+    let cancelled = false;
+
     const initAuth = async () => {
       try {
         const result = await getCurrentUser();
-        if (result.success) {
-          setUser(result.data.user);
-          setIsAuthenticated(true);
+        if (!cancelled) {
+          if (result.success) {
+            setUser(result.data.user);
+            setIsAuthenticated(true);
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         }
       } catch (error) {
-        console.error("Auth initialization failed:", error);
+        if (!cancelled) {
+          console.error("Auth initialization failed:", error);
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     initAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Listen for logout events from axios interceptor

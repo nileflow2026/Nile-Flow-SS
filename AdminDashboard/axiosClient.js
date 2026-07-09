@@ -3,7 +3,7 @@
 import axios from "axios";
 
 const axiosClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:3000/api",
+  baseURL: "https://nile-flow-backend-5dqm.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
