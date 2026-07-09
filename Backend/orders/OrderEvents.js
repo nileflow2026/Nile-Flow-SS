@@ -63,11 +63,11 @@ const handlers = {
 
   /**
    * Send email via Appwrite Messaging (fire-and-forget).
+   * Legacy path still works for backward compatibility.
    */
   email: async (event, payload) => {
     try {
       const { sendOrderSuccessNotifications } = require('../services/orderNotificationService');
-      // Only dispatch for meaningful customer-facing events
       if (['order.created', 'order.status_changed', 'order.cancellation_approved'].includes(event)) {
         sendOrderSuccessNotifications({
           orderId: payload.orderId,
@@ -82,6 +82,47 @@ const handlers = {
       }
     } catch (err) {
       console.warn(`[OrderEvents] Email notification failed for ${event}:`, err.message);
+    }
+  },
+
+  /**
+   * Centralized Notification Service handler.
+   * Replaces the old fragmented notification calls.
+   * Dispatches customer, admin, and vendor notifications via NotificationService.
+   */
+  notificationService: async (event, payload) => {
+    try {
+      const NotificationService = require('../notifications/NotificationService');
+      const { EVENT } = require('../notifications/NotificationTypes');
+
+      // Map order events to notification events
+      const eventMap = {
+        'order.created': EVENT.ORDER_CREATED,
+        'order.status_changed': EVENT.ORDER_CONFIRMED,
+        'order.cancelled': EVENT.ORDER_CANCELLED,
+        'order.cancellation_approved': EVENT.ORDER_CANCELLED,
+      };
+
+      const notifEvent = eventMap[event];
+      if (!notifEvent) return;
+
+      // Build a minimal order-like object for NotificationService
+      const order = {
+        $id: payload.orderId,
+        orderNumber: payload.orderNumber,
+        username: payload.username,
+        customerEmail: payload.email,
+        customerPhone: payload.phone || '',
+        userId: payload.userId,
+        amount: payload.amount,
+        paymentMethod: payload.paymentMethod,
+      };
+
+      NotificationService.orderCreated(order, payload.cartItems || []).catch((err) => {
+        console.warn(`[OrderEvents] NotificationService error for ${event}:`, err.message);
+      });
+    } catch (err) {
+      console.warn(`[OrderEvents] NotificationService handler error for ${event}:`, err.message);
     }
   },
 };

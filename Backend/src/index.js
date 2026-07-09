@@ -668,6 +668,20 @@ safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");
 safeMount("/api", userRoutes, "User Routes");
 safeMount("/api/notifications", notificationRoutes, "Notifications");
+
+// ========== NOTIFICATION INFRASTRUCTURE ROUTES ==========
+try {
+  const notifLogRoutes = require("../routes/notificationLogRoutes");
+  safeMount("/api/notifications/logs", notifLogRoutes, "Notification Logs");
+} catch (notifLogError) {
+  console.warn("Notification log routes failed to load:", notifLogError.message);
+}
+try {
+  const webhookRoutes = require("../routes/webhookRoutes");
+  safeMount("/api/notifications/webhooks", webhookRoutes, "Notification Webhooks");
+} catch (webhookRouteError) {
+  console.warn("Webhook routes failed to load:", webhookRouteError.message);
+}
 safeMount("/api/customernotifications", customernotifications, "Customer Notifications");
 safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");

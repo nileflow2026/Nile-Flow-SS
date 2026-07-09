@@ -16,7 +16,7 @@ const { Databases, ID } = require('node-appwrite');
 const { client } = require('../services/appwriteService');
 const { env } = require('../src/env');
 
-const COLLECTION_ID = ID.unique();
+const COLLECTION_ID = 'order_counters';
 const DATABASE_ID = env.APPWRITE_DATABASE_ID;
 
 async function setupOrderCounterCollection() {
@@ -55,16 +55,17 @@ async function setupOrderCounterCollection() {
     );
     console.log('✅ Indexes created');
 
-    // Seed the initial counter document
+    // Seed the initial counter document with proper user-defined fields
     const currentYear = new Date().getFullYear().toString();
+    const now = new Date().toISOString();
     await db.createDocument(
       DATABASE_ID, COLLECTION_ID,
       'global_order_counter',
       {
         year: currentYear,
         lastSequence: 0,
-        $createdAt: new Date().toISOString(),
-        $updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       },
     );
     console.log(`✅ Counter seeded for year ${currentYear}`);
