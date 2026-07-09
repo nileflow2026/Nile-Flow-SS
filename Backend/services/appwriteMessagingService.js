@@ -94,22 +94,35 @@ async function ensureEmailTarget(userId, email) {
       return emailTarget.$id;
     }
 
-    // Create new target — handle 409 if another request created it first
+    // Create new target — handle 409/duplicate if another request created it first
     try {
       const target = await users.createTarget(userId, ID.unique(), "email", email);
       targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      if (createError.code === 409 && createError.message?.includes("already exists")) {
+      // Appwrite SDK throws with different error shapes:
+      // - createError.type === "target_already_exists" (via .type field)
+      // - createError.message includes "already exists" (via .message field)
+      // - createError.code === 409 (via .code field)
+      const isDuplicate =
+        createError.type === "target_already_exists" ||
+        (createError.message && createError.message.includes("already exists")) ||
+        createError.code === 409;
+
+      if (isDuplicate) {
         // Race condition — another request created it between our list and create.
         // Retry the list to get the existing target ID.
-        const retry = await users.listTargets(userId);
-        const existingTarget = retry.targets.find(
-          (t) => t.type === "email" && t.identifier === email,
-        );
-        if (existingTarget) {
-          targetCache.set(cacheKey, existingTarget.$id);
-          return existingTarget.$id;
+        try {
+          const retry = await users.listTargets(userId);
+          const existingTarget = retry.targets.find(
+            (t) => t.type === "email" && t.identifier === email,
+          );
+          if (existingTarget) {
+            targetCache.set(cacheKey, existingTarget.$id);
+            return existingTarget.$id;
+          }
+        } catch (retryErr) {
+          console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
         }
       }
       console.warn(`[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`);
@@ -157,14 +170,24 @@ async function ensureSmsTarget(userId, phone) {
       targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      if (createError.code === 409 && createError.message?.includes("already exists")) {
-        const retry = await users.listTargets(userId);
-        const existingTarget = retry.targets.find(
-          (t) => t.type === "sms" && t.identifier === normalizedPhone,
-        );
-        if (existingTarget) {
-          targetCache.set(cacheKey, existingTarget.$id);
-          return existingTarget.$id;
+      // Same 409 detection as ensureEmailTarget (handles multiple error shapes)
+      const isDuplicate =
+        createError.type === "target_already_exists" ||
+        (createError.message && createError.message.includes("already exists")) ||
+        createError.code === 409;
+
+      if (isDuplicate) {
+        try {
+          const retry = await users.listTargets(userId);
+          const existingTarget = retry.targets.find(
+            (t) => t.type === "sms" && t.identifier === normalizedPhone,
+          );
+          if (existingTarget) {
+            targetCache.set(cacheKey, existingTarget.$id);
+            return existingTarget.$id;
+          }
+        } catch (retryErr) {
+          console.warn(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
         }
       }
       console.warn(`[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`);
@@ -256,13 +279,20 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
     }
 
     try {
+      // BUG FIX: Appwrite 1.9.x rejects empty strings for `image`, `icon`,
+      // `color`, `tag` params too (same root cause as `action`).
+      // Always pass `undefined` for any optional string param with no value.
       await messaging.createPush(
         ID.unique(), title, body,
         [], [userId], [],
         data,
-        actionParam, // FIXED: undefined instead of ""
-        "", "default", "", "",
-        1, false, false, "normal", false, "",
+        actionParam,
+        undefined, // image — FIXED: undefined instead of ""
+        undefined, // icon  — FIXED: undefined instead of ""
+        undefined, // sound — FIXED: undefined instead of ""
+        undefined, // color — FIXED: undefined instead of ""
+        undefined, // tag   — FIXED: undefined instead of ""
+        1, false, false, undefined, false, undefined, // priority, scheduledAt
       );
     } catch (pushError) {
       if (pushError.message && pushError.message.includes("could not be found")) {
@@ -299,9 +329,13 @@ async function sendPushToTopic({ topic, title, body, data = {}, action = null })
       ID.unique(), title, body,
       [topic], [], [],
       data,
-      actionParam, // FIXED: undefined instead of ""
-      "", "default", "", "",
-      1, false, false, "normal", false, "",
+      actionParam,
+      undefined, // image
+      undefined, // icon
+      undefined, // sound
+      undefined, // color
+      undefined, // tag
+      1, false, false, undefined, false, undefined,
     );
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send push to topic ${topic}:`, error.message);
