@@ -22,7 +22,7 @@ const { ORDER_NUMBER_PREFIX } = require('./OrderTypes');
 
 // Collection where the counter document lives
 const COUNTER_COLLECTION_ID = env.APPWRITE_ORDER_COUNTER_COLLECTION_ID || 'order_counters';
-const COUNTER_DOCUMENT_ID = 'global_order_counter';
+const COUNTER_DOCUMENT_ID = env.APPWRITE_ORDER_COUNTER_DOCUMENT_ID || 'order_counter';
 
 /**
  * Generate the next professional order number.
@@ -117,4 +117,5 @@ function generateFallbackOrderNumber(year) {
 module.exports = {
   generateOrderNumber,
   formatOrderNumber,
+  generateFallbackOrderNumber
 };

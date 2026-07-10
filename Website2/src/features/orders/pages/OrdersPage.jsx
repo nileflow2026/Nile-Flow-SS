@@ -82,15 +82,28 @@ function OrdersPage() {
             <div className="mt-8 space-y-4">
               {orders.map((order) => {
                 const orderId = order.$id || order.id || order.orderId
-                const status = order.status || 'Pending'
+                // Use the professional order number (NF-YYYY-NNNNNNNNN) when available
+                const orderNumber = order.orderNumber || order.order_number || orderId
+                const displayId = orderNumber.startsWith('NF-') ? orderNumber : orderNumber?.substring(0, 13) || 'Order'
+                const status = order.orderStatus || order.status || 'pending'
                 const date = order.createdAt
                   ? new Date(order.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
                   : order.date || '—'
-                const total = order.totalAmount || order.total || 0
+
+                // Parse items - stored as JSON string in the DB
+                let parsedItems = []
+                if (Array.isArray(order.items)) {
+                  parsedItems = order.items
+                } else if (typeof order.items === 'string') {
+                  try { parsedItems = JSON.parse(order.items) } catch { parsedItems = [] }
+                }
+                const itemsCount = parsedItems.length || order.itemCount || 0
+
+                // Amount - stored as `amount` in the new OrderService
+                const total = order.amount || order.totalAmount || order.total || 0
                 const totalStr = typeof total === 'number'
                   ? `KSh ${Math.round(total).toLocaleString()}`
                   : total || '—'
-                const itemsCount = order.items?.length || order.itemCount || 0
 
                 return (
                   <div key={orderId} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-6">
@@ -98,7 +111,7 @@ function OrdersPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {orderId?.substring(0, 13) || 'Order'}
+                            {displayId}
                           </p>
                           <Badge variant={orderService.getStatusColor(status)}>{orderService.getStatusLabel(status)}</Badge>
                         </div>
@@ -109,7 +122,7 @@ function OrdersPage() {
                       <div className="flex items-center gap-4">
                         <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">{totalStr}</p>
                         <Link
-                          to={`/track-order/${orderId}`}
+                          to={`/track-order/${orderNumber}`}
                           className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-600 hover:text-white dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white"
                         >
                           Track

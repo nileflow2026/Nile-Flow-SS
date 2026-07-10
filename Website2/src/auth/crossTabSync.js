@@ -160,27 +160,27 @@ class CrossTabSync {
   // ── Event Listeners ───────────────────────────────────────────
 
   onLogin(handler) {
-    this._addListener(SYNC_EVENTS.LOGIN, handler);
+    return this._addListener(SYNC_EVENTS.LOGIN, handler);
   }
 
   onLogout(handler) {
-    this._addListener(SYNC_EVENTS.LOGOUT, handler);
+    return this._addListener(SYNC_EVENTS.LOGOUT, handler);
   }
 
   onTokenRefreshed(handler) {
-    this._addListener(SYNC_EVENTS.TOKEN_REFRESHED, handler);
+    return this._addListener(SYNC_EVENTS.TOKEN_REFRESHED, handler);
   }
 
   onSessionRevoked(handler) {
-    this._addListener(SYNC_EVENTS.SESSION_REVOKED, handler);
+    return this._addListener(SYNC_EVENTS.SESSION_REVOKED, handler);
   }
 
   onPasswordChanged(handler) {
-    this._addListener(SYNC_EVENTS.PASSWORD_CHANGED, handler);
+    return this._addListener(SYNC_EVENTS.PASSWORD_CHANGED, handler);
   }
 
   onForceLogout(handler) {
-    this._addListener(SYNC_EVENTS.FORCE_LOGOUT, handler);
+    return this._addListener(SYNC_EVENTS.FORCE_LOGOUT, handler);
   }
 
   _addListener(type, handler) {

@@ -10,12 +10,18 @@ import { Routes, Route } from 'react-router-dom'
 import { ProtectedRoute, GuestRoute } from '@auth/routeGuards'
 import Loader from '@shared/ui/loader/Loader'
 
+// ── Eager-loaded auth pages ───────────────────────────────────
+// Auth pages are eagerly loaded to avoid race conditions between
+// lazy Suspense resolution and AuthProvider initialization
+// (requestIdleCallback + async init). This eliminates the
+// "Invalid hook call" / "useContext on null" error on first visit.
+import LoginPage from '@features/auth/pages/LoginPage'
+import SignupPage from '@features/auth/pages/SignupPage'
+import ForgotPasswordPage from '@features/auth/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@features/auth/pages/ResetPasswordPage'
+
 // ── Lazy-loaded pages ─────────────────────────────────────────
 const HomePage = lazy(() => import('@features/home/pages/HomePage'))
-const LoginPage = lazy(() => import('@features/auth/pages/LoginPage'))
-const SignupPage = lazy(() => import('@features/auth/pages/SignupPage'))
-const ForgotPasswordPage = lazy(() => import('@features/auth/pages/ForgotPasswordPage'))
-const ResetPasswordPage = lazy(() => import('@features/auth/pages/ResetPasswordPage'))
 const VerifyEmailPage = lazy(() => import('@features/auth/pages/VerifyEmailPage'))
 const OAuthCallbackPage = lazy(() => import('@features/auth/pages/OAuthCallbackPage'))
 const CartPage = lazy(() => import('@features/cart/pages/CartPage'))

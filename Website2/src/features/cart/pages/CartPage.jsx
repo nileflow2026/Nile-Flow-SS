@@ -10,6 +10,7 @@ import EmptyState from '@shared/ui/empty-state/EmptyState'
 import { cartService } from '@api/services'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { imageProxyUrl } from '@api/config'
 
 function CartPage() {
   const { isAuthenticated, user } = useAuth()
@@ -64,9 +65,31 @@ function CartPage() {
     }
   }
 
+  // Helper: extract numeric price from item (handles both raw numbers and
+  // enriched { basePrice, convertedPrice, displayValue } objects from backend)
+  function getItemPrice(item) {
+    if (!item) return 0
+    // Backend enrichment wraps price in an object
+    if (typeof item.price === 'object' && item.price !== null) {
+      return item.price.convertedPrice ?? item.price.basePrice ?? item.price.raw ?? 0
+    }
+    // Direct numeric price
+    if (typeof item.price === 'number') return item.price
+    return 0
+  }
+
+  // Helper: get item image from any field name, route Appwrite URLs through proxy
+  function getItemImage(item) {
+    const raw = item?.image || item?.productImage || item?.images?.[0] || ''
+    if (raw && raw.includes('appwrite.io')) {
+      return imageProxyUrl(raw, 120, 70)
+    }
+    return raw
+  }
+
   // Calculate totals from current items
   const subtotal = items.reduce((acc, item) => {
-    const price = item?.price || 0
+    const price = getItemPrice(item)
     const qty = item?.quantity || 1
     return acc + price * qty
   }, 0)
@@ -108,10 +131,11 @@ function CartPage() {
                 {items.map((item) => {
                   const itemId = item.$id || item.id
                   const name = item.productName || item.name || 'Product'
-                  const price = item?.price || 0
+                  const itemPrice = getItemPrice(item)
                   const qty = item?.quantity || 1
-                  const priceStr = `KSh ${Math.round(price * qty).toLocaleString()}`
-                  const image = item?.image || ''
+                  const lineTotal = Math.round(itemPrice * qty)
+                  const priceStr = `KSh ${lineTotal.toLocaleString()}`
+                  const image = getItemImage(item)
 
                   return (
                     <div key={itemId} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
@@ -167,7 +191,23 @@ function CartPage() {
                 <span>KSh {(subtotal + (subtotal >= 1000 ? 0 : 150)).toLocaleString()}</span>
               </div>
             </div>
-            <Link to="/checkout">
+            <Link
+              to="/checkout"
+              state={{
+                items: items.map((item) => ({
+                  id: item.$id || item.id,
+                  productId: item.productId,
+                  name: item.productName || item.name || 'Product',
+                  price: getItemPrice(item),
+                  unitDisplay: item?.price?.displayValue || `KSh ${Math.round(getItemPrice(item)).toLocaleString()}`,
+                  quantity: item.quantity || 1,
+                  image: getItemImage(item),
+                })),
+                subtotal,
+                delivery: subtotal >= 1000 ? 0 : 150,
+                total: subtotal + (subtotal >= 1000 ? 0 : 150),
+              }}
+            >
               <PrimaryButton className="mt-6 w-full justify-center" disabled={items.length === 0}>
                 Continue to checkout
               </PrimaryButton>

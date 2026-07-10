@@ -19,7 +19,7 @@ import { reviewService } from '@api/services'
 
 function ProductDetailPage() {
   const { productId } = useParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { push } = useToast()
 
   const [product, setProduct] = useState(null)
@@ -75,12 +75,18 @@ function ProductDetailPage() {
       return
     }
 
+    const userId = user?.$id || user?.id
+
     setAddingToCart(true)
+    // Determine product image from any available field
+    const productImage = product.image || product.imageUrl || product.images?.[0] || ''
+
     const result = await cartService.addToCart({
+      userId,
       productId: product.$id || product.id,
       productName: product.productName || product.name || 'Product',
       price: product.price || 0,
-      image: product.image || '',
+      image: productImage,
     })
     setAddingToCart(false)
 

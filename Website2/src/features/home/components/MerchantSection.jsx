@@ -67,7 +67,7 @@ function MerchantSection() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                to="/signup"
+                to="https://vendor.nileflowafrica.com"
                 className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-3.5 text-base font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105"
               >
                 <Store className="h-5 w-5" />
