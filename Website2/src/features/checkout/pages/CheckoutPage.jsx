@@ -75,17 +75,22 @@ function CheckoutPage() {
       // POST /api/payments/cash-on-delivery uses the production-proven COD endpoint
       // which now calls OrderNumberGenerator.generateOrderNumber() producing NF-YYYY-NNNNNNNNN
       // and automatically clears the user's cart on the backend
-      const response = await httpClient.post('/api/payments/cash-on-delivery', orderPayload)
+      const rawResponse = await httpClient.post('/api/payments/cash-on-delivery', orderPayload)
       
-      // Response shape from cashonDelivery: { success, orderId, orderNumber, message, ... }
-      const resData = response.data || response
-      orderNumber = resData.orderNumber || ''
+      // HttpClient normalizes backend response into { success, data, message }
+      // Backend returns: { success: true, orderId, orderNumber: "NF-...", ... }
+      // HttpClient._normalizeSuccess wraps it: rawResponse = { success: true, data: { ...original }, message: '' }
+      // So rawResponse.data contains the full backend payload
+      const responseData = rawResponse.data || rawResponse
+      orderNumber = responseData.orderNumber || ''
+      const isSuccess = rawResponse.success !== false && responseData.success !== false
 
-      if (resData.success) {
+      if (isSuccess) {
         push({ title: 'Order placed!', message: orderNumber ? `Order ${orderNumber} confirmed.` : 'Your order has been confirmed.' })
         window.location.href = '/orders'
       } else {
-        push({ title: 'Order failed', message: resData.message || resData.error || 'Please try again.' })
+        const errMsg = responseData.message || responseData.error || rawResponse.message || 'Please try again.'
+        push({ title: 'Order failed', message: errMsg })
       }
     } catch (err) {
       const errorData = err?.response?.data

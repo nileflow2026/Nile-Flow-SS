@@ -622,9 +622,14 @@ const stripewebpayment = async (req, res) => {
       );
     }
 
+    // Generate professional order number
+    const orderNumber = await generateOrderNumber();
+    console.log(`📋 Generated order number: ${orderNumber}`);
+
     // Create order document for database (before stripe session)
     const orderDocument = {
       orderId,
+      orderNumber, // Professional NF-YYYY-NNNNNNNNN
       userId: userIdValue,
       customerEmail,
       username,
@@ -902,7 +907,10 @@ const stripeMobilePaymentSheet = async (req, res) => {
     console.log(`Creating order ${orderId} for ${totalAmountKES} KES`);
 
     // 2. CREATE ORDER
+    const mobileOrderNumber = await generateOrderNumber();
+    console.log(`📋 Generated mobile order number: ${mobileOrderNumber}`);
     const orderData = {
+      orderNumber: mobileOrderNumber,
       orderId,
       products: cart,
       customerEmail,
@@ -1376,7 +1384,10 @@ const initiateMpesaPayment = async (req, res) => {
 
     // Create order in database first
     const orderId = ID.unique();
+    const mpesaOrderNumber = await generateOrderNumber();
+    console.log(`📋 Generated M-Pesa order number: ${mpesaOrderNumber}`);
     const orderDocument = {
+      orderNumber: mpesaOrderNumber,
       userId: userIdValue,
       customerEmail,
       username,
