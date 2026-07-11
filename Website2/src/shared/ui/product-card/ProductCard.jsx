@@ -4,12 +4,9 @@ import StarRating from '../star-rating/StarRating'
 import { imageProxyUrl } from '@api/config'
 
 function ProductCard({ product, href = '#', compact = false }) {
-  // Normalize backend product shape ($id, productName, price, image, images)
-  // and mock/demo shape (id, title, name, price, image)
   const id = product?.$id || product?.id
   const title = product?.productName || product?.title || product?.name || 'Nile Flow product'
 
-  // Route Appwrite storage images through the backend proxy to avoid browser auth issues
   const rawImage = product?.image || product?.imageUrl || ''
   const FALLBACK_IMAGE = '/logo.png'
   let imageUrl
@@ -21,7 +18,9 @@ function ProductCard({ product, href = '#', compact = false }) {
     imageUrl = FALLBACK_IMAGE
   }
 
-  // Price handling: string display or numeric, or currency-enriched object
+  // Descriptive SEO-friendly filename extracted from the product name
+  const imageAlt = `Buy ${title} online at Nile Flow - African marketplace`
+
   const rawPrice = product?.price
   const displayPrice = product?.displayPrice
   let priceStr
@@ -37,7 +36,6 @@ function ProductCard({ product, href = '#', compact = false }) {
     priceStr = 'KSh —'
   }
 
-  // Rating: the backend returns `rating` (avg) and `ratingsCount` (total count)
   const rating = parseFloat(product?.rating) || parseFloat(product?.avgRating) || 0
   const reviewCount = parseInt(product?.ratingsCount, 10) || parseInt(product?.totalRatings, 10) || parseInt(product?.reviewCount, 10) || 0
   const description = product?.description || product?.subtitle || ''
@@ -56,9 +54,12 @@ function ProductCard({ product, href = '#', compact = false }) {
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-surface-muted)]">
         <img
           src={imageUrl}
-          alt={title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          alt={imageAlt}
+          width={600}
+          height={450}
           loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         {(premium || featured || outOfStock) && (

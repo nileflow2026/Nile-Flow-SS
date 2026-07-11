@@ -17,6 +17,9 @@ import ReviewCard from '@shared/ui/review/ReviewCard'
 import ReviewForm from '@shared/ui/review/ReviewForm'
 import { reviewService } from '@api/services'
 import { usePostHog } from '@posthog/react'
+import { SeoHead } from '@shared/seo/SeoHead'
+import { createProductSchema, buildCanonicalUrl } from '@shared/seo/SchemaFactory'
+import Breadcrumbs from '@shared/ui/breadcrumbs/Breadcrumbs'
 
 function ProductDetailPage() {
   const { productId } = useParams()
@@ -80,7 +83,6 @@ function ProductDetailPage() {
     const userId = user?.$id || user?.id
 
     setAddingToCart(true)
-    // Determine product image from any available field
     const productImage = product.image || product.imageUrl || product.images?.[0] || ''
 
     const result = await cartService.addToCart({
@@ -108,9 +110,11 @@ function ProductDetailPage() {
     }
   }
 
+  // ── Loading state ─────────────────────────────────────────────
   if (loading) {
     return (
       <PageShell>
+        <SeoHead title="Loading Product..." robots="noindex,follow" />
         <div className="responsive-shell flex min-h-[60vh] items-center justify-center py-14">
           <Loader label="Loading product details…" />
         </div>
@@ -118,9 +122,11 @@ function ProductDetailPage() {
     )
   }
 
+  // ── Error state ───────────────────────────────────────────────
   if (error && !product) {
     return (
       <PageShell>
+        <SeoHead title="Product Not Found" robots="noindex,follow" />
         <ResponsiveSection eyebrow="Product" title="Product not found" className="py-10 sm:py-14 lg:py-16">
           <EmptyState
             title="Product not found"
@@ -133,6 +139,7 @@ function ProductDetailPage() {
     )
   }
 
+  // ── Product data ──────────────────────────────────────────────
   const name = product?.productName || product?.name || product?.title || 'Product'
 
   const rawPrice = product?.price
@@ -151,7 +158,6 @@ function ProductDetailPage() {
   }
 
   const description = product?.description || ''
-
   const rawImages = product?.images || []
   const primaryImage = product?.image || product?.imageUrl || ''
   const productImages = primaryImage
@@ -163,8 +169,43 @@ function ProductDetailPage() {
   const category = product?.category || ''
   const vendorName = product?.vendorName || product?.brand || ''
 
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Products', href: '/products' },
+    { label: name },
+  ]
+
+  // Product schema for SEO
+  const productSchema = createProductSchema({
+    name,
+    description,
+    price: product?.price || 0,
+    currency: product?.currency || 'KES',
+    image: product?.image || product?.images?.[0],
+    url: buildCanonicalUrl(`/products/${productId}`),
+    brandName: vendorName || 'Nile Flow',
+    sku: product?.sku,
+    reviewCount: reviews.length,
+    ratingValue: product?.avgRating || 0,
+    category,
+    availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+  })
+
   return (
     <PageShell>
+      <SeoHead
+        title={name}
+        description={description || `Buy ${name} on Nile Flow`}
+        keywords={[category, vendorName, 'buy online', 'African marketplace'].filter(Boolean)}
+        breadcrumbs={breadcrumbItems}
+        ogImage={product?.image || product?.images?.[0] || undefined}
+        schema={productSchema}
+      />
+
+      <div className="responsive-shell pt-4 sm:pt-6">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
+
       <ResponsiveSection eyebrow={category || 'Product'} title={name} description={description} className="py-6 sm:py-10 lg:py-16">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">

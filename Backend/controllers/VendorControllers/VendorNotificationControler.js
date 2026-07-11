@@ -19,14 +19,13 @@ const getVendorNotifications = async (req, res) => {
     const typeParam = req.query.type;
 
     if (typeParam) {
-      // Split comma-separated types → supports multiple
       const types = typeParam.split(",");
 
-      // Only allow valid types
       const allowed = [
         "product_approved",
         "product_rejected",
         "product_submitted",
+        "product_published",
         "order_received",
         "payment_processed",
       ];

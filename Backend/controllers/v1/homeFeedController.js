@@ -52,12 +52,15 @@ const getHomeFeed = async (req, res) => {
 
       const [featuredResult, categoriesResult, africaResult, settingsResult] =
         await Promise.allSettled([
-          // Featured products
+          // Featured products — support both "live" (immediate publish) and "approved" (legacy)
           db.listDocuments(
             env.APPWRITE_DATABASE_ID,
             env.APPWRITE_PRODUCT_COLLECTION_ID,
             [
-              Query.equal("status", "approved"),
+              Query.or([
+                Query.equal("status", "approved"),
+                Query.equal("status", "live"),
+              ]),
               Query.equal("featured", true),
               Query.limit(20),
               Query.orderDesc("$createdAt"),
@@ -157,7 +160,10 @@ const getHomeFeed = async (req, res) => {
               env.APPWRITE_PRODUCT_COLLECTION_ID,
               [
                 Query.equal("premiumDeal", true),
-                Query.equal("status", "approved"),
+                Query.or([
+                  Query.equal("status", "approved"),
+                  Query.equal("status", "live"),
+                ]),
                 Query.limit(10),
                 Query.orderDesc("$createdAt"),
               ],

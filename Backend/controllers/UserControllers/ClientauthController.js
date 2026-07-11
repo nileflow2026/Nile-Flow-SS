@@ -1087,12 +1087,11 @@ function getGoogleOAuthUrl(req, res) {
     // For mobile OAuth flows the oauth_state cookie must not have a specific
     // domain set, and must use Lax or None sameSite so it survives the redirect
     // from the OAuth provider back to our callback endpoint.
-    const isMobile = Boolean(req.query.redirect_uri);
     const cookieSecure = process.env.NODE_ENV === "production";
     res.cookie("oauth_state", state, {
       httpOnly: true,
       secure: cookieSecure,
-      sameSite: isMobile ? "lax" : "strict",
+      sameSite: "lax",
       maxAge: 10 * 60 * 1000,
       path: "/",
     });

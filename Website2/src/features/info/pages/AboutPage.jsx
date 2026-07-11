@@ -1,5 +1,7 @@
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
+import { SeoHead } from '@shared/seo/SeoHead'
+import { createAboutPageSchema } from '@shared/seo/SchemaFactory'
 
 const pillars = [
   {
@@ -20,7 +22,7 @@ const teamMembers = [
   {
     name: 'Anthony Wai',
     role: 'Founder & CEO',
-    bio: 'Anthony leads Nile Flow’s vision, strategy, and product direction with a focus on trusted commerce and regional growth.',
+    bio: 'Anthony leads Nile Flow\u2019s vision, strategy, and product direction with a focus on trusted commerce and regional growth.',
     image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
     email: 'anthony@nileflowafrica.com',
     phone: '+254 700 000 000',
@@ -58,6 +60,12 @@ const teamMembers = [
 function AboutPage() {
   return (
     <PageShell>
+      <SeoHead
+        title="About Nile Flow"
+        description="Learn about Nile Flow, our mission, team, and values. We are building a more confident way to discover and buy across Africa."
+        keywords={['about', 'company', 'mission', 'team', 'African commerce']}
+        schema={createAboutPageSchema(teamMembers)}
+      />
       <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="responsive-shell rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-lg)] sm:p-10 lg:p-14">
           <div className="max-w-3xl">

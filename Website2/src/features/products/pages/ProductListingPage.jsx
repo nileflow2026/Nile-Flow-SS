@@ -9,6 +9,8 @@ import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Loader from '@shared/ui/loader/Loader'
 import { productService, categoryService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { SeoHead } from '@shared/seo/SeoHead'
+import { createCollectionPageSchema } from '@shared/seo/SchemaFactory'
 
 function ProductListingPage() {
   const [products, setProducts] = useState([])
@@ -114,6 +116,17 @@ function ProductListingPage() {
 
   return (
     <PageShell>
+      <SeoHead
+        title="Shop Products"
+        description="Browse our curated collection of authentic African products on Nile Flow."
+        keywords={['products', 'shop online', 'African marketplace', 'buy online Kenya']}
+        schema={createCollectionPageSchema({
+          title: 'Shop Products',
+          description: 'Browse our curated collection of authentic African products on Nile Flow.',
+          path: '/products',
+          numberOfItems: products.length,
+        })}
+      />
       <ResponsiveSection eyebrow="Shop" title="Discover curated products" description="Browse our handpicked collection of authentic African products." className="py-10 sm:py-14 lg:py-16">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--color-text-secondary)]">

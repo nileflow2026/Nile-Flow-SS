@@ -772,6 +772,18 @@ try {
   console.warn("Image proxy route failed to load:", proxyError.message);
 }
 
+// ========== SEO ROUTES (Sitemaps, Merchant Feed, IndexNow) ==========
+try {
+  const { seoRouter } = require("../routes/seoRoutes");
+  // Mount sitemaps at root level so they are at https://domain.com/sitemap*.xml
+  app.use("/", seoRouter);
+  // Also mount merchant feed under /api
+  app.use("/api", seoRouter);
+  console.log("  ✅ SEO routes mounted (sitemaps, merchant feed, IndexNow)");
+} catch (seoError) {
+  console.warn("SEO routes failed to load:", seoError.message);
+}
+
 // ========== PROMETHEUS METRICS SCRAPE ENDPOINT ==========
 app.get("/metrics", async (req, res) => {
   try {

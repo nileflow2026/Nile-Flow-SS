@@ -3,6 +3,8 @@ import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { SeoHead } from '@shared/seo/SeoHead'
+import { createContactPageSchema } from '@shared/seo/SchemaFactory'
 
 function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
@@ -16,6 +18,12 @@ function ContactPage() {
 
   return (
     <PageShell>
+      <SeoHead
+        title="Contact Nile Flow"
+        description="Get in touch with Nile Flow for support, partnerships, and inquiries. We are here to help."
+        keywords={['contact', 'support', 'help', 'African marketplace']}
+        schema={createContactPageSchema()}
+      />
       <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="responsive-shell grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-lg)] sm:p-10">

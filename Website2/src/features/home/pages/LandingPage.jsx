@@ -5,6 +5,7 @@ import ProductCard from '@shared/ui/product-card/ProductCard'
 import Button from '@shared/ui/button/Button'
 import { productService } from '@api/services'
 import { useAuth } from '@auth/AuthContext'
+import { SeoHead } from '@shared/seo/SeoHead'
 import HeroSection from '../components/HeroSection'
 import MarketplaceSection from '../components/MarketplaceSection'
 import WhyNileFlow from '../components/WhyNileFlow'
@@ -15,7 +16,7 @@ import AIAssistantSection from '../components/AIAssistantSection'
 import NileVerseSection from '../components/NileVerseSection'
 import TestimonialsSection from '../components/TestimonialsSection'
 
-function HomePage() {
+function LandingPage() {
   const { isAuthenticated, user } = useAuth()
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -37,16 +38,15 @@ function HomePage() {
 
   return (
     <PageShell>
-      {/* Hero Section — Cinematic African Technology Experience */}
+      <SeoHead
+        title="Nile Flow | African Commerce & AI Marketplace"
+        description="Discover authentic products, secure payments, and dependable delivery across Africa. Shop smarter with Nile Flow."
+        keywords={['African marketplace', 'online shopping Africa', 'ecommerce Africa', 'AI commerce', 'Nile Flow']}
+      />
       <HeroSection />
-
-      {/* African Marketplace Categories */}
       <MarketplaceSection />
-
-      {/* Why Nile Flow — Premium Feature Cards */} 
       <WhyNileFlow />
 
-      {/* Featured Products (legacy section, kept to maintain existing functionality) */}
       {featuredProducts.length > 0 && (
         <section className="relative overflow-hidden bg-[linear-gradient(180deg,var(--color-surface-muted)_0%,var(--color-background)_100%)] py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -99,25 +99,13 @@ function HomePage() {
         </section>
       )}
 
-      {/* Interactive Africa Map */}
       <AfricaMap />
-
-      {/* Community Impact — Live Metrics */}
       <CommunityImpact />
-
-      {/* Merchant Section */}
       <MerchantSection />
-
-      {/* AI Assistant Section */}
       <AIAssistantSection />
-
-      {/* NileVerse Ecosystem */}
       <NileVerseSection />
-
-      {/* Trust & Testimonials */}
       <TestimonialsSection />
 
-      {/* Final CTA */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-amber-900 py-20">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
@@ -132,7 +120,7 @@ function HomePage() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-amber-600/30 transition-all hover:bg-amber-600 hover:shadow-xl hover:scale-105"
             >
               Start Shopping
-            </Link> 
+            </Link>
             <Link
               to="/signup"
               className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/30 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/50"
@@ -146,4 +134,4 @@ function HomePage() {
   )
 }
 
-export default HomePage
+export default LandingPage

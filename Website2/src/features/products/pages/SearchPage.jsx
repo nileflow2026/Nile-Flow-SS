@@ -10,6 +10,7 @@ import Input from '@shared/ui/input/Input'
 import { searchService } from '@api/services'
 import { imageProxyUrl } from '@api/config'
 import { usePostHog } from '@posthog/react'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 function SearchPage() {
   const [query, setQuery] = useState('')
@@ -48,6 +49,11 @@ function SearchPage() {
 
   return (
     <PageShell>
+      <SeoHead
+        title="Search Products"
+        description="Search across products, categories, and merchants on Nile Flow."
+        keywords={['search', 'find products', 'African marketplace']}
+      />
       <ResponsiveSection
         eyebrow="Search"
         title="Find what you need"
