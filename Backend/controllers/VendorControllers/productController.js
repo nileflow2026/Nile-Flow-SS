@@ -15,6 +15,55 @@ const {
 const { productPublishingService } = require("../../services/productPublishingService");
 const { submitProductToIndexNow } = require("../../routes/seoRoutes");
 
+const normalizeImageValue = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    if (typeof value.url === "string") return normalizeImageValue(value.url);
+    if (typeof value.imageUrl === "string") return normalizeImageValue(value.imageUrl);
+    return "";
+  }
+
+  if (typeof value !== "string") return "";
+
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("/api/image-proxy?url=")) {
+    try {
+      const parsed = new URL(trimmed, env.FRONTEND_URL || "https://www.nileflowafrica.com");
+      const target = parsed.searchParams.get("url");
+      if (target) return normalizeImageValue(target);
+    } catch (error) {
+      console.warn("Failed to parse proxy image URL:", error.message);
+    }
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.toString();
+    } catch (error) {
+      console.warn("Invalid absolute image URL:", trimmed);
+    }
+  }
+
+  return "";
+};
+
+const normalizeImageList = (value) => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeImageValue(item))
+      .filter(Boolean);
+  }
+
+  const single = normalizeImageValue(value);
+  return single ? [single] : [];
+};
+
 const productController = {
   // Create Product — publishes immediately unless approval feature flag is enabled
   async createProduct(req, res) {
@@ -38,6 +87,10 @@ const productController = {
         currency = "USD",
         specifications = {},
       } = req.body;
+
+      const normalizedImage = normalizeImageValue(image);
+      const normalizedImages = normalizeImageList(images);
+      const primaryImage = normalizedImage || normalizedImages[0] || "";
 
       // Generate SKU
       const generateSKU = () => {
@@ -105,35 +158,43 @@ const productController = {
       const sku = generateSKU();
 
       // 1. Create product in VENDOR'S collection
+      const vendorProductPayload = {
+        vendorId,
+        name: name.trim(),
+        description: description?.trim() || "",
+        price: parseFloat(price),
+        category: categoryId,
+        tags: Array.isArray(tags)
+          ? tags
+          : tags
+            ? tags.split(",").map((tag) => tag.trim())
+            : [],
+        inventory: parseInt(inventory) || 0,
+        attributes: JSON.stringify(parsedAttributes),
+        sku: sku,
+        isActive: statusFields.isActive,
+        isFeatured: false,
+        rating: 0,
+        reviewCount: 0,
+        status: statusFields.status,
+        publishedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (primaryImage) {
+        vendorProductPayload.image = primaryImage;
+      }
+
+      if (normalizedImages.length > 0) {
+        vendorProductPayload.images = normalizedImages;
+      }
+
       const vendorProduct = await db.createDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_PRODUCTS_COLLECTION_ID,
         productId,
-        {
-          vendorId,
-          name: name.trim(),
-          description: description?.trim() || "",
-          price: parseFloat(price),
-          category: categoryId,
-          tags: Array.isArray(tags)
-            ? tags
-            : tags
-              ? tags.split(",").map((tag) => tag.trim())
-              : [],
-          inventory: parseInt(inventory) || 0,
-          attributes: JSON.stringify(parsedAttributes),
-          image: image || "",
-          images: images || [],
-          sku: sku,
-          isActive: statusFields.isActive,
-          isFeatured: false,
-          rating: 0,
-          reviewCount: 0,
-          status: statusFields.status,
-          publishedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+        vendorProductPayload,
       );
 
       const MAIN_VENDOR_COLLECTION_ID = env.MAIN_VENDORS_COLLECTION_ID; // Define this in your env or here
@@ -233,8 +294,6 @@ const productController = {
           category: categoryId,
           categoryId: [categoryId],
           subcategoryId: subcategoryId || "",
-          image: image || "",
-          images: images || [],
           specifications: typeof parsedAttributes === 'object' 
             ? JSON.stringify(parsedAttributes) 
             : (parsedAttributes || ''),
@@ -252,6 +311,14 @@ const productController = {
           vendorId: vendorId,
           vendorName: vendorDetails.storeName,
         };
+
+        if (primaryImage) {
+          mainProductData.image = primaryImage;
+        }
+
+        if (normalizedImages.length > 0) {
+          mainProductData.images = normalizedImages;
+        }
 
         // Use instrumentedDb for observability and consistency with admin controllers
         mainProduct = await instrumentedDb.createDocument(
@@ -327,7 +394,7 @@ const productController = {
                   vendorEmail: vendorDetails.email,
                   price: parseFloat(price),
                   category: categoryId,
-                  image: image || "",
+                  image: primaryImage,
                   submittedAt: new Date().toISOString(),
                   actionUrl: `/admin/products/pending/${productId}`,
                 }),
@@ -399,7 +466,7 @@ const productController = {
                   vendorEmail: vendorDetails.email,
                   price: parseFloat(price),
                   category: categoryId,
-                  image: image || "",
+                  image: primaryImage,
                   publishedAt,
                   status: "live",
                   actionUrl: `/admin/products/${productId}`,
