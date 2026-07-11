@@ -180,29 +180,34 @@ const productController = {
       }
 
       // If the main product collection is not configured, record that and skip main creation
+      let mainProduct = null;
+      let mainSyncInfo = null;
+
       if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
         const reason = "APPWRITE_PRODUCT_COLLECTION_ID not configured - skipping main store creation";
         console.warn("⚠️", reason);
         console.warn("⚠️ env.APPWRITE_DATABASE_ID:", env.APPWRITE_DATABASE_ID);
         console.warn("⚠️ env.APPWRITE_PRODUCT_COLLECTION_ID:", env.APPWRITE_PRODUCT_COLLECTION_ID);
+
+        mainSyncInfo = {
+          success: false,
+          reason,
+          source: "vendor-create",
+          timestamp: new Date().toISOString(),
+        };
+
         try {
-          const notConfiguredData = {
-            mainSync: {
-              success: false,
-              reason,
-              timestamp: new Date().toISOString(),
-            },
-          };
-          
+          const notConfiguredData = { mainSync: mainSyncInfo };
+
           console.log("[NOT CONFIGURED] Writing mainSync to vendor product:", JSON.stringify(notConfiguredData, null, 2));
-          
+
           await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
             notConfiguredData,
           );
-          
+
           console.log("[NOT CONFIGURED] Successfully wrote mainSync info");
         } catch (uErr) {
           console.warn("⚠️ Failed to update vendor product with mainSync info:", uErr.message);
@@ -210,7 +215,6 @@ const productController = {
       }
 
       // 2. ALSO create product in MAIN WEBSITE collection (with different schema)
-      let mainProduct = null;
       try {
         // If product collection not configured, don't attempt creation
         if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
@@ -287,9 +291,18 @@ const productController = {
         } catch (updateErr) {
           console.warn("⚠️ Optional fields update failed (non-critical):", updateErr.message);
         }
+        mainSyncInfo = {
+          success: true,
+          reason: "Product created in main store",
+          source: "vendor-create",
+          productId: mainProduct.$id,
+          status: statusFields.status,
+          timestamp: new Date().toISOString(),
+        };
+
         console.log(`✅ Product added to main collection (status: ${statusFields.status})`);
 
-          try {
+        try {
           // Get all admin users (or specific admin IDs)
           const admins = await instrumentedDb.listDocuments(
             env.APPWRITE_DATABASE_ID,
@@ -464,29 +477,30 @@ const productController = {
           stack: mainProductError?.stack?.split('\n').slice(0, 5).join('\n'),
         });
 
+        mainSyncInfo = {
+          success: false,
+          error: errMsg,
+          details:
+            mainProductError && mainProductError.response
+              ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
+              : (mainProductError?.toString && mainProductError.toString()),
+          source: "vendor-create",
+          timestamp: new Date().toISOString(),
+        };
+
         // Persist sync failure into the vendor product so it's visible in vendor dashboard/logs
         try {
-          const syncFailureData = {
-            mainSync: {
-              success: false,
-              error: errMsg,
-              details:
-                mainProductError && mainProductError.response
-                  ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
-                  : (mainProductError?.toString && mainProductError.toString()),
-              timestamp: new Date().toISOString(),
-            },
-          };
-          
+          const syncFailureData = { mainSync: mainSyncInfo };
+
           console.log("[MAIN SYNC FAILURE] Updating vendor product with mainSync:", JSON.stringify(syncFailureData, null, 2));
-          
+
           await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
             syncFailureData,
           );
-          
+
           console.log("[MAIN SYNC FAILURE] Successfully persisted mainSync info to vendor product");
         } catch (uErr) {
           console.warn("⚠️ Failed to write mainSync info to vendor product:", uErr.message);
@@ -512,10 +526,16 @@ const productController = {
       }
 
       // Extract mainSync info if present (will be set if main product creation failed)
-      const mainSyncInfo = freshVendorProduct?.mainSync || null;
-      
+      const persistedMainSyncInfo = freshVendorProduct?.mainSync || null;
+      const effectiveMainSyncInfo = mainSyncInfo || persistedMainSyncInfo || {
+        success: false,
+        reason: "Main store sync not completed",
+        source: "vendor-create",
+        timestamp: new Date().toISOString(),
+      };
+
       console.log("[RESPONSE BUILD] addedToMainStore:", !!mainProduct);
-      console.log("[RESPONSE BUILD] mainSyncInfo:", mainSyncInfo);
+      console.log("[RESPONSE BUILD] mainSyncInfo:", effectiveMainSyncInfo);
       console.log("[RESPONSE BUILD] APPWRITE_PRODUCT_COLLECTION_ID configured:", !!env.APPWRITE_PRODUCT_COLLECTION_ID);
       
       // Submit the product URL to IndexNow (Bing/Yandex) for immediate indexing
@@ -539,8 +559,8 @@ const productController = {
         } else {
           syncSummary = "✅ Product submitted for admin approval.";
         }
-      } else if (mainSyncInfo) {
-        syncSummary = `⚠️ Main store sync failed: ${mainSyncInfo.reason || mainSyncInfo.error || "Unknown error"}`;
+      } else if (effectiveMainSyncInfo) {
+        syncSummary = `⚠️ Main store sync issue: ${effectiveMainSyncInfo.reason || effectiveMainSyncInfo.error || "Unknown error"}`;
       } else {
         syncSummary = "⚠️ Main store sync status unknown - check backend logs";
       }
@@ -560,7 +580,7 @@ const productController = {
           product: freshVendorProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
-          mainSync: mainSyncInfo,
+          mainSync: effectiveMainSyncInfo,
         },
       });
     } catch (error) {
