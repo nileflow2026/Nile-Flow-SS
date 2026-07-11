@@ -37,7 +37,7 @@ export async function initializeSession() {
 
   try {
     // Attempt to restore session from existing cookies
-    const client = getClient();
+    const client = await getClient();
     const response = await client.get('/api/admin/auth/getcurrentuser');
     
     if (response.data?.user) {
@@ -82,7 +82,7 @@ export async function silentRefresh() {
 
   const refreshPromise = (async () => {
     try {
-      const client = getClient();
+      const client = await getClient();
       await client.post('/api/admin/auth/refresh', {});
       TokenManager.markAuthenticated(TokenManager.getSessionId());
       TokenManager.incrementRefreshCount();
@@ -133,7 +133,7 @@ export function startSessionMonitoring() {
   // Periodic session health check (every 2 minutes)
   _sessionCheckIntervalId = setInterval(async () => {
     try {
-      const client = getClient();
+      const client = await getClient();
       await client.get('/api/admin/auth/getcurrentuser');
     } catch {
       // Session may have expired — attempt silent refresh
@@ -193,7 +193,7 @@ export function updateActivity() {
  */
 export async function checkSessionHealth() {
   try {
-    const client = getClient();
+    const client = await getClient();
     await client.get('/api/admin/auth/getcurrentuser');
     return true;
   } catch {
