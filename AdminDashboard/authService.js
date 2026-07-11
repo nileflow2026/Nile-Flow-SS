@@ -1,4 +1,8 @@
-import axiosClient from "./api";
+import axiosClient, {
+  markAuthInitializationComplete,
+  markSessionActive,
+  markSessionInactive,
+} from "./api";
 
 let currentUserRequest = null;
 let currentUserCache = null;
@@ -51,8 +55,10 @@ export const signupAdmin = async (email, password, username, deviceId) => {
       deviceName,
     });
 
+    markSessionActive();
     return { success: true, data: response.data };
   } catch (error) {
+    markSessionInactive();
     return {
       success: false,
       error: error.response?.data?.error || "Signup failed. Please try again.",
@@ -72,8 +78,10 @@ export const signinAdmin = async (email, password, deviceId) => {
       deviceId,
     });
 
+    markSessionActive();
     return { success: true, data: response.data };
   } catch (error) {
+    markSessionInactive();
     return {
       success: false,
       error: error.response?.data?.error || "Signin failed. Please try again.",
@@ -88,8 +96,10 @@ export const signinAdmin = async (email, password, deviceId) => {
 export const refreshTokens = async () => {
   try {
     const response = await axiosClient.post("/api/admin/auth/refresh", {});
+    markSessionActive();
     return { success: true, data: response.data };
   } catch (error) {
+    markSessionInactive();
     return {
       success: false,
       error: error.response?.data?.error || "Token refresh failed.",
@@ -105,6 +115,7 @@ export const signoutAdmin = async () => {
   try {
     await axiosClient.post("/auth/logout", {});
     clearCurrentUserCache();
+    markSessionInactive();
     return { success: true };
   } catch (error) {
     clearCurrentUserCache();
@@ -133,11 +144,15 @@ export const getCurrentUser = async () => {
   currentUserRequest = (async () => {
     try {
       const response = await axiosClient.get("/api/admin/auth/getcurrentuser");
+      markSessionActive();
+      markAuthInitializationComplete();
       const result = { success: true, data: response.data };
       currentUserCache = result;
       currentUserCacheTime = Date.now();
       return result;
     } catch (error) {
+      markSessionInactive();
+      markAuthInitializationComplete();
       const result = {
         success: false,
         error: error.response?.data?.error || "Failed to get user data.",

@@ -519,10 +519,26 @@ const signin = async (req, res) => {
 
 const handleRefreshToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
-    const { deviceId } = req.body || {};
+    const { deviceId, refreshToken: bodyRefreshToken } = req.body || {};
+    const headerRefreshToken = req.headers?.["x-refresh-token"];
+    const authorizationHeader = req.headers?.authorization || "";
+    const bearerRefreshToken = authorizationHeader.startsWith("Bearer ")
+      ? authorizationHeader.slice(7)
+      : null;
+    const refreshToken =
+      req.cookies?.refreshToken ||
+      bodyRefreshToken ||
+      headerRefreshToken ||
+      bearerRefreshToken;
+
     if (!refreshToken) {
-      return res.status(400).json({ error: "Missing refresh token." });
+      log.warn("Refresh attempt rejected: no refresh token provided", {
+        hasCookie: Boolean(req.cookies?.refreshToken),
+        hasBodyToken: Boolean(bodyRefreshToken),
+        hasHeaderToken: Boolean(headerRefreshToken),
+        hasAuthHeader: Boolean(authorizationHeader),
+      });
+      return res.status(401).json({ error: "Missing refresh token." });
     }
 
     // 1) Verify signature
