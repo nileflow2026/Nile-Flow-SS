@@ -32,6 +32,7 @@ const {
   computeCartSubtotal,
   convertKshToUsd,
 } = require("../../utils/serverPricing");
+const { generateOrderNumber } = require("../../orders/OrderNumberGenerator");
 
 // Global cache for processed callbacks (in production, use Redis)
 const processedCallbacks = new Map();
@@ -316,8 +317,13 @@ const cashonDelivery = async (req, res) => {
 
     console.log("✅ Stock check passed");
 
+  // Generate professional order number (NF-YYYY-NNNNNNNNN)
+    const orderNumber = await generateOrderNumber();
+    console.log(`📋 Generated order number: ${orderNumber}`);
+
     // 2. CREATE ORDER DOCUMENT
     const orderDocument = {
+      orderNumber, // Professional order number from OrderNumberGenerator
       userId: userIdValue, // Changed from 'users' to 'userId' for clarity
       customerEmail: Array.isArray(customerEmail)
         ? customerEmail[0]
@@ -458,12 +464,33 @@ const cashonDelivery = async (req, res) => {
       console.warn("Email confirmation failed:", emailError.message);
     }
 
-    // 7. RETURN SUCCESS RESPONSE WITH PREMIUM BENEFITS INFO
+    // 7. CLEAR USER'S CART AFTER SUCCESSFUL ORDER
+    console.log("Clearing user's cart...");
+    try {
+      const cartItems = await instrumentedDb.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_CART_COLLECTION_ID,
+        [Query.equal("userId", userIdValue)],
+      );
+      for (const item of cartItems.documents) {
+        await instrumentedDb.deleteDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_CART_COLLECTION_ID,
+          item.$id,
+        );
+      }
+      console.log(`✅ Cleared ${cartItems.total} items from user's cart`);
+    } catch (cartError) {
+      console.warn("Cart clearing error (non-critical):", cartError.message);
+    }
+
+    // 8. RETURN SUCCESS RESPONSE WITH ORDER NUMBER
     const responseData = {
       success: true,
       message:
         "Payment on Delivery order created successfully. Stock has been updated.",
       orderId: orderId,
+      orderNumber, // NF-YYYY-NNNNNNNNN for frontend display
       createdAt: orderDocument.createdAt,
       stockUpdate: {
         success: true,
@@ -1186,17 +1213,17 @@ const PayPalCaptureOrder = async (req, res) => {
 const Emailconfirmation = async ({
   customerEmail,
   customerName,
-  orderId,
+  orderNumber,
   orderTotal,
   cart,
-  paymentMethod,
+  paymentMethod, 
   status,
 }) => {
   try {
     await sendOrderConfirmationEmail({
       customerEmail,
       customerName,
-      orderId,
+      orderNumber,
       orderTotal,
       cart,
       paymentMethod,

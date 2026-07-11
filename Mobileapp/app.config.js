@@ -74,6 +74,8 @@ module.exports = () => ({
       "expo-localization",
       "expo-image",
       "expo-sharing",
+      "expo-font",
+    "expo-status-bar",
 
       [
         "expo-notifications",

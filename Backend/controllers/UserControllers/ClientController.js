@@ -328,6 +328,8 @@ const getProducts = async (req, res) => {
     }
 
     // Search filter (search in multiple fields)
+    // NOTE: tags is excluded from search because it's an array attribute,
+    // and Appwrite's Query.search does not support array attributes.
     if (search) {
       const normalizedSearch = search.trim().toLowerCase();
       baseFilters.push(
@@ -335,11 +337,9 @@ const getProducts = async (req, res) => {
           Query.search("productName", normalizedSearch),
           Query.search("description", normalizedSearch),
           Query.search("brand", normalizedSearch),
-          Query.search("tags", normalizedSearch),
           Query.search("productName", search),
           Query.search("description", search),
           Query.search("brand", search),
-          Query.search("tags", search),
         ]),
       );
     }

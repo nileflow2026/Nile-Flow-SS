@@ -1,5 +1,16 @@
 import axiosClient from "./api";
 
+let currentUserRequest = null;
+let currentUserCache = null;
+let currentUserCacheTime = 0;
+const CURRENT_USER_CACHE_TTL_MS = 10000;
+
+const clearCurrentUserCache = () => {
+  currentUserRequest = null;
+  currentUserCache = null;
+  currentUserCacheTime = 0;
+};
+
 /**
  * Get device name (browser + OS info)
  */
@@ -93,8 +104,10 @@ export const refreshTokens = async () => {
 export const signoutAdmin = async () => {
   try {
     await axiosClient.post("/auth/logout", {});
+    clearCurrentUserCache();
     return { success: true };
   } catch (error) {
+    clearCurrentUserCache();
     return {
       success: false,
       error: error.response?.data?.error || "Logout failed.",
@@ -107,15 +120,36 @@ export const signoutAdmin = async () => {
  * Validates session via cookies
  */
 export const getCurrentUser = async () => {
-  try {
-    const response = await axiosClient.get("/api/admin/auth/getcurrentuser");
-    return { success: true, data: response.data };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.response?.data?.error || "Failed to get user data.",
-    };
+  const now = Date.now();
+
+  if (currentUserCache && now - currentUserCacheTime < CURRENT_USER_CACHE_TTL_MS) {
+    return currentUserCache;
   }
+
+  if (currentUserRequest) {
+    return currentUserRequest;
+  }
+
+  currentUserRequest = (async () => {
+    try {
+      const response = await axiosClient.get("/api/admin/auth/getcurrentuser");
+      const result = { success: true, data: response.data };
+      currentUserCache = result;
+      currentUserCacheTime = Date.now();
+      return result;
+    } catch (error) {
+      const result = {
+        success: false,
+        error: error.response?.data?.error || "Failed to get user data.",
+      };
+      clearCurrentUserCache();
+      return result;
+    } finally {
+      currentUserRequest = null;
+    }
+  })();
+
+  return currentUserRequest;
 };
 
 export default {

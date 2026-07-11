@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --color-background: #ffffff;
+  --color-background-alt: #f9fafb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f9fafb;
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-divider: #e5e7eb;
+  --color-primary: #16a34a;
+  --color-primary-hover: #15803d;
+  --color-accent: #d97706;
+  --color-accent-soft: #fef3c7;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #2563eb;
+  --color-disabled: #9ca3af;
+  --color-overlay: rgba(17, 24, 39, 0.5);
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --shadow-sm: 0 8px 24px -16px rgba(15, 23, 42, 0.25);
+  --shadow-md: 0 18px 45px -24px rgba(15, 23, 42, 0.3);
+  --shadow-lg: 0 24px 60px -28px rgba(15, 23, 42, 0.35);
+}
+
+:root[data-theme='dark'] {
+  --color-background: #111827;
+  --color-background-alt: #1f2937;
+  --color-surface: #111827;
+  --color-surface-muted: #1f2937;
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-border: #374151;
+  --color-divider: #374151;
+  --color-primary: #22c55e;
+  --color-primary-hover: #16a34a;
+  --color-accent: #fbbf24;
+  --color-accent-soft: rgba(251, 191, 36, 0.16);
+  --color-success: #22c55e;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #60a5fa;
+  --color-disabled: #6b7280;
+  --color-overlay: rgba(2, 6, 23, 0.7);
+}
+
+html {
+  font-family: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-serif-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  min-height: 44px;
+}
+
+@layer utilities {
+  .responsive-shell {
+    width: min(100%, 1200px);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .responsive-shell {
+      padding-inline: 1.25rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .responsive-shell {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .responsive-shell {
+      padding-inline: 2.5rem;
+    }
+  }
+}

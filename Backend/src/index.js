@@ -79,6 +79,9 @@ try {
   healthRoutes = require("../routes/health.routes");
 
   app = express();
+  // Trust Render's reverse proxy so Express can detect HTTPS correctly
+  // and allow secure cookies to be read on the OAuth callback path.
+  app.set("trust proxy", 1);
 } catch (setupError) {
   console.error("CRITICAL: Failed to set up Express application:", setupError.message);
   console.error("  Stack:", setupError.stack);
@@ -86,6 +89,47 @@ try {
 }
 
 const PORT = process.env.PORT || 3000;
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://localhost:3000",
+  "https://nile-mart-backend-2.onrender.com",
+  "https://nileflow-com.onrender.com",
+  "https://nileflowafrica.com",
+  "https://www.nileflowafrica.com",
+  "https://nileflow.co.ke",
+  "https://new-nile-flow-backend.onrender.com",
+  "https://nileflowvendordashboard.onrender.com",
+  "https://nile-flow-adminpanel.onrender.com",
+  "https://nile-flow-website.onrender.com",
+  "https://admin.nileflowafrica.com",
+  "https://vendor.nileflowafrica.com",
+  "https://nile-flow-backend.onrender.com",
+  "https://nile-flow-backend-5dqm.onrender.com",
+  "https://nileflow-oxpl.onrender.com",
+];
+
+const corsAllowedHeaders =
+  "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Platform,x-platform,X-Device-Id,x-device-id,X-Timezone,x-timezone,X-Transaction-ID,X-Currency,X-Correlation-ID,X-Request-ID,Cache-Control,Pragma,Origin,Access-Control-Request-Method,Access-Control-Request-Headers";
+
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      req.headers["access-control-request-headers"] || corsAllowedHeaders,
+    );
+    res.header("Access-Control-Max-Age", "86400");
+    return true;
+  }
+  return false;
+}
 
 // Load core routes
 let adminRouter,
@@ -240,32 +284,21 @@ try {
   console.warn("Helmet middleware failed:", helmetError.message);
 }
 
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    if (applyCorsHeaders(req, res)) {
+      return res.sendStatus(204);
+    }
+    return res.sendStatus(403);
+  }
+  next();
+});
+
 // ========== CORS CONFIGURATION ==========
 try {
   if (cors) {
     const corsOptions = {
       origin: (origin, callback) => {
-        const allowedOrigins = [
-          "http://localhost:5173",
-          "http://localhost:5174",
-          "http://localhost:5175",
-          "http://localhost:5176",
-          "http://localhost:3000",
-          "https://nile-mart-backend-2.onrender.com",
-          "https://nileflow-com.onrender.com",
-          "https://nileflowafrica.com",
-          "https://www.nileflowafrica.com",
-          "https://nileflow.co.ke",
-          "https://new-nile-flow-backend.onrender.com",
-          "https://nileflowvendordashboard.onrender.com",
-          "https://nile-flow-adminpanel.onrender.com",
-          "https://nile-flow-website.onrender.com",
-          "https://admin.nileflowafrica.com",
-          "https://vendor.nileflowafrica.com",
-          "https://nile-flow-backend.onrender.com",
-          "https://nile-flow-backend-5dqm.onrender.com"
-        ];
-
         if (!origin) {
           return callback(null, true);
         }
@@ -277,19 +310,7 @@ try {
         }
       },
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Accept",
-        "X-CSRF-Token",
-        "X-Transaction-ID",
-        "X-Currency",
-        "X-Correlation-ID",
-        "X-Request-ID",
-        "Cache-Control",
-        "Pragma",
-      ],
+      allowedHeaders: ["*"],
       credentials: true,
       exposedHeaders: ["X-CSRF-Token"],
       optionsSuccessStatus: 200,
@@ -313,10 +334,8 @@ app.use("/api/admin", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
-    );
+    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
 });
@@ -331,10 +350,8 @@ app.use("/api/vendor", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,Cache-Control,Pragma",
-    );
+    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
 });
@@ -361,6 +378,8 @@ app.use((req, res, next) => {
       "https://admin.nileflowafrica.com",
       "https://vendor.nileflowafrica.com",
       "https://nile-flow-backend.onrender.com",
+      "https://nile-flow-backend-5dqm.onrender.com",
+      "https://nileflow-oxpl.onrender.com"
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -369,10 +388,8 @@ app.use((req, res, next) => {
         "Access-Control-Allow-Methods",
         "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       );
-      res.header(
-        "Access-Control-Allow-Headers",
-        "Content-Type,Authorization,X-Requested-With,Accept,X-CSRF-Token,X-Transaction-ID,Cache-Control,Pragma",
-      );
+      const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+      res.header("Access-Control-Allow-Headers", requestedHeaders);
       res.header("Access-Control-Allow-Credentials", "true");
       res.header("Access-Control-Max-Age", "86400");
       return res.status(200).end();
@@ -613,6 +630,8 @@ app.use("/api/admin/auth", (req, res, next) => {
     "https://nile-flow-adminpanel.onrender.com",
     "https://nileflowafrica.com",
     "https://nile-flow-backend.onrender.com",
+    "https://nileflow-oxpl.onrender.com",
+    "https://nile-flow-backend-5dqm.onrender.com",
   ];
 
   if (!origin || allowedOrigins.includes(origin)) {
@@ -636,8 +655,10 @@ app.use("/api/admin/auth", (req, res, next) => {
 // Admin Routes
 safeMount("/api/admin/auth", [authLimiter, authRoutes].filter(Boolean), "Admin Auth");
 safeMount("/api/admin/products", adminRouter, "Admin Products");
-safeMount("/api/orders", adminRouter, "Orders (Admin)");
+// Order tracking routes must be mounted BEFORE order management routes
+// to prevent `/:orderId` catching `/tracking/:orderId` paths.
 safeMount("/api/orders", orderTrackingRoutes, "Order Tracking");
+safeMount("/api/orders", adminRouter, "Orders (Admin)");
 safeMount("/api/products", adminRouter, "Products (Admin)");
 safeMount("/api/deliveries", adminRouter, "Deliveries");
 safeMount("/api/admin/orderStatus", adminRouter, "Admin Order Status");
@@ -650,6 +671,20 @@ safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");
 safeMount("/api", userRoutes, "User Routes");
 safeMount("/api/notifications", notificationRoutes, "Notifications");
+
+// ========== NOTIFICATION INFRASTRUCTURE ROUTES ==========
+try {
+  const notifLogRoutes = require("../routes/notificationLogRoutes");
+  safeMount("/api/notifications/logs", notifLogRoutes, "Notification Logs");
+} catch (notifLogError) {
+  console.warn("Notification log routes failed to load:", notifLogError.message);
+}
+try {
+  const webhookRoutes = require("../routes/webhookRoutes");
+  safeMount("/api/notifications/webhooks", webhookRoutes, "Notification Webhooks");
+} catch (webhookRouteError) {
+  console.warn("Webhook routes failed to load:", webhookRouteError.message);
+}
 safeMount("/api/customernotifications", customernotifications, "Customer Notifications");
 safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");
@@ -719,6 +754,14 @@ try {
   app.use("/api/v1", v1Router);
 } catch (v1Error) {
   console.warn("API v1 router failed to load:", v1Error.message);
+}
+
+// ========== ORDER MANAGEMENT SYSTEM ROUTES ==========
+try {
+  const orderRoutes = require("../routes/orderRoutes");
+  safeMount("/api/orders", orderRoutes, "Order Management");
+} catch (orderRouteError) {
+  console.warn("Order management routes failed to load:", orderRouteError.message);
 }
 
 // ========== IMAGE PROXY ==========

@@ -1,0 +1,82 @@
+export const tokens = {
+  colors: {
+    primary: '#16A34A',
+    primaryHover: '#15803D',
+    accent: '#D97706',
+    accentSoft: '#FEF3C7',
+    success: '#16A34A',
+    error: '#DC2626',
+    warning: '#D97706',
+    info: '#2563EB',
+    background: '#FFFFFF',
+    backgroundAlt: '#F9FAFB',
+    surface: '#FFFFFF',
+    surfaceMuted: '#F9FAFB',
+    border: '#E5E7EB',
+    divider: '#E5E7EB',
+    textPrimary: '#111827',
+    textSecondary: '#374151',
+    textMuted: '#6B7280',
+    disabled: '#9CA3AF',
+    overlay: 'rgba(17, 24, 39, 0.5)',
+  },
+  typography: {
+    fontFamily: 'Poppins, Inter, ui-sans-serif, system-ui, sans-serif',
+    fontSize: {
+      xs: '0.75rem',
+      sm: '0.875rem',
+      base: '1rem',
+      lg: '1.125rem',
+      xl: '1.25rem',
+      '2xl': '1.5rem',
+      '3xl': '1.875rem',
+      '4xl': '2.5rem',
+    },
+    lineHeight: {
+      tight: 1.2,
+      normal: 1.5,
+      relaxed: 1.75,
+    },
+    weight: {
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    },
+  },
+  spacing: {
+    1: '0.25rem',
+    2: '0.5rem',
+    3: '0.75rem',
+    4: '1rem',
+    5: '1.25rem',
+    6: '1.5rem',
+    8: '2rem',
+    10: '2.5rem',
+    12: '3rem',
+    16: '4rem',
+    20: '5rem',
+  },
+  radius: {
+    sm: '0.75rem',
+    md: '1rem',
+    lg: '1.25rem',
+    xl: '1.5rem',
+    '2xl': '2rem',
+  },
+  shadow: {
+    sm: '0 8px 24px -16px rgba(15, 23, 42, 0.25)',
+    md: '0 18px 45px -24px rgba(15, 23, 42, 0.3)',
+    lg: '0 24px 60px -28px rgba(15, 23, 42, 0.35)',
+  },
+  motion: {
+    durationFast: '120ms',
+    durationBase: '200ms',
+    durationSlow: '280ms',
+    easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+  },
+}
+
+export function getToken(name) {
+  return name.split('.').reduce((acc, key) => acc?.[key], tokens)
+}

@@ -1,15 +1,19 @@
 // controllers/vendorOrderController.js
 const { Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const OrderRepository = require("../../orders/OrderRepository");
 
-// Get vendor's orders
+// Get vendor's orders — uses OrderRepository with pagination.
+// Previously fetched ALL orders and filtered in-memory (N+1 anti-pattern).
+// Now: paginated query + in-memory filter on the paginated set.
 const getvendorOrders = async (req, res) => {
   try {
     const vendorId = req.user.userId;
+    const { page = 1, limit = 25 } = req.query;
 
-    // 1. Get vendor's products
-    const vendorProducts = await db.listDocuments(
+    // 1. Get vendor's products (single query)
+    const vendorProducts = await instrumentedDb.listDocuments(
       env.VENDOR_DATABASE_ID,
       env.VENDOR_PRODUCTS_COLLECTION_ID,
       [Query.equal("vendorId", vendorId)]
@@ -19,39 +23,49 @@ const getvendorOrders = async (req, res) => {
       (product) => product.$id
     );
 
-    // 2. Get all orders
-    const allOrders = await db.listDocuments(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_ORDERS_COLLECTION,
-      [Query.orderDesc("$createdAt"), Query.limit(100)]
-    );
+    if (vendorProductIds.length === 0) {
+      return res.json({
+        success: true,
+        data: { orders: [], total: 0, stats: {} },
+      });
+    }
+
+    // 2. Get orders via OrderRepository with pagination
+    //    The repository queries by userId is not directly applicable for vendors
+    //    since orders don't have a vendorId field. We paginate and filter.
+    const { orders, total } = await OrderRepository.list({
+      page: parseInt(page),
+      limit: Math.max(parseInt(limit), 100), // Need enough to filter meaningfully
+    });
 
     // 3. Filter orders that contain vendor's products
     const vendorOrders = [];
 
-    for (const order of allOrders.documents) {
+    for (const order of orders) {
       try {
-        const items = JSON.parse(order.items || "[]");
+        const items = typeof order.items === "string"
+          ? JSON.parse(order.items)
+          : (order.items || []);
+
         const vendorItems = items.filter((item) =>
           vendorProductIds.includes(item.productId)
         );
 
         if (vendorItems.length > 0) {
-          // Calculate vendor's revenue from this order
           const vendorAmount = vendorItems.reduce(
-            (sum, item) => sum + item.price * (item.quantity || 1),
+            (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
             0
           );
 
           vendorOrders.push({
-            orderId: order.orderId || order.$id,
+            orderId: order.orderNumber || order.$id,
             customerEmail: order.customerEmail,
             username: order.username,
             createdAt: order.createdAt,
             amount: vendorAmount,
             totalAmount: order.amount,
-            items: order.items,
-            status: order.status || "pending",
+            items: JSON.stringify(vendorItems),
+            status: order.orderStatus || order.status || "pending",
             paymentStatus: order.paymentStatus || "pending",
             paymentMethod: order.paymentMethod || "COD",
             sessionId: order.sessionId,
@@ -72,13 +86,10 @@ const getvendorOrders = async (req, res) => {
         stats: {
           total: vendorOrders.length,
           pending: vendorOrders.filter((o) => o.status === "pending").length,
-          processing: vendorOrders.filter((o) => o.status === "processing")
-            .length,
+          processing: vendorOrders.filter((o) => o.status === "processing").length,
           shipped: vendorOrders.filter((o) => o.status === "shipped").length,
-          completed: vendorOrders.filter((o) => o.status === "completed")
-            .length,
-          cancelled: vendorOrders.filter((o) => o.status === "cancelled")
-            .length,
+          completed: vendorOrders.filter((o) => o.status === "completed").length,
+          cancelled: vendorOrders.filter((o) => o.status === "cancelled").length,
         },
       },
     });
@@ -91,120 +102,30 @@ const getvendorOrders = async (req, res) => {
   }
 };
 
-// Update order status
+// Update order status — now uses OrderService for state machine validation
+// and event dispatch instead of inline DB calls.
 const updateorderstatus = async (req, res) => {
-  try {
-    const vendorId = req.user.userId;
-    const { orderId } = req.params;
-    const { status } = req.body;
+  const OrderService = require("../../orders/OrderService");
+  const { orderId } = req.params;
+  const { status } = req.body;
 
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        error: "Status is required",
-      });
-    }
-
-    // Validate vendor has access to this order
-    const vendorProducts = await db.listDocuments(
-      env.VENDOR_DATABASE_ID,
-      env.VENDOR_PRODUCTS_COLLECTION_ID,
-      [Query.equal("vendorId", vendorId)]
-    );
-
-    const vendorProductIds = vendorProducts.documents.map(
-      (product) => product.$id
-    );
-
-    // Get the order
-    let order;
-    try {
-      // Try to find by orderId field
-      const orders = await db.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ORDERS_COLLECTION,
-        [Query.equal("orderId", orderId)]
-      );
-
-      if (orders.documents.length > 0) {
-        order = orders.documents[0];
-      } else {
-        // Fallback: try by document ID
-        order = await db.getDocument(
-          env.APPWRITE_DATABASE_ID,
-          env.APPWRITE_ORDERS_COLLECTION,
-          orderId
-        );
-      }
-    } catch (error) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found",
-      });
-    }
-
-    // Check if order contains vendor's products
-    try {
-      const items = JSON.parse(order.items || "[]");
-      const hasVendorProducts = items.some((item) =>
-        vendorProductIds.includes(item.productId)
-      );
-
-      if (!hasVendorProducts) {
-        return res.status(403).json({
-          success: false,
-          error: "You don't have permission to update this order",
-        });
-      }
-    } catch (error) {
-      console.error("Error checking order items:", error);
-    }
-
-    // Update order status
-    const updatedOrder = await db.updateDocument(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_ORDERS_COLLECTION,
-      order.$id,
-      {
-        status: status,
-        updatedAt: new Date().toISOString(),
-      }
-    );
-
-    // Create notification
-    try {
-      await createNotification({
-        message: `Order ${order.orderId || orderId} status updated to ${status} by vendor`,
-        type: "order_status_updated",
-        username: "Vendor",
-        userId: vendorId,
-        email: order.customerEmail,
-        metadata: JSON.stringify({
-          orderId: order.orderId || orderId,
-          oldStatus: order.status,
-          newStatus: status,
-          updatedBy: "vendor",
-        }),
-      });
-    } catch (notificationError) {
-      console.error("Notification error:", notificationError);
-    }
-
-    res.json({
-      success: true,
-      message: "Order status updated successfully",
-      data: {
-        orderId: order.orderId || orderId,
-        status: status,
-      },
-    });
-  } catch (error) {
-    console.error("Error updating order status:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to update order status",
-    });
+  if (!status) {
+    return res.status(400).json({ success: false, error: "Status is required" });
   }
+
+  // Delegate to OrderService which handles:
+  // - State machine validation
+  // - Authorization (vendor can update if order contains their products)
+  // - Event dispatch
+  // - Audit logging
+  const result = await OrderService.updateStatus(orderId, status, req.user, { reason: "Vendor update" });
+
+  return res.status(result.status || 200).json({
+    success: result.success,
+    message: result.message,
+    data: result.success ? { orderId, status } : undefined,
+    error: result.success ? undefined : result.message,
+  });
 };
 
 module.exports = {

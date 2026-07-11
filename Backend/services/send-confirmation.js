@@ -33,7 +33,7 @@ const getUserByEmail = async (email) => {
 const sendOrderConfirmationEmail = async ({
   customerEmail,
   customerName,
-  orderId,
+  orderNumber,
   orderTotal,
   cart,
 }) => {
@@ -44,7 +44,7 @@ const sendOrderConfirmationEmail = async ({
     await resend.emails.send({
       from: "Nile Flow <no-reply@nileflowafrica.com>",
       to: customerEmail,
-      subject: `🎉 Order #${orderId} Confirmed | Nile Flow`,
+      subject: `🎉 Order #${orderNumber} Confirmed | Nile Flow`,
       html: `
         <!DOCTYPE html>
         <html lang="en">
@@ -494,9 +494,9 @@ const sendOrderConfirmationEmail = async ({
                 <!-- Footer -->
                 <div class="footer">
                     <div class="footer-links">
-                        <a href="https://nileflowafrica.com" class="footer-link">Visit Our Store</a>
-                        <a href="https://nileflowafrica.com/orders" class="footer-link">Order History</a>
-                        <a href="https://nileflowafrica.com/contact" class="footer-link">Contact Us</a>
+                        <a href="https://www.nileflowafrica.com" class="footer-link">Visit Our Store</a>
+                        <a href="https://www.nileflowafrica.com/orders" class="footer-link">Order History</a>
+                        <a href="https://www.nileflowafrica.com/contact" class="footer-link">Contact Us</a>
                     </div>
                     
                     <div class="copyright">

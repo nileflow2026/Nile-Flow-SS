@@ -38,28 +38,42 @@ export default function Navbar({ toggleSidebar }) {
 
   // Consolidated user data fetching
   useEffect(() => {
+    let cancelled = false;
+
     const initializeUser = async () => {
       try {
         if (authUser) {
-          setUser(authUser);
-          setDbUser(authUser);
+          if (!cancelled) {
+            setUser(authUser);
+            setDbUser(authUser);
+          }
           return;
         }
 
         const currentUser = await getCurrentUser();
-        const allUsers = await fetchUsers();
-        const matchedUser = allUsers.find((u) => u.userId === currentUser.$id);
+        if (!currentUser?.success || !currentUser.data?.user) {
+          return;
+        }
 
-        if (matchedUser) {
+        const allUsers = await fetchUsers();
+        const matchedUser = allUsers.find((u) => u.userId === currentUser.data.user.$id);
+
+        if (!cancelled && matchedUser) {
           setUser(matchedUser);
           setDbUser(matchedUser);
         }
       } catch (err) {
-        console.error("Error loading user info:", err.message);
+        if (!cancelled) {
+          console.error("Error loading user info:", err.message);
+        }
       }
     };
 
     initializeUser();
+
+    return () => {
+      cancelled = true;
+    };
   }, [authUser]);
 
   // Fetch notifications on mount

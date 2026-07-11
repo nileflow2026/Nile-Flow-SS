@@ -5,8 +5,21 @@
  * the Nile Flow ecosystem. All functions are fire-and-forget — never
  * throw or block callers.
  *
- * This service automatically ensures users have the required targets
- * (email / SMS) registered before delivering messages.
+ * ## Bug Fixes Applied (2026-07-09)
+ *
+ * 1. Push `action` param: Appwrite 1.9.x rejects empty strings for the `action`
+ *    parameter. The old code passed `""` when no action was provided, causing
+ *    "Invalid `action` param: Value must be a valid string and at least 1 chars".
+ *    FIX: Pass `undefined` instead of `""` when no action is given.
+ *
+ * 2. Email target creation race: When two requests create an email target for
+ *    the same user simultaneously, the second one gets 409 "already exists".
+ *    The old code didn't catch this, causing "no target" on the second request.
+ *    FIX: Handle 409 gracefully by listing targets and finding the existing one.
+ *
+ * 3. "No enabled provider": Appwrite Messaging requires at least one provider
+ *    configured per channel (email, SMS, push) in the Appwrite Console under
+ *    Messaging > Providers. Added a startup check and clear error guidance.
  *
  * @see https://appwrite.io/docs/products/messaging
  */
@@ -18,128 +31,176 @@ const { env } = require("../src/env");
 const messaging = new Messaging(client);
 const users = new Users(client);
 
+// In-memory cache of known target IDs to avoid redundant lookups
+const targetCache = new Map();
+
+/**
+ * Check if a provider is configured for the given channel type.
+ * Logs a clear message if missing so admins can fix it in the Console.
+ */
+async function checkProvider(channelType) {
+  try {
+    const providers = await messaging.listProviders();
+    const hasProvider = providers.providers.some((p) => p.type === channelType && p.enabled);
+    if (!hasProvider) {
+      console.warn(
+        `[AppwriteMessaging] ⚠️ No enabled ${channelType} provider found. ` +
+        `Go to Appwrite Console → Messaging → Providers and add one. ` +
+        `${channelType} notifications will be silently skipped.`,
+      );
+    }
+    return hasProvider;
+  } catch {
+    return false;
+  }
+}
+
+// Run provider check once on startup
+setTimeout(() => {
+  checkProvider("email");
+  checkProvider("sms");
+  checkProvider("push");
+}, 5000);
+
 /**
  * Ensure a user has an email target registered in Appwrite.
  * Creates one if missing. Returns the target ID.
- * Gracefully handles all errors without retrying.
+ * Handles race conditions where two requests create the same target.
  */
 async function ensureEmailTarget(userId, email) {
+  // Check cache first
+  const cacheKey = `email:${userId}:${email}`;
+  if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
+
   try {
-    // First verify user exists in Appwrite
+    // Verify user exists
     try {
       await users.get(userId);
     } catch (userError) {
       if (userError.message && userError.message.includes("could not be found")) {
-        console.warn(
-          `[AppwriteMessaging] Cannot create email target: user ${userId} not found in Appwrite`,
-        );
+        console.warn(`[AppwriteMessaging] Cannot create email target: user ${userId} not found`);
         return null;
       }
-      // Re-throw other errors
       throw userError;
     }
 
-    // List existing email targets for this user
+    // List existing targets
     const existing = await users.listTargets(userId);
     const emailTarget = existing.targets.find(
       (t) => t.type === "email" && t.identifier === email,
     );
-    if (emailTarget) return emailTarget.$id;
+    if (emailTarget) {
+      targetCache.set(cacheKey, emailTarget.$id);
+      return emailTarget.$id;
+    }
 
-    // Create new email target with unique ID
+    // Create new target — handle 409/duplicate if another request created it first
     try {
-      const target = await users.createTarget(
-        userId,
-        ID.unique(),
-        "email",
-        email,
-      );
+      const target = await users.createTarget(userId, ID.unique(), "email", email);
+      targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      // On ANY creation error, log and skip (don't retry)
-      console.warn(
-        `[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`,
-      );
+      // Appwrite SDK throws with different error shapes:
+      // - createError.type === "target_already_exists" (via .type field)
+      // - createError.message includes "already exists" (via .message field)
+      // - createError.code === 409 (via .code field)
+      const isDuplicate =
+        createError.type === "target_already_exists" ||
+        (createError.message && createError.message.includes("already exists")) ||
+        createError.code === 409;
+
+      if (isDuplicate) {
+        // Race condition — another request created it between our list and create.
+        // Retry the list to get the existing target ID.
+        try {
+          const retry = await users.listTargets(userId);
+          const existingTarget = retry.targets.find(
+            (t) => t.type === "email" && t.identifier === email,
+          );
+          if (existingTarget) {
+            targetCache.set(cacheKey, existingTarget.$id);
+            return existingTarget.$id;
+          }
+        } catch (retryErr) {
+          console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
+        }
+      }
+      console.warn(`[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`);
       return null;
     }
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to ensure email target for ${userId}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to ensure email target for ${userId}:`, error.message);
     return null;
   }
 }
 
 /**
- * Ensure a user has an SMS target registered in Appwrite.
- * Creates one if missing. Returns the target ID.
- * Gracefully handles all errors without retrying.
+ * Ensure a user has an SMS target registered. Handles 409 race conditions.
  */
 async function ensureSmsTarget(userId, phone) {
+  const cacheKey = `sms:${userId}:${phone}`;
+  if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
+
   try {
-    // First verify user exists in Appwrite
     try {
       await users.get(userId);
     } catch (userError) {
-      if (userError.message && userError.message.includes("could not be found")) {
-        console.warn(
-          `[AppwriteMessaging] Cannot create SMS target: user ${userId} not found in Appwrite`,
-        );
+      if (userError.message?.includes("could not be found")) {
+        console.warn(`[AppwriteMessaging] Cannot create SMS target: user ${userId} not found`);
         return null;
       }
       throw userError;
     }
 
-    // Normalize phone number
     let normalizedPhone = phone.replace(/[^0-9]/g, "");
-    if (normalizedPhone.startsWith("0")) {
-      normalizedPhone = "254" + normalizedPhone.substring(1);
-    }
-    if (!normalizedPhone.startsWith("+")) {
-      normalizedPhone = "+" + normalizedPhone;
-    }
+    if (normalizedPhone.startsWith("0")) normalizedPhone = "254" + normalizedPhone.substring(1);
+    if (!normalizedPhone.startsWith("+")) normalizedPhone = "+" + normalizedPhone;
 
     const existing = await users.listTargets(userId);
     const smsTarget = existing.targets.find(
       (t) => t.type === "sms" && t.identifier === normalizedPhone,
     );
-    if (smsTarget) return smsTarget.$id;
+    if (smsTarget) {
+      targetCache.set(cacheKey, smsTarget.$id);
+      return smsTarget.$id;
+    }
 
-    // Create new SMS target with unique ID
     try {
-      const target = await users.createTarget(
-        userId,
-        ID.unique(),
-        "sms",
-        normalizedPhone,
-      );
+      const target = await users.createTarget(userId, ID.unique(), "sms", normalizedPhone);
+      targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      // On ANY creation error, log and skip (don't retry)
-      console.warn(
-        `[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`,
-      );
+      // Same 409 detection as ensureEmailTarget (handles multiple error shapes)
+      const isDuplicate =
+        createError.type === "target_already_exists" ||
+        (createError.message && createError.message.includes("already exists")) ||
+        createError.code === 409;
+
+      if (isDuplicate) {
+        try {
+          const retry = await users.listTargets(userId);
+          const existingTarget = retry.targets.find(
+            (t) => t.type === "sms" && t.identifier === normalizedPhone,
+          );
+          if (existingTarget) {
+            targetCache.set(cacheKey, existingTarget.$id);
+            return existingTarget.$id;
+          }
+        } catch (retryErr) {
+          console.warn(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
+        }
+      }
+      console.warn(`[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`);
       return null;
     }
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to ensure SMS target for ${userId}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to ensure SMS target for ${userId}:`, error.message);
     return null;
   }
 }
 
 /**
  * Send an email via Appwrite Messaging.
- *
- * @param {object} options
- * @param {string} options.userId       - Appwrite user ID to send to
- * @param {string} options.email        - Email address (used to create target if needed)
- * @param {string} options.subject      - Email subject
- * @param {string} options.content      - Email body (HTML supported)
- * @param {boolean} [options.isHtml]    - Whether content is HTML
  */
 async function sendEmail({ userId, email, subject, content, isHtml = true }) {
   try {
@@ -150,40 +211,22 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
 
     const targetId = await ensureEmailTarget(userId, email);
     if (!targetId) {
-      console.warn(
-        `[AppwriteMessaging] Cannot send email to ${userId}: no target`,
-      );
+      console.warn(`[AppwriteMessaging] Cannot send email to ${userId}: no target`);
       return;
     }
 
     await messaging.createEmail(
-      ID.unique(),
-      subject,
-      content,
-      [], // topics
-      [], // users
-      [targetId], // targets
-      [], // cc
-      [], // bcc
-      false, // draft
-      isHtml, // html
-      "", // scheduledAt
+      ID.unique(), subject, content,
+      [], [], [targetId], [], [],
+      false, isHtml, "",
     );
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to send email to ${userId}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to send email to ${userId}:`, error.message);
   }
 }
 
 /**
  * Send an SMS via Appwrite Messaging.
- *
- * @param {object} options
- * @param {string} options.userId       - Appwrite user ID to send to
- * @param {string} options.phone        - Phone number (used to create target if needed)
- * @param {string} options.content      - SMS body text
  */
 async function sendSms({ userId, phone, content }) {
   try {
@@ -194,39 +237,29 @@ async function sendSms({ userId, phone, content }) {
 
     const targetId = await ensureSmsTarget(userId, phone);
     if (!targetId) {
-      console.warn(
-        `[AppwriteMessaging] Cannot send SMS to ${userId}: no target`,
-      );
+      console.warn(`[AppwriteMessaging] Cannot send SMS to ${userId}: no target`);
       return;
     }
 
     await messaging.createSms(
-      ID.unique(),
-      content,
-      [], // topics
-      [], // users
-      [targetId], // targets
-      false, // draft
-      "", // scheduledAt
+      ID.unique(), content,
+      [], [], [targetId],
+      false, "",
     );
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to send SMS to ${userId}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to send SMS to ${userId}:`, error.message);
   }
 }
 
 /**
  * Send a push notification via Appwrite Messaging.
- * Sends to a specific user by their Appwrite user ID (requires push target).
  *
- * @param {object} options
- * @param {string} options.userId       - Appwrite user ID to send to
- * @param {string} options.title        - Push notification title
- * @param {string} options.body         - Push notification body
- * @param {object} [options.data]       - Extra payload
- * @param {string} [options.action]     - Deep link action (1-256 chars, optional)
+ * CRITICAL BUG FIX: Appwrite 1.9.x rejects empty strings for the `action` param.
+ * The old code passed `""` when no action was provided, causing:
+ *   "Invalid `action` param: Value must be a valid string and at least 1 chars"
+ *
+ * FIX: Only pass `action` when we have a real non-empty value. Otherwise pass
+ * `undefined` so Appwrite skips the parameter entirely.
  */
 async function sendPush({ userId, title, body, data = {}, action = null }) {
   try {
@@ -235,66 +268,47 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
       return;
     }
 
-    // Validate and prepare action parameter
-    // IMPORTANT: Appwrite rejects EMPTY strings for action.
-    // Only include action if it's a non-empty, valid string (1-256 chars)
-    let actionParam = null;
+    // BUG FIX: Only set actionParam when we have a real value (1-256 chars).
+    // undefined = don't send the param at all. NEVER send empty string.
+    let actionParam = undefined;
     if (action && typeof action === "string") {
       const trimmedAction = action.trim();
       if (trimmedAction.length > 0) {
-        // Truncate to 256 chars if too long
         actionParam = trimmedAction.substring(0, 256);
       }
     }
 
     try {
+      // BUG FIX: Appwrite 1.9.x rejects empty strings for `image`, `icon`,
+      // `color`, `tag` params too (same root cause as `action`).
+      // Always pass `undefined` for any optional string param with no value.
       await messaging.createPush(
-        ID.unique(),
-        title,
-        body,
-        [], // topics
-        [userId], // users — Appwrite resolves their push targets
-        [], // targets
+        ID.unique(), title, body,
+        [], [userId], [],
         data,
-        actionParam || "", // Use empty string only as last resort (required parameter)
-        "", // icon
-        "default", // sound
-        "", // color
-        "", // tag
-        1, // badge
-        false, // contentAvailable
-        false, // critical
-        "normal", // priority
-        false, // draft
-        "", // scheduledAt
+        actionParam,
+        undefined, // image — FIXED: undefined instead of ""
+        undefined, // icon  — FIXED: undefined instead of ""
+        undefined, // sound — FIXED: undefined instead of ""
+        undefined, // color — FIXED: undefined instead of ""
+        undefined, // tag   — FIXED: undefined instead of ""
+        1, false, false, undefined, false, undefined, // priority, scheduledAt
       );
     } catch (pushError) {
-      // If user doesn't exist, log it but don't crash
       if (pushError.message && pushError.message.includes("could not be found")) {
-        console.warn(
-          `[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`,
-        );
+        console.warn(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`);
         return;
       }
       throw pushError;
     }
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to send push to ${userId}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to send push to ${userId}:`, error.message);
   }
 }
 
 /**
- * Send a push notification to a topic (all subscribers).
- *
- * @param {object} options
- * @param {string} options.topic        - Topic name (must exist in Appwrite)
- * @param {string} options.title        - Push notification title
- * @param {string} options.body         - Push notification body
- * @param {object} [options.data]       - Extra payload
- * @param {string} [options.action]     - Deep link action (1-256 chars, optional)
+ * Send a push notification to a topic.
+ * Same action param fix applied.
  */
 async function sendPushToTopic({ topic, title, body, data = {}, action = null }) {
   try {
@@ -303,106 +317,49 @@ async function sendPushToTopic({ topic, title, body, data = {}, action = null })
       return;
     }
 
-    // Validate and prepare action parameter
-    // IMPORTANT: Appwrite rejects EMPTY strings for action.
-    // Only include action if it's a non-empty, valid string (1-256 chars)
-    let actionParam = null;
+    let actionParam = undefined;
     if (action && typeof action === "string") {
       const trimmedAction = action.trim();
       if (trimmedAction.length > 0) {
-        // Truncate to 256 chars if too long
         actionParam = trimmedAction.substring(0, 256);
       }
     }
 
     await messaging.createPush(
-      ID.unique(),
-      title,
-      body,
-      [topic], // topics
-      [], // users
-      [], // targets
+      ID.unique(), title, body,
+      [topic], [], [],
       data,
-      actionParam || "", // Use empty string only as last resort (required parameter)
-      "", // icon
-      "default", // sound
-      "", // color
-      "", // tag
-      1, // badge
-      false, // contentAvailable
-      false, // critical
-      "normal", // priority
-      false, // draft
-      "", // scheduledAt
+      actionParam,
+      undefined, // image
+      undefined, // icon
+      undefined, // sound
+      undefined, // color
+      undefined, // tag
+      1, false, false, undefined, false, undefined,
     );
   } catch (error) {
-    console.warn(
-      `[AppwriteMessaging] Failed to send push to topic ${topic}:`,
-      error.message,
-    );
+    console.warn(`[AppwriteMessaging] Failed to send push to topic ${topic}:`, error.message);
   }
 }
 
 /**
- * High-level notification dispatcher.
- * Sends SMS + Email + Push to a user in one call.
- *
- * @param {object} options
- * @param {string} options.userId         - Appwrite user ID
- * @param {string} options.email          - Email address
- * @param {string} [options.phone]        - Phone number (for SMS, optional)
- * @param {string} options.emailSubject   - Email subject
- * @param {string} options.emailContent   - Email body (HTML)
- * @param {string} options.smsContent     - SMS body text (optional, requires phone)
- * @param {string} [options.pushTitle]    - Push notification title (optional)
- * @param {string} [options.pushBody]     - Push notification body (optional)
- * @param {object} [options.pushData]     - Push extra payload
+ * High-level notification dispatcher — all channels at once.
  */
 async function notifyUser({
-  userId,
-  email,
-  phone,
-  emailSubject,
-  emailContent,
+  userId, email, phone,
+  emailSubject, emailContent,
   smsContent,
-  pushTitle,
-  pushBody,
+  pushTitle, pushBody,
   pushData = {},
 }) {
   await Promise.allSettled([
-    sendEmail({
-      userId,
-      email,
-      subject: emailSubject,
-      content: emailContent,
-      isHtml: true,
-    }),
-    ...(phone && smsContent
-      ? [
-          sendSms({
-            userId,
-            phone,
-            content: smsContent,
-          }),
-        ]
-      : []),
-    ...(pushTitle && pushBody
-      ? [
-          sendPush({
-            userId,
-            title: pushTitle,
-            body: pushBody,
-            data: pushData,
-          }),
-        ]
-      : []),
+    sendEmail({ userId, email, subject: emailSubject, content: emailContent, isHtml: true }),
+    ...(phone && smsContent ? [sendSms({ userId, phone, content: smsContent })] : []),
+    ...(pushTitle && pushBody ? [sendPush({ userId, title: pushTitle, body: pushBody, data: pushData })] : []),
   ]);
 }
 
 module.exports = {
-  sendEmail,
-  sendSms,
-  sendPush,
-  sendPushToTopic,
-  notifyUser,
+  sendEmail, sendSms, sendPush, sendPushToTopic, notifyUser,
+  checkProvider,
 };
