@@ -48,6 +48,15 @@ const normalizeImageValue = (value) => {
     }
   }
 
+  const embeddedUrlMatch = trimmed.match(/https?:\/\/[^\s"'<>]+/i);
+  if (embeddedUrlMatch) {
+    try {
+      return new URL(embeddedUrlMatch[0]).toString();
+    } catch (error) {
+      console.warn("Invalid embedded image URL:", embeddedUrlMatch[0]);
+    }
+  }
+
   return "";
 };
 
@@ -62,6 +71,28 @@ const normalizeImageList = (value) => {
 
   const single = normalizeImageValue(value);
   return single ? [single] : [];
+};
+
+const sanitizeProductForResponse = (productDoc) => {
+  if (!productDoc || typeof productDoc !== "object") return productDoc;
+
+  const sanitized = { ...productDoc };
+  const normalizedImage = normalizeImageValue(sanitized.image);
+
+  if (normalizedImage) {
+    sanitized.image = normalizedImage;
+  } else {
+    delete sanitized.image;
+  }
+
+  const normalizedImages = normalizeImageList(sanitized.images);
+  if (normalizedImages.length > 0) {
+    sanitized.images = normalizedImages;
+  } else {
+    delete sanitized.images;
+  }
+
+  return sanitized;
 };
 
 const productController = {
@@ -637,6 +668,8 @@ const productController = {
         ? "Product created successfully and is now live!"
         : "Product created successfully and submitted for admin approval";
 
+      const responseProduct = sanitizeProductForResponse(freshVendorProduct);
+
       res.status(201).json({
         success: true,
         message: displayMessage,
@@ -644,7 +677,7 @@ const productController = {
         isLive,
         syncSummary,
         data: {
-          product: freshVendorProduct,
+          product: responseProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
           mainSync: effectiveMainSyncInfo,
@@ -1006,12 +1039,14 @@ const productController = {
 
       console.log("✅ Image uploaded successfully:", imageUrl);
 
+      const responseProduct = sanitizeProductForResponse(updatedProduct);
+
       res.json({
         success: true,
         message: "Image uploaded successfully",
         data: {
           image: uploadedImage,
-          product: updatedProduct,
+          product: responseProduct,
         },
       });
     } catch (error) {
