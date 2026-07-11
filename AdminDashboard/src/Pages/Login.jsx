@@ -352,8 +352,10 @@ export default function Login() {
                     <span>Sign In to Dashboard</span>
                     <ArrowRight className="w-5 h-5" />
                   </>
+
                 )}
               </button>
+
 
               {/* Security Info */}
               <div className="p-4 rounded-xl bg-gradient-to-r from-[#E8D6B5]/10 to-[#D4A017]/5 dark:from-[#3A3A3A]/30 dark:to-[#2A2A2A]/50 border border-[#E8D6B5] dark:border-[#3A3A3A]">
@@ -371,6 +373,21 @@ export default function Login() {
                   </div>
                 </div>
               </div>
+
+              {/* Register Link */}
+            {/* <div className="text-center pt-6 border-t border-[#E8D6B5] dark:border-[#3A3A3A]">
+              <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3]">
+                Don't have an admin account?{" "}
+                <Link
+                  to="/register"
+                  className="font-semibold text-[#D4A017] dark:text-[#FFD700] hover:underline inline-flex items-center gap-1"
+                >
+                  Request Access
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </p>
+            </div> */}
+
             </form>
 
             {/* Footer */}

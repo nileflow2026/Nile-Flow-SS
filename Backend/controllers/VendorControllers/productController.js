@@ -913,6 +913,45 @@ const productController = {
         productId,
       );
 
+      // Also remove the mirrored product from the main website collection.
+      if (env.APPWRITE_DATABASE_ID && env.APPWRITE_PRODUCT_COLLECTION_ID) {
+        try {
+          await instrumentedDb.deleteDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_PRODUCT_COLLECTION_ID,
+            productId,
+          );
+        } catch (mainDeleteError) {
+          if (mainDeleteError?.code !== 404) {
+            console.warn(
+              "⚠️ Failed to delete mirrored main product by ID, trying vendorProductId fallback:",
+              mainDeleteError.message,
+            );
+          }
+
+          try {
+            const matchedProducts = await instrumentedDb.listDocuments(
+              env.APPWRITE_DATABASE_ID,
+              env.APPWRITE_PRODUCT_COLLECTION_ID,
+              [Query.equal("vendorProductId", productId), Query.limit(1)],
+            );
+
+            const mirroredProduct = matchedProducts?.documents?.[0];
+            if (mirroredProduct?.$id) {
+              await instrumentedDb.deleteDocument(
+                env.APPWRITE_DATABASE_ID,
+                env.APPWRITE_PRODUCT_COLLECTION_ID,
+                mirroredProduct.$id,
+              );
+            }
+          } catch (fallbackError) {
+            if (fallbackError?.code !== 404) {
+              console.warn("⚠️ Failed to delete mirrored main product via fallback:", fallbackError.message);
+            }
+          }
+        }
+      }
+
       res.json({
         success: true,
         message: "Product deleted successfully",
