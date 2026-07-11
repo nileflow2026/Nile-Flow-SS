@@ -4,8 +4,10 @@
  * Logs are sent to the backend audit log endpoint for centralized storage.
  * Also maintains an in-memory buffer for the current session for quick inspection.
  *
- * CRITICAL: 401 errors are silently dropped — audit logging must never
- * interrupt the user experience, especially during login/auth restoration.
+ * CRITICAL: Backend audit log HTTP requests are ONLY sent when the user has
+ * a confirmed authenticated session. Events logged before auth is established
+ * are stored in-memory and silently discarded from backend delivery.
+ * This prevents 401 errors in the browser console during login/auth restoration.
  */
 
 import axiosClient from '../../../api';
@@ -14,9 +16,37 @@ import axiosClient from '../../../api';
 const _auditBuffer = [];
 const MAX_BUFFER_SIZE = 200;
 
+// Whether we have a confirmed authenticated session.
+// When false, NO backend HTTP requests are fired — only in-memory buffering.
+let _authenticated = false;
+
+/**
+ * Mark the audit logger as ready to send to backend (authenticated).
+ * Until this is called, all events are stored in-memory only.
+ */
+export function markAuthenticated() {
+  _authenticated = true;
+}
+
+/**
+ * Mark the audit logger as not authenticated.
+ * Backend requests will stop until markAuthenticated() is called again.
+ */
+export function markUnauthenticated() {
+  _authenticated = false;
+}
+
+/**
+ * Check if backend delivery is active.
+ */
+export function isBackendDeliveryActive() {
+  return _authenticated;
+}
+
 /**
  * Log a security event.
  * Fire-and-forget — never throws, never blocks.
+ * When not authenticated, only stores in-memory (no HTTP request).
  * @param {string} action - The action being logged (e.g., 'LOGIN_SUCCESS', 'SESSION_RESTORED')
  * @param {object} [details={}] - Additional context about the event
  * @param {string} [level='info'] - Severity level: 'info', 'warn', 'error', 'critical'
@@ -37,8 +67,16 @@ export function log(action, details = {}, level = 'info') {
     _auditBuffer.pop();
   }
 
-  // Send to backend (fire-and-forget, silently handles errors)
-  sendToBackend(entry);
+  // Only send HTTP request if we have a confirmed authenticated session.
+  // httpOnly cookies are NOT visible to document.cookie, so we cannot
+  // check for them here — we rely entirely on the _authenticated flag
+  // which is managed by AuthProvider and SessionManager.
+  // This prevents 401 errors in browser DevTools during login/auth restoration
+  // because _authenticated starts false and is only set to true after
+  // a successful login or session restore.
+  if (_authenticated) {
+    sendToBackend(entry);
+  }
 
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
@@ -69,74 +107,24 @@ export function logWarn(action, details = {}) {
 }
 
 /**
- * Send an audit entry to the backend.
- * Firebase-and-forget — silently suppresses all errors including 401.
- * 401s are expected when logging events during login/auth restoration
- * (the cookie may not be present yet).
+ * Send an audit entry to the backend using navigator.sendBeacon.
+ * This is truly fire-and-forget — the browser sends the request in the
+ * background and never surfaces errors (including 401) in the console.
+ * This is the recommended approach for analytics and audit logging.
  */
 function sendToBackend(entry) {
-  axiosClient
-    .post('/api/audit-logs/log', {
+  try {
+    const payload = JSON.stringify({
       action: entry.action,
       details: entry.details,
       timestamp: entry.timestamp,
       level: entry.level,
-    })
-    .catch((err) => {
-      // Silently suppress 401 — expected during auth initialization
-      if (err?.response?.status === 401) {
-        return;
-      }
-      // For network errors or 5xx, queue for retry
-      queueFailedLog(entry);
     });
-}
-
-// Queue for logs that failed to send (non-401 errors only)
-const _failedQueue = [];
-const QUEUE_RETRY_INTERVAL = 30000; // 30 seconds
-
-function queueFailedLog(entry) {
-  // Don't queue duplicates
-  if (_failedQueue.some((e) => e.action === entry.action && e.timestamp === entry.timestamp)) {
-    return;
+    const url = `${axiosClient.defaults.baseURL}/api/audit-logs/log`;
+    navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+  } catch {
+    // navigator.sendBeacon can fail in very old browsers — silently ignore
   }
-  _failedQueue.push({ ...entry, queuedAt: Date.now() });
-  if (_failedQueue.length === 1) {
-    scheduleRetry();
-  }
-}
-
-function scheduleRetry() {
-  setTimeout(async () => {
-    while (_failedQueue.length > 0) {
-      const entry = _failedQueue[0];
-      // Skip entries older than 1 hour
-      if (Date.now() - entry.queuedAt > 3600000) {
-        _failedQueue.shift();
-        continue;
-      }
-      try {
-        await axiosClient.post('/api/audit-logs/log', {
-          action: entry.action,
-          details: entry.details,
-          timestamp: entry.timestamp,
-          level: entry.level,
-        });
-        _failedQueue.shift();
-      } catch (err) {
-        // 401 during retry = still not authenticated, drop permanently
-        if (err?.response?.status === 401) {
-          _failedQueue.shift();
-          continue;
-        }
-        break; // Stop retrying until next interval
-      }
-    }
-    if (_failedQueue.length > 0) {
-      scheduleRetry();
-    }
-  }, QUEUE_RETRY_INTERVAL);
 }
 
 /**
@@ -151,13 +139,6 @@ export function getSessionAuditLog() {
  */
 export function clearSessionAuditLog() {
   _auditBuffer.length = 0;
-}
-
-/**
- * Check if there are pending failed logs awaiting retry.
- */
-export function getPendingFailedCount() {
-  return _failedQueue.length;
 }
 
 /**
@@ -201,6 +182,5 @@ export default {
   logWarn,
   getSessionAuditLog,
   clearSessionAuditLog,
-  getPendingFailedCount,
   EVENTS,
 };

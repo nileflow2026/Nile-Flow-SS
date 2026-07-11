@@ -8,6 +8,7 @@
 import { SECURITY_POLICIES } from './SecurityPolicies';
 import * as TokenManager from './TokenManager';
 import * as AuditLogger from './AuditLogger';
+import { markAuthenticated as markAuditReady } from './AuditLogger';
 
 // Axios client for API calls — imported lazily to avoid circular deps
 let _axiosClient = null;
@@ -43,6 +44,7 @@ export async function initializeSession() {
     if (response.data?.user) {
       const user = response.data.user;
       TokenManager.markAuthenticated(user.id || user.$id);
+      markAuditReady();
       AuditLogger.log('SESSION_RESTORED', { userId: user.id || user.$id });
       startSessionMonitoring();
       return { authenticated: true, user };

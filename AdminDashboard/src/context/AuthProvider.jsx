@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import * as SessionManager from '../core/auth/SessionManager';
 import * as TokenManager from '../core/auth/TokenManager';
 import * as AuditLogger from '../core/auth/AuditLogger';
+import { markAuthenticated as markAuditReady, markUnauthenticated as markAuditNotReady } from '../core/auth/AuditLogger';
 import * as PermissionManager from '../core/auth/PermissionManager';
 import { SECURITY_POLICIES, ROLES } from '../core/auth/SecurityPolicies';
 import { signinAdmin, signoutAdmin } from '../../authService';
@@ -67,6 +68,9 @@ export const AuthProvider = ({ children }) => {
     let cancelled = false;
 
     const init = async () => {
+      // Immediately stop audit backend delivery — prevents stale 401s
+      // from previous authenticated session during SPA route transitions.
+      markAuditNotReady();
       setIsLoading(true);
       setIsRestoring(true);
 
@@ -78,6 +82,7 @@ export const AuthProvider = ({ children }) => {
         if (result.authenticated && result.user) {
           setUser(result.user);
           setIsAuthenticated(true);
+          markAuditReady();
           AuditLogger.log(AuditLogger.EVENTS.SESSION_RESTORED, {
             userId: result.user.id || result.user.$id,
           });
@@ -85,9 +90,11 @@ export const AuthProvider = ({ children }) => {
           // Session is valid but no user data yet — get current user
           // The /me call will happen via the axios interceptor's silent refresh
           setIsAuthenticated(true);
+          markAuditReady();
         } else {
           setUser(null);
           setIsAuthenticated(false);
+          markAuditNotReady();
         }
       } catch (error) {
         if (!cancelled) {
@@ -151,6 +158,7 @@ export const AuthProvider = ({ children }) => {
     const handleForcedLogout = () => {
       setUser(null);
       setIsAuthenticated(false);
+      markAuditNotReady();
       TokenManager.markUnauthenticated();
       AuditLogger.log(AuditLogger.EVENTS.LOGOUT, { reason: 'forced' });
     };
@@ -197,6 +205,7 @@ export const AuthProvider = ({ children }) => {
         const userData = result.data.user;
         setUser(userData);
         setIsAuthenticated(true);
+        markAuditReady();
         TokenManager.markAuthenticated(userData.id || userData.$id);
         SessionManager.startSessionMonitoring();
         AuditLogger.log(AuditLogger.EVENTS.LOGIN_SUCCESS, {
@@ -207,6 +216,7 @@ export const AuthProvider = ({ children }) => {
       } else if (result.success) {
         // Backend may set cookies without returning user data — try to fetch it
         setIsAuthenticated(true);
+        markAuditReady();
         TokenManager.markAuthenticated('pending');
         SessionManager.startSessionMonitoring();
         AuditLogger.log(AuditLogger.EVENTS.LOGIN_SUCCESS, { email });
@@ -241,6 +251,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
+      markAuditNotReady();
       TokenManager.markUnauthenticated();
       TokenManager.broadcast('auth:logged-out');
       SessionManager.stopSessionMonitoring();
