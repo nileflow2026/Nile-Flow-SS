@@ -1,0 +1,235 @@
+/**
+ * SecurityPolicies.js
+ * Centralized security configuration for Nile Flow Admin Dashboard.
+ * All security-sensitive parameters are defined here for easy auditing and modification.
+ */
+
+export const SECURITY_POLICIES = {
+  /** Access token expiry — short-lived for security */
+  ACCESS_TOKEN_EXPIRY_MS: 15 * 60 * 1000, // 15 minutes
+
+  /** Refresh token expiry — long enough for persistent sessions */
+  REFRESH_TOKEN_EXPIRY_MS: 30 * 24 * 60 * 60 * 1000, // 30 days
+
+  /** Maximum number of concurrent sessions per admin */
+  MAX_CONCURRENT_SESSIONS: 5,
+
+  /** Session inactivity timeout before warning */
+  INACTIVITY_WARNING_MS: 14 * 60 * 1000, // 14 minutes
+
+  /** Session inactivity timeout before logout */
+  INACTIVITY_LOGOUT_MS: 15 * 60 * 1000, // 15 minutes
+
+  /** Rate limit: max login attempts before temporary lockout */
+  MAX_LOGIN_ATTEMPTS: 5,
+
+  /** Rate limit window for login attempts (ms) */
+  LOGIN_RATE_WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+
+  /** Lockout duration after max failed attempts (ms) */
+  ACCOUNT_LOCKOUT_DURATION_MS: 30 * 60 * 1000, // 30 minutes
+
+  /** Refresh token rotation grace period to handle race conditions */
+  REFRESH_TOKEN_GRACE_PERIOD_MS: 5000, // 5 seconds
+
+  /** Cache TTL for current user data (ms) */
+  CURRENT_USER_CACHE_TTL_MS: 5000, // 5 seconds — shorter for admin
+
+  /** Minimum password length */
+  MIN_PASSWORD_LENGTH: 8,
+
+  /** Require MFA for sensitive actions */
+  REQUIRE_MFA_FOR_SENSITIVE_ACTIONS: true,
+
+  /** Session version — increment to force all users to re-authenticate */
+  SESSION_VERSION: 1,
+
+  /** Whether to enable silent token refresh */
+  ENABLE_SILENT_REFRESH: true,
+
+  /** Whether to log all auth events to audit log */
+  ENABLE_AUDIT_LOGGING: true,
+
+  /** Whether to enforce device-based session scoping */
+  ENFORCE_DEVICE_SCOPING: true,
+
+  /** Whether to enable automatic session revocation on password change */
+  REVOKE_SESSIONS_ON_PASSWORD_CHANGE: true,
+
+  /** Allowed origins for CORS */
+  ALLOWED_ORIGINS: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:3000',
+    'https://admin.nileflowafrica.com',
+    'https://nile-flow-adminpanel.onrender.com',
+    'https://nileflowafrica.com',
+  ],
+
+  /** API base URL */
+  API_BASE_URL: 'https://nile-flow-backend-5dqm.onrender.com',
+};
+
+/**
+ * Role definitions with hierarchical precedence.
+ * Higher index = more privileged.
+ */
+export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  OPERATIONS: 'operations',
+  FINANCE: 'finance',
+  CUSTOMER_SUPPORT: 'customer_support',
+  VENDOR_MANAGEMENT: 'vendor_management',
+  MARKETING: 'marketing',
+  PRODUCT_MANAGEMENT: 'product_management',
+  ANALYTICS: 'analytics',
+  DEVELOPER: 'developer',
+};
+
+export const ROLE_HIERARCHY = [
+  ROLES.DEVELOPER,
+  ROLES.ANALYTICS,
+  ROLES.VENDOR_MANAGEMENT,
+  ROLES.MARKETING,
+  ROLES.CUSTOMER_SUPPORT,
+  ROLES.PRODUCT_MANAGEMENT,
+  ROLES.FINANCE,
+  ROLES.OPERATIONS,
+  ROLES.ADMIN,
+  ROLES.SUPER_ADMIN,
+];
+
+/**
+ * Resource-based permissions.
+ * Format: { resource: { action: true/false } }
+ */
+export const PERMISSIONS = {
+  DASHBOARD: 'dashboard',
+  USERS: 'users',
+  ORDERS: 'orders',
+  PRODUCTS: 'products',
+  VENDORS: 'vendors',
+  FINANCE: 'finance',
+  ANALYTICS: 'analytics',
+  SETTINGS: 'settings',
+  NOTIFICATIONS: 'notifications',
+  MARKETING: 'marketing',
+  STAFF: 'staff',
+  AUDIT_LOGS: 'audit_logs',
+  COMMISSION: 'commission',
+  SECURITY: 'security',
+};
+
+export const ACTIONS = {
+  VIEW: 'view',
+  CREATE: 'create',
+  EDIT: 'edit',
+  DELETE: 'delete',
+  APPROVE: 'approve',
+  REJECT: 'reject',
+  EXPORT: 'export',
+  MANAGE: 'manage',
+};
+
+/**
+ * Role-to-permission mapping.
+ * Defines exactly what each role can access.
+ */
+export const ROLE_PERMISSIONS = {
+  [ROLES.SUPER_ADMIN]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW, ACTIONS.MANAGE],
+    [PERMISSIONS.USERS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.MANAGE],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.EXPORT, ACTIONS.MANAGE],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.APPROVE, ACTIONS.REJECT, ACTIONS.MANAGE],
+    [PERMISSIONS.VENDORS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.APPROVE, ACTIONS.REJECT, ACTIONS.MANAGE],
+    [PERMISSIONS.FINANCE]: [ACTIONS.VIEW, ACTIONS.EXPORT, ACTIONS.MANAGE],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW, ACTIONS.EXPORT, ACTIONS.MANAGE],
+    [PERMISSIONS.SETTINGS]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.MANAGE],
+    [PERMISSIONS.NOTIFICATIONS]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.MANAGE],
+    [PERMISSIONS.MARKETING]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.MANAGE],
+    [PERMISSIONS.STAFF]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE, ACTIONS.MANAGE],
+    [PERMISSIONS.AUDIT_LOGS]: [ACTIONS.VIEW, ACTIONS.EXPORT, ACTIONS.MANAGE],
+    [PERMISSIONS.COMMISSION]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.MANAGE],
+    [PERMISSIONS.SECURITY]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.MANAGE],
+  },
+  [ROLES.ADMIN]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.USERS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.EXPORT],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.APPROVE, ACTIONS.REJECT],
+    [PERMISSIONS.VENDORS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
+    [PERMISSIONS.FINANCE]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.SETTINGS]: [ACTIONS.VIEW, ACTIONS.EDIT],
+    [PERMISSIONS.NOTIFICATIONS]: [ACTIONS.VIEW, ACTIONS.EDIT],
+    [PERMISSIONS.MARKETING]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
+    [PERMISSIONS.STAFF]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT],
+    [PERMISSIONS.AUDIT_LOGS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.COMMISSION]: [ACTIONS.VIEW],
+    [PERMISSIONS.SECURITY]: [ACTIONS.VIEW],
+  },
+  [ROLES.OPERATIONS]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EDIT, ACTIONS.EXPORT],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW],
+    [PERMISSIONS.VENDORS]: [ACTIONS.VIEW],
+    [PERMISSIONS.NOTIFICATIONS]: [ACTIONS.VIEW],
+  },
+  [ROLES.FINANCE]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.FINANCE]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.COMMISSION]: [ACTIONS.VIEW],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+  },
+  [ROLES.CUSTOMER_SUPPORT]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.USERS]: [ACTIONS.VIEW],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EDIT],
+    [PERMISSIONS.NOTIFICATIONS]: [ACTIONS.VIEW, ACTIONS.EDIT],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW],
+  },
+  [ROLES.VENDOR_MANAGEMENT]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.VENDORS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.APPROVE],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW, ACTIONS.APPROVE, ACTIONS.REJECT],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW],
+  },
+  [ROLES.MARKETING]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.MARKETING]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE],
+    [PERMISSIONS.NOTIFICATIONS]: [ACTIONS.VIEW, ACTIONS.EDIT],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW],
+  },
+  [ROLES.PRODUCT_MANAGEMENT]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.PRODUCTS]: [ACTIONS.VIEW, ACTIONS.CREATE, ACTIONS.EDIT, ACTIONS.DELETE],
+    [PERMISSIONS.VENDORS]: [ACTIONS.VIEW],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW],
+  },
+  [ROLES.ANALYTICS]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.ANALYTICS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.ORDERS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.FINANCE]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+  },
+  [ROLES.DEVELOPER]: {
+    [PERMISSIONS.DASHBOARD]: [ACTIONS.VIEW],
+    [PERMISSIONS.AUDIT_LOGS]: [ACTIONS.VIEW, ACTIONS.EXPORT],
+    [PERMISSIONS.SETTINGS]: [ACTIONS.VIEW],
+    [PERMISSIONS.SECURITY]: [ACTIONS.VIEW],
+  },
+};
+
+export default {
+  SECURITY_POLICIES,
+  ROLES,
+  ROLE_HIERARCHY,
+  PERMISSIONS,
+  ACTIONS,
+  ROLE_PERMISSIONS,
+};

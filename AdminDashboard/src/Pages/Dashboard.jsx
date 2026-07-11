@@ -40,7 +40,7 @@ import AuditLogs from "./AuditLogs";
 import SendNewsletter from "../Pages/SendNewsletter";
 import AdminMessages from "./AdminMessages";
 import ApplicantsDashboard from "./ApplicantsDashboard";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../core/auth";
 import { getCurrentUser } from "../../authService";
 import ProductApprovals from "./ProductApprovals";
 import Commission from "./Commission";
