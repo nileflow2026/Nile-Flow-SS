@@ -32,10 +32,10 @@ function ForgotPasswordPage() {
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Password reset</p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Forgot password?</h1>
-          <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Forgot password?</h1>
+          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
             Enter the email associated with your account and we'll send a reset link.
           </p>
 
@@ -55,13 +55,13 @@ function ForgotPasswordPage() {
             </div>
           ) : !sent ? (
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 Email address
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   placeholder="you@example.com"
                   required
                   autoComplete="email"

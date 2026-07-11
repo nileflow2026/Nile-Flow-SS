@@ -138,7 +138,7 @@ function HeroSection() {
           className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
         >
           <Link
-            to="/products"
+            to="/home"
             className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-amber-600/30 transition-all hover:shadow-xl hover:shadow-amber-600/40 hover:scale-105 sm:w-auto"
           >
             <ShoppingBag className="h-5 w-5" />

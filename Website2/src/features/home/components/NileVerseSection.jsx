@@ -3,7 +3,7 @@ import { ShoppingBag, Wallet, GraduationCap, Heart, Zap } from 'lucide-react'
 
 const products = [
   { icon: ShoppingBag, name: 'Nile Flow', tagline: 'Commerce OS', gradient: 'from-emerald-500 to-teal-500', x: 50, y: 25 },
-  { icon: Wallet, name: 'Nile Pay', tagline: 'Payments', gradient: 'from-amber-500 to-orange-500', x: 20, y: 50 },
+  { icon: Wallet, name: 'Afra Pay', tagline: 'Payments', gradient: 'from-amber-500 to-orange-500', x: 20, y: 50 },
   { icon: GraduationCap, name: 'Nile Learn', tagline: 'Education', gradient: 'from-blue-500 to-indigo-500', x: 80, y: 50 },
   { icon: Heart, name: 'Nile Health', tagline: 'Health', gradient: 'from-rose-500 to-pink-500', x: 65, y: 70 },
 ]

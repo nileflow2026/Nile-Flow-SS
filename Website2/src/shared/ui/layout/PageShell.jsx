@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppHeader from '@shared/ui/header/AppHeader'
-import { useTheme } from '@app/providers/ThemeProvider'
 
 const shopLinks = [
   { label: 'Products', to: '/products' },
@@ -61,9 +60,43 @@ function LinkedInIcon(props) {
   )
 }
 
+function TwitterIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="#1DA1F2" {...props}>
+      <path d="M18.9 3H22l-6.7 7.68L23.4 21h-5.8l-4.55-5.95L7.6 21H4.5l7.2-8.25L.6 3h5.95l4.1 5.43L18.9 3Zm-1.02 16.2h1.13L6.2 4.7H5.03l12.85 14.5Z" />
+    </svg>
+  )
+}
+
+function TikTokIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <defs>
+        <linearGradient id="tiktok-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#69C9D0" />
+          <stop offset="50%" stopColor="#EE1D52" />
+          <stop offset="100%" stopColor="#69C9D0" />
+        </linearGradient>
+      </defs>
+      <path d="M14.6 2.5c.2 2.3 1.4 3.8 3.5 4.4v2.9c-1.2.1-2.3-.2-3.4-.8v6.3a5.2 5.2 0 1 1-4.5-5.1v3.1a2.2 2.2 0 1 0 1.7 2.1V2.5h2.7Z" fill="url(#tiktok-grad)" />
+    </svg>
+  )
+}
+
+function YouTubeIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="#FF0000" {...props}>
+      <path d="M23.5 7.2a3.1 3.1 0 0 0-2.2-2.2C19.6 4.4 12 4.4 12 4.4s-7.6 0-9.3.6A3.1 3.1 0 0 0 .5 7.2 32.6 32.6 0 0 0 0 12a32.6 32.6 0 0 0 .5 4.8 3.1 3.1 0 0 0 2.2 2.2c1.7.6 9.3.6 9.3.6s7.6 0 9.3-.6a3.1 3.1 0 0 0 2.2-2.2A32.6 32.6 0 0 0 24 12a32.6 32.6 0 0 0-.5-4.8ZM9.6 15.5V8.5l6.2 3.5-6.2 3.5Z" />
+    </svg>
+  )
+}
+
 const socialLinks = [
   { label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61580711948973', icon: FacebookIcon },
   { label: 'Instagram', href: 'https://www.instagram.com/nileflowafrica?igsh=NTVoYWR1YW94Y3Bp', icon: InstagramIcon },
+  { label: 'Twitter', href: 'https://twitter.com/nileflowafrica', icon: TwitterIcon },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@nileflowafrica', icon: TikTokIcon },
+  { label: 'YouTube', href: 'https://www.youtube.com/@nileflowafrica', icon: YouTubeIcon },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/nile-flow-683806395?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app', icon: LinkedInIcon },
 ]
 
@@ -97,11 +130,9 @@ function ScrollToTopButton() {
 }
 
 function PageShell({ children }) {
-  const { isDark } = useTheme()
-
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
-      <AppHeader />
+       <AppHeader /> 
 
       <main id="main-content" className="flex-1">
         {children}
@@ -109,36 +140,32 @@ function PageShell({ children }) {
 
       <ScrollToTopButton />
 
-      <footer className="mt-16 border-t border-[var(--color-border)] bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+      <footer className="border-t border-[var(--color-border)] bg-[linear-gradient(180deg,var(--color-surface-muted)_0%,var(--color-background)_100%)]">
         {/* African pattern divider */}
         <div className="h-[3px] w-full bg-[repeating-linear-gradient(90deg,transparent,transparent_8px,#16a34a_8px,#16a34a_12px,transparent_12px,transparent_20px,#d97706_20px,#d97706_24px,transparent_24px,transparent_32px)]" />
 
         {/* App download banner */}
-        <div className={`border-b border-[var(--color-border)] ${
-          isDark
-            ? 'bg-[var(--color-surface-muted)]'
-            : 'bg-gradient-to-r from-[var(--color-primary)]/[0.04] via-[var(--color-accent)]/[0.04] to-[var(--color-primary)]/[0.04]'
-        }`}>
-          <div className="responsive-shell flex flex-col items-center gap-4 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left sm:py-8">
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm">
+          <div className="responsive-shell flex flex-col items-center gap-4 rounded-none border-y border-emerald-100/80 bg-[linear-gradient(90deg,rgba(16,185,129,0.12)_0%,var(--color-surface)_50%,rgba(245,158,11,0.12)_100%)] px-4 py-6 text-center shadow-sm sm:flex-row sm:justify-between sm:rounded-2xl sm:px-6 sm:py-8 sm:text-left">
             <div>
               <p className="text-base font-semibold text-[var(--color-text-primary)]">Get the Nile Flow app</p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Shop, track, and save on the go.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-end">
               <a
                 href="#"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#1a73e8]/20 bg-[#1a73e8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1557b0] hover:shadow-md"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-white">
                   <path d="M3.609 1.314a.9.9 0 0 0-.609.857v19.658a.9.9 0 0 0 .609.857l.105.048L14.59 12 3.714 1.266l-.105.048zM20.692 10.345l-4.696-2.713-1.607 1.607 2.953 2.953-2.953 2.953 1.607 1.607 4.696-2.713c.978-.565.978-1.83 0-2.394zM3.714 22.734l10.876-10.734-1.607-1.607-9.269 9.269zM14.983 12l-9.269-9.269 1.607-1.607L14.983 12z" />
                 </svg>
                 Google Play
               </a>
               <a
                 href="#"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#111827]/10 bg-gradient-to-r from-[#111827] via-[#1f2937] to-[#374151] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-white">
                   <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                 </svg>
                 App Store
@@ -152,11 +179,11 @@ function PageShell({ children }) {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
-                  NF
+                  <img src="/logo.png" alt="Nile Flow" className="h-8 w-24 object-cover sm:h-10 sm:w-28" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--color-text-primary)]">Nile Flow</p>
-                  <p className="text-xs text-emerald-500 dark:text-emerald-400">Commerce OS</p>
+                  <p className="text-xs text-emerald-500">Commerce OS</p>
                 </div>
               </div>
 
@@ -179,7 +206,7 @@ function PageShell({ children }) {
               <ul className="mt-4 space-y-3 text-sm text-[var(--color-text-secondary)]">
                 {shopLinks.map((item) => (
                   <li key={item.label}>
-                    <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
+                    <Link to={item.to} className="transition hover:text-emerald-600">
                       {item.label}
                     </Link>
                   </li>
@@ -193,11 +220,11 @@ function PageShell({ children }) {
                 {supportLinks.map((item) => (
                   <li key={item.label}>
                     {item.to.startsWith('mailto:') ? (
-                      <a href={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
+                      <a href={item.to} className="transition hover:text-emerald-600">
                         {item.label}
                       </a>
                     ) : (
-                      <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
+                      <Link to={item.to} className="transition hover:text-emerald-600">
                         {item.label}
                       </Link>
                     )}
@@ -212,11 +239,11 @@ function PageShell({ children }) {
                 {companyLinks.map((item) => (
                   <li key={item.label}>
                     {item.to.startsWith('mailto:') ? (
-                      <a href={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
+                      <a href={item.to} className="transition hover:text-emerald-600">
                         {item.label}
                       </a>
                     ) : (
-                      <Link to={item.to} className="transition hover:text-emerald-600 dark:hover:text-emerald-400">
+                      <Link to={item.to} className="transition hover:text-emerald-600">
                         {item.label}
                       </Link>
                     )}
@@ -239,7 +266,7 @@ function PageShell({ children }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={item.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] transition hover:scale-105 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] transition hover:scale-105 hover:border-emerald-500 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/30"
                 >
                   <item.icon className="h-4.5 w-4.5" />
                 </a>

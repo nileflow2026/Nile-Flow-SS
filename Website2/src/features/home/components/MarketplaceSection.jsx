@@ -26,7 +26,7 @@ const cardVariants = {
 
 function MarketplaceSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white py-20 dark:from-emerald-950/20 dark:to-gray-950">
+    <section className="relative overflow-hidden bg-[linear-gradient(180deg,var(--color-surface-muted)_0%,var(--color-background)_100%)] py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -38,10 +38,10 @@ function MarketplaceSection() {
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
             African Marketplace
           </p>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
-            Built Around <span className="text-emerald-600 dark:text-emerald-400">African Communities</span>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
+            Built Around <span className="text-emerald-600">African Communities</span>
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg">
+          <p className="mt-4 text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
             Discover a marketplace that understands local needs — from bustling city markets to rural community shops.
           </p>
         </motion.div>
@@ -59,7 +59,7 @@ function MarketplaceSection() {
               <motion.div
                 key={cat.label}
                 variants={cardVariants}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 sm:p-6"
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${cat.gradient} opacity-0 transition-opacity group-hover:opacity-10`} />
                 <div
@@ -68,7 +68,7 @@ function MarketplaceSection() {
                 >
                   <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
+                <h3 className="mt-4 text-sm font-semibold text-[var(--color-text-primary)] sm:text-base">
                   {cat.label}
                 </h3>
               </motion.div>

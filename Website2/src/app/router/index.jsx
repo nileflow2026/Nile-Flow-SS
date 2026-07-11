@@ -52,12 +52,13 @@ const TermsPage = lazy(() => import('@features/info/pages/TermsPage'))
 const CancelOrderPage = lazy(() => import('@features/info/pages/CancelOrderPage'))
 const CareersPage = lazy(() => import('@features/careers/pages/CareersPage'))
 const NotFoundPage = lazy(() => import('@features/not-found/pages/NotFoundPage'))
+const LandingPage = lazy(() => import('@features/home/pages/LandingPage'))
 
 function SuspenseLoader({ children }) {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
           <Loader label="Loading…" />
         </div>
       }
@@ -71,8 +72,10 @@ export default function AppRouter() {
   return (
     <SuspenseLoader>
       <Routes>
-        {/* ── Public Routes ─────────────────────────────────── */}
-        <Route path="/" element={<HomePage />} />
+        {/* ── Public Routes ─────────────────────────────────── */} 
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/Landing" element={<LandingPage />} />
         <Route path="/products" element={<ProductListingPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/search" element={<SearchPage />} />

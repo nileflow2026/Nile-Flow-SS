@@ -24,6 +24,7 @@ import Alert from '@shared/ui/alert/Alert'
 import { oauthBridge } from '@auth/oauthBridge'
 import { useAuth } from '@auth/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePostHog } from '@posthog/react'
 
 const STATES = {
   PROCESSING: 'processing',
@@ -55,6 +56,7 @@ function OAuthCallbackPage() {
   const { signIn } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
   const processedRef = useRef(false);
+  const posthog = usePostHog();
 
   const processCallback = useCallback(async () => {
     if (processedRef.current) return;
@@ -97,6 +99,13 @@ function OAuthCallbackPage() {
     const result = await oauthBridge.handleCallback(code, stateParam, provider);
 
     if (result.success) {
+      if (result.user) {
+        posthog.identify(result.user.$id || result.user.id, {
+          name: result.user.name || result.user.username,
+          email: result.user.email,
+        })
+      }
+      posthog.capture('oauth_signin_completed', { provider })
       dispatch({
         type: 'SET_STATUS',
         status: STATES.SUCCESS,
@@ -120,7 +129,7 @@ function OAuthCallbackPage() {
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-20 sm:px-6 lg:py-28">
-        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8 text-center">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 text-center">
           <AnimatePresence mode="wait">
             {state.status === STATES.PROCESSING && (
               <motion.div
@@ -129,7 +138,7 @@ function OAuthCallbackPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-surface-muted)]">
                   <svg className="h-7 w-7 animate-spin text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
@@ -138,7 +147,7 @@ function OAuthCallbackPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
                   Signing in
                 </p>
-                <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
                   Completing authentication
                 </h1>
                 <div className="mt-6">
@@ -162,7 +171,7 @@ function OAuthCallbackPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-600 dark:text-red-400">
                   Sign-in failed
                 </p>
-                <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
                   Something went wrong
                 </h1>
                 <div className="mt-4">
@@ -176,7 +185,7 @@ function OAuthCallbackPage() {
                   <PrimaryButton className="w-full justify-center" onClick={() => navigate('/login')}>
                     Back to sign in
                   </PrimaryButton>
-                  <Link to="/signup" className="text-sm font-semibold text-emerald-600 hover:text-amber-600 dark:text-emerald-400">
+                  <Link to="/signup" className="text-sm font-semibold text-emerald-600 hover:text-amber-600">
                     Create an account instead
                   </Link>
                 </div>
@@ -198,10 +207,10 @@ function OAuthCallbackPage() {
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
                   Welcome
                 </p>
-                <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
                   Signed in successfully!
                 </h1>
-                <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
+                <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
                   {state.message}. Redirecting you…
                 </p>
               </motion.div>

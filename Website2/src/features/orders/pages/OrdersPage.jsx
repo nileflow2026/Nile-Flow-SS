@@ -58,7 +58,7 @@ function OrdersPage() {
             description="You can request a cancellation within 24 hours for orders in Pending or Processing status."
             tone="info"
           >
-            <Link to="/cancel-order" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-emerald-400">
+            <Link to="/cancel-order" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-500 hover:text-emerald-600">
               Cancel an order
             </Link>
           </Alert>
@@ -106,24 +106,24 @@ function OrdersPage() {
                   : total || '—'
 
                 return (
-                  <div key={orderId} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-6">
+                  <div key={orderId} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-lg sm:p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                             {displayId}
                           </p>
                           <Badge variant={orderService.getStatusColor(status)}>{orderService.getStatusLabel(status)}</Badge>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-[var(--color-text-secondary)]">
                           {date}{itemsCount ? ` · ${itemsCount} item${itemsCount > 1 ? 's' : ''}` : ''}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <p className="text-lg font-semibold text-amber-600 dark:text-amber-400">{totalStr}</p>
+                        <p className="text-lg font-semibold text-amber-600">{totalStr}</p>
                         <Link
                           to={`/track-order/${orderNumber}`}
-                          className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-600 hover:text-white dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white"
+                          className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-600 hover:text-white"
                         >
                           Track
                         </Link>

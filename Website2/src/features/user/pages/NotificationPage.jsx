@@ -76,32 +76,32 @@ function NotificationPage() {
         <ResponsiveSection eyebrow="Notifications" title="Your activity" description="Stay updated on orders, deals, and account activity." className="py-10 sm:py-14 lg:py-16">
           <div className="mx-auto max-w-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <p className="text-sm text-gray-600 dark:text-gray-400">{unread} unread notification{unread !== 1 ? 's' : ''}</p>
-              {unread > 0 && <button onClick={markAllRead} className="min-h-11 rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-600 hover:text-white dark:bg-gray-800 dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white">Mark all read</button>}
+              <p className="text-sm text-[var(--color-text-secondary)]">{unread} unread notification{unread !== 1 ? 's' : ''}</p>
+              {unread > 0 && <button onClick={markAllRead} className="min-h-11 rounded-full bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:bg-emerald-600 dark:hover:text-white">Mark all read</button>}
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-emerald-600 dark:border-gray-700 dark:border-t-emerald-400" />
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-emerald-600 dark:border-t-emerald-400" />
               </div>
             ) : notifications.length === 0 ? (
               <EmptyState title="No notifications" description="You're all caught up! New notifications will appear here." icon="🔔" />
             ) : (
               <div className="space-y-2">
                 {notifications.map((n) => (
-                  <div key={n.id} className={`flex items-start gap-4 rounded-2xl border p-5 shadow-sm transition hover:shadow-lg sm:p-6 ${
-                    n.read ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900' : 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-800/30 dark:bg-emerald-950/10'
+                  <div key={n.id} className={`flex items-start gap-4 rounded-2xl border p-5 shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-lg)] sm:p-6 ${
+                    n.read ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-800/30 dark:bg-emerald-950/10'
                   }`}>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg dark:bg-gray-800">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-lg">
                       {n.icon}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.title}</p>
+                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">{n.title}</p>
                         {!n.read && <span className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />}
                       </div>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{n.description}</p>
-                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-500">{n.time}</p>
+                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{n.description}</p>
+                      <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{n.time}</p>
                     </div>
                   </div>
                 ))}

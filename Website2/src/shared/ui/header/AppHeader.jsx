@@ -3,9 +3,10 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import Button from '@shared/ui/button/Button'
 import { useTheme } from '@app/providers/ThemeProvider'
 import { useAuth } from '@auth/AuthContext'
+import { usePostHog } from '@posthog/react'
 
 const navItems = [
-  { label: 'Home', to: '/' },
+  { label: 'Home', to: '/home' },
   { label: 'Products', to: '/products' },
   { label: 'Cart', to: '/cart' },
 ]
@@ -23,6 +24,9 @@ function AppHeader() {
   const { isDark, toggleTheme } = useTheme()
   const { isAuthenticated, user, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
+  const posthog = usePostHog()
+
+  const isLandingRoute = ['/', '/landing', '/Landing'].includes(location.pathname)
 
   useEffect(() => {
     setMobileOpen(false)
@@ -30,9 +34,13 @@ function AppHeader() {
 
   const handleSignOut = async () => {
     setSigningOut(true)
+    posthog.capture('user_signed_out')
     await signOut()
+    posthog.reset()
     setSigningOut(false)
   }
+
+  if (isLandingRoute) return null
 
   const userName = user?.name || user?.username || user?.email?.split('@')[0] || 'Profile'
 
@@ -70,19 +78,7 @@ function AppHeader() {
               {item.label}
             </NavLink>
           ))}
-          {isAuthenticated && (
-            <NavLink
-              to="/profile"
-              className={({ isActive }) =>
-                `inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
-                  isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-[var(--color-text-secondary)] hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
-                }`
-              }
-              aria-label="Profile"
-            >
-              <ProfileIcon />
-            </NavLink>
-          )}
+          
         </nav>
 
         <div className="hidden md:flex">
@@ -112,16 +108,41 @@ function AppHeader() {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] md:hidden"
-          onClick={() => setMobileOpen((value) => !value)}
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav"
-          aria-label="Toggle navigation"
-        >
-          <span className="text-lg leading-none">☰</span>
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <Link
+            to="/search"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            aria-label="Search products"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="6" />
+              <path d="m20 20-4.2-4.2" />
+            </svg>
+          </Link>
+
+          <Link
+            to="/cart"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            aria-label="View cart"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="20" r="1" />
+              <circle cx="19" cy="20" r="1" />
+              <path d="M3 3h2l2.4 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L17 7H7" />
+            </svg>
+          </Link>
+
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            onClick={() => setMobileOpen((value) => !value)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            aria-label="Toggle navigation"
+          >
+            <span className="text-lg leading-none">☰</span>
+          </button>
+        </div>
       </div>
 
       <div id="mobile-nav" className={`overflow-hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 md:hidden ${mobileOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
@@ -154,7 +175,7 @@ function AppHeader() {
                 disabled={signingOut}
                 className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-50"
               >
-                {signingOut ? 'Signing out…' : `Sign out (${userName})`}
+                {signingOut ? 'Signing out…' : 'Sign out'}
               </button>
             ) : (
               <Link to="/login" className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">

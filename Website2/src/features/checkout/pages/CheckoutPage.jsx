@@ -7,11 +7,13 @@ import Modal from '@shared/ui/modal/Modal'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { httpClient } from '@api/services'
+import { usePostHog } from '@posthog/react'
 
 function CheckoutPage() {
   const { user } = useAuth()
   const { push } = useToast()
   const location = useLocation()
+  const posthog = usePostHog()
   const cartData = location.state
 
   const [isHelpOpen, setIsHelpOpen] = useState(false)
@@ -86,15 +88,32 @@ function CheckoutPage() {
       const isSuccess = rawResponse.success !== false && responseData.success !== false
 
       if (isSuccess) {
+        posthog.capture('order_placed', {
+          order_number: orderNumber,
+          item_count: items.length,
+          total: Math.round(total),
+          payment_method: form.paymentMethod,
+          currency: 'KES',
+        })
         push({ title: 'Order placed!', message: orderNumber ? `Order ${orderNumber} confirmed.` : 'Your order has been confirmed.' })
         window.location.href = '/orders'
       } else {
         const errMsg = responseData.message || responseData.error || rawResponse.message || 'Please try again.'
+        posthog.capture('order_placement_failed', {
+          item_count: items.length,
+          total: Math.round(total),
+          payment_method: form.paymentMethod,
+          error: errMsg,
+        })
         push({ title: 'Order failed', message: errMsg })
       }
     } catch (err) {
       const errorData = err?.response?.data
       const msg = errorData?.message || err?.message || 'Something went wrong.'
+      posthog.captureException(err, {
+        context: 'checkout_order_placement',
+        item_count: items.length,
+      })
       push({ title: 'Error', message: msg })
     } finally {
       setPlacing(false)
@@ -106,23 +125,23 @@ function CheckoutPage() {
   return (
     <PageShell>
       <ResponsiveSection eyebrow="Checkout" title="Complete your order" description={`Review ${items.length} item${items.length !== 1 ? 's' : ''} and place your order.`} className="py-10 sm:py-14 lg:py-16">
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8">
+            <div className="space-y-4 sm:space-y-5">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 Full name
                 <input
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none ring-0 focus:border-emerald-500"
                   placeholder="Jane Doe"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   required
                 />
               </label>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 Delivery address
                 <input
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none ring-0 focus:border-emerald-500"
                   placeholder="Nairobi, Kenya"
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
@@ -130,20 +149,20 @@ function CheckoutPage() {
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                   Phone
                   <input
-                    className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none ring-0 focus:border-emerald-500"
                     placeholder="0712345678"
                     value={form.phone}
                     onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                     required
                   />
                 </label>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                   Payment method
                   <select
-                    className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-emerald-500"
                     value={form.paymentMethod}
                     onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
                   >
@@ -157,44 +176,44 @@ function CheckoutPage() {
 
             {/* Cart items review */}
             <div className="mt-6 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">Items</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">Items</p>
               {items.map((item, idx) => (
-                <div key={item.id || idx} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={item.id || idx} className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                     ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-lg">🛍️</div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-muted)] text-lg">🛍️</div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">{item.name}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">Qty: {item.quantity}</p>
                     </div>
                   </div>
-                  <span className="shrink-0 text-sm font-semibold text-gray-900 dark:text-white">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                  <span className="shrink-0 text-sm font-semibold text-[var(--color-text-primary)]">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Order summary</p>
-            <div className="mt-5 space-y-3 text-sm text-gray-600 dark:text-gray-400">
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8 xl:sticky xl:top-24">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Order summary</p>
+            <div className="mt-5 space-y-3 text-sm text-[var(--color-text-secondary)]">
               {items.map((item, idx) => (
-                <div key={item.id || idx} className="flex justify-between">
+                <div key={item.id || idx} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="truncate">{item.name} × {item.quantity}</span>
-                  <span className="shrink-0 font-semibold text-gray-900 dark:text-white">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                  <span className="shrink-0 font-semibold text-[var(--color-text-primary)]">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
                 </div>
               ))}
-              <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-2 sm:flex-row sm:items-center sm:justify-between">
                 <span>Subtotal</span>
-                <span className="font-semibold text-gray-900 dark:text-white">KSh {Math.round(lineItemTotal).toLocaleString()}</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">KSh {Math.round(lineItemTotal).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span>Delivery</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{deliveryLabel}</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">{deliveryLabel}</span>
               </div>
-              <div className="flex justify-between border-t border-gray-200 dark:border-gray-800 pt-3 text-base font-semibold text-gray-900 dark:text-white">
+              <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-3 text-base font-semibold text-[var(--color-text-primary)] sm:flex-row sm:items-center sm:justify-between">
                 <span>Total</span>
                 <span>{totalLabel}</span>
               </div>
@@ -203,17 +222,33 @@ function CheckoutPage() {
               <PrimaryButton className="w-full justify-center" onClick={handlePlaceOrder} disabled={placing}>
                 {placing ? 'Placing order…' : 'Place order'}
               </PrimaryButton>
-              <button onClick={() => setIsHelpOpen(true)} className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 transition hover:text-amber-600 dark:hover:text-amber-400">Need help with checkout?</button>
+              <button onClick={() => setIsHelpOpen(true)} className="text-sm font-semibold text-emerald-600 transition hover:text-amber-600">Need help with checkout?</button>
             </div>
           </div>
         </div>
       </ResponsiveSection>
 
       <Modal isOpen={isHelpOpen} title="Checkout support" description="Our team can help with payments, delivery, and order questions before you complete your purchase." onClose={() => setIsHelpOpen(false)} footer={[
-        <button key="close" onClick={() => setIsHelpOpen(false)} className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800">Close</button>,
-        <PrimaryButton key="confirm" className="justify-center">Contact support</PrimaryButton>,
+
       ]}>
-        <p className="text-sm leading-7 text-gray-600 dark:text-gray-400">Choose Cash on Delivery at checkout — pay when your order arrives. We'll keep your order flow simple and transparent from start to finish.</p>
+        <div className="space-y-3">
+          <p className="text-sm leading-7 text-[var(--color-text-secondary)]">Choose Cash on Delivery at checkout — pay when your order arrives. We'll keep your order flow simple and transparent from start to finish.</p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <a href="tel:+254713637104" className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-left transition hover:border-emerald-500 hover:bg-emerald-50">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Call us</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">+254 713 637 104</p>
+            </a>
+            <a href="mailto:support@nileflowafrica.com" className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-left transition hover:border-emerald-500 hover:bg-emerald-50">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Email</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">support@nileflowafrica.com</p>
+            </a>
+            <a href="https://wa.me/254713637104" target="_blank" rel="noreferrer" className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-left transition hover:border-emerald-500 hover:bg-emerald-50">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">WhatsApp</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">Chat with support</p>
+            </a>
+          </div>
+        </div>
       </Modal>
     </PageShell>
   )

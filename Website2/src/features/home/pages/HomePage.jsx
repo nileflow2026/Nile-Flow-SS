@@ -1,145 +1,149 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ProductCard from '@shared/ui/product-card/ProductCard'
-import Button from '@shared/ui/button/Button'
 import { productService } from '@api/services'
-import { useAuth } from '@auth/AuthContext'
-import HeroSection from '../components/HeroSection'
-import MarketplaceSection from '../components/MarketplaceSection'
-import WhyNileFlow from '../components/WhyNileFlow'
-import AfricaMap from '../components/AfricaMap'
-import CommunityImpact from '../components/CommunityImpact'
-import MerchantSection from '../components/MerchantSection'
-import AIAssistantSection from '../components/AIAssistantSection'
-import NileVerseSection from '../components/NileVerseSection'
-import TestimonialsSection from '../components/TestimonialsSection'
+
+const fallbackProducts = [
+  {
+    id: 'demo-1',
+    productName: 'Everyday Essentials Bundle',
+    price: 2400,
+    description: 'Fresh staples and household favorites delivered fast.',
+    image: '/logo.png',
+    featured: true,
+  },
+  {
+    id: 'demo-2',
+    productName: 'Premium Local Artisan Set',
+    price: 5600,
+    description: 'Handpicked goods from trusted merchants across the region.',
+    image: '/logo.png',
+    premium: true,
+  },
+  {
+    id: 'demo-3',
+    productName: 'Smart Tech Starter Pack',
+    price: 18200,
+    description: 'Reliable devices and accessories for everyday life.',
+    image: '/logo.png',
+    featured: true,
+  },
+]
+
+const quickPillars = [
+  { title: 'Secure checkout', description: 'Fast payments with trusted protection.' },
+  { title: 'Fast delivery', description: 'Quick dispatch from local merchants.' },
+  { title: 'Premium perks', description: 'Unlock deals and bonus rewards.' },
+]
 
 function HomePage() {
-  const { isAuthenticated, user } = useAuth()
-  const [featuredProducts, setFeaturedProducts] = useState([])
+  const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadFeatured = async () => {
+    const loadProducts = async () => {
       setLoading(true)
       try {
         const result = await productService.getProducts()
-        setFeaturedProducts(result.products?.slice(0, 6) || [])
+        const items = result.products?.slice(0, 6) || []
+        setFeaturedProducts(items.length ? items : fallbackProducts)
       } catch {
-        setFeaturedProducts([])
+        setFeaturedProducts(fallbackProducts)
       } finally {
         setLoading(false)
       }
     }
-    loadFeatured()
+
+    loadProducts()
   }, [])
+
+  const heroProducts = useMemo(() => featuredProducts.slice(0, 3), [featuredProducts])
 
   return (
     <PageShell>
-      {/* Hero Section — Cinematic African Technology Experience */}
-      <HeroSection />
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_46%),linear-gradient(135deg,_rgba(16,185,129,0.14)_0%,_var(--color-background)_45%,_rgba(245,158,11,0.14)_100%)]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-24">
+          <div className="flex flex-col justify-center">
+            <span className="w-fit rounded-full border border-emerald-200 bg-[var(--color-surface)]/80 px-3 py-1 text-sm font-semibold text-emerald-700 shadow-sm">
+              Africa-ready shopping, reimagined
+            </span>
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-5xl lg:text-6xl">
+              Shop smarter with Nile Flow.
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--color-text-secondary)]">
+              Discover everyday essentials, premium finds, and trusted local sellers in one calm, modern marketplace built for convenience.
+            </p>
 
-      {/* African Marketplace Categories */}
-      <MarketplaceSection />
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/products" className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                Browse products
+              </Link>
+              {/* <Link to="/deals" className="inline-flex items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition hover:border-emerald-300 hover:text-emerald-700">
+                View deals
+              </Link> */}
+            </div>
 
-      {/* Why Nile Flow — Premium Feature Cards */}
-      <WhyNileFlow />
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {quickPillars.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-4 shadow-sm">
+                  <p className="text-sm font-semibold text-[var(--color-text-primary)]">{item.title}</p>
+                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {/* Featured Products (legacy section, kept to maintain existing functionality) */}
-      {featuredProducts.length > 0 && (
-        <section className="relative overflow-hidden bg-white py-20 dark:bg-gray-950">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center">
-              {isAuthenticated ? (
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
-                  Welcome, {user?.name || user?.username || user?.email?.split('@')[0] || 'back'}!
-                </p>
-              ) : (
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
-                  Featured
-                </p>
-              )}
-              <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
-                Trending <span className="text-emerald-600 dark:text-emerald-400">Products</span>
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg">
-                Popular products our customers love right now.
+          <div className="rounded-[32px] border border-emerald-100 bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)]">
+            <div className="rounded-[24px] bg-gradient-to-br from-emerald-600 via-emerald-500 to-amber-500 p-6 text-white">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-100">This week</p>
+              <h2 className="mt-3 text-2xl font-semibold">Fresh picks for your next order</h2>
+              <p className="mt-3 text-sm text-emerald-50">
+                Premium merchants, fast delivery, and dependable support all in one place.
               </p>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {loading ? (
-                <div className="col-span-full flex items-center justify-center py-12">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                    Loading products...
+            <div className="mt-4 space-y-3">
+              {heroProducts.map((product) => (
+                <div key={product.$id || product.id} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">{product.productName || product.title || product.name}</p>
+                    <p className="text-sm text-[var(--color-text-secondary)]">{product.description || product.subtitle || 'Trusted Nile Flow choice'}</p>
                   </div>
+                  <span className="text-sm font-semibold text-emerald-600">{product.price ? `KSh ${Number(product.price).toLocaleString()}` : 'Shop now'}</span>
                 </div>
-              ) : (
-                featuredProducts.map((product) => (
-                  <ProductCard
-                    key={product.$id || product.id}
-                    product={product}
-                    href={`/products/${product.$id || product.id}`}
-                    compact
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="mt-8 text-center">
-              <Link to="/products">
-                <Button variant="outline" className="px-6 py-3">
-                  View all products →
-                </Button>
-              </Link>
+              ))}
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* Interactive Africa Map */}
-      <AfricaMap />
-
-      {/* Community Impact — Live Metrics */}
-      <CommunityImpact />
-
-      {/* Merchant Section */}
-      <MerchantSection />
-
-      {/* AI Assistant Section */}
-      <AIAssistantSection />
-
-      {/* NileVerse Ecosystem */}
-      <NileVerseSection />
-
-      {/* Trust & Testimonials */}
-      <TestimonialsSection />
-
-      {/* Final CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-amber-900 py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-            Ready to Join Africa's <span className="text-amber-400">Commerce Revolution</span>?
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-emerald-100/70 sm:text-lg">
-            Whether you're shopping, selling, or building — Nile Flow is your platform for the future of African commerce.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              to="/products"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-amber-600/30 transition-all hover:bg-amber-600 hover:shadow-xl hover:scale-105"
-            >
-              Start Shopping
-            </Link>
-            <Link
-              to="/signup"
-              className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/30 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:border-white/50"
-            >
-              Create Account
-            </Link>
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Featured products</p>
+            <h2 className="mt-2 text-3xl font-bold text-[var(--color-text-primary)]">Popular picks right now</h2>
           </div>
+          <Link to="/products" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+            Explore all products →
+          </Link>
+        </div>
+
+        <div className="mt-8 grid gap-5 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] py-12 text-sm text-[var(--color-text-secondary)]">
+              Loading featured products...
+            </div>
+          ) : (
+            featuredProducts.map((product) => (
+              <ProductCard
+                key={product.$id || product.id}
+                product={product}
+                href={`/products/${product.$id || product.id}`}
+                compact
+              />
+            ))
+          )}
         </div>
       </section>
     </PageShell>
@@ -147,3 +151,4 @@ function HomePage() {
 }
 
 export default HomePage
+ 

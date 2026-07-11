@@ -79,6 +79,9 @@ try {
   healthRoutes = require("../routes/health.routes");
 
   app = express();
+  // Trust Render's reverse proxy so Express can detect HTTPS correctly
+  // and allow secure cookies to be read on the OAuth callback path.
+  app.set("trust proxy", 1);
 } catch (setupError) {
   console.error("CRITICAL: Failed to set up Express application:", setupError.message);
   console.error("  Stack:", setupError.stack);

@@ -1,5 +1,4 @@
 import PageShell from '@shared/ui/layout/PageShell'
-import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 
 const pillars = [
@@ -17,22 +16,61 @@ const pillars = [
   },
 ]
 
+const teamMembers = [
+  {
+    name: 'Anthony Wai',
+    role: 'Founder & CEO',
+    bio: 'Anthony leads Nile Flow’s vision, strategy, and product direction with a focus on trusted commerce and regional growth.',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
+    email: 'anthony@nileflowafrica.com',
+    phone: '+254 700 000 000',
+    socials: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
+      { label: 'Twitter', href: 'https://twitter.com/' },
+    ],
+  },
+  {
+    name: 'Japhet',
+    role: 'Co-Founder & COO',
+    bio: 'Japhet oversees operations, merchant partnerships, and delivery systems that keep Nile Flow reliable and scalable.',
+    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+    email: 'japhet@nileflowafrica.com',
+    phone: '+254 700 000 001',
+    socials: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
+      { label: 'Email', href: 'mailto:japhet@nileflowafrica.com' },
+    ],
+  },
+  {
+    name: 'Ted',
+    role: 'Finance Officer',
+    bio: 'Ted manages financial operations, commercial discipline, and growth planning to support a sustainable platform.',
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80',
+    email: 'ted@nileflowafrica.com',
+    phone: '+254 700 000 002',
+    socials: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
+      { label: 'Email', href: 'mailto:ted@nileflowafrica.com' },
+    ],
+  },
+]
+
 function AboutPage() {
   return (
     <PageShell>
-      <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 dark:from-emerald-950/20 dark:to-amber-950/20 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="responsive-shell rounded-3xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-10 lg:p-14">
+      <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="responsive-shell rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-lg)] sm:p-10 lg:p-14">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">About Nile Flow</p>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">About Nile Flow</p>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
               We are building a more confident way to discover and buy across Africa.
             </h1>
-            <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-400">
-              Nile Flow brings together trusted merchants, secure payments, and elegant commerce experiences in one destination designed for daily life.
+            <p className="mt-5 text-lg leading-8 text-[var(--color-text-secondary)]">
+              Nile Flow is an AI-powered hyperlocal commerce ecosystem designed for emerging markets. We bring together trusted merchants, secure payments, and elegant shopping experiences in one destination built for everyday life, low-bandwidth environments, and real economic growth.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <PrimaryButton>Explore products</PrimaryButton>
-              <a href="/contact" className="inline-flex min-h-11 items-center justify-center rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-emerald-600 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-emerald-400 dark:hover:text-emerald-400">
+              <a href="/contact" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-border)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-600 hover:text-emerald-600">
                 Contact us
               </a>
             </div>
@@ -40,16 +78,84 @@ function AboutPage() {
         </div>
       </section>
 
-      <ResponsiveSection eyebrow="What drives us" title="A platform shaped by trust, inclusion, and everyday convenience" description="We design every touchpoint to feel calm, clear, and dependable for shoppers, merchants, and delivery teams.">
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          {pillars.map((item) => (
-            <div key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 hover:shadow-lg hover:-translate-y-1 transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{item.title}</h3>
-              <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-gray-400">{item.description}</p>
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)] sm:p-8 lg:p-10">
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Our mission</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
+                A platform shaped by trust, inclusion, and everyday convenience.
+              </h2>
+              <p className="mt-4 text-base leading-8 text-[var(--color-text-secondary)]">
+                We design every touchpoint to feel calm, clear, and dependable for shoppers, merchants, and delivery teams. Our ecosystem combines commerce, AI, fintech, and loyalty into a seamless experience that supports growth across communities and cities.
+              </p>
             </div>
-          ))}
+
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-6">
+              <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">What we focus on</h3>
+              <ul className="mt-4 space-y-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+                <li>• Secure, mobile-first shopping journeys</li>
+                <li>• Local merchant enablement and logistics support</li>
+                <li>• Reliable payments, loyalty, and retention tools</li>
+                <li>• A trustworthy experience for emerging-market users</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {pillars.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6 shadow-[var(--shadow-sm)] transition hover:-translate-y-1 hover:shadow-lg">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[var(--color-text-secondary)]">{item.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </ResponsiveSection>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)] sm:p-8 lg:p-10">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Leadership team</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
+                Meet the people building Nile Flow.
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
+              Our leadership and operations team are focused on building dependable infrastructure, customer trust, and long-term growth across the region.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {teamMembers.map((member) => (
+              <div key={member.name} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6">
+                <img src={member.image} alt={member.name} className="h-24 w-24 rounded-full object-cover" />
+                <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">{member.name}</h3>
+                <p className="mt-1 text-sm font-medium text-emerald-600">{member.role}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">{member.bio}</p>
+                <div className="mt-4 space-y-2 text-sm text-[var(--color-text-secondary)]">
+                  <p><span className="font-medium text-[var(--color-text-primary)]">Email:</span> {member.email}</p>
+                  <p><span className="font-medium text-[var(--color-text-primary)]">Phone:</span> {member.phone}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {member.socials.map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-600 hover:text-emerald-600"
+                    >
+                      {social.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </PageShell>
   )
 }

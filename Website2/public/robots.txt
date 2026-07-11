@@ -11,4 +11,4 @@ Disallow: /auth/
 Disallow: /api/
 Disallow: /internal/
 Disallow: /staging/
-Sitemap: https://www.nileflow.co/sitemap.xml
+Sitemap: https://www.nileflowafrica.com/sitemap.xml

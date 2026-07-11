@@ -10,7 +10,7 @@ const messages = [
 
 function AIAssistantSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white py-20 dark:from-gray-900 dark:to-gray-950">
+    <section className="relative overflow-hidden bg-[linear-gradient(180deg,var(--color-surface-muted)_0%,var(--color-background)_100%)] py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           {/* Left: Chat UI */}
@@ -22,9 +22,9 @@ function AIAssistantSection() {
             className="relative"
           >
             {/* Chat window */}
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
               {/* Header */}
-              <div className="flex items-center gap-3 border-b border-gray-100 bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 dark:border-gray-800">
+              <div className="flex items-center gap-3 border-b border-[var(--color-border)] bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white">
                   <Bot className="h-4 w-4" />
                 </div>
@@ -50,7 +50,7 @@ function AIAssistantSection() {
                       className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                         msg.role === 'user'
                           ? 'rounded-br-md bg-emerald-600 text-white'
-                          : 'rounded-bl-md bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
+                          : 'rounded-bl-md bg-[var(--color-surface-muted)] text-[var(--color-text-primary)]'
                       }`}
                     >
                       {msg.text}
@@ -60,8 +60,8 @@ function AIAssistantSection() {
               </div>
 
               {/* Input */}
-              <div className="border-t border-gray-100 p-3 dark:border-gray-800">
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <div className="border-t border-[var(--color-border)] p-3">
+                <div className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2">
                   <input
                     type="text"
                     placeholder="Ask Nile AI anything..."
@@ -98,10 +98,10 @@ function AIAssistantSection() {
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
               AI Assistant
             </p>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
-              Your <span className="text-emerald-600 dark:text-emerald-400">Conversational</span> Shopping Companion
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
+              Your <span className="text-emerald-600">Conversational</span> Shopping Companion
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg">
+            <p className="mt-4 text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
               Meet Nile AI — your personal shopping assistant that understands your needs, language, and local context. 
               Search by voice, get smart recommendations, and discover products naturally.
             </p>
@@ -119,7 +119,7 @@ function AIAssistantSection() {
                     <div className="flex-shrink-0 rounded-lg bg-emerald-100 p-2 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.text}</p>
+                    <p className="text-sm text-[var(--color-text-secondary)]">{item.text}</p>
                   </div>
                 )
               })}

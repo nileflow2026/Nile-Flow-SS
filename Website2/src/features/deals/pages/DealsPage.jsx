@@ -20,14 +20,14 @@ function DealsPage() {
   return (
     <PageShell>
       <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-emerald-950/10 dark:to-amber-950/10">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Limited time</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">Flash deals</h1>
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-gray-600 dark:text-gray-400">
+        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Limited time</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">Flash deals</h1>
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-[var(--color-text-secondary)]">
           Up to 50% off on handpicked African products. These deals won't last — grab yours before they're gone.
         </p>
         <div className="mt-6 flex items-center justify-center gap-4">
           <Link to="/products"><PrimaryButton>Shop all deals</PrimaryButton></Link>
-          <Link to="/premium-deals" className="min-h-11 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:text-emerald-400">
+          <Link to="/premium-deals" className="min-h-11 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-500 hover:text-emerald-600">
             Premium deals
           </Link>
         </div>
@@ -37,7 +37,7 @@ function DealsPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           {categories.map((cat) => (
             <button key={cat} className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
-              cat === 'All' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-emerald-500 hover:text-emerald-600 dark:border-gray-700 dark:text-gray-400 dark:hover:text-emerald-400'
+              cat === 'All' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500 hover:text-emerald-600'
             }`}>
               {cat}
             </button>
@@ -46,18 +46,18 @@ function DealsPage() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {mockDeals.map((deal) => (
-            <Link key={deal.id} to={`/products/${deal.id}`} className="group rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-6">
+            <Link key={deal.id} to={`/products/${deal.id}`} className="group rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition hover:shadow-lg sm:p-6">
               <div className="flex items-start justify-between">
-                <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-gray-100 text-2xl dark:bg-gray-800">
+                <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] text-2xl">
                   {deal.image}
                 </div>
                 <Badge variant="warning">{deal.discount}</Badge>
               </div>
-              <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-500">{deal.category}</p>
-              <p className="mt-1 text-base font-semibold text-gray-900 group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">{deal.name}</p>
+              <p className="mt-4 text-sm font-medium text-[var(--color-text-muted)]">{deal.category}</p>
+              <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)] group-hover:text-emerald-600">{deal.name}</p>
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{deal.price}</span>
-                <span className="text-sm text-gray-500 dark:text-gray-500 line-through">{deal.was}</span>
+                <span className="text-lg font-bold text-amber-600">{deal.price}</span>
+                <span className="text-sm text-[var(--color-text-muted)] line-through">{deal.was}</span>
               </div>
             </Link>
           ))}

@@ -56,7 +56,7 @@ function AddressesPage() {
       <ResponsiveSection eyebrow="Addresses" title="Saved addresses" description="Manage your delivery addresses for faster checkout." className="py-10 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-2xl">
           <div className="mb-6 flex items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">{addresses.length} saved address{addresses.length !== 1 ? 'es' : ''}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{addresses.length} saved address{addresses.length !== 1 ? 'es' : ''}</p>
             <PrimaryButton onClick={() => setModalOpen(true)}>Add address</PrimaryButton>
           </div>
 
@@ -65,19 +65,19 @@ function AddressesPage() {
           ) : (
             <div className="space-y-4">
               {addresses.map((addr) => (
-                <div key={addr.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6">
+                <div key={addr.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-3">
-                        <p className="font-semibold text-gray-900 dark:text-white">{addr.label}</p>
+                        <p className="font-semibold text-[var(--color-text-primary)]">{addr.label}</p>
                         {addr.default && <Badge variant="primary">Default</Badge>}
                       </div>
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{addr.street}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{addr.city}</p>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">{addr.phone}</p>
+                      <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{addr.street}</p>
+                      <p className="text-sm text-[var(--color-text-secondary)]">{addr.city}</p>
+                      <p className="mt-1 text-sm text-[var(--color-text-muted)]">{addr.phone}</p>
                     </div>
                     <button onClick={() => handleDelete(addr.id)}
-                      className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+                      className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50">
                       Delete
                     </button>
                   </div>
@@ -90,10 +90,10 @@ function AddressesPage() {
         <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Add new address" description="Fill in your delivery address details.">
           <div className="space-y-4">
             {(['label', 'street', 'city', 'phone']).map((field) => (
-              <label key={field} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label key={field} className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 {field.charAt(0).toUpperCase() + field.slice(1)}
                 <input value={form[field]} onChange={(e) => setForm((cur) => ({ ...cur, [field]: e.target.value }))}
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   placeholder={field === 'phone' ? '+254 7XX XXX XXX' : `Enter ${field}`} required />
               </label>
             ))}

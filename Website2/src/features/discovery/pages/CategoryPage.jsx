@@ -60,13 +60,13 @@ function CategoryPage() {
   return (
     <PageShell>
       <div className="bg-gradient-to-br from-emerald-50/30 via-transparent to-amber-50/30 px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-emerald-950/10 dark:to-amber-950/10">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-3xl sm:h-20 sm:w-20 dark:bg-gray-800">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-3xl sm:h-20 sm:w-20">
           {categoryIcon}
         </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
           {categoryName}
         </h1>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-gray-600 dark:text-gray-400">
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[var(--color-text-secondary)]">
           Browse products in {categoryName.toLowerCase()}
         </p>
       </div>
@@ -90,7 +90,7 @@ function CategoryPage() {
           />
         ) : (
           <>
-            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mb-6 text-sm text-[var(--color-text-secondary)]">
               {products.length} product{products.length > 1 ? 's' : ''} in {categoryName.toLowerCase()}
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">

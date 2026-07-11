@@ -56,25 +56,25 @@ const features = [
 
 function WhyNileFlow() {
   return (
-    <section className="relative overflow-hidden py-20 dark:bg-gray-950">
+    <section className="relative overflow-hidden bg-[var(--color-background)] py-20">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/50 to-transparent dark:from-emerald-950/10" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,185,129,0.12)_0%,transparent_100%)]" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={{ once: true }} 
           transition={{ duration: 0.6 }}
           className="mx-auto max-w-3xl text-center"
         >
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">
             Why Nile Flow
           </p>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
-            Built for <span className="text-emerald-600 dark:text-emerald-400">African Commerce</span>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
+            Built for <span className="text-emerald-600">African Commerce</span>
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg">
+          <p className="mt-4 text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
             Every feature is thoughtfully designed for the unique realities of African markets.
           </p>
         </motion.div>
@@ -89,7 +89,7 @@ function WhyNileFlow() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.05 }}
-                className="group relative rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 dark:border-gray-800 dark:bg-gray-900"
+                className="group relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
               >
                 {/* Gradient hover accent */}
                 <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-0 transition-opacity group-hover:opacity-5`} />
@@ -97,10 +97,10 @@ function WhyNileFlow() {
                 <div className={`inline-flex rounded-xl bg-gradient-to-br ${feature.gradient} p-3 text-white shadow-sm`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+                <h3 className="mt-4 text-base font-semibold text-[var(--color-text-primary)]">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
                   {feature.description}
                 </p>
               </motion.div>

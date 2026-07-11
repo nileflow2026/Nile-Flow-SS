@@ -127,10 +127,10 @@ function VerifyEmailPage() {
     return (
       <PageShell>
         <section className="flex items-center justify-center px-4 py-20 sm:px-6 lg:py-28">
-          <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8 text-center">
+          <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Verification</p>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Missing email</h1>
-            <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Missing email</h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
               We couldn't find your email address. Please sign up again to receive a verification code.
             </p>
             <div className="mt-6">
@@ -148,14 +148,14 @@ function VerifyEmailPage() {
     return (
       <PageShell>
         <section className="flex items-center justify-center px-4 py-20 sm:px-6 lg:py-28">
-          <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8 text-center">
+          <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-900/30">
               <svg className="h-8 w-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Email verified!</h1>
-            <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">Email verified!</h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
               Your account is now active. Redirecting to sign in…
             </p>
           </div>
@@ -169,11 +169,11 @@ function VerifyEmailPage() {
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
-        <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Verify your email</p>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">Enter verification code</h1>
-          <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
-            We sent a 6-digit code to <strong className="text-gray-900 dark:text-white">{email}</strong>. Enter it below to activate your account.
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">Enter verification code</h1>
+          <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+            We sent a 6-digit code to <strong className="text-[var(--color-text-primary)]">{email}</strong>. Enter it below to activate your account.
           </p>
 
           {error && <Alert title="Verification failed" description={error} tone="warning" />}
@@ -192,7 +192,7 @@ function VerifyEmailPage() {
                   onChange={(e) => handleCodeChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="h-14 w-12 rounded-2xl border border-gray-200 bg-gray-50 text-center text-2xl font-bold text-gray-900 outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:h-16 sm:w-14"
+                  className="h-14 w-12 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-center text-2xl font-bold text-[var(--color-text-primary)] outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 sm:h-16 sm:w-14"
                   aria-label={`Digit ${index + 1}`}
                   autoComplete="one-time-code"
                 />
@@ -209,13 +209,13 @@ function VerifyEmailPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-[var(--color-text-secondary)]">
               Didn't receive the code?{' '}
               <button
                 type="button"
                 onClick={handleResendCode}
                 disabled={resending || resendCooldown > 0}
-                className="font-semibold text-emerald-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed dark:text-emerald-400"
+                className="font-semibold text-emerald-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resending
                   ? 'Resending…'
@@ -226,8 +226,8 @@ function VerifyEmailPage() {
             </p>
           </div>
 
-          <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            <Link to="/login" className="font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
+          <p className="mt-4 text-center text-sm text-[var(--color-text-secondary)]">
+            <Link to="/login" className="font-semibold text-emerald-600 hover:underline">
               Back to sign in
             </Link>
           </p>

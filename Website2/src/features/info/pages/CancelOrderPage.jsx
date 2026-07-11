@@ -57,30 +57,32 @@ function CancelOrderPage() {
     <PageShell>
       <ResponsiveSection eyebrow="Orders" title="Cancel an order" description="Submit a cancellation request. Eligible orders are processed within 24 hours." className="py-10 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-2xl space-y-6">
-          <Alert
-            title="Cancellation policy"
-            description="Orders in Pending or Processing status can be cancelled within 24 hours of placement. Shipped orders must go through our standard return process."
-            tone="info"
-          />
+          <div className="rounded-[1.5rem] border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-amber-50 p-5 shadow-sm sm:p-6">
+            <Alert
+              title="Cancellation policy"
+              description="Orders in Pending or Processing status can be cancelled within 24 hours of placement. Shipped orders must go through our standard return process."
+              tone="info"
+            />
+          </div>
 
           {submitted ? (
-            <div className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
+            <div className="rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-[var(--shadow-md)] sm:p-8">
               <Alert title="Request submitted" description={`Your cancellation request for ${form.orderId} is being reviewed. We'll notify you within 24 hours.`} tone="success" />
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-md)] sm:p-8">
-              <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-[var(--shadow-md)] sm:p-8">
+              <div className="space-y-5">
                 <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                   Order ID
                   <input value={form.orderId} onChange={(e) => setForm((cur) => ({ ...cur, orderId: e.target.value }))}
-                    className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)]"
+                    className="mt-2 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-emerald-500 focus:bg-white"
                     placeholder="e.g. NF-2024-001" required />
                 </label>
 
                 <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                   Reason for cancellation
                   <select value={form.reason} onChange={(e) => setForm((cur) => ({ ...cur, reason: e.target.value }))}
-                    className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)] cursor-pointer" required>
+                    className="mt-2 w-full cursor-pointer rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-emerald-500 focus:bg-white" required>
                     <option value="">Select a reason</option>
                     {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
@@ -89,11 +91,11 @@ function CancelOrderPage() {
                 <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                   Additional details <span className="text-[var(--color-text-muted)]">(optional)</span>
                   <textarea value={form.details} onChange={(e) => setForm((cur) => ({ ...cur, details: e.target.value }))} rows={3}
-                    className="mt-2 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-primary)] resize-none"
+                    className="mt-2 w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-emerald-500 focus:bg-white"
                     placeholder="Any extra context we should know..." />
                 </label>
               </div>
-              <PrimaryButton type="submit" className="mt-6 w-full justify-center">Submit cancellation request</PrimaryButton>
+              <PrimaryButton type="submit" className="mt-6 w-full justify-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700">Submit cancellation request</PrimaryButton>
             </form>
           )}
         </div>

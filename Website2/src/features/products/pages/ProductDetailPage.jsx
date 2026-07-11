@@ -16,11 +16,13 @@ import ImageCarousel from '@shared/ui/image-carousel/ImageCarousel'
 import ReviewCard from '@shared/ui/review/ReviewCard'
 import ReviewForm from '@shared/ui/review/ReviewForm'
 import { reviewService } from '@api/services'
+import { usePostHog } from '@posthog/react'
 
 function ProductDetailPage() {
   const { productId } = useParams()
   const { isAuthenticated, user } = useAuth()
   const { push } = useToast()
+  const posthog = usePostHog()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -91,8 +93,17 @@ function ProductDetailPage() {
     setAddingToCart(false)
 
     if (result.success) {
+      posthog.capture('add_to_cart', {
+        product_id: product.$id || product.id,
+        product_name: product.productName || product.name,
+        price: product.price || 0,
+        category: product.category || '',
+      })
       push({ title: 'Added to cart', message: `${product.productName || product.name} added to your cart.` })
     } else {
+      posthog.captureException(new Error(result.error || 'Add to cart failed'), {
+        product_id: product.$id || product.id,
+      })
       push({ title: 'Failed to add', message: result.error || 'Please try again.' })
     }
   }
@@ -156,7 +167,7 @@ function ProductDetailPage() {
     <PageShell>
       <ResponsiveSection eyebrow={category || 'Product'} title={name} description={description} className="py-6 sm:py-10 lg:py-16">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-          <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:rounded-3xl sm:p-6 lg:p-8">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <ImageCarousel images={productImages} alt={name} />
             <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2">
               {inStock ? (
@@ -169,18 +180,18 @@ function ProductDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:rounded-3xl sm:p-6 lg:p-8">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gray-500 dark:text-gray-500 sm:text-xs">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)] sm:text-xs">
               {category || 'Nile Flow'}
             </p>
-            <h1 className="mt-2 text-xl font-semibold leading-tight text-gray-900 dark:text-white sm:text-2xl lg:text-3xl">
+            <h1 className="mt-2 text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl">
               {name}
             </h1>
-            <p className="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400 sm:text-3xl">{priceStr}</p>
+            <p className="mt-2 text-2xl font-bold text-amber-600 sm:text-3xl">{priceStr}</p>
 
             {description && (
               <div className="mt-4 max-w-prose">
-                <p className="text-sm leading-7 text-gray-600 dark:text-gray-400 sm:text-base">
+                <p className="text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base">
                   {description}
                 </p>
               </div>
@@ -212,13 +223,13 @@ function ProductDetailPage() {
         </div>
 
         <div className="mt-10 space-y-6 sm:mt-12 sm:space-y-8">
-          <div className="border-t border-gray-200 pt-6 dark:border-gray-800 sm:pt-8">
+          <div className="border-t border-[var(--color-border)] pt-6 sm:pt-8">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">
+                <h2 className="text-base font-semibold text-[var(--color-text-primary)] sm:text-lg">
                   Customer reviews
                 </h2>
-                <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
+                <p className="text-xs text-[var(--color-text-secondary)] sm:text-sm">
                   {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
                 </p>
               </div>
@@ -234,8 +245,8 @@ function ProductDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-gray-200 bg-white px-4 py-8 text-center dark:border-gray-800 dark:bg-gray-900 sm:p-8">
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center sm:p-8">
+                  <p className="text-sm text-[var(--color-text-muted)]">
                     No reviews yet. Be the first to share your experience!
                   </p>
                 </div>
@@ -243,7 +254,7 @@ function ProductDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 sm:rounded-3xl sm:p-6 lg:p-8">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:rounded-3xl sm:p-6 lg:p-8">
             <ReviewForm productId={productId} onReviewSubmitted={loadReviews} />
           </div>
         </div>

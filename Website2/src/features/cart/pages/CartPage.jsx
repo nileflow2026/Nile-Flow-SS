@@ -11,10 +11,12 @@ import { cartService } from '@api/services'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { imageProxyUrl } from '@api/config'
+import { usePostHog } from '@posthog/react'
 
 function CartPage() {
   const { isAuthenticated, user } = useAuth()
   const { push } = useToast()
+  const posthog = usePostHog()
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -48,6 +50,12 @@ function CartPage() {
     setUpdatingId(itemId)
     const removed = await cartService.removeFromCart(itemId)
     if (removed) {
+      const removedItem = items.find((item) => (item.$id || item.id) === itemId)
+      posthog.capture('remove_from_cart', {
+        product_id: removedItem?.productId,
+        product_name: removedItem?.productName || removedItem?.name,
+        price: getItemPrice(removedItem),
+      })
       setItems((prev) => prev.filter((item) => (item.$id || item.id) !== itemId))
       push({ title: 'Removed', message: 'Item removed from cart.' })
     } else {
@@ -60,6 +68,7 @@ function CartPage() {
     if (!userId) return
     const cleared = await cartService.clearCart(userId)
     if (cleared) {
+      posthog.capture('cart_cleared', { item_count: items.length })
       setItems([])
       push({ title: 'Cart cleared', message: 'All items removed.' })
     }
@@ -112,16 +121,16 @@ function CartPage() {
   return (
     <PageShell>
       <ResponsiveSection eyebrow="Cart" title="Shopping cart" description="Review your items and proceed to checkout." className="py-10 sm:py-14 lg:py-16">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-3">
+        <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
+          <div className="space-y-3 sm:space-y-4">
             {loading ? (
               <Loader label="Loading cart…" />
             ) : error ? (
               <EmptyState title="Error loading cart" description={error} icon="⚠️" />
             ) : items.length === 0 ? (
-              <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-lg dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-base font-semibold text-gray-900 dark:text-white">Your cart is empty</p>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Add items from our product catalog to get started.</p>
+              <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-8">
+                <p className="text-base font-semibold text-[var(--color-text-primary)]">Your cart is empty</p>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Add items from our product catalog to get started.</p>
                 <Link to="/products" className="mt-4 inline-block">
                   <PrimaryButton>Browse products</PrimaryButton>
                 </Link>
@@ -138,22 +147,22 @@ function CartPage() {
                   const image = getItemImage(item)
 
                   return (
-                    <div key={itemId} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-5">
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1rem] bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div key={itemId} className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] sm:flex-row sm:items-center sm:gap-4 sm:p-5">
+                      <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] bg-[var(--color-surface-muted)] sm:h-20 sm:w-20">
                         {image ? (
                           <img src={image} alt={name} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
                           <span className="text-2xl">🛍️</span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</p>
-                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Qty: {qty}</p>
-                        <p className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">{priceStr}</p>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">Qty: {qty}</p>
+                        <p className="text-sm font-semibold text-amber-600">{priceStr}</p>
                       </div>
                       <Button
                         variant="outline"
-                        className="shrink-0"
+                        className="w-full sm:w-auto sm:shrink-0"
                         onClick={() => handleRemoveItem(itemId)}
                         disabled={updatingId === itemId}
                       >
@@ -173,26 +182,31 @@ function CartPage() {
             )}
           </div>
 
-          <div className="h-fit rounded-3xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400">Summary</p>
-            <div className="mt-5 space-y-3 text-sm text-gray-600 dark:text-gray-400">
-              <div className="flex justify-between">
+          <div className="h-fit rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 xl:sticky xl:top-24">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Summary</p>
+            <div className="mt-5 space-y-3 text-sm text-[var(--color-text-secondary)]">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
-                <span className="font-semibold text-gray-900 dark:text-white">KSh {subtotal.toLocaleString()}</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">KSh {subtotal.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span>Delivery</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-semibold text-[var(--color-text-primary)]">
                   {subtotal >= 1000 ? 'Free' : 'KSh 150'}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-gray-200 dark:border-gray-800 pt-3 text-base font-semibold text-gray-900 dark:text-white">
+              <div className="flex flex-col gap-1 border-t border-[var(--color-border)] pt-3 text-base font-semibold text-[var(--color-text-primary)] sm:flex-row sm:items-center sm:justify-between">
                 <span>Total</span>
                 <span>KSh {(subtotal + (subtotal >= 1000 ? 0 : 150)).toLocaleString()}</span>
               </div>
             </div>
             <Link
               to="/checkout"
+              onClick={() => posthog.capture('checkout_started', {
+                item_count: items.length,
+                subtotal,
+                total: subtotal + (subtotal >= 1000 ? 0 : 150),
+              })}
               state={{
                 items: items.map((item) => ({
                   id: item.$id || item.id,
