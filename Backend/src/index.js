@@ -654,6 +654,17 @@ app.use("/api/admin/auth", (req, res, next) => {
 
 // Admin Routes
 safeMount("/api/admin/auth", [authLimiter, authRoutes].filter(Boolean), "Admin Auth");
+
+// Admin vendor management routes (separate router to avoid conflicts)
+let vendorAdminRoutes;
+try {
+  vendorAdminRoutes = require("../routes/vendorAdminRoutes");
+} catch (vendorAdminError) {
+  console.warn("Vendor admin routes failed to load:", vendorAdminError.message);
+}
+safeMount("/api/admin/vendors", vendorAdminRoutes, "Admin Vendors");
+
+// Mount admin router at specific sub-paths for backwards compatibility
 safeMount("/api/admin/products", adminRouter, "Admin Products");
 // Order tracking routes must be mounted BEFORE order management routes
 // to prevent `/:orderId` catching `/tracking/:orderId` paths.
