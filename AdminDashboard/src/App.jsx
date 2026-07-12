@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import Dashboard from "./Pages/Dashboard";
 import Users from "./Pages/Users";
+import Vendors from "./Pages/Vendors";
 import Orders from "./Pages/Orders";
 import Settings from "./Pages/Settings";
 import UserPage from "./Pages/UserPage";
@@ -51,6 +52,16 @@ function App() {
                 element={
                   <RouteGuard requiredResource="users" requiredAction="view">
                     <UserPage />
+                  </RouteGuard>
+                }
+              />
+
+              {/* Vendors Route */}
+              <Route
+                path="/vendors"
+                element={
+                  <RouteGuard requiredResource="users" requiredAction="view">
+                    <Vendors />
                   </RouteGuard>
                 }
               />

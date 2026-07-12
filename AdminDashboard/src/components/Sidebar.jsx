@@ -28,9 +28,14 @@ export default function Sidebar({ setSection, current, isOpen, setIsOpen }) {
           color: "from-[#D4A017] to-[#B8860B]",
         },
         {
+          label: "Vendors",
+          icon: <FaUserCog className="w-4 h-4 sm:w-5 sm:h-5" />,
+          color: "from-[#27AE60] to-[#2ECC71]",
+        },
+        {
           label: "Users",
           icon: <FaUsers className="w-4 h-4 sm:w-5 sm:h-5" />,
-          color: "from-[#27AE60] to-[#2ECC71]",
+          color: "from-[#3498DB] to-[#2980B9]",
         },
         {
           label: "Orders",

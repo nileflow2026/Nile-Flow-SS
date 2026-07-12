@@ -606,6 +606,54 @@ export const recalculateOrderCommission = async (orderId) => {
   }
 };
 
+// Vendor management API functions
+export const getVendors = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.search) params.append("search", filters.search);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.page) params.append("page", filters.page);
+    if (filters.limit) params.append("limit", filters.limit);
+
+    const url = `/api/admin/vendors${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await axiosClient.get(url);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching vendors:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to fetch vendors.");
+  }
+};
+
+export const getVendorStats = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/vendors/stats");
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching vendor stats:", error.response?.data?.error || error.message);
+    return { total: 0, active: 0, inactive: 0 };
+  }
+};
+
+export const toggleVendorStatus = async (vendorId, isActive) => {
+  try {
+    const response = await axiosClient.patch(`/api/admin/vendors/${vendorId}/status`, { isActive });
+    return response.data;
+  } catch (error) {
+    console.error("Error toggling vendor status:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to update vendor status.");
+  }
+};
+
+export const getVendorById = async (vendorId) => {
+  try {
+    const response = await axiosClient.get(`/api/admin/vendors/${vendorId}`);
+    return response.data.data.vendor;
+  } catch (error) {
+    console.error("Error fetching vendor:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to fetch vendor details.");
+  }
+};
+
 export const batchRecalculateCommissions = async (filters = {}) => {
   try {
     const response = await axiosClient.post(

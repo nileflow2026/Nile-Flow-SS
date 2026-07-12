@@ -32,6 +32,7 @@ import Navbar from "../components/Navbar";
 import DashboardCard from "../components/DashboardCard";
 
 import Users from "../Pages/Users";
+import Vendors from "../Pages/Vendors";
 import Orders from "../Pages/Orders";
 import Products from "../Pages/Products";
 import Staff from "./Staff";
@@ -189,6 +190,8 @@ export default function Dashboard() {
 
   const renderContent = () => {
     switch (section) {
+      case "Vendors":
+        return <Vendors />;
       case "Users":
         return <Users />;
       case "Orders":

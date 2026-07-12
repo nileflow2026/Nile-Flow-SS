@@ -27,6 +27,7 @@ const {
   getCancelledOrders,
   updatePremiumDeal,
 } = require("../controllers/AdminControllers/admin");
+const vendorAdminController = require("../controllers/AdminControllers/vendorAdminController");
 const authenticateToken = require("../middleware/authMiddleware");
 const { instrumentedDb } = require("../services/appwriteService");
 const { env } = require("../src/env");
@@ -70,6 +71,12 @@ router.post("/products/approve/:productId", authenticateToken, approveProduct);
 router.post("/products/reject/:productId", authenticateToken, rejectProduct);
 router.get("/products/:productId", authenticateToken, getSingleProductDetails);
 router.post("/assign-delivery", authenticateToken, assignDeliveryToRider);
+
+// Vendor admin routes
+router.get("/vendors", authenticateToken, vendorAdminController.getAllVendors);
+router.get("/vendors/stats", authenticateToken, vendorAdminController.getVendorStats);
+router.get("/vendors/:vendorId", authenticateToken, vendorAdminController.getVendorById);
+router.patch("/vendors/:vendorId/status", authenticateToken, vendorAdminController.toggleVendorStatus);
 
 router.get("/products/:productId/stock", async (req, res) => {
   try {
