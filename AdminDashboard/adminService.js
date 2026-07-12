@@ -518,6 +518,27 @@ export const forceRefreshNotifications = async () => {
   }
 };
 
+// Broadcast / Platform-wide communication API functions
+export const sendBroadcast = async (payload) => {
+  try {
+    const response = await axiosClient.post("/api/admin/newsletter/send-broadcast", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending broadcast:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to send broadcast.");
+  }
+};
+
+export const getBroadcastAudienceStats = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/newsletter/broadcast-stats");
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching broadcast stats:", error.response?.data?.error || error.message);
+    return { subscribers: 0, endUsers: 0, vendors: 0, allPlatform: 0 };
+  }
+};
+
 // Commission System API Functions
 export const getCommissionSettings = async () => {
   try {

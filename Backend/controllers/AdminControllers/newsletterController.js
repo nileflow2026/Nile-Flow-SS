@@ -105,7 +105,7 @@ const generateFallbackTemplate = (campaignData, campaignType) => {
       bannerUrl ||
       "https://via.placeholder.com/600x200/D4A017/FFFFFF?text=Special+Offer";
     const safeCtaText = ctaText || "Shop Now";
-    const safeCtaLink = ctaLink || "https://nileflowafrica.com";
+    const safeCtaLink = ctaLink || "https://www.nileflowafrica.com";
 
     contentSection = `
       <div style="text-align: center; margin-bottom: 32px;">
@@ -145,11 +145,11 @@ const generateFallbackTemplate = (campaignData, campaignType) => {
                     </div>
 
                     <div style="text-align: center; margin-top: 30px;">
-                        <a href="https://nileflowafrica.com/shop" class="cta-button">Shop All New Products</a>
+                        <a href="https://www.nileflowafrica.com/shop" class="cta-button">Shop All New Products</a>
                     </div>
                 </div>
                 <div class="footer">
-                    <p>&copy; ${currentYear} Nile Mart. All rights reserved.</p>
+                    <p>&copy; ${currentYear} Nile Flow. All rights reserved.</p>
                     <p>You are receiving this email because you subscribed to our newsletter.</p>
                     <p><a href="[UnsubscribeLink]" style="color: #999;">Unsubscribe</a></p>
                 </div>
@@ -1485,11 +1485,278 @@ const triggerScheduledCampaigns = async (req, res) => {
   }
 };
 
+/**
+ * sendBroadcast — Sends a branded email to ALL platform users (end users + vendors).
+ * Supports campaign types: newsletter, announcement, app_update, survey, promotion
+ */
+const sendBroadcast = async (req, res) => {
+  try {
+    const {
+      subject,
+      message,
+      campaignType = 'announcement',
+      audience = 'all_platform',
+      ctaText,
+      ctaLink,
+      bannerUrl,
+      surveyLink,
+      features, // [{icon, title, description}]
+    } = req.body;
+
+    if (!subject) {
+      return res.status(400).json({ error: 'Subject is required.' });
+    }
+
+    if (!message && campaignType !== 'app_update') {
+      return res.status(400).json({ error: 'Message is required.' });
+    }
+
+    // ── 1. Gather recipients ─────────────────────────────
+    const recipients = [];
+
+    // Get all subscribed newsletter subscribers
+    if (audience === 'all_platform' || audience === 'all_end_users') {
+      try {
+        const { documents: subscribers } = await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_NEWSLETTER_COLLECTION_ID,
+          [Query.equal("subscribed", true)]
+        );
+        recipients.push(...subscribers.map(s => ({
+          email: s.email,
+          name: s.name || s.email?.split('@')[0] || 'there',
+          type: 'subscriber',
+        })));
+      } catch (e) { console.warn('Could not fetch newsletter subscribers:', e.message); }
+    }
+
+    // Get all registered users from users collection
+    if (audience === 'all_platform' || audience === 'all_users') {
+      try {
+        let cursor = null;
+        while (true) {
+          const queries = [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])];
+          const batch = await instrumentedDb.listDocuments(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_USER_COLLECTION_ID,
+            queries,
+          );
+          for (const doc of batch.documents) {
+            if (doc.email && !recipients.some(r => r.email === doc.email)) {
+              recipients.push({
+                email: doc.email,
+                name: doc.username || doc.name || doc.email?.split('@')[0] || 'there',
+                type: 'user',
+              });
+            }
+          }
+          if (batch.documents.length < 100) break;
+          cursor = batch.documents[batch.documents.length - 1].$id;
+        }
+      } catch (e) { console.warn('Could not fetch users:', e.message); }
+    }
+
+    // Get all vendors
+    if (audience === 'all_platform' || audience === 'all_vendors') {
+      try {
+        let cursor = null;
+        while (true) {
+          const queries = [Query.limit(100), ...(cursor ? [Query.cursorAfter(cursor)] : [])];
+          const batch = await instrumentedDb.listDocuments(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_COLLECTION_ID,
+            queries,
+          );
+          for (const doc of batch.documents) {
+            if (doc.email && !recipients.some(r => r.email === doc.email)) {
+              recipients.push({
+                email: doc.email,
+                name: doc.name || doc.storeName || doc.email?.split('@')[0] || 'there',
+                type: 'vendor',
+              });
+            }
+          }
+          if (batch.documents.length < 100) break;
+          cursor = batch.documents[batch.documents.length - 1].$id;
+        }
+      } catch (e) { console.warn('Could not fetch vendors:', e.message); }
+    }
+
+    // Get newsletter subscribers (for subscribers-only targeting)
+    if (audience === 'subscribers') {
+      try {
+        const { documents: subscribers } = await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_NEWSLETTER_COLLECTION_ID,
+          [Query.equal("subscribed", true)]
+        );
+        recipients.push(...subscribers.map(s => ({
+          email: s.email,
+          name: s.name || s.email?.split('@')[0] || 'there',
+          type: 'subscriber',
+        })));
+      } catch (e) { console.warn('Could not fetch subscribers:', e.message); }
+    }
+
+    if (recipients.length === 0) {
+      return res.status(404).json({ error: 'No recipients found for the selected audience.' });
+    }
+
+    // ── 2. Build HTML using the new branded templates ─────
+    const emailTpl = require('../../services/nileFlowEmailTemplates');
+    let htmlContent;
+
+    switch (campaignType) {
+      case 'app_update': {
+        const featureList = features || [{ icon: '✨', title: 'New Update', description: 'We\'ve made improvements to enhance your experience.' }];
+        htmlContent = emailTpl.appUpdate({
+          subject,
+          message: message || 'We\'ve just released some exciting updates to improve your experience on Nile Flow.',
+          features: featureList,
+          ctaText,
+          ctaLink,
+          recipientName: '{{recipient_name}}',
+        });
+        break;
+      }
+      case 'survey':
+        htmlContent = emailTpl.survey({
+          subject,
+          message,
+          surveyLink: surveyLink || 'https://nileflowafrica.com/survey',
+          recipientName: '{{recipient_name}}',
+        });
+        break;
+      case 'promotion':
+      case 'promotional':
+        htmlContent = emailTpl.promotion({
+          subject,
+          message,
+          bannerUrl,
+          ctaText,
+          ctaLink,
+          recipientName: '{{recipient_name}}',
+        });
+        break;
+      case 'newsletter':
+      case 'announcement':
+      default:
+        htmlContent = emailTpl.newsletter({
+          subject,
+          message,
+          ctaText,
+          ctaLink,
+          recipientName: '{{recipient_name}}',
+        });
+    }
+
+    // ── 3. Send emails ───────────────────────────────────
+    const { Resend } = require('resend');
+    const resendClient = new Resend(env.RESEND_API_KEY);
+
+    const emailJobs = recipients.map((recipient) => {
+      const personalizedHtml = htmlContent
+        .replace(/{{recipient_name}}/g, recipient.name)
+        .replace(
+          /{{unsubscribe_link}}/g,
+          `https://nileflowafrica.com/unsubscribe?email=${encodeURIComponent(recipient.email)}`
+        );
+
+      return resendClient.emails.send({
+        from: 'Nile Flow Africa <updates@nileflowafrica.com>',
+        to: recipient.email,
+        subject,
+        html: personalizedHtml,
+      }).then(() => ({ email: recipient.email, status: 'sent' }))
+        .catch((err) => {
+          console.error(`Failed to send to ${recipient.email}:`, err.message);
+          return { email: recipient.email, status: 'failed', error: err.message };
+        });
+    });
+
+    const results = await Promise.allSettled(emailJobs);
+    const sent = results.filter(r => r.status === 'fulfilled' && r.value?.status === 'sent').length;
+    const failed = results.filter(r => r.status === 'rejected' || r.value?.status === 'failed').length;
+
+    // ── 4. Response ──────────────────────────────────────
+    res.status(200).json({
+      success: true,
+      message: `Broadcast campaign "${subject}" sent.`,
+      stats: {
+        total: recipients.length,
+        sent,
+        failed,
+        audience,
+        campaignType,
+      },
+    });
+  } catch (error) {
+    console.error('[sendBroadcast] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send broadcast campaign.',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * getBroadcastAudienceStats — Returns estimated counts for broadcast targeting
+ */
+const getBroadcastAudienceStats = async (req, res) => {
+  try {
+    const counts = {};
+
+    // Newsletter subscribers
+    try {
+      const { total } = await instrumentedDb.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_NEWSLETTER_COLLECTION_ID,
+        [Query.equal("subscribed", true)]
+      );
+      counts.subscribers = total;
+    } catch { counts.subscribers = 0; }
+
+    // End users
+    try {
+      const { total } = await instrumentedDb.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_COLLECTION_ID,
+        [Query.limit(1)]
+      );
+      counts.endUsers = total;
+    } catch { counts.endUsers = 0; }
+
+    // Vendors
+    try {
+      const { total } = await instrumentedDb.listDocuments(
+        env.VENDOR_DATABASE_ID,
+        env.VENDOR_COLLECTION_ID,
+        [Query.limit(1)]
+      );
+      counts.vendors = total;
+    } catch { counts.vendors = 0; }
+
+    // Total unique (rough estimate — actual dedup happens at send time)
+    counts.allPlatform = counts.endUsers + counts.vendors;
+
+    res.status(200).json({ success: true, data: counts });
+  } catch (error) {
+    console.error('[getBroadcastAudienceStats] Error:', error);
+    res.status(200).json({
+      success: false,
+      data: { subscribers: 0, endUsers: 0, vendors: 0, allPlatform: 0 },
+    });
+  }
+};
+
 module.exports = {
   newsletter,
   sendnewsletter,
-  getAudienceStatistics, // Export the new function
-  getCampaignTypes, // Export the campaign types function
-  processScheduledCampaigns, // Export the scheduler function
-  triggerScheduledCampaigns, // Export the manual trigger function
+  getAudienceStatistics,
+  getCampaignTypes,
+  processScheduledCampaigns,
+  triggerScheduledCampaigns,
+  sendBroadcast,
+  getBroadcastAudienceStats,
 };
