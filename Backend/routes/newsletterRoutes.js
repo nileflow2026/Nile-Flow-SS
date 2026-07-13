@@ -7,6 +7,7 @@ const {
   sendBroadcast,
   getBroadcastAudienceStats,
 } = require("../controllers/AdminControllers/newsletterController");
+const subscriberController = require("../controllers/AdminControllers/subscriberController");
 const {
   usercheck,
 } = require("../controllers/AdminControllers/usercheckController");
@@ -20,5 +21,9 @@ router.get("/broadcast-stats", getBroadcastAudienceStats);
 router.get("/campaign-types", getCampaignTypes);
 router.post("/user-check", usercheck);
 
+// Subscriber management
+router.get("/subscribers", subscriberController.listSubscribers);
+router.get("/subscribers/export", subscriberController.exportSubscribers);
+router.delete("/subscribers/:id", subscriberController.removeSubscriber);
 
 module.exports = router;

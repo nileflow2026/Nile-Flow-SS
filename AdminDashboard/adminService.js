@@ -675,6 +675,48 @@ export const getVendorById = async (vendorId) => {
   }
 };
 
+// Subscriber management
+export const listSubscribers = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.search) params.append("search", filters.search);
+    if (filters.page) params.append("page", filters.page);
+    if (filters.limit) params.append("limit", filters.limit);
+    const url = `/api/admin/newsletter/subscribers${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await axiosClient.get(url);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error listing subscribers:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to list subscribers.");
+  }
+};
+
+export const removeSubscriber = async (id) => {
+  try {
+    await axiosClient.delete(`/api/admin/newsletter/subscribers/${id}`);
+  } catch (error) {
+    console.error("Error removing subscriber:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to remove subscriber.");
+  }
+};
+
+export const exportSubscribersCSV = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/newsletter/subscribers/export", {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nileflow-subscribers.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error exporting subscribers:", error);
+    throw new Error("Failed to export subscribers.");
+  }
+};
+
 export const batchRecalculateCommissions = async (filters = {}) => {
   try {
     const response = await axiosClient.post(
