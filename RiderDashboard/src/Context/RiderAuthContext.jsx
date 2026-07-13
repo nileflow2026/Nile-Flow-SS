@@ -9,6 +9,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import * as authAPI from "../auth/authService";
 import sessionManager from "../auth/SessionManager";
 import auditLogger from "../auth/AuditLogger";
@@ -21,6 +22,33 @@ export const RiderAuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const initializedRef = useRef(false);
   const destroyInProgressRef = useRef(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirect to login without full page reload
+  const redirectToLogin = useCallback(
+    (extraState = {}) => {
+      if (destroyInProgressRef.current) return;
+      destroyInProgressRef.current = true;
+
+      const publicRoutes = ["/rider/login", "/rider/register"];
+      const isPublicRoute = publicRoutes.some((route) =>
+        location.pathname.startsWith(route),
+      );
+
+      if (!isPublicRoute) {
+        navigate("/rider/login", {
+          replace: true,
+          state: { from: location, ...extraState },
+        });
+      }
+
+      setTimeout(() => {
+        destroyInProgressRef.current = false;
+      }, 300);
+    },
+    [navigate, location],
+  );
 
   // Initialize auth state — runs once on mount
   useEffect(() => {
@@ -57,55 +85,31 @@ export const RiderAuthProvider = ({ children }) => {
       }
     };
 
-    initAuth();
+    // Small delay to ensure React Router is mounted before auth runs
+    const timer = setTimeout(initAuth, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Listen for session destroyed events (multi-tab logout, etc.)
   useEffect(() => {
-    const unsub = sessionManager.on("session_destroyed", ({ reason }) => {
+    const unsub = sessionManager.on("session_destroyed", () => {
       if (destroyInProgressRef.current) return;
-      destroyInProgressRef.current = true;
       setRider(null);
       setIsAuthenticated(false);
-
-      const publicRoutes = ["/rider/login", "/rider/register"];
-      const isPublicRoute = publicRoutes.some((route) =>
-        window.location.pathname.startsWith(route),
-      );
-
-      if (!isPublicRoute) {
-        window.location.href = "/rider/login";
-      }
-
-      setTimeout(() => {
-        destroyInProgressRef.current = false;
-      }, 500);
+      redirectToLogin();
     });
 
     return unsub;
-  }, []);
+  }, [redirectToLogin]);
 
-  // Listen for legacy custom logout events
+  // Listen for legacy custom logout events from Axios interceptor
   useEffect(() => {
     const handleLogout = () => {
       if (destroyInProgressRef.current) return;
-      destroyInProgressRef.current = true;
       setRider(null);
       setIsAuthenticated(false);
       sessionManager.destroySession("forced_logout");
-
-      const publicRoutes = ["/rider/login", "/rider/register"];
-      const isPublicRoute = publicRoutes.some((route) =>
-        window.location.pathname.startsWith(route),
-      );
-
-      if (!isPublicRoute) {
-        window.location.href = "/rider/login";
-      }
-
-      setTimeout(() => {
-        destroyInProgressRef.current = false;
-      }, 500);
+      // Navigate will be handled by session_destroyed event above
     };
 
     window.addEventListener("rider:logout", handleLogout);
@@ -144,8 +148,9 @@ export const RiderAuthProvider = ({ children }) => {
     } catch {
       // Already cleaned up locally
     }
+    redirectToLogin();
     return { success: true };
-  }, []);
+  }, [redirectToLogin]);
 
   const updateProfile = useCallback(async (profileData) => {
     const result = await authAPI.updateRiderProfile(profileData);

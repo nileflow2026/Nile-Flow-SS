@@ -76,7 +76,7 @@ riderAxiosClient.interceptors.response.use(
       tokenManager.touchActivity();
       return riderAxiosClient(originalRequest);
     } catch (refreshError) {
-      // Only trigger logout if not on public route and not already logout
+      // Only dispatch logout event (no hard reload — AuthProvider handles navigation)
       if (!isPublicRoute && !window.__rider_auth_logout_triggered) {
         window.__rider_auth_logout_triggered = true;
         window.dispatchEvent(new CustomEvent("rider:logout"));
