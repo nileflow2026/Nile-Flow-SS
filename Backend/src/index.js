@@ -83,7 +83,10 @@ try {
   // and allow secure cookies to be read on the OAuth callback path.
   app.set("trust proxy", 1);
 } catch (setupError) {
-  console.error("CRITICAL: Failed to set up Express application:", setupError.message);
+  console.error(
+    "CRITICAL: Failed to set up Express application:",
+    setupError.message,
+  );
   console.error("  Stack:", setupError.stack);
   process.exit(1);
 }
@@ -110,6 +113,7 @@ const allowedOrigins = [
   "https://nile-flow-backend.onrender.com",
   "https://nile-flow-backend-5dqm.onrender.com",
   "https://nileflow-oxpl.onrender.com",
+  "https://nile-flow-rider-dashboard.onrender.com",
 ];
 
 const corsAllowedHeaders =
@@ -120,7 +124,10 @@ function applyCorsHeaders(req, res) {
   if (!origin || allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin || "*");
     res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    );
     res.header(
       "Access-Control-Allow-Headers",
       req.headers["access-control-request-headers"] || corsAllowedHeaders,
@@ -188,7 +195,10 @@ try {
   africanFactsRoutes = require("../routes/africanFactsRoutes");
   orderTrackingRoutes = require("../routes/orderTrackingRoutes");
 } catch (additionalRouteError) {
-  console.warn("Some additional routes failed to load:", additionalRouteError.message);
+  console.warn(
+    "Some additional routes failed to load:",
+    additionalRouteError.message,
+  );
   console.warn("  Server will continue with core functionality only");
 }
 
@@ -205,7 +215,10 @@ let forgotPasswordRoutes;
 try {
   forgotPasswordRoutes = require("../routes/forgotPasswordRoutes");
 } catch (forgotPasswordError) {
-  console.warn("Forgot password routes failed to load:", forgotPasswordError.message);
+  console.warn(
+    "Forgot password routes failed to load:",
+    forgotPasswordError.message,
+  );
 }
 
 // ========== CART ROUTES ==========
@@ -334,7 +347,8 @@ app.use("/api/admin", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    const requestedHeaders =
+      req.headers["access-control-request-headers"] || corsAllowedHeaders;
     res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
@@ -350,7 +364,8 @@ app.use("/api/vendor", (req, res, next) => {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     );
-    const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+    const requestedHeaders =
+      req.headers["access-control-request-headers"] || corsAllowedHeaders;
     res.header("Access-Control-Allow-Headers", requestedHeaders);
   }
   next();
@@ -379,7 +394,8 @@ app.use((req, res, next) => {
       "https://vendor.nileflowafrica.com",
       "https://nile-flow-backend.onrender.com",
       "https://nile-flow-backend-5dqm.onrender.com",
-      "https://nileflow-oxpl.onrender.com"
+      "https://nileflow-oxpl.onrender.com",
+      "https://nile-flow-rider-dashboard.onrender.com",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -388,7 +404,8 @@ app.use((req, res, next) => {
         "Access-Control-Allow-Methods",
         "GET,POST,PUT,PATCH,DELETE,OPTIONS",
       );
-      const requestedHeaders = req.headers["access-control-request-headers"] || corsAllowedHeaders;
+      const requestedHeaders =
+        req.headers["access-control-request-headers"] || corsAllowedHeaders;
       res.header("Access-Control-Allow-Headers", requestedHeaders);
       res.header("Access-Control-Allow-Credentials", "true");
       res.header("Access-Control-Max-Age", "86400");
@@ -429,7 +446,9 @@ try {
 
 // ========== PROMETHEUS HTTP METRICS ==========
 try {
-  const { requestMetricsMiddleware } = require("./observability/requestMetrics");
+  const {
+    requestMetricsMiddleware,
+  } = require("./observability/requestMetrics");
   app.use(requestMetricsMiddleware);
 } catch (metricsError) {
   console.warn("Prometheus metrics middleware failed:", metricsError.message);
@@ -591,8 +610,12 @@ app.get("/api/cors-test", (req, res) => {
     origin: req.headers.origin,
     timestamp: new Date().toISOString(),
     headers: {
-      "access-control-allow-origin": res.getHeader("Access-Control-Allow-Origin"),
-      "access-control-allow-credentials": res.getHeader("Access-Control-Allow-Credentials"),
+      "access-control-allow-origin": res.getHeader(
+        "Access-Control-Allow-Origin",
+      ),
+      "access-control-allow-credentials": res.getHeader(
+        "Access-Control-Allow-Credentials",
+      ),
     },
   });
 });
@@ -653,7 +676,11 @@ app.use("/api/admin/auth", (req, res, next) => {
 });
 
 // Admin Routes
-safeMount("/api/admin/auth", [authLimiter, authRoutes].filter(Boolean), "Admin Auth");
+safeMount(
+  "/api/admin/auth",
+  [authLimiter, authRoutes].filter(Boolean),
+  "Admin Auth",
+);
 
 // Admin vendor management routes (separate router to avoid conflicts)
 let vendorAdminRoutes;
@@ -675,8 +702,16 @@ safeMount("/api/deliveries", adminRouter, "Deliveries");
 safeMount("/api/admin/orderStatus", adminRouter, "Admin Order Status");
 safeMount("/api/admin/addproducts", adminRouter, "Admin Add Products");
 safeMount("/api/admin/commission", commissionRoutes, "Admin Commission");
-safeMount("/api/finance", require("../routes/financeRoutes"), "Finance & Tax Reporting");
-safeMount("/api/admin/customer-messages", adminRouter, "Admin Customer Messages");
+safeMount(
+  "/api/finance",
+  require("../routes/financeRoutes"),
+  "Finance & Tax Reporting",
+);
+safeMount(
+  "/api/admin/customer-messages",
+  adminRouter,
+  "Admin Customer Messages",
+);
 safeMount("/api/admin/staff", staffRoutes, "Admin Staff");
 safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");
@@ -688,15 +723,26 @@ try {
   const notifLogRoutes = require("../routes/notificationLogRoutes");
   safeMount("/api/notifications/logs", notifLogRoutes, "Notification Logs");
 } catch (notifLogError) {
-  console.warn("Notification log routes failed to load:", notifLogError.message);
+  console.warn(
+    "Notification log routes failed to load:",
+    notifLogError.message,
+  );
 }
 try {
   const webhookRoutes = require("../routes/webhookRoutes");
-  safeMount("/api/notifications/webhooks", webhookRoutes, "Notification Webhooks");
+  safeMount(
+    "/api/notifications/webhooks",
+    webhookRoutes,
+    "Notification Webhooks",
+  );
 } catch (webhookRouteError) {
   console.warn("Webhook routes failed to load:", webhookRouteError.message);
 }
-safeMount("/api/customernotifications", customernotifications, "Customer Notifications");
+safeMount(
+  "/api/customernotifications",
+  customernotifications,
+  "Customer Notifications",
+);
 safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");
 safeMount("/api/users", userRoutes, "Users");
@@ -710,7 +756,11 @@ safeMount("/api/nilemart", addressRoutes, "Nile Mart Addresses");
 safeMount("/api/nilemart/questions", questions, "Questions");
 safeMount("/api/nilemart/promotions", Promotion, "Promotions");
 safeMount("/api/nileflow/passwordchange", passwordRouter, "Password Change");
-safeMount("/api/nileflowafrica/passwordchange", forgotPasswordRoutes, "Forgot Password");
+safeMount(
+  "/api/nileflowafrica/passwordchange",
+  forgotPasswordRoutes,
+  "Forgot Password",
+);
 safeMount("/cart", cartRoutes, "Cart");
 safeMount("/api/group-orders", groupOrderRoutes, "Group Orders");
 safeMount("/api/gamification", gamificationRoutes, "Gamification");
@@ -720,26 +770,50 @@ safeMount("/api/products", productsrouter, "Products");
 safeMount("/api/apply", applyRoutes, "Apply");
 safeMount("/api", africanFactsRoutes, "African Facts");
 safeMount("/api/currency", require("../routes/currencyRoutes"), "Currency CAL");
-safeMount("/api/recommendations", require("../routes/recommendations"), "Recommendations");
+safeMount(
+  "/api/recommendations",
+  require("../routes/recommendations"),
+  "Recommendations",
+);
 safeMount("/api/nileflow/addresses", addressRoutes, "Nileflow Addresses");
 
 // Vendor Routes
-safeMount("/api/vendor/auth", [authLimiter, vendorauth].filter(Boolean), "Vendor Auth");
+safeMount(
+  "/api/vendor/auth",
+  [authLimiter, vendorauth].filter(Boolean),
+  "Vendor Auth",
+);
 safeMount("/api/vendors", vendorRoutes, "Vendor Management");
 safeMount("/api/vendor/products", productRoutes, "Vendor Products");
-safeMount("/api/vendor/notifications", vendorNotificationRoutes, "Vendor Notifications");
+safeMount(
+  "/api/vendor/notifications",
+  vendorNotificationRoutes,
+  "Vendor Notifications",
+);
 safeMount("/api/vendor", vendorDashboardRoutes, "Vendor Dashboard");
 safeMount("/api/vendor", analyticstroutes, "Vendor Analytics");
 safeMount("/api/vendor", vendorOrdersRoutes, "Vendor Orders");
 safeMount("/api/admin/customers", customerRoutes, "Admin Customers");
 
 // Subscription & Payment Routes
-safeMount("/api/subscription", require("../routes/subscriptionRoutes"), "Subscription");
-safeMount("/api/payments", require("../routes/paymentCallbackRoutes"), "Payment Callbacks");
+safeMount(
+  "/api/subscription",
+  require("../routes/subscriptionRoutes"),
+  "Subscription",
+);
+safeMount(
+  "/api/payments",
+  require("../routes/paymentCallbackRoutes"),
+  "Payment Callbacks",
+);
 safeMount("/api/premium", require("../routes/premiumRoutes"), "Premium");
 
 // Rider Routes
-safeMount("/api/rider/auth", [authLimiter, riderAuthRoutes].filter(Boolean), "Rider Auth");
+safeMount(
+  "/api/rider/auth",
+  [authLimiter, riderAuthRoutes].filter(Boolean),
+  "Rider Auth",
+);
 safeMount("/api/rider", riderRoutes, "Rider Management");
 safeMount("/api/rider", riderTrackingRoutes, "Rider Tracking");
 
@@ -747,9 +821,16 @@ safeMount("/api/rider", riderTrackingRoutes, "Rider Tracking");
 try {
   const accountDeletionRoutes = require("../routes/accountDeletionRoutes");
   safeMount("/api/account/deletion", accountDeletionRoutes, "Account Deletion");
-  safeMount("/account-deletion", accountDeletionRoutes, "Account Deletion (Public)");
+  safeMount(
+    "/account-deletion",
+    accountDeletionRoutes,
+    "Account Deletion (Public)",
+  );
 } catch (deletionError) {
-  console.warn("Account deletion routes failed to load:", deletionError.message);
+  console.warn(
+    "Account deletion routes failed to load:",
+    deletionError.message,
+  );
 }
 
 // ========== CACHE MIDDLEWARE FOR HIGH-TRAFFIC ROUTES ==========
@@ -772,7 +853,10 @@ try {
   const orderRoutes = require("../routes/orderRoutes");
   safeMount("/api/orders", orderRoutes, "Order Management");
 } catch (orderRouteError) {
-  console.warn("Order management routes failed to load:", orderRouteError.message);
+  console.warn(
+    "Order management routes failed to load:",
+    orderRouteError.message,
+  );
 }
 
 // ========== IMAGE PROXY ==========
@@ -859,7 +943,10 @@ async function startServer() {
       SubscriptionCronService = require("../services/subscriptionCronService");
       await SubscriptionCronService.initialize();
     } catch (subscriptionError) {
-      console.warn("Subscription service failed to initialize:", subscriptionError.message);
+      console.warn(
+        "Subscription service failed to initialize:",
+        subscriptionError.message,
+      );
     }
 
     // Initialize group buy cron jobs
@@ -867,7 +954,10 @@ async function startServer() {
       const GroupBuyCronService = require("../services/groupBuyCronService");
       GroupBuyCronService.initialize();
     } catch (groupBuyError) {
-      console.warn("Group buy cron service failed to initialize:", groupBuyError.message);
+      console.warn(
+        "Group buy cron service failed to initialize:",
+        groupBuyError.message,
+      );
     }
 
     // Initialize account deletion cron (GDPR / Play Store compliance)
@@ -875,7 +965,10 @@ async function startServer() {
       const DeletionService = require("../services/DeletionService");
       DeletionService.initializeCron();
     } catch (deletionCronError) {
-      console.warn("Account deletion cron service failed to initialize:", deletionCronError.message);
+      console.warn(
+        "Account deletion cron service failed to initialize:",
+        deletionCronError.message,
+      );
     }
 
     // Warm up exchange rate cache (non-blocking)
@@ -902,7 +995,9 @@ async function startServer() {
 
     // Start queue depth poller for Prometheus (non-critical)
     try {
-      const { startQueueMetricsPoller } = require("./observability/queueMetrics");
+      const {
+        startQueueMetricsPoller,
+      } = require("./observability/queueMetrics");
       startQueueMetricsPoller();
     } catch (pollerError) {
       console.warn("Queue metrics poller failed:", pollerError.message);
@@ -914,7 +1009,10 @@ async function startServer() {
       const newsletterModule = require("../controllers/AdminControllers/newsletterController");
       processScheduledCampaigns = newsletterModule.processScheduledCampaigns;
     } catch (newsletterError) {
-      console.warn("Newsletter scheduler failed to initialize:", newsletterError.message);
+      console.warn(
+        "Newsletter scheduler failed to initialize:",
+        newsletterError.message,
+      );
     }
 
     // Process scheduled campaigns every 2 minutes
@@ -972,12 +1070,14 @@ async function startServer() {
       const socketService = require("../services/socketService");
       socketService.initialize(server);
     } catch (socketError) {
-      console.warn("WebSocket service failed to initialize:", socketError.message);
+      console.warn(
+        "WebSocket service failed to initialize:",
+        socketError.message,
+      );
     }
 
     // Keep the process alive
     process.stdin.resume();
-
   } catch (error) {
     console.error("Failed to start server:");
     console.error("  Name:", error.name);
@@ -990,7 +1090,9 @@ async function startServer() {
     } else if (error.message && error.message.includes("ECONNREFUSED")) {
       console.error("  -> Connection Refused - External service may be down");
     } else if (error.message && error.message.includes("ValidationError")) {
-      console.error("  -> Environment Variable Validation Error - Check your .env file");
+      console.error(
+        "  -> Environment Variable Validation Error - Check your .env file",
+      );
     } else if (error.code === "MODULE_NOT_FOUND") {
       console.error("  -> Missing Dependency - Run npm install");
     }
