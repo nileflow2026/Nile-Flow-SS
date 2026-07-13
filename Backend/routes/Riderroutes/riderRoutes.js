@@ -10,6 +10,7 @@ const {
 const {
   updateRiderProfile,
   updateRiderStatus,
+  updateLocation,
   getRiderDeliveries,
   getAllDeliveries,
   getRiderEarnings,
@@ -32,6 +33,11 @@ router.get("/profile", riderStatusValidator, getCurrentRider);
  * Update Rider Profile
  */
 router.patch("/profile", riderStatusValidator, updateRiderProfile);
+
+/**
+ * Update Rider Location (from GPS tracking)
+ */
+router.patch("/profile/location", updateLocation);
 
 /**
  * Update Rider Status (online/offline/busy)

@@ -15,17 +15,24 @@ export async function checkForUpdate() {
   if (!CURRENT_VERSION) return { hasUpdate: false };
 
   try {
-    const res = await fetch("/api/version", { cache: "no-store" });
+    const backendUrl =
+      import.meta.env.VITE_API_URL ||
+      "https://nile-flow-backend-5dqm.onrender.com";
+    const res = await fetch(`${backendUrl}/api/version`, { cache: "no-store" });
     if (!res.ok) return { hasUpdate: false };
-    const data = await res.json();
 
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return { hasUpdate: false };
+    }
+
+    const data = await res.json();
     if (data.version && data.version !== CURRENT_VERSION) {
       return { hasUpdate: true, force: !!data.forceUpdate };
     }
 
     return { hasUpdate: false };
-  } catch (err) {
-    console.error("[VersionManager] Version check failed", err);
+  } catch {
     return { hasUpdate: false };
   }
 }
