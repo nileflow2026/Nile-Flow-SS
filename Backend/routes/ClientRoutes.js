@@ -24,6 +24,7 @@ const {
   getMobileCategories,
   getCategorie,
   getCategoryById,
+  getCategoryBySlug,
   getProducts2,
   getPopularSearches,
   getGlobalDealCountdown,
