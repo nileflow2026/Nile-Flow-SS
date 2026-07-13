@@ -205,7 +205,7 @@ export default function Dashboard() {
       case "Admin Actions":
         return <AuditLogs />;
       case "NewsLetter":
-        return <SendNewsletter />;
+        return <SendNewsletter setSection={setSection} />;
       case "Applications":
         return <ApplicantsDashboard />;
       case "Commission":

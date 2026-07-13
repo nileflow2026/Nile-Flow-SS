@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { sendBroadcast, getBroadcastAudienceStats, listSubscribers, removeSubscriber, exportSubscribersCSV } from "../../adminService";
 import {
   Send, Mail, Users, TrendingUp, Target, Eye, FileText, BarChart,
@@ -24,8 +23,7 @@ const AUDIENCE_GROUPS = [
   { id: "subscribers", label: "Newsletter Subscribers", icon: <Mail className="w-5 h-5" />, color: "from-[#9B59B6] to-[#8E44AD]" },
 ];
 
-export default function SendNewsletter() {
-  const navigate = useNavigate();
+export default function SendNewsletter({ setSection }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [campaignType, setCampaignType] = useState("announcement");
@@ -103,7 +101,11 @@ export default function SendNewsletter() {
 
   // ── Quick Action Handlers ──────────────────────────────────────────────
 
-  const handleTemplateSettings = () => navigate("/settings");
+  const handleTemplateSettings = () => {
+    if (typeof setSection === "function") {
+      setSection("Settings");
+    }
+  };
 
   const handleUploadMedia = () => setShowUploadModal(true);
 
@@ -413,7 +415,7 @@ export default function SendNewsletter() {
                   <ArrowRight className="w-4 h-4 text-[#8B4513] dark:text-[#D4A017] group-hover:translate-x-1 transition-transform" />
                 </button>
 
-                <button onClick={() => navigate("/vendors")} className="w-full flex items-center justify-between p-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] hover:bg-[#E8D6B5]/10 dark:hover:bg-[#3A3A3A]/50 transition-colors group">
+                <button onClick={() => { if (typeof setSection === "function") setSection("Vendors"); }} className="w-full flex items-center justify-between p-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] hover:bg-[#E8D6B5]/10 dark:hover:bg-[#3A3A3A]/50 transition-colors group">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-[#27AE60] to-[#2ECC71] flex items-center justify-center"><Store className="w-5 h-5 text-white" /></div>
                     <span className="font-medium text-[#2C1810] dark:text-[#F5E6D3] text-sm">View All Vendors</span>
