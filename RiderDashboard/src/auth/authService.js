@@ -28,11 +28,17 @@ export async function registerRider(riderData) {
       deviceId,
     });
 
-    if (response.data?.success && response.data?.rider) {
-      sessionManager.createSession(response.data.rider);
+    const rider = response.data?.rider;
+    if (response.data?.success && rider) {
+      sessionManager.createSession(rider);
+      return { success: true, data: response.data };
     }
 
-    return { success: true, data: response.data };
+    return {
+      success: false,
+      error: response.data?.message || "Registration failed",
+      data: response.data,
+    };
   } catch (error) {
     const message =
       error.response?.data?.error ||
@@ -72,16 +78,20 @@ export async function loginRider(email, password) {
       deviceId,
     });
 
-    if (response.data?.success && response.data?.rider) {
+    const rider = response.data?.rider;
+    if (response.data?.success && rider) {
       securityPolicies.recordLoginAttempt(email, true);
-      sessionManager.createSession(response.data.rider);
-      auditLogger.loginSuccess(
-        response.data.rider.id || response.data.rider.$id,
-        email,
-      );
+      sessionManager.createSession(rider);
+      auditLogger.loginSuccess(rider.id || rider.$id, email);
+      return { success: true, data: response.data };
     }
 
-    return { success: true, data: response.data };
+    securityPolicies.recordLoginAttempt(email, false);
+    return {
+      success: false,
+      error: response.data?.message || "Login failed",
+      data: response.data,
+    };
   } catch (error) {
     securityPolicies.recordLoginAttempt(email, false);
     auditLogger.loginFailure(

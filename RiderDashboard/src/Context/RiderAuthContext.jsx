@@ -119,10 +119,14 @@ export const RiderAuthProvider = ({ children }) => {
   const register = useCallback(async (riderData) => {
     const result = await authAPI.registerRider(riderData);
 
-    if (result.success && result.data?.rider) {
-      setRider(result.data.rider);
+    const rider = result.data?.rider;
+    if (result.success && rider) {
+      setRider(rider);
       setIsAuthenticated(true);
       auditLogger.log("REGISTRATION_SUCCESS", { email: riderData.email });
+    } else {
+      setRider(null);
+      setIsAuthenticated(false);
     }
 
     return result;
@@ -131,9 +135,13 @@ export const RiderAuthProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     const result = await authAPI.loginRider(email, password);
 
-    if (result.success && result.data?.rider) {
-      setRider(result.data.rider);
+    const rider = result.data?.rider;
+    if (result.success && rider) {
+      setRider(rider);
       setIsAuthenticated(true);
+    } else {
+      setRider(null);
+      setIsAuthenticated(false);
     }
 
     return result;

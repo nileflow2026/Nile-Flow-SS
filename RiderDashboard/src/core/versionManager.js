@@ -5,10 +5,27 @@
 /* global __APP_VERSION__ */
 const CURRENT_VERSION =
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : null;
+const RELOAD_GUARD_KEY = "rider:update-reload-guard";
+
+export function shouldAutoReloadForVersion(version) {
+  if (!version) return false;
+
+  try {
+    const storedVersion = window.sessionStorage.getItem(RELOAD_GUARD_KEY);
+    if (storedVersion === version) {
+      return false;
+    }
+
+    window.sessionStorage.setItem(RELOAD_GUARD_KEY, version);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Fetches the server-side version and compares it with the running build.
- * Returns { hasUpdate: boolean, force: boolean }.
+ * Returns { hasUpdate: boolean, force: boolean, version?: string }.
  */
 export async function checkForUpdate() {
   // If we don't have a version to compare against, bail out silently.
@@ -28,7 +45,11 @@ export async function checkForUpdate() {
 
     const data = await res.json();
     if (data.version && data.version !== CURRENT_VERSION) {
-      return { hasUpdate: true, force: !!data.forceUpdate };
+      return {
+        hasUpdate: true,
+        force: !!data.forceUpdate,
+        version: data.version,
+      };
     }
 
     return { hasUpdate: false };
