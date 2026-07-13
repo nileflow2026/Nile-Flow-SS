@@ -2,7 +2,7 @@
 // src/rider/api/riderAxiosClient.js
 import axios from "axios";
 
-const API_BASE_URL = "https://nile-flow-backend.onrender.com";
+const API_BASE_URL = "https://nile-flow-backend-5dqm.onrender.com";
 
 const riderAxiosClient = axios.create({
   baseURL: API_BASE_URL,
