@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
 // src/rider/api/riderAxiosClient.js
 import axios from "axios";
+import tokenManager from "../auth/TokenManager";
+import auditLogger from "../auth/AuditLogger";
 
 const API_BASE_URL = "https://nile-flow-backend-5dqm.onrender.com";
 
@@ -13,27 +15,17 @@ const riderAxiosClient = axios.create({
   withCredentials: true,
 });
 
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, success = false) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(success);
-    }
-  });
-  failedQueue = [];
-};
-
-// Response interceptor
+/**
+ * Response interceptor — handles 401 errors with silent token refresh.
+ * Uses TokenManager to coordinate refresh across concurrent requests.
+ * Prevents duplicate refresh storms and unnecessary auth API calls.
+ */
 riderAxiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // ✅ Don't retry on auth endpoints or if already retried
+    // Skip retry on auth endpoints or if _skipAuthRefresh flag is set
     const isAuthEndpoint =
       originalRequest.url?.includes("/auth/login") ||
       originalRequest.url?.includes("/auth/register") ||
@@ -42,40 +34,37 @@ riderAxiosClient.interceptors.response.use(
     if (
       error.response?.status !== 401 ||
       originalRequest._retry ||
-      isAuthEndpoint
+      isAuthEndpoint ||
+      originalRequest._skipAuthRefresh
     ) {
       return Promise.reject(error);
     }
 
-    // ✅ If on public pages, don't try to refresh
+    // Skip refresh if on public routes
     const publicRoutes = ["/rider/login", "/rider/register"];
     const isPublicRoute = publicRoutes.some((route) =>
       window.location.pathname.startsWith(route),
     );
 
     if (isPublicRoute) {
-      console.log("[Rider Axios] On public route, not attempting refresh");
       return Promise.reject(error);
     }
 
-    // If already refreshing, queue this request
-    if (isRefreshing) {
+    // If another request is already refreshing, queue this one
+    if (tokenManager.isRefreshing || tokenManager.isOtherTabRefreshing()) {
       return new Promise((resolve, reject) => {
-        failedQueue.push({ resolve, reject });
+        tokenManager.enqueueRequest(resolve, reject);
       })
         .then(() => riderAxiosClient(originalRequest))
         .catch((err) => Promise.reject(err));
     }
 
     originalRequest._retry = true;
-    isRefreshing = true;
 
     try {
-      const deviceId = sessionStorage.getItem("riderDeviceId") || null;
+      const deviceId = tokenManager.getDeviceId();
 
-      console.log("[Rider Axios] Refreshing token...");
-
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE_URL}/api/rider/auth/refresh`,
         { deviceId },
         {
@@ -84,23 +73,10 @@ riderAxiosClient.interceptors.response.use(
         },
       );
 
-      console.log("[Rider Axios] Token refreshed successfully");
-
-      processQueue(null, true);
-      isRefreshing = false;
-
+      tokenManager.touchActivity();
       return riderAxiosClient(originalRequest);
     } catch (refreshError) {
-      isRefreshing = false;
-      processQueue(refreshError, false);
-      failedQueue = [];
-
-      console.error(
-        "[Rider Axios] Refresh token failed:",
-        refreshError.response?.data || refreshError.message,
-      );
-
-      // ✅ Only trigger logout if not on public route
+      // Only trigger logout if not on public route and not already logout
       if (!isPublicRoute && !window.__rider_auth_logout_triggered) {
         window.__rider_auth_logout_triggered = true;
         window.dispatchEvent(new CustomEvent("rider:logout"));

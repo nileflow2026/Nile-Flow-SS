@@ -114,6 +114,7 @@ const allowedOrigins = [
   "https://nile-flow-backend-5dqm.onrender.com",
   "https://nileflow-oxpl.onrender.com",
   "https://nile-flow-rider-dashboard.onrender.com",
+  "https://nile-flow-riderdashboard.onrender.com",
 ];
 
 const corsAllowedHeaders =
@@ -396,6 +397,7 @@ app.use((req, res, next) => {
       "https://nile-flow-backend-5dqm.onrender.com",
       "https://nileflow-oxpl.onrender.com",
       "https://nile-flow-rider-dashboard.onrender.com",
+      "https://nile-flow-riderdashboard.onrender.com",
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {

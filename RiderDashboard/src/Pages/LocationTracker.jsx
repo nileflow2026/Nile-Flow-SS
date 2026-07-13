@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 // src/rider/components/LocationTracker.jsx
 import { useEffect, useState } from "react";
-import { useRiderAuth } from "../contexts/RiderAuthContext";
+import { useRiderAuth } from "../Context/RiderAuthContext";
 import riderAxiosClient from "../api/riderAxiosClient";
 
 export const LocationTracker = () => {
@@ -44,7 +44,7 @@ export const LocationTracker = () => {
         enableHighAccuracy: true,
         timeout: 5000,
         maximumAge: 0,
-      }
+      },
     );
 
     return () => {

@@ -7,59 +7,49 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
-import * as riderAuthAPI from "../services/riderAuthService";
+import * as authAPI from "../auth/authService";
+import sessionManager from "../auth/SessionManager";
+import auditLogger from "../auth/AuditLogger";
 
 const RiderAuthContext = createContext(null);
-
-const getDeviceId = () => {
-  let deviceId = sessionStorage.getItem("riderDeviceId");
-  if (!deviceId) {
-    deviceId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem("riderDeviceId", deviceId);
-  }
-  return deviceId;
-};
 
 export const RiderAuthProvider = ({ children }) => {
   const [rider, setRider] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initializedRef = useRef(false);
+  const destroyInProgressRef = useRef(false);
 
-  // Initialize auth state
+  // Initialize auth state — runs once on mount
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const initAuth = async () => {
       try {
-        console.log("[RiderAuth] Initializing auth state...");
-
-        // ✅ Check if we should even try to authenticate
-        // Don't try to fetch if on public routes
         const publicRoutes = ["/rider/login", "/rider/register"];
         const isPublicRoute = publicRoutes.some((route) =>
-          window.location.pathname.startsWith(route)
+          window.location.pathname.startsWith(route),
         );
 
         if (isPublicRoute) {
-          console.log("[RiderAuth] On public route, skipping auth check");
           setLoading(false);
           return;
         }
 
-        const result = await riderAuthAPI.getCurrentRider();
-
-        console.log("[RiderAuth] getCurrentRider result:", result);
+        sessionManager.initialize();
+        const result = await authAPI.getCurrentRider();
 
         if (result.success && result.data?.rider) {
-          console.log("[RiderAuth] Setting rider:", result.data.rider);
           setRider(result.data.rider);
           setIsAuthenticated(true);
         } else {
-          console.log("[RiderAuth] No authenticated rider");
           setRider(null);
           setIsAuthenticated(false);
         }
-      } catch (error) {
-        console.error("[RiderAuth] Initialization error:", error);
+      } catch {
         setRider(null);
         setIsAuthenticated(false);
       } finally {
@@ -68,34 +58,54 @@ export const RiderAuthProvider = ({ children }) => {
     };
 
     initAuth();
-  }, []); // ✅ Empty dependency array - only run once
+  }, []);
 
-  // Debug state changes
+  // Listen for session destroyed events (multi-tab logout, etc.)
   useEffect(() => {
-    console.log("[RiderAuth] State updated:", {
-      rider,
-      isAuthenticated,
-      loading,
-      riderId: rider?.id,
-    });
-  }, [rider, isAuthenticated, loading]);
-
-  // Listen for logout events
-  useEffect(() => {
-    const handleLogout = () => {
-      console.log("[RiderAuth] Logout event received");
+    const unsub = sessionManager.on("session_destroyed", ({ reason }) => {
+      if (destroyInProgressRef.current) return;
+      destroyInProgressRef.current = true;
       setRider(null);
       setIsAuthenticated(false);
 
-      // ✅ Only redirect if not already on public route
       const publicRoutes = ["/rider/login", "/rider/register"];
       const isPublicRoute = publicRoutes.some((route) =>
-        window.location.pathname.startsWith(route)
+        window.location.pathname.startsWith(route),
       );
 
       if (!isPublicRoute) {
         window.location.href = "/rider/login";
       }
+
+      setTimeout(() => {
+        destroyInProgressRef.current = false;
+      }, 500);
+    });
+
+    return unsub;
+  }, []);
+
+  // Listen for legacy custom logout events
+  useEffect(() => {
+    const handleLogout = () => {
+      if (destroyInProgressRef.current) return;
+      destroyInProgressRef.current = true;
+      setRider(null);
+      setIsAuthenticated(false);
+      sessionManager.destroySession("forced_logout");
+
+      const publicRoutes = ["/rider/login", "/rider/register"];
+      const isPublicRoute = publicRoutes.some((route) =>
+        window.location.pathname.startsWith(route),
+      );
+
+      if (!isPublicRoute) {
+        window.location.href = "/rider/login";
+      }
+
+      setTimeout(() => {
+        destroyInProgressRef.current = false;
+      }, 500);
     };
 
     window.addEventListener("rider:logout", handleLogout);
@@ -103,31 +113,21 @@ export const RiderAuthProvider = ({ children }) => {
   }, []);
 
   const register = useCallback(async (riderData) => {
-    console.log("[RiderAuth] Register called");
-    const result = await riderAuthAPI.registerRider(riderData);
-
-    console.log("[RiderAuth] Register result:", result);
+    const result = await authAPI.registerRider(riderData);
 
     if (result.success && result.data?.rider) {
-      console.log(
-        "[RiderAuth] Setting rider after registration:",
-        result.data.rider
-      );
       setRider(result.data.rider);
       setIsAuthenticated(true);
+      auditLogger.log("REGISTRATION_SUCCESS", { email: riderData.email });
     }
 
     return result;
   }, []);
 
   const login = useCallback(async (email, password) => {
-    console.log("[RiderAuth] Login called for:", email);
-    const result = await riderAuthAPI.loginRider(email, password);
-
-    console.log("[RiderAuth] Login result:", result);
+    const result = await authAPI.loginRider(email, password);
 
     if (result.success && result.data?.rider) {
-      console.log("[RiderAuth] Setting rider after login:", result.data.rider);
       setRider(result.data.rider);
       setIsAuthenticated(true);
     }
@@ -136,17 +136,19 @@ export const RiderAuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    console.log("[RiderAuth] Logout called");
-    const result = await riderAuthAPI.logoutRider();
     setRider(null);
     setIsAuthenticated(false);
-    sessionStorage.removeItem("riderDeviceId");
-    return result;
+    sessionManager.destroySession("user_logout");
+    try {
+      await authAPI.logoutRider();
+    } catch {
+      // Already cleaned up locally
+    }
+    return { success: true };
   }, []);
 
   const updateProfile = useCallback(async (profileData) => {
-    console.log("[RiderAuth] Updating profile with:", profileData);
-    const result = await riderAuthAPI.updateRiderProfile(profileData);
+    const result = await authAPI.updateRiderProfile(profileData);
 
     if (result.success && result.data?.rider) {
       setRider(result.data.rider);
@@ -156,11 +158,10 @@ export const RiderAuthProvider = ({ children }) => {
   }, []);
 
   const updateStatus = useCallback(async (status) => {
-    console.log("[RiderAuth] Updating status to:", status);
-    const result = await riderAuthAPI.updateRiderStatus(status);
+    const result = await authAPI.updateRiderStatus(status);
 
     if (result.success) {
-      setRider((prev) => ({ ...prev, status: result.data.status }));
+      setRider((prev) => ({ ...prev, status: result.data.status || status }));
     }
 
     return result;

@@ -6,10 +6,11 @@ import {
   Navigate,
 } from "react-router-dom";
 import { RiderAuthProvider } from "./Context/RiderAuthContext";
-import { RiderProtectedRoute } from "./components/RiderProtectedRoute";
+import { RiderProtectedRoute, PublicOnlyRoute } from "./auth/RouteGuards";
 import RiderLogin from "./Pages/RiderLogin";
 import RiderRegister from "./Pages/RiderRegister";
 import RiderDashboard from "./Pages/RiderDashboard";
+import { LocationTracker } from "./Pages/LocationTracker";
 import UpdateNotifier from "./components/UpdateNotifier";
 
 function App() {
@@ -17,11 +18,28 @@ function App() {
     <Router>
       <RiderAuthProvider>
         <Routes>
-          {/* Public Rider Routes */}
+          {/* Root redirect */}
 
           <Route path="/" element={<Navigate to="/rider/login" replace />} />
-          <Route path="/rider/login" element={<RiderLogin />} />
-          <Route path="/rider/register" element={<RiderRegister />} />
+
+          {/* Public Rider Routes — wrapped with PublicOnlyRoute to prevent 
+              authenticated riders from seeing login/register pages */}
+          <Route
+            path="/rider/login"
+            element={
+              <PublicOnlyRoute>
+                <RiderLogin />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/rider/register"
+            element={
+              <PublicOnlyRoute>
+                <RiderRegister />
+              </PublicOnlyRoute>
+            }
+          />
 
           {/* Protected Rider Routes */}
           <Route
@@ -33,8 +51,12 @@ function App() {
             }
           />
 
-          {/* Other routes... */}
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/rider/login" replace />} />
         </Routes>
+
+        {/* Background components */}
+        <LocationTracker />
         <UpdateNotifier />
       </RiderAuthProvider>
     </Router>
