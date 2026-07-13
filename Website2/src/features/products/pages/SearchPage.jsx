@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
@@ -7,45 +7,138 @@ import Badge from '@shared/ui/badge/Badge'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Loader from '@shared/ui/loader/Loader'
 import Input from '@shared/ui/input/Input'
-import { searchService } from '@api/services'
+import { searchService, categoryService } from '@api/services'
 import { imageProxyUrl } from '@api/config'
 import { usePostHog } from '@posthog/react'
 import { SeoHead } from '@shared/seo/SeoHead'
+import { secureTokenManager } from '@auth/tokenManager'
+
+const CATEGORY_COLORS = [
+  'from-amber-400 to-orange-500',
+  'from-emerald-400 to-teal-500',
+  'from-sky-400 to-blue-500',
+  'from-violet-400 to-purple-500',
+  'from-rose-400 to-pink-500',
+  'from-lime-400 to-green-500',
+  'from-cyan-400 to-indigo-500',
+  'from-fuchsia-400 to-pink-600',
+]
 
 function SearchPage() {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [recentSearches, setRecentSearches] = useState([])
+  const debounceTimer = useRef(null)
   const posthog = usePostHog()
 
-  const handleSearch = useCallback(async (event) => {
-    event?.preventDefault()
-    setSearched(true)
-    setError(null)
-
-    if (!query.trim()) {
-      setResults([])
-      return
-    }
-
-    setLoading(true)
-    try {
-      const result = await searchService.search(query.trim())
-      setResults(result.products)
-      posthog.capture('search_performed', {
-        query: query.trim(),
-        result_count: result.products?.length ?? 0,
+  // Load categories and recent searches on mount
+  useEffect(() => {
+    categoryService.getCategories().then(setCategories).catch(() => {})
+    searchService
+      .getRecentSearches()
+      .then((searches) => {
+        setRecentSearches(
+          searches.map((s) => (typeof s === 'string' ? s : s.query || s.displayQuery || '')).filter(Boolean),
+        )
       })
-    } catch (err) {
-      setError(err?.message || 'Search failed. Please try again.')
-      setResults([])
-      posthog.captureException(err, { context: 'search', query: query.trim() })
-    } finally {
-      setLoading(false)
+      .catch(() => {})
+  }, [])
+
+  const doSearch = useCallback(
+    async (searchQuery) => {
+      if (!searchQuery.trim()) {
+        setResults([])
+        setSearched(false)
+        return
+      }
+
+      setSearched(true)
+      setError(null)
+      setLoading(true)
+
+      try {
+        const result = await searchService.search(searchQuery.trim())
+        setResults(result.products)
+        posthog.capture('search_performed', {
+          query: searchQuery.trim(),
+          result_count: result.products?.length ?? 0,
+        })
+        // Save recent search (fire-and-forget)
+        searchService.saveRecentSearch(searchQuery.trim()).catch(() => {})
+      } catch (err) {
+        setError(err?.message || 'Search failed. Please try again.')
+        setResults([])
+        posthog.captureException(err, { context: 'search', query: searchQuery.trim() })
+      } finally {
+        setLoading(false)
+      }
+    },
+    [posthog],
+  )
+
+  // Debounced search
+  const handleSearchInput = useCallback(
+    (e) => {
+      const value = e.target.value
+      setQuery(value)
+
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+
+      if (!value.trim()) {
+        setSearched(false)
+        setResults([])
+        return
+      }
+
+      debounceTimer.current = setTimeout(() => {
+        doSearch(value)
+      }, 300)
+    },
+    [doSearch],
+  )
+
+  const handleSubmit = useCallback(
+    (event) => {
+      event?.preventDefault()
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+      doSearch(query)
+    },
+    [query, doSearch],
+  )
+
+  const handleRecentSearchClick = useCallback(
+    (term) => {
+      setQuery(term)
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+      doSearch(term)
+    },
+    [doSearch],
+  )
+
+  const handleCategoryClick = useCallback(
+    (categoryName, categoryId) => {
+      // Navigate to category page — slugify the name
+      const slug = categoryName.toLowerCase().replace(/\s+/g, '-')
+      navigate(`/category/${slug}`)
+    },
+    [navigate],
+  )
+
+  const priceDisplay = (item) => {
+    if (!item.price) return 'KSh —'
+    if (typeof item.price === 'object' && item.price !== null) {
+      return item.price.displayValue || `KSh ${Math.round(item.price.convertedPrice || item.price.raw).toLocaleString()}`
     }
-  }, [query, posthog])
+    if (typeof item.price === 'number') return `KSh ${Math.round(item.price).toLocaleString()}`
+    return String(item.price)
+  }
+
+  const isIdle = !searched && !loading && !query.trim()
 
   return (
     <PageShell>
@@ -60,11 +153,11 @@ function SearchPage() {
         description="Search across products, categories, and merchants on Nile Flow."
         className="py-10 sm:py-14 lg:py-16"
       >
-        <form onSubmit={handleSearch} className="flex gap-3">
+        <form onSubmit={handleSubmit} className="flex gap-3">
           <div className="flex-1">
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={handleSearchInput}
               placeholder="Search products, categories…"
               aria-label="Search products"
             />
@@ -82,7 +175,7 @@ function SearchPage() {
               title="Search error"
               description={error}
               icon="⚠️"
-              action={<PrimaryButton onClick={handleSearch}>Try again</PrimaryButton>}
+              action={<PrimaryButton onClick={handleSubmit}>Try again</PrimaryButton>}
             />
           )}
 
@@ -94,17 +187,14 @@ function SearchPage() {
             />
           )}
 
-          {!loading && results.length > 0 && (
+          {searched && !loading && results.length > 0 && (
             <div className="space-y-3">
-            <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+              <p className="text-sm font-medium text-[var(--color-text-secondary)]">
                 {results.length} result{results.length > 1 ? 's' : ''} found
               </p>
               {results.map((item) => {
                 const id = item.$id || item.id
                 const name = item.productName || item.name || 'Product'
-                const price = item.price
-                  ? (typeof item.price === 'number' ? `KSh ${Math.round(item.price).toLocaleString()}` : item.price)
-                  : 'KSh —'
                 return (
                   <Link
                     key={id}
@@ -128,7 +218,7 @@ function SearchPage() {
                         <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{name}</p>
                         {item.category && <Badge variant="neutral">{item.category}</Badge>}
                       </div>
-                      <p className="mt-1 text-sm text-amber-600 font-semibold">{price}</p>
+                      <p className="mt-1 text-sm text-amber-600 font-semibold">{priceDisplay(item)}</p>
                     </div>
                     <span className="text-sm font-semibold text-emerald-600 shrink-0">View →</span>
                   </Link>
@@ -137,12 +227,78 @@ function SearchPage() {
             </div>
           )}
 
-          {!searched && !loading && (
-            <div className="mt-4">
-              <p className="text-sm text-[var(--color-text-muted)]">
-                Try searching: Coffee · Baskets · Shea Butter · Beaded Jewelry
-              </p>
+          {isIdle && (
+            <div className="space-y-8">
+              {/* Categories grid */}
+              {categories.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Browse Categories</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {categories.map((cat, idx) => {
+                      const catName = cat.name || cat
+                      const catId = cat.$id || cat.id || catName
+                      const slug = catName.toLowerCase().replace(/\s+/g, '-')
+                      const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+                      return (
+                        <Link
+                          key={catId}
+                          to={`/category/${slug}`}
+                          className={`flex items-center gap-3 rounded-xl bg-gradient-to-r ${color} p-4 text-white shadow-md transition hover:shadow-lg hover:scale-[1.02]`}
+                        >
+                          {cat.img && (
+                            <img
+                              src={cat.img}
+                              alt={catName}
+                              className="w-8 h-8 rounded-lg object-cover bg-white/20"
+                            />
+                          )}
+                          <span className="font-semibold text-sm">{catName}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent searches */}
+              {recentSearches.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Recent Searches</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((term, i) => (
+                      <button
+                        key={`${term}-${i}`}
+                        onClick={() => handleRecentSearchClick(term)}
+                        className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        searchService.clearRecentSearches().then(() => setRecentSearches([])).catch(() => {})
+                      }}
+                      className="rounded-full border border-transparent px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-red-500"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback suggestions when no categories loaded */}
+              {categories.length === 0 && recentSearches.length === 0 && (
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  Try searching: Coffee · Baskets · Shea Butter · Beaded Jewelry
+                </p>
+              )}
             </div>
+          )}
+
+          {!searched && !loading && query.trim() && !loading && (
+            <p className="mt-4 text-sm text-[var(--color-text-muted)]">
+              Press Enter or click Search to find &ldquo;{query}&rdquo;
+            </p>
           )}
         </div>
       </ResponsiveSection>

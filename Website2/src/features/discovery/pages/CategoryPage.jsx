@@ -10,7 +10,7 @@ import ProductCard from '@shared/ui/product-card/ProductCard'
 import Loader from '@shared/ui/loader/Loader'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Breadcrumbs from '@shared/ui/breadcrumbs/Breadcrumbs'
-import { productService } from '@api/services'
+import { productService, categoryService } from '@api/services'
 
 const CATEGORY_ICONS = {
   beverages: '☕',
@@ -27,10 +27,11 @@ function CategoryPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [categoryInfo, setCategoryInfo] = useState(null)
 
-  const categoryName = categorySlug
+  const categoryName = categoryInfo?.name || (categorySlug
     ? categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-    : 'Category'
+    : 'Category')
   const categoryIcon = CATEGORY_ICONS[categorySlug] || '📦'
 
   const breadcrumbItems = [
@@ -45,15 +46,28 @@ function CategoryPage() {
       setLoading(true)
       setError(null)
       try {
-        const result = await productService.getProducts({
-          category: categorySlug,
+        // 1. Resolve slug to category by fetching all and matching slug
+        const allCategories = await categoryService.getCategories()
+        const match = allCategories.find((c) => {
+          const name = c.name || ''
+          const cSlug = c.slug || name.toLowerCase().replace(/\s+/g, '-')
+          return cSlug === categorySlug
         })
-        if (result.products.length === 0) {
-          const searchResult = await productService.getProducts({
+
+        if (match) {
+          setCategoryInfo(match)
+          const categoryId = match.$id || match.id
+          // 2. Fetch products by the real category ID
+          const result = await productService.getProducts({
+            category: categoryId,
+          })
+          setProducts(result.products)
+        } else {
+          // Fallback: search by the slug-derived name
+          setCategoryInfo({ name: categoryName })
+          const result = await productService.getProducts({
             search: categoryName,
           })
-          setProducts(searchResult.products)
-        } else {
           setProducts(result.products)
         }
       } catch (err) {
@@ -61,10 +75,11 @@ function CategoryPage() {
       } finally {
         setLoading(false)
       }
+
     }
 
     loadCategoryProducts()
-  }, [categorySlug, categoryName])
+  }, [categorySlug])
 
   return (
     <PageShell>
