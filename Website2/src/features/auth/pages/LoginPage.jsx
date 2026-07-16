@@ -175,7 +175,7 @@ function LoginPage() {
           )}
 
           {/* OAuth options */}
-          {/* <div className="mt-6">
+          <div className="mt-6">
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-[var(--color-border)]" />
@@ -220,7 +220,7 @@ function LoginPage() {
               
             </div>
           </div>
- */}
+ 
           <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
             Don't have an account?{' '}
             <Link to="/signup" className="font-semibold text-emerald-600 hover:text-amber-600">Create one</Link>
