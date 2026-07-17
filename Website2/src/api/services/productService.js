@@ -96,6 +96,20 @@ export const productService = {
     });
     return Array.isArray(response.data?.products) ? response.data.products : [];
   },
+
+  async getDealProducts() {
+    const response = await httpClient.get(`${BASE}/deal-products`, {
+      deal: true,
+    });
+    return Array.isArray(response.data?.products) ? response.data.products : [];
+  },
+
+  async getHeroProducts() {
+    const response = await httpClient.get(`${BASE}/hero-products`, {
+      hero: true,
+    });
+    return Array.isArray(response.data?.products) ? response.data.products : [];
+  }
 };
 
 export default productService;

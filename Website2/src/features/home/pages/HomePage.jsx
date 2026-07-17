@@ -46,7 +46,7 @@ function HomePage() {
     const loadProducts = async () => {
       setLoading(true)
       try {
-        const result = await productService.getFeaturedProducts()
+        const result = await productService.getHeroProducts()
         const items = result?.slice(0, 6) || []
         setFeaturedProducts(items.length ? items : fallbackProducts)
       } catch {
