@@ -109,7 +109,12 @@ export const productService = {
       hero: true,
     });
     console.log('Hero Products Response:', response.data); // Debugging line
-    return Array.isArray(response.data?.products) ? response.data.products : [];
+    const heroProducts = Array.isArray(response.data?.products)
+      ? response.data.products
+      : Array.isArray(response.data?.featured)
+      ? response.data.featured
+      : [];
+    return heroProducts;
   }
 };
 
