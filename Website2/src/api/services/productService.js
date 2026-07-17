@@ -108,6 +108,7 @@ export const productService = {
     const response = await httpClient.get(`${BASE}/hero-products`, {
       hero: true,
     });
+    console.log('Hero Products Response:', response.data); // Debugging line
     return Array.isArray(response.data?.products) ? response.data.products : [];
   }
 };
