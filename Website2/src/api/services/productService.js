@@ -42,7 +42,7 @@ export const productService = {
       total: response.data?.total || products.length,
     };
   },
-
+ 
   /**
    * Fetch all products (simplified, for non-paginated views).
    * @returns {Promise<Array>}

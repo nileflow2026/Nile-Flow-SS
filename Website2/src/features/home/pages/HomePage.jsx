@@ -38,7 +38,7 @@ const quickPillars = [
   { title: 'Premium perks', description: 'Unlock deals and bonus rewards.' },
 ]
 
-function HomePage() {
+function HomePage() { 
   const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts)
   const [loading, setLoading] = useState(true)
 
@@ -46,8 +46,8 @@ function HomePage() {
     const loadProducts = async () => {
       setLoading(true)
       try {
-        const result = await productService.getProducts()
-        const items = result.products?.slice(0, 6) || []
+        const result = await productService.getFeaturedProducts()
+        const items = result?.slice(0, 6) || []
         setFeaturedProducts(items.length ? items : fallbackProducts)
       } catch {
         setFeaturedProducts(fallbackProducts)
