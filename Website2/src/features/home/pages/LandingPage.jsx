@@ -26,7 +26,7 @@ function LandingPage() {
       setLoading(true)
       try {
         const result = await productService.getHeroProducts()
-        setFeaturedProducts(result.products?.slice(0, 6) || [])
+        setFeaturedProducts(result?.slice(0, 6) || [])
       } catch {
         setFeaturedProducts([])
       } finally {

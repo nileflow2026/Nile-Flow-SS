@@ -889,25 +889,54 @@ const ProductDetails = () => {
               </Text>
             </View>
 
-            {/* Brand */}
-            {product?.brand && (
-              <View
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                  alignSelf: "flex-start",
-                  marginBottom: 16,
-                  backgroundColor: "#F0FDF4",
-                  borderWidth: 1,
-                  borderColor: "#BBF7D0",
-                }}
-              >
-                <Text
-                  style={{ color: "#16A34A", fontSize: 14, fontWeight: "600" }}
-                >
-                  Brand: {product.brand}
-                </Text>
+            {/* Vendor / Brand Info */}
+            {(product?.vendorName || product?.brand) && (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                {product?.brand && (
+                  <View
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: "#F0FDF4",
+                      borderWidth: 1,
+                      borderColor: "#BBF7D0",
+                    }}
+                  >
+                    <Text
+                      style={{ color: "#16A34A", fontSize: 14, fontWeight: "600" }}
+                    >
+                      Brand: {product.brand}
+                    </Text>
+                  </View>
+                )}
+                {/* Visit Store CTA */}
+                {(product?.vendorId) && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(Screens)/VendorStore",
+                        params: { vendorId: product.vendorId },
+                      })
+                    }
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 12,
+                      backgroundColor: "#FEF3C7",
+                      borderWidth: 1,
+                      borderColor: "#FDE68A",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <MaterialIcons name="store" size={16} color="#D97706" />
+                    <Text style={{ color: "#D97706", fontSize: 13, fontWeight: "600" }}>
+                      Visit Store
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 

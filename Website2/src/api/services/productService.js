@@ -22,13 +22,14 @@ export const productService = {
    * @returns {Promise<{products: Array, nextCursor: string|null}>}
    */
   async getProducts(options = {}) {
-    const { category, search, cursor, limit } = options;
+    const { category, search, cursor, limit, vendorId } = options;
     const params = {};
 
     if (category && category !== 'all') params.category = category;
     if (search) params.search = search;
     if (cursor) params.cursor = cursor;
     if (limit) params.limit = limit;
+    if (vendorId) params.vendorId = vendorId;
 
     const response = await httpClient.get(`${BASE}/fetch-product`, params);
 
