@@ -108,12 +108,17 @@ export const productService = {
     const response = await httpClient.get(`${BASE}/hero-products`, {
       hero: true,
     });
-    console.log('Hero Products Response:', response.data); // Debugging line
-    const heroProducts = Array.isArray(response.data?.products)
-      ? response.data.products
-      : Array.isArray(response.data?.featured)
-      ? response.data.featured
+    const data = response.data ?? {};
+    const payload = Array.isArray(data.featured) || Array.isArray(data.products)
+      ? data
+      : data.data ?? {};
+
+    const heroProducts = Array.isArray(payload.products)
+      ? payload.products
+      : Array.isArray(payload.featured)
+      ? payload.featured
       : [];
+
     return heroProducts;
   }
 };
