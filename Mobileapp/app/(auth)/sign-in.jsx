@@ -119,7 +119,18 @@ const SignIn = () => {
 
       router.replace("/(tabs)/BottomTabs");
     } catch (error) {
-      setError(error.message || "Invalid credentials. Please try again.");
+      // Check if user does not exist — show clear message with link to sign up
+      if (
+        error.message === "user_not_found" ||
+        error.message?.includes("No account found") ||
+        error.response?.data?.error === "user_not_found"
+      ) {
+        setError(
+          "No account found with this email. Please create a new account.",
+        );
+      } else {
+        setError(error.message || "Invalid credentials. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }

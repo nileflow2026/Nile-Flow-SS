@@ -451,6 +451,22 @@ const signincustomer = async (req, res) => {
   }
 
   try {
+    // FIRST: Check if user exists in the user collection before attempting auth
+    // This prevents confusing "missing refresh token" errors for non-existent users
+    const existingUserQuery = await instrumentedDb.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      [Query.equal("email", email)],
+    );
+
+    if (existingUserQuery.documents.length === 0) {
+      log.warn("Sign-in attempt for non-existent user:", email);
+      return res.status(404).json({
+        error: "user_not_found",
+        message: "No account found with this email. Please create a new account.",
+      });
+    }
+
     // Create Appwrite session
     const session = await account.createEmailPasswordSession(email, password);
     const user = await getUserCached(session.userId);
