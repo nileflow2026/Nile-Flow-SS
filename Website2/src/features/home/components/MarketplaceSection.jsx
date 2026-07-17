@@ -6,13 +6,14 @@ import {
 const categories = [
   { icon: Store, label: 'Local Businesses', color: '#065F46', gradient: 'from-emerald-500 to-emerald-700' },
   { icon: Palette, label: 'Handcrafted Goods', color: '#D97706', gradient: 'from-amber-500 to-amber-700' },
-  { icon: Apple, label: 'Fresh Produce', color: '#16A34A', gradient: 'from-green-500 to-green-700' },
   { icon: Tv, label: 'Electronics', color: '#2563EB', gradient: 'from-blue-500 to-blue-700' },
   { icon: Shirt, label: 'Fashion', color: '#9333EA', gradient: 'from-purple-500 to-purple-700' },
-  { icon: HeartPulse, label: 'Health', color: '#DC2626', gradient: 'from-red-500 to-red-700' },
-  { icon: BookOpen, label: 'Education', color: '#0D9488', gradient: 'from-teal-500 to-teal-700' },
-  { icon: Smartphone, label: 'Digital Services', color: '#F59E0B', gradient: 'from-amber-400 to-orange-600' },
-]
+  
+]/*  { icon: Apple, label: 'Fresh Produce', color: '#16A34A', gradient: 'from-green-500 to-green-700' },
+     { icon: HeartPulse, label: 'Health', color: '#DC2626', gradient: 'from-red-500 to-red-700' },
+     { icon: BookOpen, label: 'Education', color: '#0D9488', gradient: 'from-teal-500 to-teal-700' },
+     { icon: Smartphone, label: 'Digital Services', color: '#F59E0B', gradient: 'from-amber-400 to-orange-600' },
+  */
 
 const containerVariants = {
   hidden: {},

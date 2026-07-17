@@ -32,6 +32,9 @@ const {
   getProductImages,
 } = require("../controllers/UserControllers/ClientController");
 const {
+  getPublicVendorInfo,
+} = require("../controllers/UserControllers/vendorInfoController");
+const {
   handleCancelRequest,
 } = require("../controllers/UserControllers/orderController");
 
@@ -76,6 +79,9 @@ router.get("/deal-products", currencyMiddleware, getDealProducts);
 router.get("/deal-analytics", getDealAnalytics);
 router.get("/deal-countdown", getGlobalDealCountdown);
 router.get("/hero-products", getHeroProducts);
+
+// Public vendor info for storefront
+router.get("/vendor/:vendorId", getPublicVendorInfo);
 
 // Single product images (fetches from both main + vendor collections)
 router.get("/product/:productId/images", getProductImages);

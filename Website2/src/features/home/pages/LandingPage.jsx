@@ -25,7 +25,7 @@ function LandingPage() {
     const loadFeatured = async () => {
       setLoading(true)
       try {
-        const result = await productService.getProducts()
+        const result = await productService.getHeroProducts()
         setFeaturedProducts(result.products?.slice(0, 6) || [])
       } catch {
         setFeaturedProducts([])
@@ -99,10 +99,12 @@ function LandingPage() {
         </section>
       )}
 
-      <AfricaMap />
+      
       <CommunityImpact />
       <MerchantSection />
-      <AIAssistantSection />
+      {/* <AIAssistantSection />
+      <AfricaMap />
+       */}
       <NileVerseSection />
       <TestimonialsSection />
 

@@ -4,12 +4,12 @@ import {
 } from 'lucide-react'
 
 const features = [
-  {
+ /*  {
     icon: Bot,
     title: 'AI Shopping Assistant',
     description: 'Smart product discovery powered by AI that understands your preferences and local context.',
     gradient: 'from-emerald-500 to-teal-500',
-  },
+  }, */
   {
     icon: MapPin,
     title: 'Hyperlocal Discovery',
@@ -34,12 +34,12 @@ const features = [
     description: 'Reliable last-mile delivery network across East Africa with real-time tracking.',
     gradient: 'from-green-500 to-emerald-500',
   },
-  {
-    icon: Mic,
+  
+  /*   {icon: Mic,
     title: 'Voice Commerce',
     description: 'Shop using your voice in English, Kiswahili, and more African languages.',
     gradient: 'from-red-500 to-rose-500',
-  },
+  }, */
   {
     icon: TrendingUp,
     title: 'Merchant Growth',

@@ -8,7 +8,7 @@ import Badge from '@shared/ui/badge/Badge'
 import Loader from '@shared/ui/loader/Loader'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Alert from '@shared/ui/alert/Alert'
-import { productService } from '@api/services'
+import { productService, vendorService } from '@api/services'
 import { cartService } from '@api/services'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
@@ -167,7 +167,9 @@ function ProductDetailPage() {
   const inStock = stock === undefined || stock > 0
   const premium = Boolean(product?.premiumEligible)
   const category = product?.category || ''
+  const vendorId = product?.vendorId || product?.vendor?.$id || ''
   const vendorName = product?.vendorName || product?.brand || ''
+  const storeLink = vendorId ? `/store/${vendorId}` : ''
 
   // Breadcrumb items
   const breadcrumbItems = [
@@ -217,7 +219,21 @@ function ProductDetailPage() {
                 <Badge variant="danger">Out of stock</Badge>
               )}
               {premium && <Badge variant="warning">Premium eligible</Badge>}
-              {vendorName && <Badge variant="neutral">{vendorName}</Badge>}
+              {vendorName && (
+                <Badge variant="neutral">{vendorName}</Badge>
+              )}
+              {vendorId && storeLink && (
+                <Link
+                  to={storeLink}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-emerald-700 transition hover:bg-emerald-100 hover:shadow-sm dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                  Visit Store
+                </Link>
+              )}
             </div>
           </div>
 
