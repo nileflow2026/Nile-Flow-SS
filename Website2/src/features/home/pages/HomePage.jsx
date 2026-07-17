@@ -40,6 +40,7 @@ const quickPillars = [
 
 function HomePage() { 
   const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts)
+  console.log('Featured Products State:', featuredProducts) // Debugging line
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -49,6 +50,7 @@ function HomePage() {
         const result = await productService.getHeroProducts()
         const items = result?.slice(0, 6) || []
         setFeaturedProducts(items.length ? items : fallbackProducts)
+        console.log('Loaded hero products:', items)
       } catch {
         setFeaturedProducts(fallbackProducts)
       } finally {
