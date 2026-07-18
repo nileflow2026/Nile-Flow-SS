@@ -119,7 +119,18 @@ const SignIn = () => {
 
       router.replace("/(tabs)/BottomTabs");
     } catch (error) {
-      setError(error.message || "Invalid credentials. Please try again.");
+      // Check if user does not exist — show clear message with link to sign up
+      if (
+        error.message === "user_not_found" ||
+        error.message?.includes("No account found") ||
+        error.response?.data?.error === "user_not_found"
+      ) {
+        setError(
+          "No account found with this email. Please create a new account.",
+        );
+      } else {
+        setError(error.message || "Invalid credentials. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -358,7 +369,7 @@ const SignIn = () => {
                 />
 
                 {/* Divider */}
-                <View className="mb-6">
+                {/* View className="mb-6">
                   <View className="flex-row items-center">
                     <View className="flex-1 border-t border-gray-200" />
                     <View className="px-6">
@@ -377,10 +388,10 @@ const SignIn = () => {
                     </View>
                     <View className="flex-1 border-t border-gray-200" />
                   </View>
-                </View>
+                </View> */}
 
-                {/* Social Login Buttons */}
-                <View className="flex-row gap-3 mb-6">
+                
+                {/* <View className="flex-row gap-3 mb-6">
                   <TouchableOpacity
                     onPress={handleGoogleSignIn}
                     style={{
@@ -410,7 +421,7 @@ const SignIn = () => {
                       Google
                     </Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
               </View>
 
               {/* Sign Up Link */}

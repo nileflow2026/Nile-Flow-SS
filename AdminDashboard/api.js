@@ -17,6 +17,28 @@ const axiosClient = axios.create({
 // Track if refresh is in progress to avoid multiple simultaneous refresh attempts
 let isRefreshing = false;
 let failedQueue = [];
+let hasSession = false;
+let authInitialized = false;
+let lastRefreshAttemptAt = 0;
+const REFRESH_COOLDOWN_MS = 5000;
+
+export const markSessionActive = () => {
+  authInitialized = true;
+  hasSession = true;
+  lastRefreshAttemptAt = 0;
+};
+
+export const markSessionInactive = () => {
+  hasSession = false;
+  authInitialized = true;
+  isRefreshing = false;
+  failedQueue = [];
+  lastRefreshAttemptAt = 0;
+};
+
+export const markAuthInitializationComplete = () => {
+  authInitialized = true;
+};
 
 const processQueue = (error, success = false) => {
   failedQueue.forEach((prom) => {
@@ -35,8 +57,26 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is not 401 or request already retried, reject
+    // Ignore non-auth failures or requests already retried.
     if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Prevent refresh attempts before the initial auth check has completed.
+    if (!authInitialized || !hasSession) {
+      return Promise.reject(error);
+    }
+
+    // Prevent refresh storms for repeated failures in a short window.
+    const now = Date.now();
+    if (isRefreshing || now - lastRefreshAttemptAt < REFRESH_COOLDOWN_MS) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => axiosClient(originalRequest))
+          .catch((err) => Promise.reject(err));
+      }
       return Promise.reject(error);
     }
 
@@ -51,10 +91,11 @@ axiosClient.interceptors.response.use(
 
     originalRequest._retry = true;
     isRefreshing = true;
+    lastRefreshAttemptAt = Date.now();
 
     try {
       // Refresh token is sent via httpOnly cookie automatically
-      const response = await axios.post(
+      await axios.post(
         `${axiosClient.defaults.baseURL}/api/admin/auth/refresh`,
         {},
         {
@@ -63,12 +104,15 @@ axiosClient.interceptors.response.use(
         },
       );
 
+      markSessionActive();
+
       // Process queued requests
       processQueue(null, true);
 
       // Retry original request
       return axiosClient(originalRequest);
     } catch (refreshError) {
+      markSessionInactive();
       processQueue(refreshError, false);
 
       // Trigger logout event once to avoid repeated navigation loops

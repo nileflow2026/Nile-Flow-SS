@@ -1,20 +1,16 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { SITE_CONFIG } from './SeoConstants'
 import {
   buildCanonicalUrl,
-  buildKeywords,
-  buildMetaDescription,
-  buildPageTitle,
-  createBreadcrumbSchema,
-  createLocalBusinessSchema,
-  createOrganizationSchema,
-  createWebPageSchema,
-  createWebsiteSchema,
-  siteConfig,
-} from './seoUtils'
+  createDefaultSchemas,
+} from './SchemaFactory'
 import { StructuredData } from './StructuredData'
 
-function updateMetaTag(attrName, attrValue, content) {
+/**
+ * Update or create a <meta> tag.
+ */
+function setMetaTag(attrName, attrValue, content) {
   let tag = document.head.querySelector(`meta[${attrName}="${attrValue}"]`)
   if (!tag) {
     tag = document.createElement('meta')
@@ -24,7 +20,10 @@ function updateMetaTag(attrName, attrValue, content) {
   tag.setAttribute('content', content)
 }
 
-function updateLinkTag(rel, href) {
+/**
+ * Update or create a <link> tag.
+ */
+function setLinkTag(rel, href, extra = {}) {
   let tag = document.head.querySelector(`link[rel="${rel}"]`)
   if (!tag) {
     tag = document.createElement('link')
@@ -32,6 +31,14 @@ function updateLinkTag(rel, href) {
     document.head.appendChild(tag)
   }
   tag.setAttribute('href', href)
+  Object.entries(extra).forEach(([k, v]) => tag.setAttribute(k, v))
+}
+
+/**
+ * Remove all existing hreflang link tags so we can re-add fresh ones.
+ */
+function clearHreflangTags() {
+  document.head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((el) => el.remove())
 }
 
 export function SeoHead({
@@ -39,72 +46,101 @@ export function SeoHead({
   description,
   keywords = [],
   canonical,
-  ogImage = siteConfig.defaultImage,
-  twitterImage = ogImage,
+  ogImage = SITE_CONFIG.defaultImage,
+  ogType = 'website',
   robots = 'index,follow,max-image-preview:large',
-  language = siteConfig.language,
-  schema,
+  language = SITE_CONFIG.language,
   breadcrumbs = [],
-  children,
+  schema, // custom schema override
+  hreflang, // [{ hreflang: 'en-KE', href: '...' }, ...]
 }) {
   const location = useLocation()
-  const resolvedTitle = buildPageTitle(title)
-  const resolvedDescription = buildMetaDescription(description)
-  const resolvedKeywords = buildKeywords(keywords)
-  const resolvedCanonical = canonical || buildCanonicalUrl(location.pathname)
+  const path = location.pathname
+  const resolvedTitle = title ? `${title} | ${SITE_CONFIG.name}` : SITE_CONFIG.defaultTitle
+  const resolvedDescription = description || SITE_CONFIG.defaultDescription
+  const resolvedKeywords = [...new Set([...SITE_CONFIG.defaultKeywords, ...keywords])]
+  const resolvedCanonical = canonical || buildCanonicalUrl(path)
+  const resolvedOgImage = ogImage.startsWith('http') ? ogImage : `${SITE_CONFIG.siteUrl}${ogImage}`
 
   useEffect(() => {
+    // ── Document title ──────────────────────────────────────────
     document.title = resolvedTitle
     document.documentElement.lang = language
 
-    updateMetaTag('name', 'description', resolvedDescription)
-    updateMetaTag('name', 'keywords', resolvedKeywords.join(', '))
-    updateMetaTag('name', 'robots', robots)
-    updateMetaTag('name', 'theme-color', siteConfig.themeColor)
-    updateMetaTag('property', 'og:title', resolvedTitle)
-    updateMetaTag('property', 'og:description', resolvedDescription)
-    updateMetaTag('property', 'og:type', 'website')
-    updateMetaTag('property', 'og:url', resolvedCanonical)
-    updateMetaTag('property', 'og:image', `${siteConfig.siteUrl}${ogImage}`)
-    updateMetaTag('name', 'twitter:card', 'summary_large_image')
-    updateMetaTag('name', 'twitter:title', resolvedTitle)
-    updateMetaTag('name', 'twitter:description', resolvedDescription)
-    updateMetaTag('name', 'twitter:image', `${siteConfig.siteUrl}${twitterImage}`)
-    updateMetaTag('name', 'twitter:site', siteConfig.twitterHandle)
-    updateMetaTag('property', 'article:publisher', siteConfig.siteName)
-    updateMetaTag('name', 'application-name', siteConfig.siteName)
+    // ── Meta tags ───────────────────────────────────────────────
+    setMetaTag('name', 'description', resolvedDescription)
+    setMetaTag('name', 'keywords', resolvedKeywords.join(', '))
+    setMetaTag('name', 'robots', robots)
+    setMetaTag('name', 'theme-color', SITE_CONFIG.themeColor)
+    setMetaTag('name', 'application-name', SITE_CONFIG.name)
 
-    updateLinkTag('canonical', resolvedCanonical)
-    updateLinkTag('icon', '/favicon.svg')
-    updateLinkTag('manifest', '/manifest.webmanifest')
+    // ── Open Graph ──────────────────────────────────────────────
+    setMetaTag('property', 'og:site_name', SITE_CONFIG.name)
+    setMetaTag('property', 'og:title', resolvedTitle)
+    setMetaTag('property', 'og:description', resolvedDescription)
+    setMetaTag('property', 'og:type', ogType)
+    setMetaTag('property', 'og:url', resolvedCanonical)
+    setMetaTag('property', 'og:image', resolvedOgImage)
+    setMetaTag('property', 'og:image:width', String(SITE_CONFIG.defaultImageWidth))
+    setMetaTag('property', 'og:image:height', String(SITE_CONFIG.defaultImageHeight))
+    setMetaTag('property', 'og:image:type', SITE_CONFIG.defaultImageType)
+    setMetaTag('property', 'og:locale', SITE_CONFIG.locale)
 
-    return () => {
-      const jsonLdScripts = document.querySelectorAll('script[data-seo-jsonld="true"]')
-      jsonLdScripts.forEach((script) => script.remove())
+    // ── Twitter Cards ───────────────────────────────────────────
+    setMetaTag('name', 'twitter:card', 'summary_large_image')
+    setMetaTag('name', 'twitter:title', resolvedTitle)
+    setMetaTag('name', 'twitter:description', resolvedDescription)
+    setMetaTag('name', 'twitter:image', resolvedOgImage)
+    setMetaTag('name', 'twitter:site', SITE_CONFIG.twitterHandle)
+
+    // ── Link tags ───────────────────────────────────────────────
+    setLinkTag('canonical', resolvedCanonical)
+    setLinkTag('icon', '/favicon.svg')
+    setLinkTag('manifest', '/manifest.webmanifest')
+
+    // ── Hreflang tags (multi-country SEO) ───────────────────────
+    if (hreflang && hreflang.length > 0) {
+      clearHreflangTags()
+      hreflang.forEach((entry) => {
+        const link = document.createElement('link')
+        link.setAttribute('rel', 'alternate')
+        link.setAttribute('hreflang', entry.hreflang)
+        link.setAttribute('href', entry.href)
+        document.head.appendChild(link)
+      })
+      // Default x-default tag
+      const defaultLink = document.createElement('link')
+      defaultLink.setAttribute('rel', 'alternate')
+      defaultLink.setAttribute('hreflang', 'x-default')
+      defaultLink.setAttribute('href', resolvedCanonical)
+      document.head.appendChild(defaultLink)
     }
-  }, [language, ogImage, resolvedCanonical, resolvedDescription, resolvedKeywords, resolvedTitle, robots, twitterImage])
 
-  const pageSchema = schema || createWebPageSchema({
+    // Cleanup JSON-LD scripts from previous page
+    return () => {
+      document.head.querySelectorAll('script[data-seo-jsonld="true"]').forEach((s) => s.remove())
+    }
+  }, [
+    language, resolvedCanonical, resolvedDescription, resolvedKeywords.join(','),
+    resolvedTitle, robots, resolvedOgImage, ogType,
+    hreflang?.map((h) => h.href + h.hreflang).join(','),
+  ])
+
+  // ── Schema (JSON-LD) ──────────────────────────────────────────
+  const pageSchemas = schema || createDefaultSchemas({
     title: resolvedTitle,
     description: resolvedDescription,
-    path: location.pathname,
+    path,
     breadcrumbs,
   })
 
-  const schemaPayload = [
-    createOrganizationSchema(),
-    createWebsiteSchema(),
-    createLocalBusinessSchema(),
-    pageSchema,
-    breadcrumbs.length ? createBreadcrumbSchema(breadcrumbs) : null,
-  ].filter(Boolean)
+  const schemasArray = Array.isArray(pageSchemas) ? pageSchemas : [pageSchemas]
 
   return (
     <>
-      {children}
-      {schemaPayload.length > 0 && (
-        <StructuredData data={schemaPayload.length === 1 ? schemaPayload[0] : schemaPayload} />
-      )}
+      {schemasArray.map((s, i) => (
+        <StructuredData key={i} data={s} />
+      ))}
     </>
   )
 }

@@ -11,6 +11,7 @@
 export { httpClient } from '@api/client/HttpClient';
 
 export { productService } from './productService';
+export { vendorService } from './vendorService';
 export { categoryService } from './categoryService';
 export { cartService } from './cartService';
 export { orderService } from './orderService';

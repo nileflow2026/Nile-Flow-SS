@@ -15,7 +15,7 @@ import { useTheme } from "../context/ThemeContext";
 import { Sun, Moon, Bell, Menu } from "lucide-react";
 import { toast } from "sonner";
 import { getCurrentUser, signoutAdmin } from "../../authService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../core/auth";
 import {
   getHasNew,
   setHasNew,

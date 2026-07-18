@@ -14,6 +14,7 @@ const getNotifications = async (req, res) => {
         "system",
         "order",
         "product_submission",
+        "product_published",
         "delivery_update",
       ].includes(notificationType)
     ) {
@@ -41,7 +42,7 @@ const fetchAdminNotifications = async (req, res) => {
         .json({ error: "Unauthorized: No user information found." });
     }
 
-    const userId = req.user.userId; // Now safely extract
+    const userId = req.user.userId;
     console.log("userId:", userId);
 
     if (!userId) {
@@ -56,12 +57,12 @@ const fetchAdminNotifications = async (req, res) => {
           "order",
           "user",
           "product_submission",
+          "product_published",
           "delivery_update",
         ]),
         Query.orderDesc("$createdAt"),
       ],
     );
-    /*  console.log('Fetched admin notifications:', result.documents); */
     res.status(200).json({ result: result.documents });
   } catch (err) {
     console.error("Failed to fetch admin notifications:", err.message);
@@ -76,11 +77,7 @@ const clearAllNotifications = async (req, res) => {
         .json({ error: "Unauthorized: No user information found." });
     }
 
-    if (!userId) {
-      return res.status(400).json({ error: "Invalid token: Missing user ID." });
-    }
-
-    const userId = req.user.userId; // Now safely extract
+    const userId = req.user.userId;
     console.log("userId:", userId);
 
     if (!userId) {
@@ -117,16 +114,13 @@ const markNotificationsAsRead = async (req, res) => {
         .json({ error: "Unauthorized: No user information found." });
     }
 
-    const userId = req.user.userId; // Now safely extract
+    const userId = req.user.userId;
     console.log("userId:", userId);
 
     if (!userId) {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
-    if (!userId) {
-      return res.status(400).json({ error: "Invalid token: Missing user ID." });
-    }
     await Promise.all(
       ids.map((id) =>
         instrumentedDb.updateDocument(
@@ -143,7 +137,11 @@ const markNotificationsAsRead = async (req, res) => {
   }
 };
 
-// Update your createNotification to handle rich product data
+/**
+ * Create a product approval notification (legacy — used when approval feature flag is ON).
+ * Sent to admins when a vendor submits a product for review.
+ * Sent to vendors to confirm their product is under review.
+ */
 const CreateProductApprovalNotification = async (req, res) => {
   try {
     let notificationData;
@@ -160,14 +158,14 @@ const CreateProductApprovalNotification = async (req, res) => {
       username,
       email,
       userId,
-      metadata, // Add metadata field for product details
+      metadata,
     } = notificationData;
 
-    console.log("📝 Notification with metadata:", {
+    console.log("📝 Approval notification with metadata:", {
       message,
       type,
       username,
-      metadata, // Log metadata
+      metadata,
     });
 
     if (!userId || !type) {
@@ -180,7 +178,6 @@ const CreateProductApprovalNotification = async (req, res) => {
       throw new Error("Missing required fields");
     }
 
-    // Create notification with metadata
     const response = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
@@ -193,7 +190,7 @@ const CreateProductApprovalNotification = async (req, res) => {
         read: false,
         email: email || "",
         userId,
-        metadata: metadata || {}, // Store product details here
+        metadata: metadata || {},
       },
       [
         Permission.read(`user:${userId}`),
@@ -227,10 +224,72 @@ const CreateProductApprovalNotification = async (req, res) => {
   }
 };
 
+/**
+ * Create a product published notification (new — used when approval feature flag is OFF).
+ * Sent to admins for informational awareness when a vendor publishes a product.
+ * Sent to vendors to confirm their product is live.
+ *
+ * This is the default behavior for the current stage of Nile Flow.
+ */
+const CreateProductPublishedNotification = async (notificationData) => {
+  try {
+    const {
+      message,
+      type = "product_published",
+      username,
+      email,
+      userId,
+      metadata,
+    } = notificationData;
+
+    console.log("📢 Published notification:", {
+      message,
+      type,
+      username,
+      userId,
+    });
+
+    if (!userId || !type) {
+      throw new Error("Missing required fields for published notification");
+    }
+
+    const response = await instrumentedDb.createDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+      ID.unique(),
+      {
+        message: message || "New product published",
+        username: username || "User",
+        type,
+        timestamp: new Date().toISOString(),
+        read: false,
+        email: email || "",
+        userId,
+        metadata: metadata || {},
+      },
+      [
+        Permission.read(`user:${userId}`),
+        Permission.update(`user:${userId}`),
+        Permission.delete(`user:${userId}`),
+      ],
+    );
+
+    return {
+      success: true,
+      notification: response,
+    };
+  } catch (error) {
+    console.error("❌ Published notification creation failed:", error.message);
+    // Don't throw — notifications should never block the main flow
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   getNotifications,
   clearAllNotifications,
   fetchAdminNotifications,
   markNotificationsAsRead,
   CreateProductApprovalNotification,
+  CreateProductPublishedNotification,
 };

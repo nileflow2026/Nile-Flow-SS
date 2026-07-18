@@ -3,7 +3,7 @@ import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Badge from '@shared/ui/badge/Badge'
-import FeatureCard from '@shared/ui/card/FeatureCard'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 const openPositions = [
   { title: 'Senior React Engineer', location: 'Nairobi, Kenya', type: 'Full-time', description: 'Build the next generation of our e-commerce platform with React and modern web technologies.' },
@@ -22,7 +22,11 @@ const culture = [
 function CareersPage() {
   return (
     <PageShell>
-      {/* Hero Section */}
+      <SeoHead
+        title="Careers at Nile Flow"
+        description="Join the Nile Flow team and help build the digital commerce backbone for Africa. View open positions and learn about our culture."
+        keywords={['careers', 'jobs', 'hiring', 'Nile Flow careers', 'tech jobs Africa']}
+      />
       <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-14 text-center sm:px-6 sm:py-20">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Careers</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">Join the Nile Flow team</h1>
@@ -32,7 +36,6 @@ function CareersPage() {
         <PrimaryButton className="mt-6">View open positions</PrimaryButton>
       </section>
 
-      {/* Open Positions */}
       <ResponsiveSection eyebrow="Open positions" title="Join our team" description="We're looking for passionate people to help us transform African commerce." className="py-10 sm:py-14 lg:py-16">
         <div className="grid gap-6 sm:grid-cols-2">
           {openPositions.map((job, i) => (
@@ -55,7 +58,6 @@ function CareersPage() {
         </div>
       </ResponsiveSection>
 
-      {/* Culture Section */}
       <div className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Culture</p>

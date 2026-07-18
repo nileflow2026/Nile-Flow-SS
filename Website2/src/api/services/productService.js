@@ -22,13 +22,14 @@ export const productService = {
    * @returns {Promise<{products: Array, nextCursor: string|null}>}
    */
   async getProducts(options = {}) {
-    const { category, search, cursor, limit } = options;
+    const { category, search, cursor, limit, vendorId } = options;
     const params = {};
 
     if (category && category !== 'all') params.category = category;
     if (search) params.search = search;
     if (cursor) params.cursor = cursor;
     if (limit) params.limit = limit;
+    if (vendorId) params.vendorId = vendorId;
 
     const response = await httpClient.get(`${BASE}/fetch-product`, params);
 
@@ -42,7 +43,7 @@ export const productService = {
       total: response.data?.total || products.length,
     };
   },
-
+ 
   /**
    * Fetch all products (simplified, for non-paginated views).
    * @returns {Promise<Array>}
@@ -96,6 +97,31 @@ export const productService = {
     });
     return Array.isArray(response.data?.products) ? response.data.products : [];
   },
+
+  async getDealProducts() {
+    const response = await httpClient.get(`${BASE}/deal-products`, {
+      deal: true,
+    });
+    return Array.isArray(response.data?.products) ? response.data.products : [];
+  },
+
+  async getHeroProducts() {
+    const response = await httpClient.get(`${BASE}/hero-products`, {
+      hero: true,
+    });
+    const data = response.data ?? {};
+    const payload = Array.isArray(data.featured) || Array.isArray(data.products)
+      ? data
+      : data.data ?? {};
+
+    const heroProducts = Array.isArray(payload.products)
+      ? payload.products
+      : Array.isArray(payload.featured)
+      ? payload.featured
+      : [];
+
+    return heroProducts;
+  }
 };
 
 export default productService;

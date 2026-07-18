@@ -24,12 +24,16 @@ const {
   getMobileCategories,
   getCategorie,
   getCategoryById,
+  getCategoryBySlug,
   getProducts2,
   getPopularSearches,
   getGlobalDealCountdown,
   getDealAnalytics,
   getProductImages,
 } = require("../controllers/UserControllers/ClientController");
+const {
+  getPublicVendorInfo,
+} = require("../controllers/UserControllers/vendorInfoController");
 const {
   handleCancelRequest,
 } = require("../controllers/UserControllers/orderController");
@@ -62,6 +66,7 @@ router.post("/updatedAvatar", authenticateToken, updateUserAvatar);
 router.get("/categories", getCategories);
 router.get("/categories/getcategories", getCategorie);
 router.get("/categories/:categoryId", getCategoryById);
+router.get("/category-by-slug/:slug", getCategoryBySlug);
 router.get("/mobile-categories", getMobileCategories);
 router.get("/mobile-products", currencyMiddleware, getProducts2);
 router.get(
@@ -74,6 +79,9 @@ router.get("/deal-products", currencyMiddleware, getDealProducts);
 router.get("/deal-analytics", getDealAnalytics);
 router.get("/deal-countdown", getGlobalDealCountdown);
 router.get("/hero-products", getHeroProducts);
+
+// Public vendor info for storefront
+router.get("/vendor/:vendorId", getPublicVendorInfo);
 
 // Single product images (fetches from both main + vendor collections)
 router.get("/product/:productId/images", getProductImages);

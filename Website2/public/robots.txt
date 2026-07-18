@@ -1,9 +1,23 @@
+# Nile Flow — Robots.txt
+# Production: https://www.nileflowafrica.com
+
 User-agent: *
 Allow: /products/
 Allow: /categories/
 Allow: /vendors/
 Allow: /blog/
 Allow: /landing/
+Allow: /search
+Allow: /deals/
+Allow: /premium-deals/
+Allow: /group-buy/
+Allow: /about
+Allow: /contact
+Allow: /help
+Allow: /privacy
+Allow: /terms
+Allow: /return-policy
+Allow: /careers
 Disallow: /admin/
 Disallow: /checkout/
 Disallow: /payment/
@@ -11,4 +25,67 @@ Disallow: /auth/
 Disallow: /api/
 Disallow: /internal/
 Disallow: /staging/
+Disallow: /cart/
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /oauth/
+Disallow: /account-deletion
+Disallow: /notifications
+Disallow: /profile
+Disallow: /settings
+Disallow: /addresses
+Disallow: /orders
+Disallow: /track-order
+Disallow: /cancel-order
+
+# Crawl delay for polite crawling
+Crawl-delay: 10
+
+# XML Sitemaps
 Sitemap: https://www.nileflowafrica.com/sitemap.xml
+Sitemap: https://www.nileflowafrica.com/sitemap-products.xml
+Sitemap: https://www.nileflowafrica.com/sitemap-categories.xml
+Sitemap: https://www.nileflowafrica.com/sitemap-images.xml
+
+# Google Merchant Center
+User-agent: Googlebot
+Allow: /products/
+Allow: /categories/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /login
+
+User-agent: Googlebot-Image
+Allow: /products/
+Allow: /uploads/
+Allow: /*.jpg
+Allow: /*.png
+Allow: /*.webp
+Allow: /*.svg
+
+User-agent: AdsBot-Google
+Allow: /products/
+Allow: /
+
+User-agent: Bingbot
+Allow: /products/
+Allow: /categories/
+Allow: /deals/
+Allow: /premium-deals/
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /admin/
+Crawl-delay: 10
+
+# Allow all other web crawlers access to public content
+User-agent: Applebot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Yandex
+Allow: /

@@ -36,6 +36,7 @@ const AccountDeletionPage = lazy(() => import('@features/user/pages/AccountDelet
 const ProductListingPage = lazy(() => import('@features/products/pages/ProductListingPage'))
 const ProductDetailPage = lazy(() => import('@features/products/pages/ProductDetailPage'))
 const SearchPage = lazy(() => import('@features/products/pages/SearchPage'))
+const StorePage = lazy(() => import('@features/store/pages/StorePage'))
 const PremiumDealsPage = lazy(() => import('@features/premium/pages/PremiumDealsPage'))
 const DealsPage = lazy(() => import('@features/deals/pages/DealsPage'))
 const CategoryPage = lazy(() => import('@features/discovery/pages/CategoryPage'))
@@ -79,6 +80,7 @@ export default function AppRouter() {
         <Route path="/products" element={<ProductListingPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/store/:vendorId" element={<StorePage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/premium-deals" element={<PremiumDealsPage />} />
         <Route path="/deals" element={<DealsPage />} />

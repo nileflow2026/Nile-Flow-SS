@@ -518,6 +518,27 @@ export const forceRefreshNotifications = async () => {
   }
 };
 
+// Broadcast / Platform-wide communication API functions
+export const sendBroadcast = async (payload) => {
+  try {
+    const response = await axiosClient.post("/api/admin/newsletter/send-broadcast", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending broadcast:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to send broadcast.");
+  }
+};
+
+export const getBroadcastAudienceStats = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/newsletter/broadcast-stats");
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching broadcast stats:", error.response?.data?.error || error.message);
+    return { subscribers: 0, endUsers: 0, vendors: 0, allPlatform: 0 };
+  }
+};
+
 // Commission System API Functions
 export const getCommissionSettings = async () => {
   try {
@@ -603,6 +624,96 @@ export const recalculateOrderCommission = async (orderId) => {
   } catch (error) {
     console.error("Error recalculating commission:", error);
     throw new Error("Failed to recalculate commission.");
+  }
+};
+
+// Vendor management API functions
+export const getVendors = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.search) params.append("search", filters.search);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.page) params.append("page", filters.page);
+    if (filters.limit) params.append("limit", filters.limit);
+
+    const url = `/api/admin/vendors${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await axiosClient.get(url);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching vendors:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to fetch vendors.");
+  }
+};
+
+export const getVendorStats = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/vendors/stats");
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching vendor stats:", error.response?.data?.error || error.message);
+    return { total: 0, active: 0, inactive: 0 };
+  }
+};
+
+export const toggleVendorStatus = async (vendorId, isActive) => {
+  try {
+    const response = await axiosClient.patch(`/api/admin/vendors/${vendorId}/status`, { isActive });
+    return response.data;
+  } catch (error) {
+    console.error("Error toggling vendor status:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to update vendor status.");
+  }
+};
+
+export const getVendorById = async (vendorId) => {
+  try {
+    const response = await axiosClient.get(`/api/admin/vendors/${vendorId}`);
+    return response.data.data.vendor;
+  } catch (error) {
+    console.error("Error fetching vendor:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to fetch vendor details.");
+  }
+};
+
+// Subscriber management
+export const listSubscribers = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.search) params.append("search", filters.search);
+    if (filters.page) params.append("page", filters.page);
+    if (filters.limit) params.append("limit", filters.limit);
+    const url = `/api/admin/newsletter/subscribers${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await axiosClient.get(url);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error listing subscribers:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to list subscribers.");
+  }
+};
+
+export const removeSubscriber = async (id) => {
+  try {
+    await axiosClient.delete(`/api/admin/newsletter/subscribers/${id}`);
+  } catch (error) {
+    console.error("Error removing subscriber:", error.response?.data?.error || error.message);
+    throw new Error(error.response?.data?.error || "Failed to remove subscriber.");
+  }
+};
+
+export const exportSubscribersCSV = async () => {
+  try {
+    const response = await axiosClient.get("/api/admin/newsletter/subscribers/export", {
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nileflow-subscribers.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error exporting subscribers:", error);
+    throw new Error("Failed to export subscribers.");
   }
 };
 

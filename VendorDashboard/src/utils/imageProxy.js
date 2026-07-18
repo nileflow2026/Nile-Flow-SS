@@ -5,7 +5,9 @@
  */
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://nile-flow-backend.onrender.com";
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "https://nile-flow-backend-5dqm.onrender.com";
 
 export function proxyImageUrl(url) {
   if (!url) return url;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
+import { SeoHead } from '@shared/seo/SeoHead'
 import ProductCard from '@shared/ui/product-card/ProductCard'
 import { productService } from '@api/services'
 
@@ -37,17 +38,19 @@ const quickPillars = [
   { title: 'Premium perks', description: 'Unlock deals and bonus rewards.' },
 ]
 
-function HomePage() {
+function HomePage() { 
   const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts)
+  console.log('Featured Products State:', featuredProducts) // Debugging line
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true)
       try {
-        const result = await productService.getProducts()
-        const items = result.products?.slice(0, 6) || []
+        const result = await productService.getHeroProducts()
+        const items = result?.slice(0, 6) || []
         setFeaturedProducts(items.length ? items : fallbackProducts)
+        console.log('Loaded hero products:', items)
       } catch {
         setFeaturedProducts(fallbackProducts)
       } finally {
@@ -62,6 +65,7 @@ function HomePage() {
 
   return (
     <PageShell>
+      <SeoHead title='Home - Shop Smarter' description='Discover everyday essentials, premium finds, and trusted local sellers on Nile Flow.' keywords={['home','shopping','featured']} />
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_46%),linear-gradient(135deg,_rgba(16,185,129,0.14)_0%,_var(--color-background)_45%,_rgba(245,158,11,0.14)_100%)]">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-24">
           <div className="flex flex-col justify-center">
@@ -151,4 +155,3 @@ function HomePage() {
 }
 
 export default HomePage
- 

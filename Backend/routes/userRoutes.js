@@ -7,6 +7,7 @@ const {
 } = require("../controllers/AdminControllers/userController");
 const {
   getAuditLogs,
+  logAuditEntry,
 } = require("../controllers/AdminControllers/auditLoggerController");
 const { users } = require("../src/appwrite");
 
@@ -27,6 +28,7 @@ const defaultPreferences = {
 // Protected route
 router.get("/admin/profile", authenticateToken, getAdminProfile);
 router.get("/audit-logs", authenticateToken, getAuditLogs);
+router.post("/log", authenticateToken, logAuditEntry);
 router.get("/users", authenticateToken, getUsers);
 router.get(
   "/users/:userId/preferences",

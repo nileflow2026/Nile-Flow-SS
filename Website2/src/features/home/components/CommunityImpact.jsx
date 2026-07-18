@@ -5,7 +5,7 @@ import { Users, ShoppingCart, Globe, HeartHandshake } from 'lucide-react'
 const stats = [
   { icon: Users, value: 10000, suffix: '+', label: 'Future Businesses Empowered', prefix: '' },
   { icon: ShoppingCart, value: 1000000, suffix: '+', label: 'Future Customers', prefix: '' },
-  { icon: Globe, value: 54, suffix: '', label: 'African Countries Vision', prefix: '' },
+  { icon: Globe, value: 3, suffix: '', label: 'African Countries Vision', prefix: '' },
   { icon: HeartHandshake, value: 5000, suffix: '+', label: 'Jobs Created', prefix: '' },
 ]
 

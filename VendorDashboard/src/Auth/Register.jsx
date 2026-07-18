@@ -398,7 +398,7 @@ const Register = () => {
                       <Store className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-sm font-bold text-[#2C1810] dark:text-[#F5E6D3]">
-                      Nile Mart Vendor
+                      Nile Flow Vendor
                     </span>
                   </div>
                 </div>

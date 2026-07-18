@@ -3,15 +3,53 @@ const { Query, ID } = require("node-appwrite");
 const { env } = require("../../src/env");
 const {
   CreateProductApprovalNotification,
+  CreateProductPublishedNotification,
 } = require("./notificationController");
+const { productPublishingService } = require("../../services/productPublishingService");
+
+/**
+ * ============================================================================
+ * PRODUCT APPROVAL CONTROLLER
+ *
+ * These endpoints are preserved but gated behind the PRODUCT_APPROVAL_REQUIRED
+ * configuration flag. When the flag is false (default), these endpoints return
+ * a 200 response indicating that approval is not required — this allows the
+ * admin UI to continue working without breaking.
+ *
+ * When the flag is true, the full approval workflow is restored.
+ * ============================================================================
+ */
+
+/**
+ * Check if the product approval workflow is active.
+ * If not, return an informational message instead of performing the action.
+ */
+async function requireApprovalEnabled(res) {
+  const requiresApproval = await productPublishingService.isApprovalRequired();
+  if (!requiresApproval) {
+    return {
+      blocked: true,
+      response: res.status(200).json({
+        success: true,
+        message: "Product approval is currently disabled. Products publish immediately. Set PRODUCT_APPROVAL_REQUIRED=true to re-enable this workflow.",
+        approvalDisabled: true,
+      }),
+    };
+  }
+  return { blocked: false };
+}
 
 // adminProductController.js
 const approveProduct = async (req, res) => {
+  // Check if approval workflow is enabled
+  const approvalCheck = await requireApprovalEnabled(res);
+  if (approvalCheck.blocked) return;
+
   try {
     const { productId } = req.params;
     const adminId = req.user.userId;
 
-    // 1. Get the pending product
+    // 1. Get the product
     const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
@@ -32,7 +70,7 @@ const approveProduct = async (req, res) => {
       });
     }
 
-    // 2. Get vendor details to get email
+    // 2. Get vendor details
     let vendorEmail = null;
     let vendorName = "Vendor";
 
@@ -46,19 +84,12 @@ const approveProduct = async (req, res) => {
 
         vendorEmail = vendor.email;
         vendorName = vendor.name || vendor.storeName || "Vendor";
-
-        console.log("Vendor details fetched:", {
-          email: vendorEmail,
-          name: vendorName,
-          id: vendor.$id,
-        });
       }
     } catch (vendorError) {
       console.warn("Could not fetch vendor details:", vendorError.message);
-      // Continue without vendor email
     }
 
-    // 2. Update product status
+    // 3. Update product status to approved
     const updatedProduct = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
@@ -73,14 +104,14 @@ const approveProduct = async (req, res) => {
       },
     );
 
-    // 4. Notify the vendor (only if we have email)
+    // 4. Notify the vendor
     if (vendorEmail) {
       try {
         await CreateProductApprovalNotification({
           message: `Your product "${product.productName}" has been approved and is now live on the website!`,
           type: "product_approved",
           username: vendorName,
-          email: vendorEmail, // Use the fetched email
+          email: vendorEmail,
           userId: product.vendorId,
           metadata: JSON.stringify({
             productId,
@@ -89,19 +120,12 @@ const approveProduct = async (req, res) => {
             viewUrl: `/products/${product.slug || productId}`,
           }),
         });
-        console.log("Notification sent to vendor");
       } catch (notificationError) {
-        console.error(
-          "Notification failed (continuing):",
-          notificationError.message,
-        );
-        // Don't fail the whole request if notification fails
+        console.error("Notification failed (continuing):", notificationError.message);
       }
-    } else {
-      console.warn("No vendor email found, skipping notification");
     }
 
-    // 4. Optional: Update vendor's product record
+    // 5. Update vendor's product record
     try {
       await instrumentedDb.updateDocument(
         env.VENDOR_DATABASE_ID,
@@ -132,12 +156,16 @@ const approveProduct = async (req, res) => {
 };
 
 const rejectProduct = async (req, res) => {
+  // Check if approval workflow is enabled
+  const approvalCheck = await requireApprovalEnabled(res);
+  if (approvalCheck.blocked) return;
+
   try {
     const { productId } = req.params;
-    const { reason } = req.body; // Reason for rejection
+    const { reason } = req.body;
     const adminId = req.user.userId;
 
-    // 1. Get the pending product
+    // 1. Get the product
     const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
@@ -192,6 +220,20 @@ const rejectProduct = async (req, res) => {
 
 const getPendingProducts = async (req, res) => {
   try {
+    // When approval is disabled, return an empty list rather than querying
+    const requiresApproval = await productPublishingService.isApprovalRequired();
+    if (!requiresApproval) {
+      return res.json({
+        success: true,
+        data: {
+          products: [],
+          total: 0,
+          message: "Product approval is currently disabled. All products publish immediately.",
+          approvalDisabled: true,
+        },
+      });
+    }
+
     const pendingProducts = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,

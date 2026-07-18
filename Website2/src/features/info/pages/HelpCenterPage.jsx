@@ -1,6 +1,8 @@
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
+import { SeoHead } from '@shared/seo/SeoHead'
+import { createFAQPageSchema } from '@shared/seo/SchemaFactory'
 
 const faqs = [
   {
@@ -20,6 +22,12 @@ const faqs = [
 function HelpCenterPage() {
   return (
     <PageShell>
+      <SeoHead
+        title="Help Center"
+        description="Quick answers for shopping, delivery, and account support on Nile Flow."
+        keywords={['help', 'support', 'FAQ', 'shopping help', 'African marketplace']}
+        schema={createFAQPageSchema(faqs)}
+      />
       <section className="bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="responsive-shell rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-lg)] sm:p-10 lg:p-14">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Help Center</p>

@@ -1,15 +1,20 @@
-import { useLocalSearchParams } from "expo-router";
-import { FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { FlatList, SafeAreaView, StyleSheet, Text, View, TouchableOpacity, Dimensions} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { useEffect, useState } from "react";
 import { useTheme } from "../../Context/ThemeProvider";
 import axiosClient from "../../api";
 
+
+
+const { width } = Dimensions.get("window");
+
 const TrackOrder = () => {
   const { orderId, estimatedDelivery, orderTime } = useLocalSearchParams();
   const [orderStatus, setOrderStatus] = useState(null);
   const { themeStyles } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     if (!orderId) return;
@@ -65,7 +70,21 @@ const TrackOrder = () => {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: "#FFFFFF" }]}>
       <View style={styles.container}>
-        <Text style={styles.title}>Track Your Order</Text>
+        <View style={styles.header}>
+                    <TouchableOpacity
+                      onPress={() => router.back()}
+                      style={styles.backButton}
+                    >
+                      <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+                    </TouchableOpacity>
+                    <View>
+                      
+                      <Text style={styles.headerTitle}>
+                        Track Your Orders
+                      </Text>
+                    </View>
+        </View>
+   
         <Text style={styles.subtitle}>Order ID: {orderId}</Text>
 
         {/* Tracking Steps */}
@@ -124,9 +143,33 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+   headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
   container: {
     flex: 1,
     padding: 20,
+    
   },
   title: {
     fontSize: 22,

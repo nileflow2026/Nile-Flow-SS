@@ -32,6 +32,7 @@ import Navbar from "../components/Navbar";
 import DashboardCard from "../components/DashboardCard";
 
 import Users from "../Pages/Users";
+import Vendors from "../Pages/Vendors";
 import Orders from "../Pages/Orders";
 import Products from "../Pages/Products";
 import Staff from "./Staff";
@@ -40,7 +41,7 @@ import AuditLogs from "./AuditLogs";
 import SendNewsletter from "../Pages/SendNewsletter";
 import AdminMessages from "./AdminMessages";
 import ApplicantsDashboard from "./ApplicantsDashboard";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../core/auth";
 import { getCurrentUser } from "../../authService";
 import ProductApprovals from "./ProductApprovals";
 import Commission from "./Commission";
@@ -189,6 +190,8 @@ export default function Dashboard() {
 
   const renderContent = () => {
     switch (section) {
+      case "Vendors":
+        return <Vendors />;
       case "Users":
         return <Users />;
       case "Orders":
@@ -202,7 +205,7 @@ export default function Dashboard() {
       case "Admin Actions":
         return <AuditLogs />;
       case "NewsLetter":
-        return <SendNewsletter />;
+        return <SendNewsletter setSection={setSection} />;
       case "Applications":
         return <ApplicantsDashboard />;
       case "Commission":

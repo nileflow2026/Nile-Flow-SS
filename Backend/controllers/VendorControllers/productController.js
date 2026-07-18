@@ -5,15 +5,98 @@ const { db, storage, instrumentedDb } = require("../../services/appwriteService"
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const {
+  CreateProductPublishedNotification,
   CreateProductApprovalNotification,
 } = require("../AdminControllers/notificationController");
 const {
   sendEmail: sendAppwriteEmail,
   sendSms: sendAppwriteSms,
 } = require("../../services/appwriteMessagingService");
+const { productPublishingService } = require("../../services/productPublishingService");
+const { submitProductToIndexNow } = require("../../routes/seoRoutes");
+
+const normalizeImageValue = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    if (typeof value.url === "string") return normalizeImageValue(value.url);
+    if (typeof value.imageUrl === "string") return normalizeImageValue(value.imageUrl);
+    return "";
+  }
+
+  if (typeof value !== "string") return "";
+
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("/api/image-proxy?url=")) {
+    try {
+      const parsed = new URL(trimmed, env.FRONTEND_URL || "https://www.nileflowafrica.com");
+      const target = parsed.searchParams.get("url");
+      if (target) return normalizeImageValue(target);
+    } catch (error) {
+      console.warn("Failed to parse proxy image URL:", error.message);
+    }
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.toString();
+    } catch (error) {
+      console.warn("Invalid absolute image URL:", trimmed);
+    }
+  }
+
+  const embeddedUrlMatch = trimmed.match(/https?:\/\/[^\s"'<>]+/i);
+  if (embeddedUrlMatch) {
+    try {
+      return new URL(embeddedUrlMatch[0]).toString();
+    } catch (error) {
+      console.warn("Invalid embedded image URL:", embeddedUrlMatch[0]);
+    }
+  }
+
+  return "";
+};
+
+const normalizeImageList = (value) => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeImageValue(item))
+      .filter(Boolean);
+  }
+
+  const single = normalizeImageValue(value);
+  return single ? [single] : [];
+};
+
+const sanitizeProductForResponse = (productDoc) => {
+  if (!productDoc || typeof productDoc !== "object") return productDoc;
+
+  const sanitized = { ...productDoc };
+  const normalizedImage = normalizeImageValue(sanitized.image);
+
+  if (normalizedImage) {
+    sanitized.image = normalizedImage;
+  } else {
+    delete sanitized.image;
+  }
+
+  const normalizedImages = normalizeImageList(sanitized.images);
+  if (normalizedImages.length > 0) {
+    sanitized.images = normalizedImages;
+  } else {
+    delete sanitized.images;
+  }
+
+  return sanitized;
+};
 
 const productController = {
-  // Create Product
+  // Create Product — publishes immediately unless approval feature flag is enabled
   async createProduct(req, res) {
     try {
       const vendorId = req.user.userId;
@@ -22,20 +105,23 @@ const productController = {
         name,
         description,
         price,
-        categoryId, // Now using ID instead of name
-        subcategoryId, // Add this for main products
+        categoryId,
+        subcategoryId,
         tags,
         inventory,
         attributes,
         image,
         images,
-        // Add fields for main product
-        type = "physical", // Default to physical
+        type = "physical",
         brand = "",
         details = "",
-        currency = "USD", // Default currency
-        specifications = {}, // Default empty object
+        currency = "USD",
+        specifications = {},
       } = req.body;
+
+      const normalizedImage = normalizeImageValue(image);
+      const normalizedImages = normalizeImageList(images);
+      const primaryImage = normalizedImage || normalizedImages[0] || "";
 
       // Generate SKU
       const generateSKU = () => {
@@ -67,6 +153,10 @@ const productController = {
         }
       }
 
+      // Build status fields from the publishing policy
+      const statusFields = await productPublishingService.buildStatusFields();
+      const requiresApproval = await productPublishingService.isApprovalRequired();
+
       // Get vendor details to include in main product
       let vendorDetails = null;
       try {
@@ -88,47 +178,54 @@ const productController = {
         };
       } catch (vendorError) {
         console.warn("Could not fetch vendor details:", vendorError.message);
-        // Use minimal vendor info
         vendorDetails = {
           id: vendorId,
           storeName: "Vendor Store",
         };
       }
 
-      // Generate unique ID for the product (use same ID for both collections)
+      // Generate unique ID for the product
       const productId = ID.unique();
-      const sku = generateSKU(); // Generate SKU
+      const sku = generateSKU();
 
-      // 1. Create product in VENDOR'S collection (with vendor schema)
+      // 1. Create product in VENDOR'S collection
+      const vendorProductPayload = {
+        vendorId,
+        name: name.trim(),
+        description: description?.trim() || "",
+        price: parseFloat(price),
+        category: categoryId,
+        tags: Array.isArray(tags)
+          ? tags
+          : tags
+            ? tags.split(",").map((tag) => tag.trim())
+            : [],
+        inventory: parseInt(inventory) || 0,
+        attributes: JSON.stringify(parsedAttributes),
+        sku: sku,
+        isActive: statusFields.isActive,
+        isFeatured: false,
+        rating: 0,
+        reviewCount: 0,
+        status: statusFields.status,
+        publishedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (primaryImage) {
+        vendorProductPayload.image = primaryImage;
+      }
+
+      if (normalizedImages.length > 0) {
+        vendorProductPayload.images = normalizedImages;
+      }
+
       const vendorProduct = await db.createDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_PRODUCTS_COLLECTION_ID,
         productId,
-        {
-          // Vendor product schema
-          vendorId,
-          name: name.trim(),
-          description: description?.trim() || "",
-          price: parseFloat(price),
-          category: categoryId, // Store the ID
-          tags: Array.isArray(tags)
-            ? tags
-            : tags
-              ? tags.split(",").map((tag) => tag.trim())
-              : [],
-          inventory: parseInt(inventory) || 0,
-          attributes: JSON.stringify(parsedAttributes),
-          image: image || "",
-          images: images || [],
-          sku: sku, // Add SKU field
-          isActive: true,
-          
-          isFeatured: false,
-          rating: 0,
-          reviewCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
+        vendorProductPayload,
       );
 
       const MAIN_VENDOR_COLLECTION_ID = env.MAIN_VENDORS_COLLECTION_ID; // Define this in your env or here
@@ -175,29 +272,34 @@ const productController = {
       }
 
       // If the main product collection is not configured, record that and skip main creation
+      let mainProduct = null;
+      let mainSyncInfo = null;
+
       if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
         const reason = "APPWRITE_PRODUCT_COLLECTION_ID not configured - skipping main store creation";
         console.warn("⚠️", reason);
         console.warn("⚠️ env.APPWRITE_DATABASE_ID:", env.APPWRITE_DATABASE_ID);
         console.warn("⚠️ env.APPWRITE_PRODUCT_COLLECTION_ID:", env.APPWRITE_PRODUCT_COLLECTION_ID);
+
+        mainSyncInfo = {
+          success: false,
+          reason,
+          source: "vendor-create",
+          timestamp: new Date().toISOString(),
+        };
+
         try {
-          const notConfiguredData = {
-            mainSync: {
-              success: false,
-              reason,
-              timestamp: new Date().toISOString(),
-            },
-          };
-          
+          const notConfiguredData = { mainSync: mainSyncInfo };
+
           console.log("[NOT CONFIGURED] Writing mainSync to vendor product:", JSON.stringify(notConfiguredData, null, 2));
-          
+
           await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
             notConfiguredData,
           );
-          
+
           console.log("[NOT CONFIGURED] Successfully wrote mainSync info");
         } catch (uErr) {
           console.warn("⚠️ Failed to update vendor product with mainSync info:", uErr.message);
@@ -205,14 +307,12 @@ const productController = {
       }
 
       // 2. ALSO create product in MAIN WEBSITE collection (with different schema)
-      let mainProduct = null;
       try {
         // If product collection not configured, don't attempt creation
         if (!env.APPWRITE_DATABASE_ID || !env.APPWRITE_PRODUCT_COLLECTION_ID) {
           throw new Error("Product collection not configured");
         }
-        // Build the main product document with only essential schema-safe fields
-        // Use a two-phase approach: create minimal document first, then add metadata fields
+        // Build the main product document with status determined by publishing policy
         const mainProductData = {
           // Core fields (must match admin.js addProduct schema)
           productName: name.trim(),
@@ -225,24 +325,31 @@ const productController = {
           category: categoryId,
           categoryId: [categoryId],
           subcategoryId: subcategoryId || "",
-          image: image || "",
-          images: images || [],
           specifications: typeof parsedAttributes === 'object' 
             ? JSON.stringify(parsedAttributes) 
             : (parsedAttributes || ''),
           stock: parseInt(inventory) || 0,
           sku: `VENDOR-${productId.slice(0, 8)}`,
           
-          // Approval/status (must match ProductapprovalController expectations)
-          isActive: false,
+          // Status determined by publishing policy (live or pending)
+          isActive: statusFields.isActive,
           isFeatured: false,
-          isApproved: false,
-          status: "pending",
+          isApproved: statusFields.isApproved,
+          status: statusFields.status,
+          publishedAt: new Date().toISOString(),
 
           // Vendor info
           vendorId: vendorId,
           vendorName: vendorDetails.storeName,
         };
+
+        if (primaryImage) {
+          mainProductData.image = primaryImage;
+        }
+
+        if (normalizedImages.length > 0) {
+          mainProductData.images = normalizedImages;
+        }
 
         // Use instrumentedDb for observability and consistency with admin controllers
         mainProduct = await instrumentedDb.createDocument(
@@ -282,109 +389,180 @@ const productController = {
         } catch (updateErr) {
           console.warn("⚠️ Optional fields update failed (non-critical):", updateErr.message);
         }
-        console.log("✅ Product added to main collection (pending approval)");
+        mainSyncInfo = {
+          success: true,
+          reason: "Product created in main store",
+          source: "vendor-create",
+          productId: mainProduct.$id,
+          status: statusFields.status,
+          timestamp: new Date().toISOString(),
+        };
 
-          try {
+        console.log(`✅ Product added to main collection (status: ${statusFields.status})`);
+
+        try {
           // Get all admin users (or specific admin IDs)
           const admins = await instrumentedDb.listDocuments(
-            env.APPWRITE_DATABASE_ID, // Or your users database
-            env.APPWRITE_ADMIN_COLLECTION_ID, // Your users collection
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_ADMIN_COLLECTION_ID,
             [Query.equal("role", "admin"), Query.limit(10)],
           );
 
-          // Create notification for each admin
-          for (const admin of admins.documents) {
-            await CreateProductApprovalNotification({
-              message: `New product submission: "${name}" by ${vendorDetails.storeName}`,
-              type: "product_submission",
-              username: admin.name || "Admin",
-              email: admin.email,
-              userId: admin.$id,
+          if (requiresApproval) {
+            // ── APPROVAL REQUIRED: Send pending-approval notifications ──
+            for (const admin of admins.documents) {
+              await CreateProductApprovalNotification({
+                message: `New product submission: "${name}" by ${vendorDetails.storeName}`,
+                type: "product_submission",
+                username: admin.name || "Admin",
+                email: admin.email,
+                userId: admin.$id,
+                metadata: JSON.stringify({
+                  productId,
+                  productName: name,
+                  vendorId,
+                  vendorName: vendorDetails.storeName,
+                  vendorEmail: vendorDetails.email,
+                  price: parseFloat(price),
+                  category: categoryId,
+                  image: primaryImage,
+                  submittedAt: new Date().toISOString(),
+                  actionUrl: `/admin/products/pending/${productId}`,
+                }),
+              });
+            }
 
-              // Add product details to notification
+            await CreateProductApprovalNotification({
+              message: `Your product "${name}" has been submitted for admin approval`,
+              type: "product_submitted",
+              username: vendorDetails.name,
+              email: vendorDetails.email,
+              userId: vendorId,
               metadata: JSON.stringify({
                 productId,
                 productName: name,
-                vendorId,
-                vendorName: vendorDetails.storeName,
-                vendorEmail: vendorDetails.email,
-                price: parseFloat(price),
-                category: categoryId,
-                image: image || "",
+                status: "pending",
                 submittedAt: new Date().toISOString(),
-                actionUrl: `/admin/products/pending/${productId}`, // Link to admin panel
               }),
+            });
+
+            // Appwrite email/SMS for approval
+            setImmediate(async () => {
+              try {
+                for (const admin of admins.documents) {
+                  if (admin.email) {
+                    await sendAppwriteEmail({
+                      userId: admin.$id,
+                      email: admin.email,
+                      subject: `⚠️ New Product Pending Approval — ${name}`,
+                      content: `<h2>New Product Submission</h2>
+                        <p>A vendor has submitted a new product for approval:</p>
+                        <ul>
+                          <li><strong>Product:</strong> ${name}</li>
+                          <li><strong>Vendor:</strong> ${vendorDetails.storeName}</li>
+                          <li><strong>Price:</strong> $${parseFloat(price)}</li>
+                          <li><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
+                        </ul>
+                        <p><a href="${env.FRONTEND_URL || "https://admin.nileflowafrica.com"}/admin/products/pending/${productId}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">Review Product</a></p>`,
+                    });
+                  }
+                  if (admin.phone) {
+                    await sendAppwriteSms({
+                      userId: admin.$id,
+                      phone: admin.phone,
+                      content: `NileFlow: New product "${name}" submitted by ${vendorDetails.storeName} ($${parseFloat(price)}). Review it now on the admin panel.`,
+                    });
+                  }
+                }
+              } catch (appwriteMsgErr) {
+                console.warn("[AppwriteMessaging] Approval notification error:", appwriteMsgErr.message);
+              }
+            });
+          } else {
+            // ── NO APPROVAL REQUIRED: Send informational "published" notifications ──
+            const publishedAt = new Date().toISOString();
+            
+            for (const admin of admins.documents) {
+              await CreateProductPublishedNotification({
+                message: `🆕 New product published: "${name}" by ${vendorDetails.storeName} — $${parseFloat(price)}`,
+                type: "product_published",
+                username: admin.name || "Admin",
+                email: admin.email,
+                userId: admin.$id,
+                metadata: JSON.stringify({
+                  productId,
+                  productName: name,
+                  vendorId,
+                  vendorName: vendorDetails.storeName,
+                  vendorEmail: vendorDetails.email,
+                  price: parseFloat(price),
+                  category: categoryId,
+                  image: primaryImage,
+                  publishedAt,
+                  status: "live",
+                  actionUrl: `/admin/products/${productId}`,
+                }),
+              });
+            }
+
+            // Notify vendor their product is live
+            await CreateProductPublishedNotification({
+              message: `✅ Your product "${name}" is now live and visible to customers!`,
+              type: "product_published",
+              username: vendorDetails.name,
+              email: vendorDetails.email,
+              userId: vendorId,
+              metadata: JSON.stringify({
+                productId,
+                productName: name,
+                status: "live",
+                publishedAt,
+                viewUrl: `/products/${productId}`,
+              }),
+            });
+
+            // Appwrite email/SMS for informational notification
+            setImmediate(async () => {
+              try {
+                for (const admin of admins.documents) {
+                  if (admin.email) {
+                    await sendAppwriteEmail({
+                      userId: admin.$id,
+                      email: admin.email,
+                      subject: `🆕 New Product Published — ${name}`,
+                      content: `<h2>New Product Published</h2>
+                        <p>A vendor has published a new product:</p>
+                        <ul>
+                          <li><strong>Product:</strong> ${name}</li>
+                          <li><strong>Vendor:</strong> ${vendorDetails.storeName}</li>
+                          <li><strong>Price:</strong> $${parseFloat(price)}</li>
+                          <li><strong>Status:</strong> Live</li>
+                          <li><strong>Published:</strong> ${new Date().toLocaleString()}</li>
+                        </ul>
+                        <p>No approval action required. Review if necessary.</p>
+                        <p><a href="${env.FRONTEND_URL || "https://admin.nileflowafrica.com"}/admin/products/${productId}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">View Product</a></p>`,
+                    });
+                  }
+                  if (admin.phone) {
+                    await sendAppwriteSms({
+                      userId: admin.$id,
+                      phone: admin.phone,
+                      content: `NileFlow: New product "${name}" published by ${vendorDetails.storeName} ($${parseFloat(price)}). View it on the admin panel.`,
+                    });
+                  }
+                }
+              } catch (appwriteMsgErr) {
+                console.warn("[AppwriteMessaging] Published notification error:", appwriteMsgErr.message);
+              }
             });
           }
 
-          // Also create a notification for the vendor
-          await CreateProductApprovalNotification({
-            message: `Your product "${name}" has been submitted for admin approval`,
-            type: "product_submitted",
-            username: vendorDetails.name,
-            email: vendorDetails.email,
-            userId: vendorId,
-            metadata: JSON.stringify({
-              productId,
-              productName: name,
-              status: "pending",
-              submittedAt: new Date().toISOString(),
-            }),
-          });
-
-          console.log("📢 In-app notifications sent to admin and vendor");
-
-          // ========== APPWRITE MESSAGING (SMS + Email to admin) ==========
-          // Fire-and-forget: never blocks the main flow
-          setImmediate(async () => {
-            try {
-              const productName = name;
-              const vendorStore = vendorDetails.storeName;
-              const productPrice = parseFloat(price);
-
-              for (const admin of admins.documents) {
-                // Send email via Appwrite Messaging
-                if (admin.email) {
-                  await sendAppwriteEmail({
-                    userId: admin.$id,
-                    email: admin.email,
-                    subject: `⚠️ New Product Pending Approval — ${productName}`,
-                    content: `<h2>New Product Submission</h2>
-                      <p>A vendor has submitted a new product for approval:</p>
-                      <ul>
-                        <li><strong>Product:</strong> ${productName}</li>
-                        <li><strong>Vendor:</strong> ${vendorStore}</li>
-                        <li><strong>Price:</strong> $${productPrice}</li>
-                        <li><strong>Submitted:</strong> ${new Date().toLocaleString()}</li>
-                      </ul>
-                      <p><a href="${env.FRONTEND_URL || "https://admin.nileflowafrica.com"}/admin/products/pending/${productId}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">Review Product</a></p>`,
-                  });
-                }
-
-                // Send SMS via Appwrite Messaging
-                if (admin.phone) {
-                  await sendAppwriteSms({
-                    userId: admin.$id,
-                    phone: admin.phone,
-                    content: `NileFlow: New product "${productName}" submitted by ${vendorStore} ($${productPrice}). Review it now on the admin panel.`,
-                  });
-                }
-              }
-            } catch (appwriteMsgErr) {
-              console.warn(
-                "[AppwriteMessaging] Product notification error:",
-                appwriteMsgErr.message,
-              );
-            }
-          });
-
-          console.log("📢 Appwrite SMS/Email notifications dispatched to admins");
+          console.log(`📢 ${requiresApproval ? "Approval" : "Published"} notifications dispatched`);
         } catch (notificationError) {
           console.error(
             "Notification error (product still saved):",
             notificationError,
           );
-          // Don't fail the whole request if notification fails
         }
       } catch (mainProductError) {
         console.error("❌ Failed to add product to main collection:", mainProductError);
@@ -397,29 +575,30 @@ const productController = {
           stack: mainProductError?.stack?.split('\n').slice(0, 5).join('\n'),
         });
 
+        mainSyncInfo = {
+          success: false,
+          error: errMsg,
+          details:
+            mainProductError && mainProductError.response
+              ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
+              : (mainProductError?.toString && mainProductError.toString()),
+          source: "vendor-create",
+          timestamp: new Date().toISOString(),
+        };
+
         // Persist sync failure into the vendor product so it's visible in vendor dashboard/logs
         try {
-          const syncFailureData = {
-            mainSync: {
-              success: false,
-              error: errMsg,
-              details:
-                mainProductError && mainProductError.response
-                  ? JSON.stringify(mainProductError.response.data || mainProductError.response, null, 2)
-                  : (mainProductError?.toString && mainProductError.toString()),
-              timestamp: new Date().toISOString(),
-            },
-          };
-          
+          const syncFailureData = { mainSync: mainSyncInfo };
+
           console.log("[MAIN SYNC FAILURE] Updating vendor product with mainSync:", JSON.stringify(syncFailureData, null, 2));
-          
+
           await db.updateDocument(
             env.VENDOR_DATABASE_ID,
             env.VENDOR_PRODUCTS_COLLECTION_ID,
             productId,
             syncFailureData,
           );
-          
+
           console.log("[MAIN SYNC FAILURE] Successfully persisted mainSync info to vendor product");
         } catch (uErr) {
           console.warn("⚠️ Failed to write mainSync info to vendor product:", uErr.message);
@@ -445,34 +624,63 @@ const productController = {
       }
 
       // Extract mainSync info if present (will be set if main product creation failed)
-      const mainSyncInfo = freshVendorProduct?.mainSync || null;
-      
+      const persistedMainSyncInfo = freshVendorProduct?.mainSync || null;
+      const effectiveMainSyncInfo = mainSyncInfo || persistedMainSyncInfo || {
+        success: false,
+        reason: "Main store sync not completed",
+        source: "vendor-create",
+        timestamp: new Date().toISOString(),
+      };
+
       console.log("[RESPONSE BUILD] addedToMainStore:", !!mainProduct);
-      console.log("[RESPONSE BUILD] mainSyncInfo:", mainSyncInfo);
+      console.log("[RESPONSE BUILD] mainSyncInfo:", effectiveMainSyncInfo);
       console.log("[RESPONSE BUILD] APPWRITE_PRODUCT_COLLECTION_ID configured:", !!env.APPWRITE_PRODUCT_COLLECTION_ID);
       
-      // Build summary of what happened
+      // Submit the product URL to IndexNow (Bing/Yandex) for immediate indexing
+      if (!requiresApproval && mainProduct) {
+        setImmediate(async () => {
+          try {
+            await submitProductToIndexNow(productId);
+            console.log(`[IndexNow] Submitted product ${productId} for indexing`);
+          } catch (indexNowErr) {
+            console.warn("[IndexNow] Submission failed (non-critical):", indexNowErr.message);
+          }
+        });
+      }
+
+      // Build summary based on current publishing policy
+      const isLive = !requiresApproval;
       let syncSummary = "";
       if (mainProduct) {
-        syncSummary = "✅ Product successfully synced to main store (pending approval)";
-      } else if (mainSyncInfo) {
-        syncSummary = `⚠️ Main store sync failed: ${mainSyncInfo.reason || mainSyncInfo.error || "Unknown error"}`;
+        if (isLive) {
+          syncSummary = `✅ Product published and live on the store!`;
+        } else {
+          syncSummary = "✅ Product submitted for admin approval.";
+        }
+      } else if (effectiveMainSyncInfo) {
+        syncSummary = `⚠️ Main store sync issue: ${effectiveMainSyncInfo.reason || effectiveMainSyncInfo.error || "Unknown error"}`;
       } else {
         syncSummary = "⚠️ Main store sync status unknown - check backend logs";
       }
 
+      const displayStatus = isLive ? "live" : "pending_approval";
+      const displayMessage = isLive
+        ? "Product created successfully and is now live!"
+        : "Product created successfully and submitted for admin approval";
+
+      const responseProduct = sanitizeProductForResponse(freshVendorProduct);
+
       res.status(201).json({
         success: true,
-        message:
-          "Product created successfully and submitted for admin approval",
-        status: "pending_approval",
+        message: displayMessage,
+        status: displayStatus,
+        isLive,
         syncSummary,
         data: {
-          product: freshVendorProduct,
+          product: responseProduct,
           addedToMainStore: !!mainProduct,
           mainProductId: mainProduct?.$id,
-          // Explicitly include mainSync info at top level for easier frontend access
-          mainSync: mainSyncInfo,
+          mainSync: effectiveMainSyncInfo,
         },
       });
     } catch (error) {
@@ -705,6 +913,45 @@ const productController = {
         productId,
       );
 
+      // Also remove the mirrored product from the main website collection.
+      if (env.APPWRITE_DATABASE_ID && env.APPWRITE_PRODUCT_COLLECTION_ID) {
+        try {
+          await instrumentedDb.deleteDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_PRODUCT_COLLECTION_ID,
+            productId,
+          );
+        } catch (mainDeleteError) {
+          if (mainDeleteError?.code !== 404) {
+            console.warn(
+              "⚠️ Failed to delete mirrored main product by ID, trying vendorProductId fallback:",
+              mainDeleteError.message,
+            );
+          }
+
+          try {
+            const matchedProducts = await instrumentedDb.listDocuments(
+              env.APPWRITE_DATABASE_ID,
+              env.APPWRITE_PRODUCT_COLLECTION_ID,
+              [Query.equal("vendorProductId", productId), Query.limit(1)],
+            );
+
+            const mirroredProduct = matchedProducts?.documents?.[0];
+            if (mirroredProduct?.$id) {
+              await instrumentedDb.deleteDocument(
+                env.APPWRITE_DATABASE_ID,
+                env.APPWRITE_PRODUCT_COLLECTION_ID,
+                mirroredProduct.$id,
+              );
+            }
+          } catch (fallbackError) {
+            if (fallbackError?.code !== 404) {
+              console.warn("⚠️ Failed to delete mirrored main product via fallback:", fallbackError.message);
+            }
+          }
+        }
+      }
+
       res.json({
         success: true,
         message: "Product deleted successfully",
@@ -831,12 +1078,14 @@ const productController = {
 
       console.log("✅ Image uploaded successfully:", imageUrl);
 
+      const responseProduct = sanitizeProductForResponse(updatedProduct);
+
       res.json({
         success: true,
         message: "Image uploaded successfully",
         data: {
           image: uploadedImage,
-          product: updatedProduct,
+          product: responseProduct,
         },
       });
     } catch (error) {

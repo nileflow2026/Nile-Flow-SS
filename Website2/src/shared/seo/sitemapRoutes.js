@@ -1,21 +1,19 @@
-export const sitemapRoutes = [
-  '/',
-  '/products',
-  '/products/featured-item',
-  '/products/daily-essentials',
-  '/products/premium-pick',
-  '/about',
-  '/contact',
-  '/help',
-  '/cart',
-  '/checkout',
-  '/login',
-  '/404',
-]
+/**
+ * Sitemap Routes Configuration
+ *
+ * This file is kept for backward compatibility with any existing imports.
+ * For dynamic sitemap generation, use SitemapGenerator.js instead.
+ *
+ * The dynamic generator excludes cart, checkout, login, signup, and other
+ * non-indexable paths automatically. See SitemapGenerator.js for the
+ * canonical list of included/excluded routes.
+ */
+
+import { STATIC_ROUTES } from './SitemapGenerator'
+
+export const sitemapRoutes = STATIC_ROUTES.map((r) => r.path)
 
 export function buildSitemapXml() {
-  const baseUrl = 'https://www.nileflowafrica.com'
-  const urls = sitemapRoutes.map((route) => `  <url><loc>${baseUrl}${route}</loc></url>`)
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`
+  const { generateMainSitemap } = require('./SitemapGenerator')
+  return generateMainSitemap()
 }

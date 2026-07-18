@@ -330,18 +330,22 @@ const getProducts = async (req, res) => {
     // Search filter (search in multiple fields)
     // NOTE: tags is excluded from search because it's an array attribute,
     // and Appwrite's Query.search does not support array attributes.
+    // NOTE: Query.search requires a fulltext index on the attribute.
+    // Only productName has a fulltext index; description and brand use contains instead.
     if (search) {
       const normalizedSearch = search.trim().toLowerCase();
-      baseFilters.push(
-        Query.or([
-          Query.search("productName", normalizedSearch),
-          Query.search("description", normalizedSearch),
-          Query.search("brand", normalizedSearch),
-          Query.search("productName", search),
-          Query.search("description", search),
-          Query.search("brand", search),
-        ]),
-      );
+      // Split search into individual terms for broader matching on description/brand
+      const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
+      const searchConditions = [
+        Query.search("productName", normalizedSearch),
+        Query.search("productName", search),
+      ];
+      // For fields without fulltext indexes, use contains (case-insensitive matching)
+      searchTerms.forEach((term) => {
+        searchConditions.push(Query.contains("description", term));
+        searchConditions.push(Query.contains("brand", term));
+      });
+      baseFilters.push(Query.or(searchConditions));
     }
 
     // Price range

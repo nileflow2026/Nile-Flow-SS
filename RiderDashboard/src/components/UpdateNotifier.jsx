@@ -1,5 +1,6 @@
 import { Component, useEffect, useState } from "react";
 import { checkForUpdate } from "../core/versionManager";
+import { shouldAutoReloadForVersion } from "../core/versionManager";
 
 const CHECK_INTERVAL_MS = 60_000; // 60 seconds
 
@@ -14,7 +15,7 @@ function UpdateBanner() {
       if (cancelled) return;
 
       if (result.hasUpdate) {
-        if (result.force) {
+        if (result.force && shouldAutoReloadForVersion(result.version)) {
           window.location.reload();
           return;
         }

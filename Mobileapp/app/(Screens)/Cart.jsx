@@ -483,7 +483,7 @@ const Cart = () => {
                 ellipsizeMode="tail"
               >
                 Shipping
-              </Text>
+              </Text> 
             </View>
           )}
           <View style={[styles.summaryBox, { backgroundColor: "#F3F4F6" }]}>
@@ -630,7 +630,7 @@ const Cart = () => {
               <Text style={styles.orderSummaryLabel}>Subtotal</Text>
               <Text style={styles.orderSummaryValue}>{formattedSubtotal}</Text>
             </View>
-            <View style={styles.orderSummaryRow}>
+            {/* <View style={styles.orderSummaryRow}>
               <Text style={styles.orderSummaryLabel}>Shipping</Text>
               <Text style={styles.orderSummaryValue}>
                 {shipping === 0 ? "FREE" : formattedShipping}
@@ -639,11 +639,11 @@ const Cart = () => {
             <View style={styles.orderSummaryRow}>
               <Text style={styles.orderSummaryLabel}>Tax</Text>
               <Text style={styles.orderSummaryValue}>{formattedTax}</Text>
-            </View>
+            </View> */}
             <View style={styles.orderSummaryRowTotal}>
               <Text style={styles.orderSummaryTotalLabel}>Total</Text>
               <Text style={styles.orderSummaryTotalValue}>
-                {formattedTotal}
+                {/* {formattedTotal} */} {formattedSubtotal}
               </Text>
             </View>
             <TouchableOpacity
