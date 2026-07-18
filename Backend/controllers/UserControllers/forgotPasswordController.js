@@ -30,11 +30,10 @@ const sendForgotPasswordCode = async (req, res) => {
     );
 
     if (userQuery.documents.length === 0) {
-      // For security, don't reveal if email exists
-      return res.status(200).json({
-        success: true,
-        message:
-          "If an account with that email exists, a reset code has been sent.",
+      return res.status(404).json({
+        success: false,
+        error: "user_not_found",
+        message: "No account found with this email. Please create a new account.",
       });
     }
 

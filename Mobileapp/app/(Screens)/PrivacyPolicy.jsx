@@ -3,7 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
-  BackHandler,
+  BackHandler, 
   Dimensions,
   ScrollView,
   StyleSheet,

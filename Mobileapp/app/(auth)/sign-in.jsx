@@ -369,7 +369,7 @@ const SignIn = () => {
                 />
 
                 {/* Divider */}
-                <View className="mb-6">
+                {/* View className="mb-6">
                   <View className="flex-row items-center">
                     <View className="flex-1 border-t border-gray-200" />
                     <View className="px-6">
@@ -388,10 +388,10 @@ const SignIn = () => {
                     </View>
                     <View className="flex-1 border-t border-gray-200" />
                   </View>
-                </View>
+                </View> */}
 
-                {/* Social Login Buttons */}
-                <View className="flex-row gap-3 mb-6">
+                
+                {/* <View className="flex-row gap-3 mb-6">
                   <TouchableOpacity
                     onPress={handleGoogleSignIn}
                     style={{
@@ -421,7 +421,7 @@ const SignIn = () => {
                       Google
                     </Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
               </View>
 
               {/* Sign Up Link */}

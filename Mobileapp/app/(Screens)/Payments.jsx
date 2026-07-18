@@ -18,6 +18,7 @@ import {
 } from "lucide-react-native";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
+import { MaterialIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +27,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -761,6 +763,20 @@ const Payments = () => {
           style={{ flex: 1 }}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
+          <View style={styles.header}>
+                    <TouchableOpacity
+                      onPress={() => router.back()}
+                      style={styles.backButton}
+                    >
+                      <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+                    </TouchableOpacity>
+                    <View>
+                      
+                      <Text style={styles.headerTitle}>
+                        Track Your Orders
+                      </Text>
+                    </View>
+        </View>
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
@@ -769,6 +785,7 @@ const Payments = () => {
             keyboardDismissMode="interactive"
             nestedScrollEnabled={true}
           >
+            
             {/* Header Section */}
             <View style={{ marginBottom: 32 }}>
               <View
@@ -1210,3 +1227,28 @@ const Payments = () => {
 };
 
 export default Payments;
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+   headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+})
