@@ -55,7 +55,7 @@ module.exports = () => ({
       enableOnBackInvokedCallback: true,
       predictiveBackGestureEnabled: true,
       package: "com.nileflowafrica",
-      /* proguardRule: "./android/app/proguard-rules.pro", */
+      proguardRule: "./android/app/proguard-rules.pro",
       supportsRtl: true,
     },
     web: {
@@ -76,6 +76,18 @@ module.exports = () => ({
       "expo-sharing",
       "expo-font",
     "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            enableProguardInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
+            minSdkVersion: 24,
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+          },
+        },
+      ],
 
       [
         "expo-notifications",
