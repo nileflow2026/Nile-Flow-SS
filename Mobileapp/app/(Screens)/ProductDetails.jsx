@@ -1437,7 +1437,7 @@ const ProductDetails = () => {
                 product?.productName || product?.name || "Product";
               const productDesc =
                 product?.description || product?.details || "";
-              const fallbackStoreUrl = "https://google.com";
+              const fallbackStoreUrl = "https://play.google.com/store/apps/details?id=com.nileflowafrica&pcampaignid=web_share";
 
               const appLinkUrl = product?.url || fallbackStoreUrl;
               const completeCaption = `${productName}\n\n${productDesc}\n\nCheck it out here: ${appLinkUrl}`;
@@ -1451,7 +1451,7 @@ const ProductDetails = () => {
                   .substring(0, 20);
 
                 // 2. Download the image locally to the device cache as a temporary file
-                const storageDestinationUri = `${FileSystem.Paths.cacheDirectory}${sanitizedSystemTitle}.${cleanFileExtension}`;
+                const storageDestinationUri = `${FileSystem.cacheDirectory}${sanitizedSystemTitle}.${cleanFileExtension}`;
                 const fileAssetResult = await FileSystem.downloadAsync(
                   imageUrl,
                   storageDestinationUri,

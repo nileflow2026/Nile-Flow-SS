@@ -22,6 +22,54 @@ import ProductCard from "../components/ProductCard";
 
 const { width } = Dimensions.get("window");
 
+const VendorStoreSkeleton = () => (
+  <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    {/* Header skeleton */}
+    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", backgroundColor: "#FFFFFF" }}>
+      <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "#E5E7EB" }} />
+      <View style={{ width: 120, height: 20, borderRadius: 6, backgroundColor: "#E5E7EB" }} />
+    </View>
+
+    {/* Store header skeleton */}
+    <View style={{ paddingHorizontal: 16, paddingVertical: 24, backgroundColor: "#F9FAFB", borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: "#E5E7EB" }} />
+        <View style={{ flex: 1 }}>
+          <View style={{ width: 140, height: 20, borderRadius: 6, backgroundColor: "#E5E7EB", marginBottom: 8 }} />
+          <View style={{ width: 100, height: 14, borderRadius: 6, backgroundColor: "#E5E7EB" }} />
+        </View>
+      </View>
+    </View>
+
+    {/* Controls skeleton */}
+    <View style={{ paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <View style={{ flex: 1, height: 40, borderRadius: 12, backgroundColor: "#E5E7EB" }} />
+        <View style={{ width: 80, height: 40, borderRadius: 12, backgroundColor: "#E5E7EB" }} />
+      </View>
+    </View>
+
+    {/* Product grid skeleton — 2 columns, 4 rows */}
+    <View style={{ flexDirection: "row", paddingHorizontal: 10, gap: 10, paddingTop: 16 }}>
+      {[0, 1].map((col) => (
+        <View key={col} style={{ flex: 1, gap: 16 }}>
+          {[0, 1, 2, 3].map((row) => (
+            <View key={row} style={{ borderRadius: 24, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#F9FAFB", overflow: "hidden" }}>
+              <View style={{ height: 180, backgroundColor: "#E5E7EB" }} />
+              <View style={{ padding: 12 }}>
+                <View style={{ width: "85%", height: 14, borderRadius: 4, backgroundColor: "#E5E7EB", marginBottom: 8 }} />
+                <View style={{ width: "50%", height: 10, borderRadius: 4, backgroundColor: "#E5E7EB", marginBottom: 10 }} />
+                <View style={{ width: "60%", height: 18, borderRadius: 4, backgroundColor: "#E5E7EB", marginBottom: 10 }} />
+                <View style={{ width: "100%", height: 36, borderRadius: 12, backgroundColor: "#E5E7EB" }} />
+              </View>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  </View>
+);
+
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "price-low", label: "Price: Low → High" },
@@ -158,20 +206,7 @@ const VendorStore = () => {
 
   // ── Loading ─────────────────────────────────────────────────
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Store</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#16A34A" />
-          <Text style={styles.loadingText}>Loading store…</Text>
-        </View>
-      </View>
-    );
+    return <VendorStoreSkeleton />;
   }
 
   // ── Error ───────────────────────────────────────────────────

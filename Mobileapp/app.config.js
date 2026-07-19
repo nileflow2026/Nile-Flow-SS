@@ -6,7 +6,7 @@ module.exports = () => ({
   expo: {
     name: "Nile Flow",
     slug: "nile-flow-app",
-    version: "2.5.23",
+    version: "2.5.24",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "nileflowapp",
