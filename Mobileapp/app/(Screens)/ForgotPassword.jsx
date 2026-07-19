@@ -87,10 +87,21 @@ const ForgotPassword = () => {
       setTimeLeft(60);
       setCanResend(false);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to send reset code. Please try again.",
-      );
+      const errorData = err.response?.data;
+      // Check if user does not exist
+      if (
+        errorData?.error === "user_not_found" ||
+        err.response?.status === 404
+      ) {
+        setError(
+          "No account found with this email. Please create a new account.",
+        );
+      } else {
+        setError(
+          errorData?.message ||
+            "Failed to send reset code. Please try again.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
