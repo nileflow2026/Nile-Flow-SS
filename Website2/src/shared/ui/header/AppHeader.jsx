@@ -4,6 +4,7 @@ import Button from '@shared/ui/button/Button'
 import { useTheme } from '@app/providers/ThemeProvider'
 import { useAuth } from '@auth/AuthContext'
 import { usePostHog } from '@posthog/react'
+import { cartService } from '@api/services'
 
 const navItems = [
   { label: 'Home', to: '/home' },
@@ -24,6 +25,7 @@ function AppHeader() {
   const { isDark, toggleTheme } = useTheme()
   const { isAuthenticated, user, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
   const posthog = usePostHog()
 
   const isLandingRoute = ['/', '/landing', '/Landing'].includes(location.pathname)
@@ -31,6 +33,35 @@ function AppHeader() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname])
+
+  const userId = user?.$id || user?.id
+
+  useEffect(() => {
+    let active = true
+
+    const loadCartCount = async () => {
+      if (!isAuthenticated || !userId) {
+        setCartCount(0)
+        return
+      }
+
+      const items = await cartService.getCart(userId)
+      if (active) {
+        setCartCount(items.reduce((total, item) => total + (item.quantity || 1), 0))
+      }
+    }
+
+    const handleCartUpdate = (event) => {
+      if (!event.detail?.userId || event.detail.userId === userId) loadCartCount()
+    }
+
+    loadCartCount()
+    window.addEventListener('cart:updated', handleCartUpdate)
+    return () => {
+      active = false
+      window.removeEventListener('cart:updated', handleCartUpdate)
+    }
+  }, [isAuthenticated, userId])
 
   const handleSignOut = async () => {
     setSigningOut(true)
@@ -75,7 +106,14 @@ function AppHeader() {
                 }`
               }
             >
-              {item.label}
+              <span className="inline-flex items-center gap-2">
+                {item.label}
+                {item.to === '/cart' && cartCount > 0 && (
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </span>
             </NavLink>
           ))}
           
@@ -122,7 +160,7 @@ function AppHeader() {
 
           <Link
             to="/cart"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
             aria-label="View cart"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -130,6 +168,11 @@ function AppHeader() {
               <circle cx="19" cy="20" r="1" />
               <path d="M3 3h2l2.4 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L17 7H7" />
             </svg>
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Link>
 
           <button

@@ -9,6 +9,12 @@ import { httpClient } from '@api/client/HttpClient';
 
 const BASE = '/cart';
 
+function notifyCartUpdated(userId) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cart:updated', { detail: { userId } }));
+  }
+}
+
 export const cartService = {
   /**
    * Fetch the current user's cart items.
@@ -57,6 +63,7 @@ export const cartService = {
   async addToCart(item) {
     try {
       const response = await httpClient.post(`${BASE}/add`, item);
+      if (response.success) notifyCartUpdated(item.userId);
       return {
         success: response.success,
         data: response.data,
@@ -78,6 +85,7 @@ export const cartService = {
   async removeFromCart(cartItemId) {
     try {
       await httpClient.delete(`${BASE}/remove/${cartItemId}`);
+      notifyCartUpdated();
       return true;
     } catch {
       return false;
@@ -96,6 +104,7 @@ export const cartService = {
       const response = await httpClient.put(`${BASE}/update/${cartItemId}`, {
         quantity,
       });
+      notifyCartUpdated();
       return {
         success: true,
         quantity: response.data?.quantity || quantity,
@@ -117,6 +126,7 @@ export const cartService = {
   async clearCart(userId) {
     try {
       await httpClient.delete(`${BASE}/clear/${userId}`);
+      notifyCartUpdated(userId);
       return true;
     } catch {
       return false;
