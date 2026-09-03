@@ -241,7 +241,7 @@ function sanitizeVendor(vendorObj) {
     location: sanitized.location || "",
     profileImage: sanitized.profileImage || "",
     coverImage: sanitized.coverImage || "",
-    socialLinks: sanitized.socialLinks || {},
+    socialLinks: Array.isArray(sanitized.socialLinks) ? sanitized.socialLinks : [],
     storeStats: sanitized.storeStats || {},
   };
 }
@@ -339,7 +339,7 @@ const vendorauthController = {
           location: location || "",
           profileImage: "",
           coverImage: "",
-          socialLinks: {},
+          socialLinks: [],
           storeStats: JSON.stringify(storeStatsObject),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
