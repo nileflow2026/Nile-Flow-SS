@@ -47,7 +47,7 @@ const addToCart = async (req, res) => {
   try {
     // Use authenticated userId from middleware, not from request body
     const userId = req.user?.userId || req.body.userId;
-    const { productId, productName, image, userName } = req.body;
+    const { productId, productName, image, userName, variantSelection } = req.body;
 
     if (!userId || !productId) {
       return res.status(400).json({ error: "Missing userId or productId" });
@@ -60,18 +60,29 @@ const addToCart = async (req, res) => {
     }
     const trustedPrice = productData.price;
 
-    // Check if item already exists — fix: each Query must be a separate array element
+    const normalizedVariantSelection = variantSelection || {};
+    const variantKey = JSON.stringify(normalizedVariantSelection);
+
+    // A product can have multiple cart lines when the selected variants differ.
     const existing = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
-      [Query.equal("userId", userId), Query.equal("productId", productId)],
+      [
+        Query.equal("userId", userId),
+        Query.equal("productId", productId),
+      ],
     );
 
-    if (existing.documents.length > 0) {
+    const existingVariant = existing.documents.find((document) => {
+      const storedVariant = document.variantSelection || "{}";
+      return storedVariant === variantKey;
+    });
+
+    if (existingVariant) {
       return res.status(200).json({
         success: true,
         message: "Already in cart",
-        item: existing.documents[0],
+        item: existingVariant,
       });
     }
 
@@ -87,6 +98,7 @@ const addToCart = async (req, res) => {
         productImage: image ? encodeURI(image.trim()) : null,
         price: Math.round(Number(trustedPrice)),
         quantity: 1,
+        variantSelection: variantKey,
         createdAt: new Date().toISOString(),
       },
     );
@@ -233,6 +245,7 @@ const loadCart = async (req, res) => {
       productId: String(doc.productId),
       productName: doc.productName,
       productImage: doc.productImage,
+      variantSelection: doc.variantSelection || "",
       date: new Date(doc.createdAt).toDateString(),
       quantity: doc.quantity,
       name: doc.name,

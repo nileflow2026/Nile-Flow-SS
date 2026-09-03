@@ -123,6 +123,7 @@ const ProductDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeImage, setActiveImage] = useState(null);
   const [fetchedImages, setFetchedImages] = useState(null); // null = not yet fetched
+  const [selectedVariants, setSelectedVariants] = useState({});
   const imageScrollRef = useRef(null);
 
   let product = item;
@@ -142,6 +143,18 @@ const ProductDetails = () => {
   if (!product) {
     product = null;
   }
+
+  const productAttributes = typeof product?.specifications === "string"
+    ? (() => {
+        try { return JSON.parse(product.specifications); } catch { return {}; }
+      })()
+    : (product?.attributes || {});
+  const variantOptions = Object.entries(productAttributes)
+    .filter(([key, value]) => ["color", "size"].includes(key) && value)
+    .reduce((options, [key, value]) => ({
+      ...options,
+      [key]: String(value).split(",").map((option) => option.trim()).filter(Boolean),
+    }), {});
 
   // Log final product state for debugging
   useEffect(() => {
@@ -1284,6 +1297,48 @@ const ProductDetails = () => {
               />
             </View>
           </View>
+          {Object.entries(variantOptions).length > 0 && (
+            <View style={{ padding: 16 }}>
+              <View
+                style={{
+                  padding: 20,
+                  borderRadius: 20,
+                  marginBottom: 16,
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                }}
+              >
+                {Object.entries(variantOptions).map(([key, options]) => (
+                  <View key={key} style={{ marginBottom: 16 }}>
+                    <Text style={{ color: "#111827", fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+                      Select {key}
+                    </Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      {options.map((option) => (
+                        <TouchableOpacity
+                          key={option}
+                          onPress={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
+                          style={{
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                            borderRadius: 20,
+                            borderWidth: 1,
+                            borderColor: selectedVariants[key] === option ? "#16A34A" : "#E5E7EB",
+                            backgroundColor: selectedVariants[key] === option ? "#16A34A" : "#F9FAFB",
+                          }}
+                        >
+                          <Text style={{ color: selectedVariants[key] === option ? "#FFFFFF" : "#374151" }}>
+                            {option}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
           {/* Modern Specifications Section */}
           <View style={{ padding: 16 }}>
             <View
@@ -1405,7 +1460,14 @@ const ProductDetails = () => {
               return;
             }
             if (product?.$id) {
-              addToCart(product, user.id, user.userName);
+              const missingVariant = Object.keys(variantOptions).find(
+                (key) => !selectedVariants[key],
+              );
+              if (missingVariant) {
+                Alert.alert("Select an option", `Please select a ${missingVariant} before adding this product.`);
+                return;
+              }
+              addToCart(product, user.id, user.userName, selectedVariants);
             } else {
               Alert.alert("Error", "Product information is not available.");
             }

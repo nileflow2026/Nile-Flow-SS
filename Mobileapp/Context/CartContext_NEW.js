@@ -96,7 +96,7 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const addToCart = async (product, userId) => {
+  const addToCart = async (product, userId, userName, variantSelection = {}) => {
     try {
       // Lock in the currency from the product's own enriched price IMMEDIATELY.
       // This ensures that even if a stale in-flight fetchCartItems response
@@ -149,6 +149,7 @@ export const CartProvider = ({ children }) => {
         price: product.price,
         image: product.image,
         userName,
+        variantSelection,
       });
 
       const data = res.data;

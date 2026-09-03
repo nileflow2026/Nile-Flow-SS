@@ -11,6 +11,7 @@ const API_BASE_URL =
 
 export function proxyImageUrl(url) {
   if (!url) return url;
+  if (url.includes("/api/image-proxy?")) return url;
 
   // Only proxy Appwrite cloud storage URLs
   if (url.includes("cloud.appwrite.io")) {

@@ -33,6 +33,7 @@ function ProductDetailPage() {
   const [addingToCart, setAddingToCart] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [selectedVariants, setSelectedVariants] = useState({})
 
   const loadReviews = useCallback(async () => {
     if (!productId) return
@@ -82,6 +83,12 @@ function ProductDetailPage() {
 
     const userId = user?.$id || user?.id
 
+    const missingVariant = Object.keys(variantOptions).find((key) => !selectedVariants[key])
+    if (missingVariant) {
+      push({ title: 'Select an option', message: `Please select a ${missingVariant} before adding this product.` })
+      return
+    }
+
     setAddingToCart(true)
     const productImage = product.image || product.imageUrl || product.images?.[0] || ''
 
@@ -91,6 +98,7 @@ function ProductDetailPage() {
       productName: product.productName || product.name || 'Product',
       price: product.price || 0,
       image: productImage,
+      variantSelection: selectedVariants,
     })
     setAddingToCart(false)
 
@@ -163,6 +171,17 @@ function ProductDetailPage() {
   const productImages = primaryImage
     ? [primaryImage, ...rawImages.filter((img) => img !== primaryImage)]
     : (rawImages.length > 0 ? rawImages : [])
+  const attributes = typeof product?.attributes === 'string'
+    ? (() => {
+        try { return JSON.parse(product.attributes) } catch { return {} }
+      })()
+    : (product?.attributes || {})
+  const variantOptions = Object.entries(attributes)
+    .filter(([key, value]) => ['color', 'size'].includes(key) && value)
+    .reduce((options, [key, value]) => ({
+      ...options,
+      [key]: String(value).split(',').map((item) => item.trim()).filter(Boolean),
+    }), {})
   const stock = product?.stock
   const inStock = stock === undefined || stock > 0
   const premium = Boolean(product?.premiumEligible)
@@ -253,6 +272,30 @@ function ProductDetailPage() {
                 </p>
               </div>
             )}
+
+            {Object.entries(variantOptions).map(([key, options]) => (
+              <fieldset key={key} className="mt-5">
+                <legend className="text-sm font-semibold capitalize text-[var(--color-text-primary)]">
+                  Select {key}
+                </legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
+                      className={`rounded-full border px-4 py-2 text-sm transition ${
+                        selectedVariants[key] === option
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
 
             <div className="mt-6 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:gap-3">
               <PrimaryButton

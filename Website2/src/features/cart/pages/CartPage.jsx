@@ -145,6 +145,17 @@ function CartPage() {
                   const lineTotal = Math.round(itemPrice * qty)
                   const priceStr = `KSh ${lineTotal.toLocaleString()}`
                   const image = getItemImage(item)
+                  let variantLabel = ''
+                  try {
+                    const variants = typeof item.variantSelection === 'string'
+                      ? JSON.parse(item.variantSelection)
+                      : item.variantSelection
+                    variantLabel = Object.entries(variants || {})
+                      .map(([key, value]) => `${key}: ${value}`)
+                      .join(' · ')
+                  } catch {
+                    variantLabel = ''
+                  }
 
                   return (
                     <div key={itemId} className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] sm:flex-row sm:items-center sm:gap-4 sm:p-5">
@@ -158,6 +169,7 @@ function CartPage() {
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">Qty: {qty}</p>
+                        {variantLabel && <p className="text-xs text-emerald-700">{variantLabel}</p>}
                         <p className="text-sm font-semibold text-amber-600">{priceStr}</p>
                       </div>
                       <Button
@@ -216,6 +228,7 @@ function CartPage() {
                   unitDisplay: item?.price?.displayValue || `KSh ${Math.round(getItemPrice(item)).toLocaleString()}`,
                   quantity: item.quantity || 1,
                   image: getItemImage(item),
+                  variantSelection: item.variantSelection || '',
                 })),
                 subtotal,
                 delivery: subtotal >= 1000 ? 0 : 150,

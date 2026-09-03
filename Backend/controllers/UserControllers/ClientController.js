@@ -487,6 +487,13 @@ const getProductsForMobile = async (req, res) => {
       const totalRatings = doc.totalRatings || 0;
       const avgRating = doc.avgRating || 0;
 
+      let attributes = {};
+      try {
+        attributes = doc.specifications ? JSON.parse(doc.specifications) : {};
+      } catch {
+        attributes = {};
+      }
+
       return {
         $id: doc.$id,
         productName: doc.productName,
@@ -499,6 +506,7 @@ const getProductsForMobile = async (req, res) => {
         category: doc.category,
         categoryId: doc.categoryId,
         subcategoryId: doc.subcategoryId || "",
+        attributes,
         vendorId: doc.vendorId,
         isFeatured: doc.isFeatured || false,
         // ✅ Pulled instantly from the pre-aggregated document properties

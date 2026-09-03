@@ -52,6 +52,7 @@ function CheckoutPage() {
       price: item.price,
       quantity: item.quantity,
       image: item.image || '',
+      variantSelection: item.variantSelection || '',
     }))
 
     // Build payload matching OrderService.createCodOrder expectations
@@ -188,6 +189,9 @@ function CheckoutPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">{item.name}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">Qty: {item.quantity}</p>
+                      {item.variantSelection && (
+                        <p className="text-xs text-emerald-700">{item.variantSelection}</p>
+                      )}
                     </div>
                   </div>
                   <span className="shrink-0 text-sm font-semibold text-[var(--color-text-primary)]">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>

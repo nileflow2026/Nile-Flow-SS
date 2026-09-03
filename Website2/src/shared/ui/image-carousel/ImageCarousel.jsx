@@ -7,6 +7,7 @@ const FALLBACK_IMAGE = '/logo.png'
  */
 function getProxiedUrl(url, width = 800, quality = 75) {
   if (!url) return FALLBACK_IMAGE
+  if (url.includes('/api/image-proxy?')) return url
   if (url.includes('appwrite.io')) {
     return `/api/image-proxy?url=${encodeURIComponent(url)}&width=${width}&quality=${quality}`
   }
@@ -35,24 +36,13 @@ function ImageCarousel({ images = [], alt = '', fallback = FALLBACK_IMAGE }) {
     goTo(activeIndex - 1)
   }, [activeIndex, goTo])
 
-  // ── Smart image error handler ──────────────────────────────────────────
-  // On proxy failure, retry with the raw Appwrite URL before showing fallback.
-  const handleMainImageError = useCallback((e, index) => {
+  // ── Image error handler ────────────────────────────────────────────────
+  // Keep failures on the same origin; raw Appwrite URLs can be blocked by CORP.
+  const handleMainImageError = useCallback((e) => {
     const img = e.currentTarget
-    const currentSrc = img.currentSrc || img.src
-    const rawUrl = allImages[index]
-
-    // If we're already on the direct URL, give up and show fallback
-    if (!currentSrc.includes('/api/image-proxy') || !rawUrl) {
-      img.src = fallback
-      return
-    }
-
-    // Retry with the direct Appwrite URL (bypass proxy)
-    img.src = rawUrl
-    // Override the onerror so the next failure goes straight to fallback
-    img.onerror = () => { img.src = fallback }
-  }, [allImages, fallback])
+    img.onerror = null
+    img.src = fallback
+  }, [fallback])
 
   // ── Touch handlers for swipe ──────────────────────────────────────────
   const handleTouchStart = useCallback((e) => {
@@ -81,15 +71,11 @@ function ImageCarousel({ images = [], alt = '', fallback = FALLBACK_IMAGE }) {
     if (e.key === 'ArrowRight') { e.preventDefault(); goNext() }
   }, [goPrev, goNext])
 
-  // ── Thumbnail images: use direct URL as fallback on proxy error ───────
-  const handleThumbError = useCallback((e, rawSrc) => {
+  // ── Thumbnail error handler ───────────────────────────────────────────
+  const handleThumbError = useCallback((e) => {
     const img = e.currentTarget
-    if (img.src !== rawSrc && rawSrc) {
-      img.src = rawSrc
-      img.onerror = () => { img.src = fallback }
-    } else {
-      img.src = fallback
-    }
+    img.onerror = null
+    img.src = fallback
   }, [fallback])
 
   return (
