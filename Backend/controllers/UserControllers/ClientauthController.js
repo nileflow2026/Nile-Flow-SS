@@ -1012,6 +1012,7 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
   if (existingProfile) {
     const userId = existingProfile.$id;
     try {
+      await users.updateEmailVerification(userId, true);
       await users.updatePrefs(userId, {
         role: "customer",
         avatar:
@@ -1042,6 +1043,7 @@ async function upsertOAuthUser({ email, name, avatarUrl }) {
   const created = await users.create(newId, email, null, randomPassword, name);
 
   try {
+    await users.updateEmailVerification(created.$id, true);
     await users.updatePrefs(created.$id, {
       role: "customer",
       avatar: avatarUrl || avatars.getInitials(name),
@@ -1239,11 +1241,30 @@ async function googleOAuthCallback(req, res) {
       log.error("Persist refresh token (Google) failed:", e?.message || e);
     }
 
+    const oauthCookieSecure =
+      process.env.NODE_ENV === "production" ||
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.secure === true;
+    const oauthCookieOptions = {
+      httpOnly: true,
+      secure: oauthCookieSecure,
+      sameSite: oauthCookieSecure ? "none" : "lax",
+      path: "/",
+    };
+
+    res.cookie("accessToken", accessJwt, {
+      ...oauthCookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie("refreshToken", refreshJwt, {
+      ...oauthCookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     // Use client-specified redirect_uri when available (mobile deep link),
-    // otherwise fall back to the website FRONTEND_URL
-    const baseRedirect = clientRedirectUri || env.FRONTEND_URL;
-    const redirectUrl = `${baseRedirect}?token=${encodeURIComponent(accessJwt)}&refreshToken=${encodeURIComponent(refreshJwt)}`;
-    return res.redirect(302, redirectUrl);
+    // otherwise return to the authenticated home page.
+    const baseRedirect = clientRedirectUri || new URL("/home", env.FRONTEND_URL).toString();
+    return res.redirect(302, baseRedirect);
   } catch (error) {
     log.error("Google OAuth callback error:", error?.message || error);
     return res.status(500).json({ error: "Google OAuth failed" });
@@ -1399,11 +1420,30 @@ async function facebookOAuthCallback(req, res) {
       log.error("Persist refresh token (Facebook) failed:", e?.message || e);
     }
 
+    const oauthCookieSecure =
+      process.env.NODE_ENV === "production" ||
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.secure === true;
+    const oauthCookieOptions = {
+      httpOnly: true,
+      secure: oauthCookieSecure,
+      sameSite: oauthCookieSecure ? "none" : "lax",
+      path: "/",
+    };
+
+    res.cookie("accessToken", accessJwt, {
+      ...oauthCookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie("refreshToken", refreshJwt, {
+      ...oauthCookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     // Use client-specified redirect_uri when available (mobile deep link),
-    // otherwise fall back to the website FRONTEND_URL
-    const baseRedirect = clientRedirectUri || env.FRONTEND_URL;
-    const redirectUrl = `${baseRedirect}?token=${encodeURIComponent(accessJwt)}&refreshToken=${encodeURIComponent(refreshJwt)}`;
-    return res.redirect(302, redirectUrl);
+    // otherwise return to the authenticated home page.
+    const baseRedirect = clientRedirectUri || new URL("/home", env.FRONTEND_URL).toString();
+    return res.redirect(302, baseRedirect);
   } catch (error) {
     log.error("Facebook OAuth callback error:", error?.message || error);
     return res.status(500).json({ error: "Facebook OAuth failed" });

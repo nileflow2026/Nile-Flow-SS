@@ -53,12 +53,9 @@ class AuthService {
       threshold: 0.8,
     });
 
-    // Check if there's a potential session
-    if (secureTokenManager.hasSession()) {
-      return this.validateSession();
-    }
-
-    return { isAuthenticated: false, user: null };
+    // Auth uses HttpOnly cookies, so a valid session cannot be detected from
+    // client-side token storage after an OAuth redirect or page refresh.
+    return this.validateSession();
   }
 
   // ── Sign Up ──────────────────────────────────────────────────

@@ -112,7 +112,7 @@ function OAuthCallbackPage() {
         message: `Signed in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}`,
       });
       // Redirect to home after a brief success display
-      setTimeout(() => navigate('/', { replace: true }), 2000);
+      setTimeout(() => navigate('/home', { replace: true }), 2000);
     } else {
       dispatch({
         type: 'SET_STATUS',

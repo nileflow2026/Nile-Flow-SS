@@ -29,7 +29,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState({ google: false, facebook: false })
 
-  const from = location.state?.from?.pathname || '/'
+  const from = location.state?.from?.pathname || '/home'
 
   const handleSubmit = useCallback(async (event) => {
     event.preventDefault()

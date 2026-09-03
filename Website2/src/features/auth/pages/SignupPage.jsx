@@ -63,7 +63,7 @@ function SignupPage() {
         navigate(`/verify-email?email=${encodeURIComponent(form.email)}`, { replace: true })
       } else {
         push({ title: 'Account created', message: 'Welcome to Nile Flow!' })
-        navigate('/', { replace: true })
+        navigate('/home', { replace: true })
       }
     } else {
       setError(result.error || 'Sign up failed. Please try again.')
