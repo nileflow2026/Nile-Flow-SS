@@ -13,7 +13,7 @@ export const siteConfig = {
     'South Sudan ecommerce',
     'East Africa shopping',
   ],
-  defaultImage: '/og-image.svg',
+  defaultImage: '/og-image.png',
   twitterHandle: '@nileflow',
   locale: 'en_US',
   language: 'en',
@@ -86,7 +86,7 @@ export function createLocalBusinessSchema() {
     '@type': 'LocalBusiness',
     name: siteConfig.siteName,
     url: siteConfig.siteUrl,
-    image: `${siteConfig.siteUrl}/og-image.svg`,
+    image: `${siteConfig.siteUrl}/og-image.png`,
     telephone: '+254-700-000-000',
     email: 'hello@nileflow.co',
     address: {
