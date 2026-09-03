@@ -22,6 +22,7 @@ import { securityLogger } from './securityLogger';
 import { generateCsrfToken } from './authUtils';
 import { authService } from './authService';
 import { httpClient } from '@api/client/HttpClient';
+import { config } from '@api/config';
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -122,6 +123,8 @@ class OAuthBridge {
         nonce,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+      }, {
+        baseURL: config.api.baseURL || import.meta.env.VITE_API_BASE_URL,
       });
 
       if (!response?.data?.authUrl) {
