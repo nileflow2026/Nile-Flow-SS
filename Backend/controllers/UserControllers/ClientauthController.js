@@ -1103,11 +1103,14 @@ function getGoogleOAuthUrl(req, res) {
     // For mobile OAuth flows the oauth_state cookie must not have a specific
     // domain set, and must use Lax or None sameSite so it survives the redirect
     // from the OAuth provider back to our callback endpoint.
-    const cookieSecure = process.env.NODE_ENV === "production";
+    const cookieSecure =
+      process.env.NODE_ENV === "production" ||
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.secure === true;
     res.cookie("oauth_state", state, {
       httpOnly: true,
       secure: cookieSecure,
-      sameSite: "lax",
+      sameSite: cookieSecure ? "none" : "lax",
       maxAge: 10 * 60 * 1000,
       path: "/",
     });
@@ -1166,6 +1169,12 @@ async function googleOAuthCallback(req, res) {
     } else {
       // Web flow — validate against cookie as usual
       if (!csrfState || !cookieState || csrfState !== cookieState) {
+        log.warn("Google OAuth state validation failed", {
+          hasState: Boolean(csrfState),
+          hasCookieState: Boolean(cookieState),
+          stateLength: csrfState.length,
+          cookieStateLength: cookieState?.length || 0,
+        });
         return res.status(400).json({ error: "Invalid OAuth state" });
       }
     }
