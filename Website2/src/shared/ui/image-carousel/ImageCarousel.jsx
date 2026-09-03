@@ -124,7 +124,9 @@ function ImageCarousel({ images = [], alt = '', fallback = FALLBACK_IMAGE }) {
                 src={getProxiedUrl(src)}
                 alt={`${alt} — image ${i + 1}`}
                 className="h-full w-full object-contain p-2 sm:object-cover sm:p-0"
-                loading={i === 0 ? 'eager' : 'lazy'}
+                loading="eager"
+                decoding="async"
+                fetchPriority={i === 0 ? 'high' : 'low'}
                 draggable={false}
                 onError={(e) => handleMainImageError(e, i)}
               />

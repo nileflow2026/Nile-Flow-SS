@@ -52,7 +52,15 @@ function AppHeader() {
     }
 
     const handleCartUpdate = (event) => {
-      if (!event.detail?.userId || event.detail.userId === userId) loadCartCount()
+      if (event.detail?.userId && event.detail.userId !== userId) return
+
+      const quantityDelta = Number(event.detail?.quantityDelta) || 0
+      if (quantityDelta) {
+        setCartCount((count) => Math.max(0, count + quantityDelta))
+        return
+      }
+
+      loadCartCount()
     }
 
     loadCartCount()

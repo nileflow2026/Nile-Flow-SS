@@ -9,9 +9,11 @@ import { httpClient } from '@api/client/HttpClient';
 
 const BASE = '/cart';
 
-function notifyCartUpdated(userId) {
+function notifyCartUpdated(userId, quantityDelta = 0) {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('cart:updated', { detail: { userId } }));
+    window.dispatchEvent(new CustomEvent('cart:updated', {
+      detail: { userId, quantityDelta },
+    }));
   }
 }
 
@@ -63,7 +65,7 @@ export const cartService = {
   async addToCart(item) {
     try {
       const response = await httpClient.post(`${BASE}/add`, item);
-      if (response.success) notifyCartUpdated(item.userId);
+      if (response.success) notifyCartUpdated(item.userId, 1);
       return {
         success: response.success,
         data: response.data,
