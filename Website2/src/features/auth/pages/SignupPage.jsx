@@ -23,7 +23,6 @@ function SignupPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [verificationSent, setVerificationSent] = useState(false)
 
   const handleChange = (field) => (e) => {
     setForm((cur) => ({ ...cur, [field]: e.target.value }))
@@ -60,8 +59,8 @@ function SignupPage() {
       }
       posthog.capture('user_signed_up', { method: 'email' })
       if (result.verificationNeeded) {
-        setVerificationSent(true)
         push({ title: 'Almost there!', message: 'Check your email to verify your account.' })
+        navigate(`/verify-email?email=${encodeURIComponent(form.email)}`, { replace: true })
       } else {
         push({ title: 'Account created', message: 'Welcome to Nile Flow!' })
         navigate('/', { replace: true })
@@ -69,13 +68,6 @@ function SignupPage() {
     } else {
       setError(result.error || 'Sign up failed. Please try again.')
     }
-  }
-
-  // After successful signup, redirect to verification page
-  if (verificationSent) {
-    const encodedEmail = encodeURIComponent(form.email)
-    navigate(`/verify-email?email=${encodedEmail}`, { replace: true })
-    return null
   }
 
   return (

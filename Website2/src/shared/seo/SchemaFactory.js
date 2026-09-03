@@ -24,7 +24,7 @@ export function createOrganizationSchema() {
     '@id': `${SITE_CONFIG.siteUrl}/#organization`,
     name: SITE_CONFIG.name,
     url: SITE_CONFIG.siteUrl,
-    logo: `${SITE_CONFIG.siteUrl}/favicon.svg`,
+    logo: `${SITE_CONFIG.siteUrl}/logo.png`,
     sameAs: SITE_CONFIG.sameAs,
     description: SITE_CONFIG.defaultDescription,
     address: {

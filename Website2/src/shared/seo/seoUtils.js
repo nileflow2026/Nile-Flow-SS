@@ -48,7 +48,7 @@ export function createOrganizationSchema() {
     '@type': 'Organization',
     name: siteConfig.siteName,
     url: siteConfig.siteUrl,
-    logo: `${siteConfig.siteUrl}/favicon.svg`,
+    logo: `${siteConfig.siteUrl}/logo.png`,
     sameAs: ['https://www.facebook.com/profile.php?id=61580711948973', 'https://www.tiktok.com/@nile_flow?_r=1&_t=ZS-92eYXT0eqrF', "https://www.instagram.com/nileflowafrica?igsh=NTVoYWR1YW94Y3Bp", "https://www.linkedin.com/in/nile-flow-683806395?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"],
     description: siteConfig.defaultDescription,
     address: {

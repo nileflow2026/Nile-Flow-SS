@@ -146,12 +146,6 @@ export function AuthProvider({ children, onInitialized }) {
 
   const handleSignUp = useCallback(async (email, password, username, phone) => {
     const result = await authService.signUp({ email, password, username, phone });
-    if (result.success && result.data?.user) {
-      setUser(result.data.user);
-      setIsAuthenticated(true);
-      permissionManager.initialize(normalizeRole(result.data.user.role));
-      crossTabSync.notifyLogin(result.data.user);
-    }
     return result;
   }, []);
 
@@ -164,7 +158,14 @@ export function AuthProvider({ children, onInitialized }) {
   }, []);
 
   const handleVerifyEmail = useCallback(async (email, code) => {
-    return authService.verifyEmail(email, code);
+    const result = await authService.verifyEmail(email, code);
+    if (result.success && result.data?.user) {
+      setUser(result.data.user);
+      setIsAuthenticated(true);
+      permissionManager.initialize(normalizeRole(result.data.user.role));
+      crossTabSync.notifyLogin(result.data.user);
+    }
+    return result;
   }, []);
 
   const handleResendCode = useCallback(async (email) => {

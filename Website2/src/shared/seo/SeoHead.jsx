@@ -95,7 +95,7 @@ export function SeoHead({
 
     // ── Link tags ───────────────────────────────────────────────
     setLinkTag('canonical', resolvedCanonical)
-    setLinkTag('icon', '/favicon.svg')
+    setLinkTag('icon', '/logo.png')
     setLinkTag('manifest', '/manifest.webmanifest')
 
     // ── Hreflang tags (multi-country SEO) ───────────────────────

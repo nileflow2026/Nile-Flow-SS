@@ -99,7 +99,7 @@ function VerifyEmailPage() {
     if (result.success) {
       setVerified(true)
       push({ title: 'Account verified!', message: 'Your email has been confirmed.' })
-      setTimeout(() => navigate('/login', { replace: true }), 2000)
+      setTimeout(() => navigate('/home', { replace: true }), 2000)
     } else {
       setError(result.message || 'Verification failed. Please check the code and try again.')
       // Clear code on failure
