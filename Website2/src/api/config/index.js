@@ -132,8 +132,10 @@ export const config = {
  */
 export function imageProxyUrl(rawImage, width = 600, quality = 70) {
   if (!rawImage) return ''
-  if (rawImage.includes('/api/image-proxy?')) return rawImage
   const base = config.api.baseURL || ''
+  if (rawImage.includes('/api/image-proxy?')) {
+    return rawImage.startsWith('/') ? `${base}${rawImage}` : rawImage
+  }
   return `${base}/api/image-proxy?url=${encodeURIComponent(rawImage)}&width=${width}&quality=${quality}`
 }
 

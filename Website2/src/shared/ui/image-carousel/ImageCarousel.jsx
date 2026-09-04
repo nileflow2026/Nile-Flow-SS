@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
+import { imageProxyUrl } from '@api/config'
 
 const FALLBACK_IMAGE = '/logo.png'
 
@@ -7,9 +8,13 @@ const FALLBACK_IMAGE = '/logo.png'
  */
 function getProxiedUrl(url, width = 800, quality = 75) {
   if (!url) return FALLBACK_IMAGE
-  if (url.includes('/api/image-proxy?')) return url
+  if (typeof url === 'object') {
+    url = url.url || url.imageUrl || url.href || ''
+  }
+  if (!url) return FALLBACK_IMAGE
+  if (url.includes('/api/image-proxy?')) return imageProxyUrl(url, width, quality)
   if (url.includes('appwrite.io')) {
-    return `/api/image-proxy?url=${encodeURIComponent(url)}&width=${width}&quality=${quality}`
+    return imageProxyUrl(url, width, quality)
   }
   return url
 }
