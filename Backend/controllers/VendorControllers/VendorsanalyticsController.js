@@ -197,12 +197,12 @@ const getSalesAnalytics = async (req, res) => {
 
     // Inventory turnover (based on product sales vs inventory)
     const inventoryTurnover =
-      (vendorProducts.documents.reduce((sum, product) => {
+      (allVendorProductDocs.reduce((sum, product) => {
         const productSalesCount = productSales[product.$id]?.sales || 0;
         const inventory = product.inventory || 0;
         return sum + (inventory > 0 ? productSalesCount / inventory : 0);
       }, 0) /
-        vendorProducts.documents.length) *
+        Math.max(allVendorProductDocs.length, 1)) *
       100;
 
     // Repeat customer rate
@@ -248,7 +248,7 @@ const getSalesAnalytics = async (req, res) => {
           avgOrderValue: Math.round(avgOrderValue),
         },
         topProducts,
-        insights: generateInsights(salesData, vendorProducts.documents.length),
+        insights: generateInsights(salesData, allVendorProductDocs.length),
       },
     });
   } catch (error) {
