@@ -23,7 +23,7 @@ const CATEGORY_ICONS = {
 }
 
 function CategoryPage() {
-  const { categorySlug } = useParams()
+  const { slug: categorySlug } = useParams()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -51,7 +51,7 @@ function CategoryPage() {
         const match = allCategories.find((c) => {
           const name = c.name || ''
           const cSlug = c.slug || name.toLowerCase().replace(/\s+/g, '-')
-          return cSlug === categorySlug
+          return cSlug.toLowerCase() === categorySlug.toLowerCase()
         })
 
         if (match) {

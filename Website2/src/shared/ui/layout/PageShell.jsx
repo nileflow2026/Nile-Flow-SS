@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import AppHeader from '@shared/ui/header/AppHeader'
 
 const shopLinks = [
@@ -130,6 +130,12 @@ function ScrollToTopButton() {
 }
 
 function PageShell({ children }) {
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.search])
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
        <AppHeader /> 
@@ -155,20 +161,15 @@ function PageShell({ children }) {
               <a
                 href="#"
                 className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#1a73e8]/20 bg-[#1a73e8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1557b0] hover:shadow-md"
+                aria-label="Get Nile Flow on Google Play"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                  <path d="M3.609 1.314a.9.9 0 0 0-.609.857v19.658a.9.9 0 0 0 .609.857l.105.048L14.59 12 3.714 1.266l-.105.048zM20.692 10.345l-4.696-2.713-1.607 1.607 2.953 2.953-2.953 2.953 1.607 1.607 4.696-2.713c.978-.565.978-1.83 0-2.394zM3.714 22.734l10.876-10.734-1.607-1.607-9.269 9.269zM14.983 12l-9.269-9.269 1.607-1.607L14.983 12z" />
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#34A853" d="M2.7 2.3a2.1 2.1 0 0 0-.7 1.6v16.2c0 .7.3 1.2.7 1.6L13.1 12 2.7 2.3Z" />
+                  <path fill="#FBBC04" d="m13.1 12 3.2 3 4.1-2.3c.8-.5.8-1.5 0-2l-4.1-2.3-3.2 3.6Z" />
+                  <path fill="#EA4335" d="M2.7 2.3 13.1 12l3.2-3.6L4.4 2.1a1.8 1.8 0 0 0-1.7.2Z" />
+                  <path fill="#4285F4" d="m2.7 21.7 10.4-9.7 3.2 3L4.4 21.9a1.8 1.8 0 0 1-1.7-.2Z" />
                 </svg>
                 Google Play
-              </a>
-              <a
-                href="#"
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#111827]/10 bg-gradient-to-r from-[#111827] via-[#1f2937] to-[#374151] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                </svg>
-                App Store
               </a>
             </div>
           </div>
@@ -187,9 +188,7 @@ function PageShell({ children }) {
                 </div>
               </div>
 
-              <p className="max-w-xl text-sm leading-7 text-[var(--color-text-secondary)]">
-                Discover authentic products, secure payments, and dependable delivery designed for modern everyday shopping across Africa.
-              </p>
+              
 
               <div className="flex flex-wrap gap-3">
                 <Link to="/products" className="rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 shadow-[var(--shadow-sm)]">

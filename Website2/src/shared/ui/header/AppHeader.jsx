@@ -71,7 +71,10 @@ function AppHeader() {
     }
   }, [isAuthenticated, userId])
 
+  const closeMobileNav = () => setMobileOpen(false)
+
   const handleSignOut = async () => {
+    closeMobileNav()
     setSigningOut(true)
     posthog.capture('user_signed_out')
     await signOut()
@@ -91,7 +94,9 @@ function AppHeader() {
     : []
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl">
+    <>
+      <div className="h-[68px] sm:h-[80px]" aria-hidden="true" />
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl">
       <div className="responsive-shell flex items-center justify-between gap-4 py-3 sm:py-4">
         <Link to="/" className="flex items-center gap-3" aria-label="Nile Flow home">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
@@ -202,6 +207,7 @@ function AppHeader() {
             <NavLink
               key={item.to}
               to={item.to}
+              onClick={closeMobileNav}
               className={({ isActive }) =>
                 `rounded-2xl px-3 py-3 text-sm font-medium transition ${
                   isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-[var(--color-text-secondary)] hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400'
@@ -229,14 +235,15 @@ function AppHeader() {
                 {signingOut ? 'Signing out…' : 'Sign out'}
               </button>
             ) : (
-              <Link to="/login" className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
+              <Link to="/login" onClick={closeMobileNav} className="flex-1 rounded-2xl border border-[var(--color-border)] px-3 py-3 text-center text-sm font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]">
                 Sign in
               </Link>
             )}
           </div>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   )
 }
 

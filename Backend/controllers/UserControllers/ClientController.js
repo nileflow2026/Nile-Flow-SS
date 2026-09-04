@@ -171,12 +171,12 @@ const saveRecentSearch = async (req, res) => {
 };
 
 const getRecentSearches = async (req, res) => {
-  const { userId } = req.user;
+  const userId = req.user?.userId;
 
   console.log("userId for recent search:", userId);
 
   if (!userId) {
-    return res.status(400).json({ message: "Missing userId." });
+    return res.status(200).json({ searches: [] });
   }
 
   try {
@@ -327,25 +327,17 @@ const getProducts = async (req, res) => {
       baseFilters.push(Query.contains("categoryId", category));
     }
 
-    // Search filter (search in multiple fields)
-    // NOTE: tags is excluded from search because it's an array attribute,
-    // and Appwrite's Query.search does not support array attributes.
-    // NOTE: Query.search requires a fulltext index on the attribute.
-    // Only productName has a fulltext index; description and brand use contains instead.
+    // Search filter across the fields customers use to identify products.
     if (search) {
       const normalizedSearch = search.trim().toLowerCase();
-      // Split search into individual terms for broader matching on description/brand
       const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean);
-      const searchConditions = [
-        Query.search("productName", normalizedSearch),
-        Query.search("productName", search),
-      ];
-      // For fields without fulltext indexes, use contains (case-insensitive matching)
+      const searchConditions = [];
       searchTerms.forEach((term) => {
+        searchConditions.push(Query.contains("productName", term));
         searchConditions.push(Query.contains("description", term));
         searchConditions.push(Query.contains("brand", term));
       });
-      baseFilters.push(Query.or(searchConditions));
+      if (searchConditions.length > 0) baseFilters.push(Query.or(searchConditions));
     }
 
     // Price range
@@ -416,7 +408,11 @@ const getProducts = async (req, res) => {
       } catch {
         attributes = {};
       }
-      return { ...doc, attributes };
+      return {
+        ...doc,
+        productName: doc.productName || doc.name || doc.title || "Product",
+        attributes,
+      };
     });
 
     // --- Currency enrichment ---

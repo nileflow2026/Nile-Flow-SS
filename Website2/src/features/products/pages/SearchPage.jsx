@@ -11,7 +11,7 @@ import { searchService, categoryService } from '@api/services'
 import { imageProxyUrl } from '@api/config'
 import { usePostHog } from '@posthog/react'
 import { SeoHead } from '@shared/seo/SeoHead'
-import { secureTokenManager } from '@auth/tokenManager'
+import { useAuth } from '@auth/AuthContext'
 
 const CATEGORY_COLORS = [
   'from-amber-400 to-orange-500',
@@ -26,6 +26,7 @@ const CATEGORY_COLORS = [
 
 function SearchPage() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
@@ -39,15 +40,19 @@ function SearchPage() {
   // Load categories and recent searches on mount
   useEffect(() => {
     categoryService.getCategories().then(setCategories).catch(() => {})
-    searchService
-      .getRecentSearches()
+    if (!isAuthenticated) {
+      setRecentSearches([])
+      return
+    }
+
+    searchService.getRecentSearches()
       .then((searches) => {
         setRecentSearches(
           searches.map((s) => (typeof s === 'string' ? s : s.query || s.displayQuery || '')).filter(Boolean),
         )
       })
       .catch(() => {})
-  }, [])
+  }, [isAuthenticated])
 
   const doSearch = useCallback(
     async (searchQuery) => {
@@ -63,13 +68,24 @@ function SearchPage() {
 
       try {
         const result = await searchService.search(searchQuery.trim())
-        setResults(result.products)
+        const normalizedQuery = searchQuery.trim().toLowerCase()
+        const filteredProducts = result.products.filter((item) => {
+          const searchableText = [
+            item.productName,
+            item.name,
+            item.title,
+            item.brand,
+            item.description,
+          ].filter(Boolean).join(' ').toLowerCase()
+          return normalizedQuery.split(/\s+/).every((term) => searchableText.includes(term))
+        })
+        setResults(filteredProducts)
         posthog.capture('search_performed', {
           query: searchQuery.trim(),
-          result_count: result.products?.length ?? 0,
+          result_count: filteredProducts.length,
         })
         // Save recent search (fire-and-forget)
-        searchService.saveRecentSearch(searchQuery.trim()).catch(() => {})
+        if (isAuthenticated) searchService.saveRecentSearch(searchQuery.trim()).catch(() => {})
       } catch (err) {
         setError(err?.message || 'Search failed. Please try again.')
         setResults([])
@@ -78,7 +94,7 @@ function SearchPage() {
         setLoading(false)
       }
     },
-    [posthog],
+    [isAuthenticated, posthog],
   )
 
   // Debounced search
@@ -148,7 +164,6 @@ function SearchPage() {
         keywords={['search', 'find products', 'African marketplace']}
       />
       <ResponsiveSection
-        eyebrow="Search"
         title="Find what you need"
         description="Search across products, categories, and merchants on Nile Flow."
         className="py-10 sm:py-14 lg:py-16"
@@ -194,7 +209,11 @@ function SearchPage() {
               </p>
               {results.map((item) => {
                 const id = item.$id || item.id
-                const name = item.productName || item.name || 'Product'
+                const name = item.productName || item.name || item.title || 'Product'
+                const categoryId = Array.isArray(item.category) ? item.category[0] : item.category
+                const categoryName = categories.find(
+                  (category) => (category.$id || category.id) === categoryId,
+                )?.name || item.categoryName
                 return (
                   <Link
                     key={id}
@@ -216,7 +235,7 @@ function SearchPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{name}</p>
-                        {item.category && <Badge variant="neutral">{item.category}</Badge>}
+                        {categoryName && <Badge variant="neutral">{categoryName}</Badge>}
                       </div>
                       <p className="mt-1 text-sm text-amber-600 font-semibold">{priceDisplay(item)}</p>
                     </div>
