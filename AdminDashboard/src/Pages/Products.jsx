@@ -75,6 +75,7 @@ export default function Products() {
   });
   const [categoryImageFile, setCategoryImageFile] = useState(null);
   const [categoryImagePreview, setCategoryImagePreview] = useState("");
+  const [categoryCreationError, setCategoryCreationError] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   /* const [productToEdit, setProductToEdit] = useState(null); */
   const [newCategoryId, setNewCategoryId] = useState("");
@@ -496,8 +497,10 @@ export default function Products() {
   }, [newCategoryId, productToEdit, categories]);
 
   const handleCreateCategory = useCallback(async () => {
+    setCategoryCreationError("");
     const name = newCategory.name.trim();
     if (!name) {
+      setCategoryCreationError("Please enter a category name.");
       toast.warning("Please enter a category name");
       return;
     }
@@ -525,7 +528,7 @@ export default function Products() {
       }
 
       const slug = newCategory.slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      await axiosClient.post("/api/admin/categories", {
+      await axiosClient.post("/api/admin/products/categories", {
         ...newCategory,
         name,
         slug,
@@ -540,7 +543,9 @@ export default function Products() {
       const response = await axiosClient.get("/api/customerprofile/categories");
       setCategories(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to create category");
+      const message = error.response?.data?.error || error.message || "Failed to create category";
+      setCategoryCreationError(message);
+      toast.error(message);
     } finally {
       setIsCreatingCategory(false);
     }
@@ -1507,19 +1512,29 @@ export default function Products() {
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
-                  onClick={() => setShowCreateCategoryModal(false)}
+                  type="button"
+                  onClick={() => {
+                    setCategoryCreationError("");
+                    setShowCreateCategoryModal(false);
+                  }}
                   disabled={isCreatingCategory}
                   className="px-5 py-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017]"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleCreateCategory}
                   disabled={isCreatingCategory}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#27AE60] to-[#2ECC71] text-white font-semibold disabled:opacity-60"
                 >
                   {isCreatingCategory ? "Creating..." : "Create Category"}
                 </button>
+                {categoryCreationError && (
+                  <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+                    {categoryCreationError}
+                  </p>
+                )}
               </div>
             </div>
           </div>
