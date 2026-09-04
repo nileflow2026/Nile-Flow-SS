@@ -203,7 +203,11 @@ class AuthService {
         // sent with the request.
         const response = await httpClient.get(
           '/api/customerauth/getCustomerProfile',
-          { _retryCount: 1 },
+          { _: Date.now() },
+          {
+            headers: { 'Cache-Control': 'no-cache' },
+            _retryCount: 1,
+          },
         );
 
         const user = response.data?.user || response.data;

@@ -84,9 +84,12 @@ function applyCacheToRoutes(app) {
   // ── Nile Miles / Loyalty ──────────────────────────────────────────────────
   app.get(
     "/api/nilemiles*",
-    cacheMiddleware(CacheKeys.nileMilesSummary("all"), TTL.MEDIUM, [
-      "nilemiles",
-    ]),
+    (req, res, next) => {
+      if (req.path === "/api/nilemiles/nilemiles/status") return next();
+      return cacheMiddleware(CacheKeys.nileMilesSummary("all"), TTL.MEDIUM, [
+        "nilemiles",
+      ])(req, res, next);
+    },
   );
 
   // ── Vendor Dashboard ─────────────────────────────────────────────────────

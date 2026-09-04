@@ -12,6 +12,12 @@ const { InputFile } = require("node-appwrite/file");
 
 const getCustomerProfile = async (req, res) => {
   try {
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
+
     // 1️⃣ Ensure user is authenticated
     if (!req.user) {
       return res

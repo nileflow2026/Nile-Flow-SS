@@ -30,7 +30,9 @@ function ProfilePage() {
         addressService.getAddresses(),
         notificationService.getNotifications(),
         userId
-          ? httpClient.get(`/api/nilemiles/nilemiles/status?userId=${encodeURIComponent(userId)}`).catch(() => ({ data: null }))
+          ? httpClient.get(`/api/nilemiles/nilemiles/status?userId=${encodeURIComponent(userId)}&_=${Date.now()}`, {}, {
+            headers: { 'Cache-Control': 'no-cache' },
+          }).catch(() => ({ data: null }))
           : Promise.resolve({ data: null }),
       ])
 
