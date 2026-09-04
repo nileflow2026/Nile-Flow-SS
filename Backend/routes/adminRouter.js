@@ -26,6 +26,7 @@ const {
   assignDeliveryToRider,
   getCancelledOrders,
   updatePremiumDeal,
+  createCategory,
 } = require("../controllers/AdminControllers/admin");
 const authenticateToken = require("../middleware/authMiddleware");
 const { instrumentedDb } = require("../services/appwriteService");
@@ -58,6 +59,7 @@ router.get("/products/flashsale", authenticateToken, getFlashSales);
 // GET all subcategories under a specific category
 router.get("/categories/:id/subcategories", getSubcategoriesByCategoryId);
 router.get("/products/subcategory/:id", getProductsBySubcategoryId);
+router.post("/categories", authenticateToken, createCategory);
 // POST a new subcategory under a specific category
 router.post("/:id/subcategories", authenticateToken, createSubcategory);
 

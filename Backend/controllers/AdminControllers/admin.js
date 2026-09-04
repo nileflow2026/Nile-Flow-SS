@@ -895,7 +895,7 @@ const createCategory = async (req, res) => {
     const doc = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
-      ID.unique, // auto-ID
+      ID.unique(), // auto-ID
       { name, slug, image, description },
     );
 

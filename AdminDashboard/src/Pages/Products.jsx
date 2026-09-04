@@ -66,6 +66,14 @@ export default function Products() {
   const [sortOption, setSortOption] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    image: "",
+  });
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   /* const [productToEdit, setProductToEdit] = useState(null); */
   const [newCategoryId, setNewCategoryId] = useState("");
   const [newSubName, setNewSubName] = useState("");
@@ -485,6 +493,34 @@ export default function Products() {
     }
   }, [newCategoryId, productToEdit, categories]);
 
+  const handleCreateCategory = useCallback(async () => {
+    const name = newCategory.name.trim();
+    if (!name) {
+      toast.warning("Please enter a category name");
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    try {
+      const slug = newCategory.slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      await axiosClient.post("/api/admin/categories", {
+        ...newCategory,
+        name,
+        slug,
+      });
+      toast.success("Category created successfully");
+      setNewCategory({ name: "", slug: "", description: "", image: "" });
+      setShowCreateCategoryModal(false);
+
+      const response = await axiosClient.get("/api/customerprofile/categories");
+      setCategories(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to create category");
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  }, [newCategory]);
+
   // Loading State
   if (loading) {
     return (
@@ -571,6 +607,14 @@ export default function Products() {
               >
                 <Plus className="w-4 h-4" />
                 {activeForm === "product" ? "Cancel" : "Add Product"}
+              </button>
+
+              <button
+                onClick={() => setShowCreateCategoryModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#27AE60] to-[#2ECC71] text-white font-semibold hover:shadow-lg transition-all duration-200"
+              >
+                <Plus className="w-4 h-4" />
+                Add Category
               </button>
 
               <button
@@ -1372,6 +1416,58 @@ export default function Products() {
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#27AE60] to-[#2ECC71] text-white font-semibold hover:shadow-lg transition-all duration-200"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showCreateCategoryModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-[#FAF7F2] to-white dark:from-[#1A1A1A] dark:to-[#2A2A2A] rounded-2xl border border-[#E8D6B5] dark:border-[#3A3A3A] p-6 w-full max-w-md shadow-2xl">
+              <h3 className="text-lg font-semibold text-[#2C1810] dark:text-[#F5E6D3] mb-4">
+                Add New Category
+              </h3>
+              <div className="space-y-4">
+                {[
+                  ["name", "Category name", true],
+                  ["slug", "Slug", false],
+                  ["image", "Image URL", false],
+                ].map(([field, label, required]) => (
+                  <label key={field} className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
+                    {label}
+                    <input
+                      value={newCategory[field]}
+                      onChange={(event) => setNewCategory((current) => ({ ...current, [field]: event.target.value }))}
+                      required={required}
+                      className="mt-2 w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3]"
+                    />
+                  </label>
+                ))}
+                <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
+                  Description
+                  <textarea
+                    value={newCategory.description}
+                    onChange={(event) => setNewCategory((current) => ({ ...current, description: event.target.value }))}
+                    rows={3}
+                    className="mt-2 w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3]"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowCreateCategoryModal(false)}
+                  disabled={isCreatingCategory}
+                  className="px-5 py-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateCategory}
+                  disabled={isCreatingCategory}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#27AE60] to-[#2ECC71] text-white font-semibold disabled:opacity-60"
+                >
+                  {isCreatingCategory ? "Creating..." : "Create Category"}
                 </button>
               </div>
             </div>
