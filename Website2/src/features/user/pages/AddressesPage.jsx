@@ -13,7 +13,8 @@ function AddressesPage() {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ label: '', street: '', city: '', phone: '' })
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ label: '', street: '', city: '', state: '', phone: '' })
   const { push } = useToast()
 
   const fetchAddresses = useCallback(async () => {
@@ -28,15 +29,35 @@ function AddressesPage() {
   }, [fetchAddresses])
 
   const handleAdd = async () => {
-    if (!form.label || !form.street || !form.city || !form.phone) return
-    const result = await addressService.addAddress(form)
-    if (result.success) {
-      push({ title: 'Address added', message: 'Your new address has been saved.' })
-      setForm({ label: '', street: '', city: '', phone: '' })
-      setModalOpen(false)
-      fetchAddresses()
-    } else {
-      push({ title: 'Failed to add address', message: result.error || 'Please try again.' })
+    const requiredFields = [
+      ['label', 'address label'],
+      ['street', 'street address'],
+      ['city', 'city'],
+      ['state', 'state or province'],
+      ['phone', 'phone number'],
+    ]
+    const missingField = requiredFields.find(([field]) => !form[field].trim())
+    if (missingField) {
+      push({ title: 'Incomplete address', message: `Please enter your ${missingField[1]}.` })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const result = await addressService.addAddress({
+        ...form,
+        country: 'Kenya',
+      })
+      if (result.success) {
+        push({ title: 'Address added', message: 'Your new address has been saved.' })
+        setForm({ label: '', street: '', city: '', state: '', phone: '' })
+        setModalOpen(false)
+        await fetchAddresses()
+      } else {
+        push({ title: 'Failed to add address', message: result.error || 'Please try again.' })
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -88,7 +109,7 @@ function AddressesPage() {
 
         <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Add new address" description="Fill in your delivery address details.">
           <div className="space-y-4">
-            {(['label', 'street', 'city', 'phone']).map((field) => (
+            {(['label', 'street', 'city', 'state', 'phone']).map((field) => (
               <label key={field} className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 {field.charAt(0).toUpperCase() + field.slice(1)}
                 <input value={form[field]} onChange={(e) => setForm((cur) => ({ ...cur, [field]: e.target.value }))}
@@ -99,7 +120,9 @@ function AddressesPage() {
           </div>
           <div className="mt-6 flex gap-3">
             <Button variant="outline" className="flex-1 justify-center" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <PrimaryButton className="flex-1 justify-center" onClick={handleAdd}>Save address</PrimaryButton>
+            <PrimaryButton className="flex-1 justify-center" onClick={handleAdd} disabled={saving}>
+              {saving ? 'Saving...' : 'Save address'}
+            </PrimaryButton>
           </div>
         </Modal>
       </ResponsiveSection>

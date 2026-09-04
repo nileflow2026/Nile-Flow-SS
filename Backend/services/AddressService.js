@@ -89,13 +89,14 @@ const AddressService = {
     try {
       const payload = {
         user: userId,
-        fullName: newAddress.fullName,
+        type: "delivery",
+        fullName: newAddress.fullName || "",
         phone: newAddress.phone,
         address: newAddress.address,
         city: newAddress.city,
-        state: newAddress.state,
-        zipCode: newAddress.zipCode,
-        country: newAddress.country,
+        state: newAddress.state || "",
+        zipCode: newAddress.zipCode || "",
+        country: newAddress.country || "Kenya",
       };
 
       const permissions = [
