@@ -68,6 +68,8 @@ const getCustomerProfile = async (req, res) => {
     // 5️⃣ Respond with user info and optional avatar
     res.status(200).json({
       user: {
+        $id: userId,
+        id: userId,
         userId: appwriteUserId || userId, // Use the correct Appwrite ID or fallback
         email,
         username,

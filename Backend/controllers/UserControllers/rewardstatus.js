@@ -1,12 +1,24 @@
 const { Query } = require("node-appwrite");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const { users } = require("../../services/appwriteService");
 
 exports.getNileMilesStatus = async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user?.userId;
 
     if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    const authUser = await users.get(userId);
+    const authMiles = Number(authUser.prefs?.nileMiles);
+    if (Number.isFinite(authMiles)) {
+      return res.status(200).json({
+        currentMiles: authMiles,
+        totalMilesEarned: Number(authUser.prefs?.totalMilesEarned || authMiles),
+        earnedHistory: [],
+        redeemed: [],
+      });
+    }
 
     const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,

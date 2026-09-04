@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authenticateToken = require("../middleware/authMiddleware");
 const {
   addNileMilesOnPurchase,
   getReferralRewards,
@@ -26,7 +27,7 @@ router.post("/earn", async (requestAnimationFrame, res) => {
 });
 
 router.post("/redeem", redeemMiles);
-router.get("/nilemiles/status", getNileMilesStatus);
+router.get("/nilemiles/status", authenticateToken, getNileMilesStatus);
 router.post("/mark-reward-used", markRewardAsUsed);
 router.get("/:userId/rewards", getReferralRewards);
 router.get("/nilemiles/rewards/grouped", listRewardsGrouped);
