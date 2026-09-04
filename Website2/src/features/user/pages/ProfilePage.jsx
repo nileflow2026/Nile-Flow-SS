@@ -35,7 +35,7 @@ function ProfilePage() {
       ])
 
       if (!active) return
-      const miles = milesResponse?.data?.currentMiles
+      const miles = session?.user?.nileMiles ?? milesResponse?.data?.currentMiles
       if (session?.user || miles !== undefined) {
         setProfile((current) => ({
           ...current,

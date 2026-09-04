@@ -40,6 +40,8 @@ const getCustomerProfile = async (req, res) => {
     let appwriteUserId = null; // Declare a variable for the Appwrite ID
     let phone = null;
     let addresses = null;
+    let nileMiles = 0;
+    let totalMilesEarned = 0;
     if (docs.total > 0) {
       const userDoc = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
@@ -53,6 +55,10 @@ const getCustomerProfile = async (req, res) => {
       appwriteUserId = userDoc.$id; // Get the correct Appwrite ID here
     }
 
+    const authUser = await users.get(userId);
+    nileMiles = Number(authUser.prefs?.nileMiles || 0);
+    totalMilesEarned = Number(authUser.prefs?.totalMilesEarned || 0);
+
     // 5️⃣ Respond with user info and optional avatar
     res.status(200).json({
       user: {
@@ -64,6 +70,8 @@ const getCustomerProfile = async (req, res) => {
         avatarFileId,
         phone,
         addresses,
+        nileMiles,
+        totalMilesEarned,
       },
     });
   } catch (error) {

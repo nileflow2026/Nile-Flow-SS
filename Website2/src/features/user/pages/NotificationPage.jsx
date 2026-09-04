@@ -43,18 +43,21 @@ function NotificationPage() {
     let cancelled = false
     async function fetchNotifications() {
       setLoading(true)
-      const data = await notificationService.getNotifications()
-      if (cancelled) return
-      const mapped = (data || []).map((n) => ({
-        id: n.$id || n.id || Math.random().toString(36).slice(2),
-        title: n.title || 'Notification',
-        description: n.message || n.description || '',
-        time: formatRelativeTime(n.createdAt || n.$createdAt),
-        read: n.read === true,
-        icon: getIconFromType(n.type || n.notificationType || ''),
-      }))
-      setNotifications(mapped)
-      setLoading(false)
+      try {
+        const data = await notificationService.getNotifications()
+        if (cancelled) return
+        const mapped = (data || []).map((n) => ({
+          id: n.$id || n.id || crypto.randomUUID(),
+          title: n.title || 'Notification',
+          description: n.message || n.description || '',
+          time: formatRelativeTime(n.createdAt || n.$createdAt),
+          read: n.read === true,
+          icon: getIconFromType(n.type || n.notificationType || ''),
+        }))
+        setNotifications(mapped)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     fetchNotifications()
     return () => { cancelled = true }
