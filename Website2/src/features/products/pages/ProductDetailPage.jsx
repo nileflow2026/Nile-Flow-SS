@@ -8,7 +8,7 @@ import Badge from '@shared/ui/badge/Badge'
 import Loader from '@shared/ui/loader/Loader'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Alert from '@shared/ui/alert/Alert'
-import { productService, vendorService } from '@api/services'
+import { productService, categoryService } from '@api/services'
 import { cartService } from '@api/services'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
@@ -35,6 +35,7 @@ function ProductDetailPage() {
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState({})
   const [showFullDescription, setShowFullDescription] = useState(false)
+  const [categories, setCategories] = useState([])
 
   const loadReviews = useCallback(async () => {
     if (!productId) return
@@ -74,6 +75,10 @@ function ProductDetailPage() {
 
     loadProduct()
   }, [productId])
+
+  useEffect(() => {
+    categoryService.getCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   const handleAddToCart = async () => {
     if (!product) return
@@ -192,6 +197,10 @@ function ProductDetailPage() {
   const inStock = stock === undefined || stock > 0
   const premium = Boolean(product?.premiumEligible)
   const category = product?.category || ''
+  const categoryId = Array.isArray(category) ? category[0] : category
+  const categoryName = categories.find(
+    (item) => (item.$id || item.id) === categoryId,
+  )?.name || product?.categoryName || categoryId
   const vendorId = product?.vendorId || product?.vendor?.$id || ''
   const vendorName = product?.vendorName || product?.brand || ''
   const storeLink = vendorId ? `/store/${vendorId}` : ''
@@ -233,7 +242,7 @@ function ProductDetailPage() {
         <Breadcrumbs items={breadcrumbItems} />
       </div>
 
-      <ResponsiveSection eyebrow={category || 'Product'} title={name} description={displayedDescription} className="py-6 sm:py-10 lg:py-16">
+      <ResponsiveSection eyebrow={categoryName || 'Product'} title={name} className="py-6 sm:py-10 lg:py-16">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <ImageCarousel images={productImages} alt={name} />
