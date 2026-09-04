@@ -132,6 +132,7 @@ function StorePage() {
   const storeName = vendor?.storeName || vendor?.name || 'Vendor Store'
   const storeDescription = vendor?.storeDescription || vendor?.description || ''
   const storeLogo = vendor?.profileImage || vendor?.avatar || vendor?.logo || ''
+  const storeCover = vendor?.coverImage || vendor?.cover || ''
   const vendorRating = vendor?.storeStats?.rating || vendor?.rating || 0
   const vendorRatingCount = vendor?.storeStats?.totalRatings || vendor?.ratingsCount || 0
   const joinedDate = formatDate(vendor?.createdAt || vendor?.joinedAt)
@@ -182,6 +183,9 @@ function StorePage() {
 
       {/* ── Store Header ───────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_50%),linear-gradient(135deg,rgba(16,185,129,0.10)_0%,var(--color-background)_45%,rgba(245,158,11,0.10)_100%)]">
+        {storeCover && (
+          <img src={storeCover} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+        )}
         <div className="responsive-shell py-10 sm:py-14 lg:py-16">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
             {/* Store Logo */}

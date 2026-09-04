@@ -16,7 +16,13 @@ import { useAuth } from "../../contexts/VendorAuthContext";
 import { useRef } from "react";
 
 const AccountSettings = () => {
-  const { user, updateProfile, updateProfilePicture, removeProfilePicture } =
+  const {
+    user,
+    updateProfile,
+    updateProfilePicture,
+    updateCoverPicture,
+    removeProfilePicture,
+  } =
     useAuth(); // You'll need to add updateProfile to your AuthContext
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -24,6 +30,7 @@ const AccountSettings = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -89,6 +96,33 @@ const AccountSettings = () => {
 
   const handleCameraClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleCoverSelect = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Please select an image file" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Image size should be less than 5MB" });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const result = await updateCoverPicture(file);
+      setMessage(
+        result.success
+          ? { type: "success", text: "Cover picture updated successfully!" }
+          : { type: "error", text: result.error || "Failed to update cover picture" },
+      );
+    } finally {
+      setIsLoading(false);
+      event.target.value = "";
+    }
   };
 
   const handleFileSelect = (event) => {
@@ -379,9 +413,9 @@ const AccountSettings = () => {
             <div className="flex flex-col items-center">
               <div className="relative mb-4">
                 <div className="w-24 h-24 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                  {user?.avatar ? (
+                  {user?.profileImage || user?.avatar ? (
                     <img
-                      src={user.avatar}
+                      src={user.profileImage || user.avatar}
                       alt={user.name}
                       className="w-24 h-24 rounded-2xl object-cover"
                       onError={(e) => {
@@ -425,6 +459,27 @@ const AccountSettings = () => {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-amber-200 p-6">
+            <h3 className="text-lg font-semibold text-amber-800 mb-4">Cover Picture</h3>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-500">
+              {user?.coverImage ? (
+                <img src={user.coverImage} alt="Store cover" className="h-32 w-full object-cover" />
+              ) : (
+                <div className="flex h-32 items-center justify-center text-sm font-semibold text-white">No cover picture</div>
+              )}
+            </div>
+            <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverSelect} className="hidden" disabled={isLoading} />
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={isLoading}
+              className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-semibold text-white disabled:opacity-50"
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              {isLoading ? "Uploading..." : "Change cover picture"}
+            </button>
           </div>
 
           {/* Account Status */}

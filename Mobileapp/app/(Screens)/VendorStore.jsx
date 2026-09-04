@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
   Linking,
   Platform,
   RefreshControl,
@@ -191,6 +192,7 @@ const VendorStore = () => {
   const storeDescription =
     vendor?.storeDescription || vendor?.description || "";
   const storeLogo = vendor?.profileImage || vendor?.avatar || vendor?.logo || "";
+  const storeCover = vendor?.coverImage || vendor?.cover || "";
   const vendorRating = vendor?.storeStats?.rating || vendor?.rating || 0;
   const vendorRatingCount =
     vendor?.storeStats?.totalRatings || vendor?.ratingsCount || 0;
@@ -284,6 +286,9 @@ const VendorStore = () => {
           <View>
             {/* ── Store Header ─────────────────────────────── */}
             <View style={styles.storeHeader}>
+              {storeCover ? (
+                <Image source={{ uri: storeCover }} style={styles.coverImage} />
+              ) : null}
               <View style={styles.storeHeaderRow}>
                 {storeLogo ? (
                   <View style={styles.logoContainer}>
@@ -591,6 +596,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+  },
+  coverImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: 16,
+    marginBottom: 16,
+    backgroundColor: "#E5E7EB",
   },
   storeHeaderRow: {
     flexDirection: "row",

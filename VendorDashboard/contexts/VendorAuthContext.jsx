@@ -167,6 +167,12 @@ export const VendorAuthProvider = ({ children }) => {
     return result;
   }, []);
 
+  const updateCoverPicture = useCallback(async (file) => {
+    const result = await vendorAuthAPI.updateVendorCoverPicture(file);
+    if (result.success && result.data?.vendor) setUser(result.data.vendor);
+    return result;
+  }, []);
+
   const removeProfilePicture = useCallback(async () => {
     console.log("[VendorAuth] Removing profile picture");
     const result = await vendorAuthAPI.removeVendorProfilePicture();
@@ -187,6 +193,7 @@ export const VendorAuthProvider = ({ children }) => {
     logout,
     updateProfile,
     updateProfilePicture,
+    updateCoverPicture,
     removeProfilePicture,
     setUser, // For manual updates if needed
   };

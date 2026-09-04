@@ -111,6 +111,13 @@ router.put(
   vendorController.updateProfilePicture
 );
 
+router.put(
+  "/cover-picture",
+  authenticateToken,
+  handleUpload(upload.single("cover")),
+  vendorController.updateCoverPicture,
+);
+
 router.delete(
   "/profile-picture",
   authenticateToken,

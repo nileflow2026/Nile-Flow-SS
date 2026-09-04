@@ -1,4 +1,5 @@
 // controllers/vendorController.js
+const path = require("path");
 const { Query, Storage, ID } = require("node-appwrite");
 const { db } = require("../../src/appwrite");
 const { env } = require("../../src/env");
@@ -41,7 +42,7 @@ const vendorController = {
   // In your vendorController.js
   async updateProfilePicture(req, res) {
     try {
-      const vendorId = req.vendorId;
+      const vendorId = req.user.userId;
 
       console.log("Profile picture update request received:", {
         vendorId,
@@ -98,6 +99,7 @@ const vendorController = {
         vendorId,
         {
           avatar: fileUrl,
+          profileImage: fileUrl,
           avatarFileId: fileId, // Store file ID for future deletion/updates
           updatedAt: new Date().toISOString(),
         }
@@ -120,6 +122,41 @@ const vendorController = {
         success: false,
         error: "Failed to update profile picture: " + error.message,
       });
+    }
+  },
+
+  async updateCoverPicture(req, res) {
+    try {
+      const vendorId = req.user.userId;
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: "No file uploaded" });
+      }
+
+      const storage = new Storage()
+        .setEndpoint(env.APPWRITE_ENDPOINT)
+        .setProject(env.APPWRITE_PROJECT_ID)
+        .setKey(env.APPWRITE_API_KEY);
+      const fileId = ID.unique();
+      const fileName = `vendor-cover-${vendorId}-${Date.now()}${path.extname(req.file.originalname)}`;
+      await storage.createFile(
+        env.APPWRITE_STORAGE_ID,
+        fileId,
+        req.file.buffer,
+        [`user:${vendorId}`, "role:all"],
+      );
+
+      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const updatedVendor = await db.updateDocument(
+        env.VENDOR_DATABASE_ID,
+        env.VENDOR_COLLECTION_ID,
+        vendorId,
+        { coverImage: fileUrl, coverImageFileId: fileId, updatedAt: new Date().toISOString() },
+      );
+      const { password: _, ...vendorWithoutPassword } = updatedVendor;
+      return res.json({ success: true, message: "Cover picture updated successfully", data: { vendor: vendorWithoutPassword, fileUrl } });
+    } catch (error) {
+      console.error("Update cover picture error:", error);
+      return res.status(500).json({ success: false, error: "Failed to upload cover picture: " + error.message });
     }
   },
 

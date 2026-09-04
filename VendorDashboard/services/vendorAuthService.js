@@ -205,6 +205,26 @@ export const updateVendorProfilePicture = async (file) => {
   }
 };
 
+export const updateVendorCoverPicture = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("cover", file);
+    const response = await vendorAxiosClient.put("/api/vendors/cover-picture", formData, {
+      transformRequest: (data, headers) => {
+        delete headers["Content-Type"];
+        return data;
+      },
+      timeout: 30000,
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || "Failed to upload cover picture",
+    };
+  }
+};
+
 /**
  * Remove Profile Picture
  */
@@ -230,5 +250,6 @@ export default {
   logoutVendor,
   updateVendorProfile,
   updateVendorProfilePicture,
+  updateVendorCoverPicture,
   removeVendorProfilePicture,
 };
