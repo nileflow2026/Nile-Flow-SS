@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
@@ -26,6 +26,7 @@ function ProductDetailPage() {
   const { isAuthenticated, user } = useAuth()
   const { push } = useToast()
   const posthog = usePostHog()
+  const navigate = useNavigate()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -122,6 +123,57 @@ function ProductDetailPage() {
       })
       push({ title: 'Failed to add', message: result.error || 'Please try again.' })
     }
+  }
+
+  const handleBuyNow = async () => {
+    if (!product) return
+    if (!isAuthenticated) {
+      push({ title: 'Sign in required', message: 'Please sign in to buy this product.' })
+      return
+    }
+
+    const missingVariant = Object.keys(variantOptions).find((key) => !selectedVariants[key])
+    if (missingVariant) {
+      push({ title: 'Select an option', message: `Please select a ${missingVariant} before buying this product.` })
+      return
+    }
+
+    setAddingToCart(true)
+    const item = {
+      userId: user?.$id || user?.id,
+      productId: product.$id || product.id,
+      productName: product.productName || product.name || 'Product',
+      price: typeof product.price === 'object'
+        ? product.price.raw ?? product.price.convertedPrice ?? product.price.basePrice ?? 0
+        : product.price || 0,
+      image: product.image || product.imageUrl || product.images?.[0] || '',
+      variantSelection: selectedVariants,
+    }
+    const result = await cartService.addToCart(item)
+    setAddingToCart(false)
+
+    if (!result.success) {
+      push({ title: 'Failed to buy', message: result.error || 'Please try again.' })
+      return
+    }
+
+    const price = Number(item.price) || 0
+    navigate('/checkout', {
+      state: {
+        items: [{
+          id: result.data?.item?.$id || result.data?.item?.id || item.productId,
+          productId: item.productId,
+          name: item.productName,
+          price,
+          quantity: 1,
+          image: item.image,
+          variantSelection: JSON.stringify(selectedVariants),
+        }],
+        subtotal: price,
+        delivery: price >= 1000 ? 0 : 150,
+        total: price + (price >= 1000 ? 0 : 150),
+      },
+    })
   }
 
   // ── Loading state ─────────────────────────────────────────────
@@ -242,7 +294,7 @@ function ProductDetailPage() {
         <Breadcrumbs items={breadcrumbItems} />
       </div>
 
-      <ResponsiveSection eyebrow={categoryName || 'Product'} title={name} className="py-6 sm:py-10 lg:py-16">
+      <ResponsiveSection  className="py-6 sm:py-10 lg:py-16">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <ImageCarousel images={productImages} alt={name} />
@@ -273,7 +325,7 @@ function ProductDetailPage() {
 
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)] sm:text-xs">
-              {category || 'Nile Flow'}
+              {categoryName || 'Nile Flow'}
             </p>
             <h1 className="mt-2 text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl">
               {name}
@@ -329,8 +381,13 @@ function ProductDetailPage() {
               >
                 {addingToCart ? 'Adding…' : inStock ? `Add to cart — ${priceStr}` : 'Out of stock'}
               </PrimaryButton>
-              <Button variant="outline" className="w-full justify-center py-3 text-sm sm:w-auto sm:py-3.5">
-                Save
+              <Button
+                variant="outline"
+                className="w-full justify-center py-3 text-sm sm:w-auto sm:py-3.5"
+                onClick={handleBuyNow}
+                disabled={!inStock || addingToCart}
+              >
+                Buy now
               </Button>
             </div>
 
