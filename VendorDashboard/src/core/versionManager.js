@@ -24,10 +24,14 @@ export async function checkForUpdate() {
     const data = await res.json();
 
     if (data.version && data.version !== CURRENT_VERSION) {
-      return { hasUpdate: true, force: !!data.forceUpdate };
+      return {
+        hasUpdate: true,
+        force: !!data.forceUpdate,
+        version: data.version,
+      };
     }
 
-    return { hasUpdate: false };
+    return { hasUpdate: false, version: data.version };
   } catch (err) {
     console.error("[VersionManager] Version check failed", err);
     return { hasUpdate: false };

@@ -15,6 +15,16 @@ function UpdateBanner() {
 
       if (result.hasUpdate) {
         if (result.force) {
+          const forcedVersionKey = "vendor_dashboard_last_forced_reload";
+          const lastForcedVersion = sessionStorage.getItem(forcedVersionKey);
+          const nextVersion = result.version || "unknown";
+
+          if (lastForcedVersion === nextVersion) {
+            setUpdateAvailable(true);
+            return;
+          }
+
+          sessionStorage.setItem(forcedVersionKey, nextVersion);
           window.location.reload();
           return;
         }
