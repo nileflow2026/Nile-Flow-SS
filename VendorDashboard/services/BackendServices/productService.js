@@ -61,12 +61,24 @@ export const productService = {
     }
   },
 
-  uploadDirect: async ({ base64, fileName }) => {
+  uploadDirect: async ({ base64, fileName, onUploadProgress }) => {
     try {
       const res = await vendorAxiosClient.post(
         "/api/vendor/products/upload-image",
-        { base64, fileName }
-        // No need for headers - vendorAxiosClient already has Content-Type: application/json
+        { base64, fileName },
+        {
+          onUploadProgress: (progressEvent) => {
+            if (!progressEvent || !progressEvent.total) return;
+
+            const percent = Math.round(
+              (progressEvent.loaded / progressEvent.total) * 100
+            );
+
+            if (typeof onUploadProgress === "function") {
+              onUploadProgress(percent);
+            }
+          },
+        }
       );
 
       return {

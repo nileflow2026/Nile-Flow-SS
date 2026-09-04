@@ -29,7 +29,7 @@ const normalizeImageValue = (value) => {
   const trimmed = value.trim();
   if (!trimmed) return "";
 
-  if (trimmed.startsWith("/api/image-proxy?url=")) {
+  if (trimmed.includes("/api/image-proxy?")) {
     try {
       const parsed = new URL(trimmed, env.FRONTEND_URL || "https://www.nileflowafrica.com");
       const target = parsed.searchParams.get("url");
@@ -1237,13 +1237,10 @@ const productController = {
 
       const directImageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID || "product-images"}/files/${file.$id}/view?project=${env.APPWRITE_PROJECT_ID}`;
 
-      // Proxy images through backend to avoid CORS/timeout issues
-      const imageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}`;
-
       return res.status(201).json({
         success: true,
         fileId: file.$id,
-        imageUrl,
+        imageUrl: directImageUrl,
       });
     } catch (error) {
       console.error("Image Upload Error:", error);

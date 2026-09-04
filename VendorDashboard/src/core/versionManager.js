@@ -15,8 +15,12 @@ export async function checkForUpdate() {
   if (!CURRENT_VERSION) return { hasUpdate: false };
 
   try {
-    const res = await fetch("/api/version", { cache: "no-store" });
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    const res = await fetch(`${apiBaseUrl}/api/version`, { cache: "no-store" });
     if (!res.ok) return { hasUpdate: false };
+    if (!res.headers.get("content-type")?.includes("application/json")) {
+      return { hasUpdate: false };
+    }
     const data = await res.json();
 
     if (data.version && data.version !== CURRENT_VERSION) {

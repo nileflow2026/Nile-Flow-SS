@@ -77,6 +77,10 @@ const Products = () => {
     images: [],
   });
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgressLabel, setUploadProgressLabel] = useState(
+    "Uploading image...",
+  );
 
   // Add these states to your component
   const [showEditModal, setShowEditModal] = useState(false);
@@ -301,6 +305,8 @@ const Products = () => {
   const onDropEditPrimaryImage = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       setUploading(true);
+      setUploadProgress(0);
+      setUploadProgressLabel("Uploading primary image...");
       const file = acceptedFiles[0];
 
       let uploadFile = file;
@@ -311,18 +317,21 @@ const Products = () => {
           console.error("Image conversion failed", err);
           setMessage({ type: "error", text: "Failed to convert webp image." });
           setUploading(false);
+          setUploadProgress(0);
           return;
         }
       }
 
       try {
-        // Upload via backend API
         const reader = new FileReader();
         reader.onload = async (e) => {
           const base64 = e.target.result;
           const result = await productService.uploadDirect({
             base64,
             fileName: uploadFile.name,
+            onUploadProgress: (percent) => {
+              setUploadProgress(percent);
+            },
           });
 
           if (result.success) {
@@ -331,6 +340,7 @@ const Products = () => {
               type: "success",
               text: "Primary image uploaded successfully!",
             });
+            setUploadProgress(100);
           } else {
             setMessage({
               type: "error",
@@ -338,16 +348,19 @@ const Products = () => {
             });
           }
           setUploading(false);
+          setUploadProgress(0);
         };
         reader.onerror = () => {
           setMessage({ type: "error", text: "Failed to read file." });
           setUploading(false);
+          setUploadProgress(0);
         };
         reader.readAsDataURL(uploadFile);
       } catch (err) {
         setMessage({ type: "error", text: "Failed to upload primary image." });
         console.error(err);
         setUploading(false);
+        setUploadProgress(0);
       }
     }
   }, []);
@@ -355,9 +368,15 @@ const Products = () => {
   const onDropEditAdditionalImages = useCallback(
     async (acceptedFiles) => {
       setUploading(true);
+      setUploadProgress(0);
       const currentImages = [...editFormData.images];
 
-      for (const file of acceptedFiles) {
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
+        setUploadProgressLabel(
+          `Uploading additional image ${i + 1}/${acceptedFiles.length}...`,
+        );
+
         let convertedFile = file;
         if (file.type === "image/webp") {
           try {
@@ -373,7 +392,6 @@ const Products = () => {
         }
 
         try {
-          // Upload via backend API
           const imageUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -382,8 +400,12 @@ const Products = () => {
                 const result = await productService.uploadDirect({
                   base64,
                   fileName: convertedFile.name,
+                  onUploadProgress: (percent) => {
+                    setUploadProgress(percent);
+                  },
                 });
                 if (result.success) {
+                  setUploadProgress(100);
                   resolve(result.imageUrl);
                 } else {
                   reject(new Error(result.message || "Upload failed"));
@@ -407,6 +429,8 @@ const Products = () => {
 
       setEditFormData((prev) => ({ ...prev, images: currentImages }));
       setUploading(false);
+      setUploadProgress(0);
+      setUploadProgressLabel("Uploading image...");
     },
     [editFormData.images],
   );
@@ -488,23 +512,26 @@ const Products = () => {
   const onDropPrimaryImage = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       setUploading(true);
+      setUploadProgress(0);
+      setUploadProgressLabel("Uploading primary image...");
       const file = acceptedFiles[0];
 
       try {
-        // Compress + rename with SEO-optimised filename (handles WebP conversion too)
         const optimizedFile = await optimizeProductImage(
           file,
           formData.name || "product",
           0,
         );
 
-        // Upload via backend API
         const reader = new FileReader();
         reader.onload = async (e) => {
           const base64 = e.target.result;
           const result = await productService.uploadDirect({
             base64,
             fileName: optimizedFile.name || optimizedFile.name,
+            onUploadProgress: (percent) => {
+              setUploadProgress(percent);
+            },
           });
 
           if (result.success) {
@@ -518,6 +545,7 @@ const Products = () => {
               type: "success",
               text: `Primary image uploaded${needsCompression(file) ? " (compressed)" : ""}!`,
             });
+            setUploadProgress(100);
           } else {
             setMessage({
               type: "error",
@@ -531,6 +559,8 @@ const Products = () => {
         console.error(err);
       } finally {
         setUploading(false);
+        setUploadProgress(0);
+        setUploadProgressLabel("Uploading image...");
       }
     }
   }, []);
@@ -539,11 +569,16 @@ const Products = () => {
   const onDropAdditionalImages = useCallback(
     async (acceptedFiles) => {
       setUploading(true);
+      setUploadProgress(0);
       const currentImages = [...formData.images];
 
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i];
-        const imageIndex = currentImages.length + 1; // 1-based additional index
+        const imageIndex = currentImages.length + 1;
+        setUploadProgressLabel(
+          `Uploading additional image ${i + 1}/${acceptedFiles.length}...`,
+        );
+
         try {
           const convertedFile = await optimizeProductImage(
             file,
@@ -551,7 +586,6 @@ const Products = () => {
             imageIndex,
           );
 
-          // Upload via backend API
           const reader = new FileReader();
           const imageUrl = await new Promise((resolve, reject) => {
             reader.onload = async (e) => {
@@ -560,8 +594,12 @@ const Products = () => {
                 const result = await productService.uploadDirect({
                   base64,
                   fileName: convertedFile.name,
+                  onUploadProgress: (percent) => {
+                    setUploadProgress(percent);
+                  },
                 });
                 if (result.success) {
+                  setUploadProgress(100);
                   resolve(result.imageUrl);
                 } else {
                   reject(new Error(result.message || "Upload failed"));
@@ -585,6 +623,8 @@ const Products = () => {
 
       setFormData((prev) => ({ ...prev, images: currentImages }));
       setUploading(false);
+      setUploadProgress(0);
+      setUploadProgressLabel("Uploading image...");
     },
     [formData.images],
   );
@@ -2123,30 +2163,11 @@ const Products = () => {
                       </div>
 
                       {uploading && (
-                        <div className="mt-2 flex items-center gap-2 text-amber-600">
-                          <svg
-                            className="animate-spin h-4 w-4 text-amber-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          <span className="text-sm font-medium">
-                            Uploading primary image...
-                          </span>
+                        <div className="mt-3">
+                          <UploadProgressBar
+                            progress={uploadProgress}
+                            label={uploadProgressLabel}
+                          />
                         </div>
                       )}
 
@@ -2215,31 +2236,12 @@ const Products = () => {
                         </div>
                       </div>
 
-                      {uploading && formData.images.length > 0 && (
-                        <div className="mt-2 flex items-center gap-2 text-amber-600">
-                          <svg
-                            className="animate-spin h-4 w-4 text-amber-500"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          <span className="text-sm font-medium">
-                            Uploading additional images...
-                          </span>
+                      {uploading && (
+                        <div className="mt-3">
+                          <UploadProgressBar
+                            progress={uploadProgress}
+                            label={uploadProgressLabel}
+                          />
                         </div>
                       )}
 
