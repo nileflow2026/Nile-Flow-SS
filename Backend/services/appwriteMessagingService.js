@@ -215,11 +215,20 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
       return;
     }
 
-    await messaging.createEmail(
-      ID.unique(), subject, content,
-      [], [], [targetId], [], [],
-      false, isHtml, "",
-    );
+    await messaging.createEmail({
+      messageId: ID.unique(),
+      subject,
+      content,
+      topics: [],
+      users: [],
+      targets: [targetId],
+      cc: [],
+      bcc: [],
+      attachments: [],
+      draft: false,
+      html: isHtml,
+      scheduledAt: null,
+    });
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send email to ${userId}:`, error.message);
   }
@@ -241,11 +250,15 @@ async function sendSms({ userId, phone, content }) {
       return;
     }
 
-    await messaging.createSms(
-      ID.unique(), content,
-      [], [], [targetId],
-      false, "",
-    );
+    await messaging.createSms({
+      messageId: ID.unique(),
+      content,
+      topics: [],
+      users: [],
+      targets: [targetId],
+      draft: false,
+      scheduledAt: null,
+    });
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send SMS to ${userId}:`, error.message);
   }
@@ -282,18 +295,27 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
       // BUG FIX: Appwrite 1.9.x rejects empty strings for `image`, `icon`,
       // `color`, `tag` params too (same root cause as `action`).
       // Always pass `undefined` for any optional string param with no value.
-      await messaging.createPush(
-        ID.unique(), title, body,
-        [], [userId], [],
+      await messaging.createPush({
+        messageId: ID.unique(),
+        title,
+        body,
+        topics: [],
+        users: [userId],
+        targets: [],
         data,
-        actionParam,
-        undefined, // image — FIXED: undefined instead of ""
-        undefined, // icon  — FIXED: undefined instead of ""
-        undefined, // sound — FIXED: undefined instead of ""
-        undefined, // color — FIXED: undefined instead of ""
-        undefined, // tag   — FIXED: undefined instead of ""
-        1, false, false, undefined, false, undefined, // priority, scheduledAt
-      );
+        action: actionParam,
+        image: undefined,
+        icon: undefined,
+        sound: undefined,
+        color: undefined,
+        tag: undefined,
+        badge: undefined,
+        draft: false,
+        scheduledAt: null,
+        contentAvailable: false,
+        critical: false,
+        priority: "normal",
+      });
     } catch (pushError) {
       if (pushError.message && pushError.message.includes("could not be found")) {
         console.warn(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`);
@@ -325,18 +347,27 @@ async function sendPushToTopic({ topic, title, body, data = {}, action = null })
       }
     }
 
-    await messaging.createPush(
-      ID.unique(), title, body,
-      [topic], [], [],
+    await messaging.createPush({
+      messageId: ID.unique(),
+      title,
+      body,
+      topics: [topic],
+      users: [],
+      targets: [],
       data,
-      actionParam,
-      undefined, // image
-      undefined, // icon
-      undefined, // sound
-      undefined, // color
-      undefined, // tag
-      1, false, false, undefined, false, undefined,
-    );
+      action: actionParam,
+      image: undefined,
+      icon: undefined,
+      sound: undefined,
+      color: undefined,
+      tag: undefined,
+      badge: undefined,
+      draft: false,
+      scheduledAt: null,
+      contentAvailable: false,
+      critical: false,
+      priority: "normal",
+    });
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send push to topic ${topic}:`, error.message);
   }
