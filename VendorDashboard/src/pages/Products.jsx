@@ -14,6 +14,8 @@ import {
 } from "../utils/imageOptimizer";
 import UploadProgressBar from "../components/UploadProgressBar";
 
+const safeTrim = (value) => (typeof value === "string" ? value.trim() : "");
+
 const Products = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [categories, setCategories] = useState([]); // Add this state
@@ -867,12 +869,12 @@ const Products = () => {
 
       const productData = {
         // Basic Info
-        name: formData.name.trim(),
-        shortDescription: formData.shortDescription.trim(),
-        description: formData.description.trim(),
-        brand: formData.brand.trim(),
-        sku: formData.sku.trim(),
-        barcode: formData.barcode.trim(),
+        name: safeTrim(formData.name),
+        shortDescription: safeTrim(formData.shortDescription),
+        description: safeTrim(formData.description),
+        brand: safeTrim(formData.brand),
+        sku: safeTrim(formData.sku),
+        barcode: safeTrim(formData.barcode),
         type: formData.type,
         condition: formData.condition,
         // Organization
@@ -904,7 +906,7 @@ const Products = () => {
         dimensionUnit: formData.dimensionUnit,
         freeShipping: formData.freeShipping,
         shippingClass: formData.shippingClass,
-        deliveryEstimate: formData.deliveryEstimate.trim(),
+        deliveryEstimate: safeTrim(formData.deliveryEstimate),
         // Attributes / Variants
         attributes: {
           ...(formData.color && { color: formData.color }),
@@ -921,15 +923,15 @@ const Products = () => {
         },
         specifications: {},
         // SEO — enriched fields for public storefront use
-        seoTitle: formData.seoTitle.trim(),
-        seoDescription: formData.seoDescription.trim(),
-        slug: formData.slug.trim() || generateSlug(formData.name),
+        seoTitle: safeTrim(formData.seoTitle),
+        seoDescription: safeTrim(formData.seoDescription),
+        slug: safeTrim(formData.slug) || generateSlug(safeTrim(formData.name)),
         metaTitle:
-          formData.metaTitle.trim() ||
-          formData.seoTitle.trim() ||
-          formData.name.trim(),
+          safeTrim(formData.metaTitle) ||
+          safeTrim(formData.seoTitle) ||
+          safeTrim(formData.name),
         metaDescription:
-          formData.metaDescription.trim() || formData.seoDescription.trim(),
+          safeTrim(formData.metaDescription) || safeTrim(formData.seoDescription),
         keywords: formData.keywords
           ? formData.keywords
               .split(",")
@@ -998,6 +1000,8 @@ const Products = () => {
           shortDescription: "",
           description: "",
           brand: "",
+          sku: "",
+          barcode: "",
           type: "physical",
           condition: "new",
           categoryId: "",
@@ -1013,9 +1017,26 @@ const Products = () => {
           freeShipping: false,
           shippingClass: "standard",
           deliveryEstimate: "",
+          weight: "",
+          weightUnit: "kg",
+          length: "",
+          width: "",
+          height: "",
+          dimensionUnit: "cm",
           color: "",
           size: "",
           material: "",
+          customAttribute1Key: "",
+          customAttribute1Value: "",
+          customAttribute2Key: "",
+          customAttribute2Value: "",
+          compareAtPrice: "",
+          costPerItem: "",
+          seoTitle: "",
+          seoDescription: "",
+          slug: "",
+          metaTitle: "",
+          metaDescription: "",
           keywords: "",
           image: "",
           images: [],
