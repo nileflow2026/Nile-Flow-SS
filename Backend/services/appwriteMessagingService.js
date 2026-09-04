@@ -24,6 +24,7 @@
  * @see https://appwrite.io/docs/products/messaging
  */
 
+const crypto = require("crypto");
 const { ID, Messaging, Users, Query } = require("node-appwrite");
 const { client } = require("./appwriteService");
 const { env } = require("../src/env");
@@ -33,6 +34,31 @@ const users = new Users(client);
 
 // In-memory cache of known target IDs to avoid redundant lookups
 const targetCache = new Map();
+
+function normalizeEmailValue(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizePhoneValue(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return "";
+
+  let sanitized = digits;
+  if (sanitized.startsWith("0")) sanitized = `254${sanitized.slice(1)}`;
+  if (!sanitized.startsWith("+")) sanitized = `+${sanitized}`;
+  return sanitized;
+}
+
+function buildStableTargetId(prefix, userId, identifier) {
+  const normalized = String(identifier || "").trim().toLowerCase();
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${userId}:${prefix}:${normalized}`)
+    .digest("hex")
+    .slice(0, 32);
+
+  return `${prefix}_${hash}`;
+}
 
 /**
  * Check if a provider is configured for the given channel type.
@@ -68,12 +94,13 @@ setTimeout(() => {
  * Handles race conditions where two requests create the same target.
  */
 async function ensureEmailTarget(userId, email) {
-  // Check cache first
-  const cacheKey = `email:${userId}:${email}`;
+  const normalizedEmail = normalizeEmailValue(email);
+  if (!userId || !normalizedEmail) return null;
+
+  const cacheKey = `email:${userId}:${normalizedEmail}`;
   if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
 
   try {
-    // Verify user exists
     try {
       await users.get(userId);
     } catch (userError) {
@@ -84,39 +111,40 @@ async function ensureEmailTarget(userId, email) {
       throw userError;
     }
 
-    // List existing targets
     const existing = await users.listTargets(userId);
-    const emailTarget = existing.targets.find(
-      (t) => t.type === "email" && t.identifier === email,
-    );
+    const emailTarget = (existing.targets || []).find((t) => {
+      const targetIdentifier = String(t.identifier || "").trim().toLowerCase();
+      return t.type === "email" && targetIdentifier === normalizedEmail;
+    });
     if (emailTarget) {
       targetCache.set(cacheKey, emailTarget.$id);
       return emailTarget.$id;
     }
 
-    // Create new target — handle 409/duplicate if another request created it first
+    const targetId = buildStableTargetId("email", userId, normalizedEmail);
+
     try {
-      const target = await users.createTarget(userId, ID.unique(), "email", email);
+      const target = await users.createTarget({
+        userId,
+        targetId,
+        providerType: "email",
+        identifier: normalizedEmail,
+      });
       targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      // Appwrite SDK throws with different error shapes:
-      // - createError.type === "target_already_exists" (via .type field)
-      // - createError.message includes "already exists" (via .message field)
-      // - createError.code === 409 (via .code field)
       const isDuplicate =
         createError.type === "target_already_exists" ||
         (createError.message && createError.message.includes("already exists")) ||
         createError.code === 409;
 
       if (isDuplicate) {
-        // Race condition — another request created it between our list and create.
-        // Retry the list to get the existing target ID.
         try {
           const retry = await users.listTargets(userId);
-          const existingTarget = retry.targets.find(
-            (t) => t.type === "email" && t.identifier === email,
-          );
+          const existingTarget = (retry.targets || []).find((t) => {
+            const targetIdentifier = String(t.identifier || "").trim().toLowerCase();
+            return t.type === "email" && targetIdentifier === normalizedEmail;
+          });
           if (existingTarget) {
             targetCache.set(cacheKey, existingTarget.$id);
             return existingTarget.$id;
@@ -125,6 +153,7 @@ async function ensureEmailTarget(userId, email) {
           console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
         }
       }
+
       console.warn(`[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`);
       return null;
     }
@@ -138,7 +167,10 @@ async function ensureEmailTarget(userId, email) {
  * Ensure a user has an SMS target registered. Handles 409 race conditions.
  */
 async function ensureSmsTarget(userId, phone) {
-  const cacheKey = `sms:${userId}:${phone}`;
+  const normalizedPhone = normalizePhoneValue(phone);
+  if (!userId || !normalizedPhone) return null;
+
+  const cacheKey = `sms:${userId}:${normalizedPhone}`;
   if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
 
   try {
@@ -152,25 +184,28 @@ async function ensureSmsTarget(userId, phone) {
       throw userError;
     }
 
-    let normalizedPhone = phone.replace(/[^0-9]/g, "");
-    if (normalizedPhone.startsWith("0")) normalizedPhone = "254" + normalizedPhone.substring(1);
-    if (!normalizedPhone.startsWith("+")) normalizedPhone = "+" + normalizedPhone;
-
     const existing = await users.listTargets(userId);
-    const smsTarget = existing.targets.find(
-      (t) => t.type === "sms" && t.identifier === normalizedPhone,
-    );
+    const smsTarget = (existing.targets || []).find((t) => {
+      const targetIdentifier = String(t.identifier || "").trim();
+      return t.type === "sms" && targetIdentifier === normalizedPhone;
+    });
     if (smsTarget) {
       targetCache.set(cacheKey, smsTarget.$id);
       return smsTarget.$id;
     }
 
+    const targetId = buildStableTargetId("sms", userId, normalizedPhone);
+
     try {
-      const target = await users.createTarget(userId, ID.unique(), "sms", normalizedPhone);
+      const target = await users.createTarget({
+        userId,
+        targetId,
+        providerType: "sms",
+        identifier: normalizedPhone,
+      });
       targetCache.set(cacheKey, target.$id);
       return target.$id;
     } catch (createError) {
-      // Same 409 detection as ensureEmailTarget (handles multiple error shapes)
       const isDuplicate =
         createError.type === "target_already_exists" ||
         (createError.message && createError.message.includes("already exists")) ||
@@ -179,9 +214,10 @@ async function ensureSmsTarget(userId, phone) {
       if (isDuplicate) {
         try {
           const retry = await users.listTargets(userId);
-          const existingTarget = retry.targets.find(
-            (t) => t.type === "sms" && t.identifier === normalizedPhone,
-          );
+          const existingTarget = (retry.targets || []).find((t) => {
+            const targetIdentifier = String(t.identifier || "").trim();
+            return t.type === "sms" && targetIdentifier === normalizedPhone;
+          });
           if (existingTarget) {
             targetCache.set(cacheKey, existingTarget.$id);
             return existingTarget.$id;
