@@ -6,6 +6,7 @@ const {
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
+const { sendBrandedEmail } = require("../../services/emailTheme");
 const renderNewsletter = require("../emails/newsletterRenderer");
 
 const newsletter = async (req, res) => {
@@ -162,7 +163,7 @@ const generateFallbackTemplate = (campaignData, campaignType) => {
 // A new function to send the newsletter email
 const sendNewsletterEmail = async ({ toEmail, subject, htmlContent }) => {
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <updates@nileflowafrica.com>", // Use a different 'from' email for newsletters
       to: toEmail,
       subject: subject,
@@ -1662,7 +1663,7 @@ const sendBroadcast = async (req, res) => {
           `https://nileflowafrica.com/unsubscribe?email=${encodeURIComponent(recipient.email)}`
         );
 
-      return resendClient.emails.send({
+      return sendBrandedEmail(resendClient, {
         from: 'Nile Flow Africa <updates@nileflowafrica.com>',
         to: recipient.email,
         subject,

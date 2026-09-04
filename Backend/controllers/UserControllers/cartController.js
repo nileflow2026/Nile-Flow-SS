@@ -160,22 +160,27 @@ const updateQuantity = async (req, res) => {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    // 1. Find the cart document by productId + userId
+    const authenticatedUserId = req.user?.userId || userId;
+
+    // Support both cart document IDs and legacy product IDs.
     const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
-      [Query.equal("productId", cartItemId), Query.equal("userId", userId)],
+      [Query.equal("userId", authenticatedUserId)],
     );
 
-    if (result.total === 0) {
+    const matchingDocument = result.documents.find(
+      (document) => document.$id === cartItemId || document.productId === cartItemId,
+    );
+
+    if (!matchingDocument) {
       return res.status(404).json({ error: "Cart item not found" });
     }
 
-    const docId = result.documents[0].$id;
     const updated = await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CART_COLLECTION_ID,
-      docId,
+      matchingDocument.$id,
       { quantity },
     );
 

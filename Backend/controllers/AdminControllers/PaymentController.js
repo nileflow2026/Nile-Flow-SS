@@ -248,8 +248,17 @@ const cashonDelivery = async (req, res) => {
     console.log("=== PAYMENT ON DELIVERY REQUEST ===");
     console.log("Request Body:", JSON.stringify(req.body, null, 2));
 
-    const { cart, userId, customerEmail, username, totalAmount, currency } =
-      req.body;
+    const {
+      cart,
+      userId,
+      customerEmail,
+      username,
+      totalAmount,
+      currency,
+      deliveryAddress,
+      customerPhone,
+      paymentMethod,
+    } = req.body;
 
     // Ensure userId is a string, not an array
     const userIdValue = Array.isArray(userId) ? userId[0] : userId;
@@ -329,10 +338,13 @@ const cashonDelivery = async (req, res) => {
         ? customerEmail[0]
         : customerEmail,
       username: Array.isArray(username) ? username[0] : username,
+      deliveryAddress: deliveryAddress || "",
+      customerPhone: customerPhone || "",
+      phone: customerPhone || "",
       items: JSON.stringify(cart),
       amount: Math.round(parseFloat(trustedTotal)), // ZERO TRUST: server-computed total
       currency: Array.isArray(currency) ? currency[0] : currency,
-      paymentMethod: "Cash on Delivery",
+      paymentMethod: paymentMethod || "Cash on Delivery",
       status: "Pending",
       orderStatus: "Ordered",
       paymentStatus: "succeeded",
@@ -454,7 +466,9 @@ const cashonDelivery = async (req, res) => {
         cart,
         customerEmail,
         customerName: username,
-        orderId,
+        orderNumber,
+        deliveryAddress,
+        customerPhone,
         orderTotal: parseFloat(trustedTotal),
         paymentMethod: "Payment on Delivery",
         status: "Pending",
@@ -1214,20 +1228,36 @@ const Emailconfirmation = async ({
   customerEmail,
   customerName,
   orderNumber,
+  orderId,
   orderTotal,
   cart,
   paymentMethod, 
   status,
+  deliveryAddress,
+  customerPhone,
 }) => {
   try {
     await sendOrderConfirmationEmail({
       customerEmail,
       customerName,
-      orderNumber,
+      orderNumber: orderNumber || orderId,
       orderTotal,
-      cart,
+      cart: (cart || []).map((item) => ({
+        ...item,
+        productName: item.productName || item.name || 'Product',
+        productImage: item.productImage || item.image || '',
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
+        variantLabel: typeof item.variantSelection === 'string'
+          ? item.variantSelection
+          : Object.entries(item.variantSelection || {})
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(' · '),
+      })),
       paymentMethod,
       status,
+      deliveryAddress,
+      customerPhone,
     });
   } catch (err) {
     console.error("Email sending failed:", err);

@@ -32,8 +32,6 @@ function CategoryPage() {
   const categoryName = categoryInfo?.name || (categorySlug
     ? categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
     : 'Category')
-  const categoryIcon = CATEGORY_ICONS[categorySlug] || '📦'
-
   const breadcrumbItems = [
     { label: 'Products', href: '/products' },
     { label: categoryName },
@@ -100,14 +98,11 @@ function CategoryPage() {
         <Breadcrumbs items={breadcrumbItems} />
       </div>
 
-      <div className="bg-gradient-to-br from-emerald-50/30 via-transparent to-amber-50/30 px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-emerald-950/10 dark:to-amber-950/10">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-surface-muted)] text-3xl sm:h-20 sm:w-20">
-          {categoryIcon}
-        </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
+      <div className="border-y border-emerald-100/80 bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-7 text-center sm:px-6 sm:py-9 dark:border-emerald-900/30 dark:from-emerald-950/10 dark:to-amber-950/10">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
           {categoryName}
         </h1>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[var(--color-text-secondary)]">
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[var(--color-text-secondary)]">
           Browse products in {categoryName.toLowerCase()}
         </p>
       </div>

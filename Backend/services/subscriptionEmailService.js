@@ -2,6 +2,7 @@
 const { Resend } = require("resend");
 const { env } = require("../src/env");
 const logger = require("../utils/logger");
+const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -24,7 +25,7 @@ class SubscriptionEmailService {
         day: "numeric",
       });
 
-      await resend.emails.send({
+    await sendBrandedEmail(resend, {
         from: "Nile Flow <no-reply@nileflowafrica.com>",
         to: email,
         subject: "🎉 Welcome to Nile Premium - Your Subscription is Active!",
@@ -64,7 +65,7 @@ class SubscriptionEmailService {
         day: "numeric",
       });
 
-      await resend.emails.send({
+    await sendBrandedEmail(resend, {
         from: "Nile Flow <no-reply@nileflowafrica.com>",
         to: email,
         subject: `⏰ Your Nile Premium Subscription Expires in ${daysRemaining} Days`,
@@ -104,7 +105,7 @@ class SubscriptionEmailService {
         day: "numeric",
       });
 
-      await resend.emails.send({
+    await sendBrandedEmail(resend, {
         from: "Nile Flow <no-reply@nileflowafrica.com>",
         to: email,
         subject: "✅ Your Nile Premium Subscription Has Been Renewed",
@@ -137,7 +138,7 @@ class SubscriptionEmailService {
     reason,
   }) {
     try {
-      await resend.emails.send({
+    await sendBrandedEmail(resend, {
         from: "Nile Flow <no-reply@nileflowafrica.com>",
         to: email,
         subject:
@@ -305,6 +306,7 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
+          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -526,6 +528,7 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
+          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -716,6 +719,7 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
+          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -875,6 +879,7 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
+          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>

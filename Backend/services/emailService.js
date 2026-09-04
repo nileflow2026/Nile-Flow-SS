@@ -2,6 +2,7 @@ const { Resend } = require("resend");
 const { env } = require("../src/env");
 
 const resend = new Resend(env.RESEND_API_KEY);
+const { sendBrandedEmail } = require("./emailTheme");
 
 /**
  * Send rating request email to customer using Resend
@@ -32,7 +33,7 @@ async function sendRatingRequestEmail(deliveryData) {
     // console.log(`  🔗 Rating URL: ${ratingUrl}`);
     // console.log(`  📅 Timestamp: ${new Date().toISOString()}`);
 
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>",
       to: customerEmail,
       subject: `⭐ Rate Your Delivery Experience - Order #${orderId}`,

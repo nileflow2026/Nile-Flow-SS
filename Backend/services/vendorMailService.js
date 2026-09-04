@@ -2,6 +2,7 @@ const { Resend } = require("resend");
 const { env } = require("../src/env");
 
 const resend = new Resend(env.RESEND_API_KEY);
+const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
 
 /**
  * Send Welcome Email — Strategic Positioning
@@ -9,7 +10,7 @@ const resend = new Resend(env.RESEND_API_KEY);
  */
 const sendVendorWelcomeEmail = async ({ vendorName, vendorEmail }) => {
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow  Africa <onboarding@nileflowafrica.com>",
       to: vendorEmail,
       subject: "Welcome to Nile Flow — Let's Build Something Generational",
@@ -140,6 +141,7 @@ const sendVendorWelcomeEmail = async ({ vendorName, vendorEmail }) => {
                         font-size: 20px;
                     }
                 }
+            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -221,7 +223,7 @@ const sendVendorDashboardActivationEmail = async ({
   vendorEmail,
 }) => {
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Africa <onboarding@nileflowafrica.com>",
       to: vendorEmail,
       subject:
@@ -397,6 +399,7 @@ const sendVendorDashboardActivationEmail = async ({
                         font-size: 20px;
                     }
                 }
+            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -487,7 +490,7 @@ const sendVendorDashboardActivationEmail = async ({
  */
 const sendVendorGrowthEmail = async ({ vendorName, vendorEmail }) => {
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Africa <onboarding@nileflowafrica.com>",
       to: vendorEmail,
       subject: "How to Win on Nile Flow Africa — Performance Strategies",
@@ -683,6 +686,7 @@ const sendVendorGrowthEmail = async ({ vendorName, vendorEmail }) => {
                         font-size: 20px;
                     }
                 }
+            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>

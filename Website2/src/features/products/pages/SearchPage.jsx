@@ -256,6 +256,15 @@ function SearchPage() {
                     {categories.map((cat, idx) => {
                       const catName = cat.name || cat
                       const catId = cat.$id || cat.id || catName
+                      const categoryImageValue = cat.img || cat.image || cat.imgUrl || cat.imageUrl || ''
+                      const rawCategoryImage = typeof categoryImageValue === 'object'
+                        ? categoryImageValue.url || categoryImageValue.imageUrl || categoryImageValue.href || ''
+                        : categoryImageValue
+                      const categoryImage = rawCategoryImage && (
+                        rawCategoryImage.includes('appwrite.io') || rawCategoryImage.includes('/api/image-proxy?')
+                      )
+                        ? imageProxyUrl(rawCategoryImage, 96, 60)
+                        : rawCategoryImage
                       const slug = catName.toLowerCase().replace(/\s+/g, '-')
                       const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
                       return (
@@ -264,13 +273,17 @@ function SearchPage() {
                           to={`/category/${slug}`}
                           className={`flex items-center gap-3 rounded-xl bg-gradient-to-r ${color} p-4 text-white shadow-md transition hover:shadow-lg hover:scale-[1.02]`}
                         >
-                          {cat.img && (
+                          {categoryImage ? (
                             <img
-                              src={cat.img}
+                              src={categoryImage}
                               alt={catName}
-                              className="w-8 h-8 rounded-lg object-cover bg-white/20"
+                              width="32"
+                              height="32"
+                              className="h-8 w-8 shrink-0 rounded-lg object-cover bg-white/20"
+                              loading="eager"
+                              onError={(event) => { event.currentTarget.src = '/logo.png' }}
                             />
-                          )}
+                          ) : <span className="h-8 w-8 shrink-0 rounded-lg bg-white/20" aria-hidden="true" />}
                           <span className="font-semibold text-sm">{catName}</span>
                         </Link>
                       )

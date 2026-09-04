@@ -36,6 +36,7 @@ const {
 } = require("./appwriteService");
 const { env } = require("../src/env");
 const logger = require("../utils/logger");
+const { sendBrandedEmail } = require("./emailTheme");
 
 // ─────────────────────────────────────────────
 // Constants
@@ -189,7 +190,7 @@ function appendAuditEvent(existingLogJson, eventType, meta = {}) {
 // ─────────────────────────────────────────────
 
 async function sendOtpEmail(email, otp, username = "User") {
-  await resend.emails.send({
+  await sendBrandedEmail(resend, {
     from: "Nile Flow <no-reply@nileflowafrica.com>",
     to: email,
     subject: "Your Account Deletion Verification Code",
@@ -251,7 +252,7 @@ async function sendDeletionConfirmationEmail(email, username, scheduledDate) {
     day: "numeric",
   });
 
-  await resend.emails.send({
+  await sendBrandedEmail(resend, {
     from: "Nile Flow <no-reply@nileflowafrica.com>",
     to: email,
     subject: "Account Deletion Scheduled — Nile Flow Africa",

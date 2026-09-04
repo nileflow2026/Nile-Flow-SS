@@ -6,6 +6,7 @@ const { Resend } = require("resend");
 const { instrumentedDb } = require("../../services/appwriteService");
 
 const resend = new Resend(env.RESEND_API_KEY);
+const { sendBrandedEmail } = require("../../services/emailTheme");
 
 /**
  * Send a 6-digit password reset code to user's email
@@ -62,7 +63,7 @@ const sendForgotPasswordCode = async (req, res) => {
     );
 
     // Send email with code via Resend
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await sendBrandedEmail(resend, {
       from: "Nile Flow Africa <no-reply@nileflowafrica.com>",
       to: email,
       subject: "🔐 Your Nile Flow Password Reset Code",
@@ -281,7 +282,7 @@ const sendForgotPasswordEmail = async (req, res) => {
 
     const resetUrl = `${env.FRONTEND_URL_PROD || env.FRONTEND_URL || "https://nileflowafrica.com"}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Africa <no-reply@nileflowafrica.com>",
       to: email,
       subject: "🔐 Reset Your Nile Flow Africa Password",

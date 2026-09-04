@@ -8,6 +8,7 @@ const {
   generateRefreshToken,
 } = require("../utils/tokenUtils");
 const resend = new Resend(env.RESEND_API_KEY);
+const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
 
 // Helper function to get user by email
 const getUserByEmail = async (email) => {
@@ -36,12 +37,14 @@ const sendOrderConfirmationEmail = async ({
   orderNumber,
   orderTotal,
   cart,
+  deliveryAddress,
+  customerPhone,
 }) => {
   console.log("Preparing to send email to:", customerEmail);
   console.log("cart passed to email:", cart);
 
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>",
       to: customerEmail,
       subject: `🎉 Order #${orderNumber} Confirmed | Nile Flow`,
@@ -378,6 +381,7 @@ const sendOrderConfirmationEmail = async ({
                         gap: 10px;
                     }
                 }
+            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -397,7 +401,7 @@ const sendOrderConfirmationEmail = async ({
                     </p>
                     
                     <div class="order-number">
-                        Your order is confirmed • <span>#${orderId}</span>
+                        Your order is confirmed • <span>#${orderNumber}</span>
                     </div>
                     
                     <!-- Order Items -->
@@ -427,6 +431,7 @@ const sendOrderConfirmationEmail = async ({
                                                     <div class="product-name">${
                                                       item.productName
                                                     }</div>
+                                                    ${item.variantLabel ? `<div class="product-price">${item.variantLabel}</div>` : ""}
                                                     <div class="product-price">Ksh ${item.price.toFixed(
                                                       2,
                                                     )} each</div>
@@ -460,7 +465,7 @@ const sendOrderConfirmationEmail = async ({
                     
                     <!-- Track Order Button -->
                     <div style="text-align: center;">
-                        <a href="https://nileflowafrica.com/track/${orderId}" class="track-order-btn">
+                        <a href="https://nileflowafrica.com/track/${orderNumber}" class="track-order-btn">
                             🚚 Track Your Order
                         </a>
                     </div>
@@ -469,6 +474,8 @@ const sendOrderConfirmationEmail = async ({
                     <div class="info-box">
                         <div class="info-title">📦 Shipping Information</div>
                         <p class="info-text">
+                        Delivery address: ${deliveryAddress || "Not provided"}<br>
+                        Phone: ${customerPhone || "Not provided"}<br>
                             Your order is being prepared by our team. We'll send you another email as soon as it ships. 
                             Delivery typically takes 3-7 business days for domestic orders.
                         </p>
@@ -572,12 +579,53 @@ const sendOrderStatusUpdateEmail = async ({
   customerName,
   orderId,
   newStatus,
+  orderNumber,
+  items,
+  amount,
+  currency = "KES",
+  paymentMethod,
+  deliveryAddress,
+  customerPhone,
 }) => {
+  let orderItems = [];
   try {
-    await resend.emails.send({
+    orderItems = Array.isArray(items) ? items : JSON.parse(items || "[]");
+  } catch {
+    orderItems = [];
+  }
+
+  const reference = orderNumber || orderId;
+  const itemRows = orderItems.map((item) => {
+    let variantLabel = "";
+    try {
+      const variants = typeof item.variantSelection === "string"
+        ? JSON.parse(item.variantSelection)
+        : item.variantSelection;
+      variantLabel = Object.entries(variants || {})
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(" · ");
+    } catch {
+      variantLabel = "";
+    }
+
+    const quantity = Number(item.quantity) || 1;
+    const price = Number(item.price) || 0;
+    return `
+      <tr>
+        <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;">
+          <strong>${item.productName || item.name || "Product"}</strong>
+          ${variantLabel ? `<br><small style="color:#047857;">${variantLabel}</small>` : ""}
+        </td>
+        <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">${quantity}</td>
+        <td style="padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${currency} ${(price * quantity).toFixed(2)}</td>
+      </tr>`;
+  }).join("");
+
+  try {
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <orders@nileflowafrica.com>",
       to: customerEmail,
-      subject: `Update on Order #${orderId}`,
+      subject: `Update on Order #${reference}`,
       html: `
   <div style="
     font-family: 'Helvetica Neue', Arial, sans-serif; 
@@ -610,13 +658,25 @@ const sendOrderStatusUpdateEmail = async ({
         <h2 style="margin-top: 0; color: #222;">Hi ${customerName},</h2>
 
         <p style="font-size: 18px; font-weight: 600; margin: 20px 0 10px;">
-          Your order <strong>#${orderId}</strong> has been 
+          Your order <strong>#${reference}</strong> has been
           <span style="color: #0070f3;">${newStatus.toUpperCase()}</span>.
         </p>
 
-        <p style="margin-bottom: 30px; color: #555;">
-          We'll keep you posted on the next steps. Thanks for shopping with us.
-        </p>
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+          <thead style="background:#f1f5f9;">
+            <tr><th style="padding:12px 8px;text-align:left;">Product</th><th style="padding:12px 8px;">Qty</th><th style="padding:12px 8px;text-align:right;">Amount</th></tr>
+          </thead>
+          <tbody>${itemRows || '<tr><td colspan="3" style="padding:12px 8px;">Order items unavailable</td></tr>'}</tbody>
+        </table>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:4px 0;"><strong>Total:</strong> ${currency} ${Number(amount || 0).toFixed(2)}</p>
+          <p style="margin:4px 0;"><strong>Payment:</strong> ${paymentMethod || "Not provided"}</p>
+          <p style="margin:4px 0;"><strong>Delivery address:</strong> ${deliveryAddress || "Not provided"}</p>
+          <p style="margin:4px 0;"><strong>Phone:</strong> ${customerPhone || "Not provided"}</p>
+        </div>
+
+        <p style="margin-bottom: 30px; color: #555;">We'll keep you posted on the next steps. Thanks for shopping with us.</p>
 
         <p style="font-style: italic; color: #888; margin-top: 40px;">
           — The Nile Flow Team
@@ -649,7 +709,7 @@ const sendVerificationEmail = async ({
   verificationCode,
 }) => {
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>", // Your verified Resend domain
       to: customerEmail,
       subject: "Verify Your Nile Flow Account",
@@ -681,7 +741,7 @@ const sendWelcomeEmail = async ({ customerEmail, customerName }) => {
   console.log("Preparing to send welcome email to:", customerEmail);
 
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Africa <welcome@nileflowafrica.com>",
       to: customerEmail,
       subject: `🎉 Welcome to Nile Flow Africa, ${customerName}! | Your African Marketplace Journey Begins`,
@@ -948,6 +1008,7 @@ const sendWelcomeEmail = async ({ customerEmail, customerName }) => {
                         gap: 10px;
                     }
                 }
+            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -1443,7 +1504,7 @@ const sendOrderCancellationEmail = async ({
   console.log("Sending cancellation email to:", customerEmail);
 
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>",
       to: customerEmail,
       subject: `❌ Order #${orderId} Cancelled | Nile Flow`,
@@ -1582,7 +1643,7 @@ const sendCancellationRequestEmail = async ({
   );
 
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>",
       to: customerEmail,
       subject: `📋 Cancellation Request Received - Order #${orderId} | Nile Flow`,
@@ -1775,7 +1836,7 @@ async function sendLoginAlertEmail({
   });
 
   try {
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Security <no-reply@nileflowafrica.com>",
       to: customerEmail,
       subject: "🔐 New Sign-In to Your Nile Flow Account",

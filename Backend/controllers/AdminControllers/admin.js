@@ -8,6 +8,7 @@ const {
 } = require("../../services/send-confirmation");
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
+const { sendBrandedEmail } = require("../../services/emailTheme");
 
 const getCancelledOrders = async (req, res) => {
   try {
@@ -828,8 +829,15 @@ const updateOrderStatus = async (req, res) => {
     await sendOrderStatusUpdateEmail({
       customerEmail: order.customerEmail,
       customerName: order.customerName || order.username || "Customer",
-      orderId: order.$id,
+      orderId: order.orderNumber || order.$id,
       newStatus: orderStatus,
+      orderNumber: order.orderNumber,
+      items: order.items,
+      amount: order.amount,
+      currency: order.currency,
+      paymentMethod: order.paymentMethod,
+      deliveryAddress: order.deliveryAddress,
+      customerPhone: order.customerPhone || order.phone,
     });
 
     res.json(exec);
@@ -864,7 +872,7 @@ const replyclientmessages = async (req, res) => {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    await resend.emails.send({
+    await sendBrandedEmail(resend, {
       from: "Nile Flow Support <support@resend.dev>", // Your verified support email
       to: toEmail,
       subject: subject,

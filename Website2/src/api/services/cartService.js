@@ -84,10 +84,10 @@ export const cartService = {
    * @param {string} cartItemId
    * @returns {Promise<boolean>}
    */
-  async removeFromCart(cartItemId) {
+  async removeFromCart(cartItemId, userId) {
     try {
       await httpClient.delete(`${BASE}/remove/${cartItemId}`);
-      notifyCartUpdated();
+      notifyCartUpdated(userId, -1);
       return true;
     } catch {
       return false;
@@ -101,12 +101,13 @@ export const cartService = {
    * @param {number} quantity
    * @returns {Promise<{success: boolean, quantity?: number, error?: string}>}
    */
-  async updateQuantity(cartItemId, quantity) {
+  async updateQuantity(cartItemId, quantity, userId, quantityDelta = 0) {
     try {
       const response = await httpClient.put(`${BASE}/update/${cartItemId}`, {
         quantity,
+        userId,
       });
-      notifyCartUpdated();
+      notifyCartUpdated(userId, quantityDelta);
       return {
         success: true,
         quantity: response.data?.quantity || quantity,

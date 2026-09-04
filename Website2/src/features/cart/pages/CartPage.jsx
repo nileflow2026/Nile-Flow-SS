@@ -48,7 +48,7 @@ function CartPage() {
 
   const handleRemoveItem = async (itemId) => {
     setUpdatingId(itemId)
-    const removed = await cartService.removeFromCart(itemId)
+    const removed = await cartService.removeFromCart(itemId, userId)
     if (removed) {
       const removedItem = items.find((item) => (item.$id || item.id) === itemId)
       posthog.capture('remove_from_cart', {
@@ -72,6 +72,27 @@ function CartPage() {
       setItems([])
       push({ title: 'Cart cleared', message: 'All items removed.' })
     }
+  }
+
+  const handleQuantityChange = async (item, nextQuantity) => {
+    const itemId = item.$id || item.id
+    const quantity = Math.max(1, nextQuantity)
+    if (!itemId || quantity === (item.quantity || 1)) return
+
+    const previousQuantity = item.quantity || 1
+    setItems((current) => current.map((entry) => (
+      (entry.$id || entry.id) === itemId ? { ...entry, quantity } : entry
+    )))
+    setUpdatingId(itemId)
+
+    const result = await cartService.updateQuantity(itemId, quantity, userId, quantity - previousQuantity)
+    if (!result.success) {
+      setItems((current) => current.map((entry) => (
+        (entry.$id || entry.id) === itemId ? { ...entry, quantity: previousQuantity } : entry
+      )))
+      push({ title: 'Update failed', message: result.error || 'Could not update quantity.' })
+    }
+    setUpdatingId(null)
   }
 
   // Helper: extract numeric price from item (handles both raw numbers and
@@ -120,7 +141,7 @@ function CartPage() {
 
   return (
     <PageShell>
-      <ResponsiveSection eyebrow="Cart" title="Shopping cart" description="Review your items and proceed to checkout." className="py-10 sm:py-14 lg:py-16">
+      <ResponsiveSection  title="Shopping cart" description="Review your items and proceed to checkout." className="py-10 sm:py-14 lg:py-16">
         <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
           <div className="space-y-3 sm:space-y-4">
             {loading ? (
@@ -168,7 +189,16 @@ function CartPage() {
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{name}</p>
-                        <p className="text-xs text-[var(--color-text-muted)]">Qty: {qty}</p>
+                        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                          <span>Qty</span>
+                          <button type="button" onClick={() => handleQuantityChange(item, qty - 1)} disabled={qty <= 1 || updatingId === itemId} className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] text-sm font-semibold hover:border-emerald-500 disabled:opacity-40" aria-label={`Decrease quantity of ${name}`}>
+                            -
+                          </button>
+                          <span className="min-w-5 text-center font-semibold text-[var(--color-text-primary)]">{qty}</span>
+                          <button type="button" onClick={() => handleQuantityChange(item, qty + 1)} disabled={updatingId === itemId} className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] text-sm font-semibold hover:border-emerald-500 disabled:opacity-40" aria-label={`Increase quantity of ${name}`}>
+                            +
+                          </button>
+                        </div>
                         {variantLabel && <p className="text-xs text-emerald-700">{variantLabel}</p>}
                         <p className="text-sm font-semibold text-amber-600">{priceStr}</p>
                       </div>
@@ -194,7 +224,7 @@ function CartPage() {
             )}
           </div>
 
-          <div className="h-fit rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 xl:sticky xl:top-24">
+          {items.length > 0 && <div className="h-fit rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8 xl:sticky xl:top-24">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Summary</p>
             <div className="mt-5 space-y-3 text-sm text-[var(--color-text-secondary)]">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -239,7 +269,7 @@ function CartPage() {
                 Continue to checkout
               </PrimaryButton>
             </Link>
-          </div>
+          </div>}
         </div>
       </ResponsiveSection>
     </PageShell>
