@@ -73,6 +73,8 @@ export default function Products() {
     description: "",
     image: "",
   });
+  const [categoryImageFile, setCategoryImageFile] = useState(null);
+  const [categoryImagePreview, setCategoryImagePreview] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   /* const [productToEdit, setProductToEdit] = useState(null); */
   const [newCategoryId, setNewCategoryId] = useState("");
@@ -502,14 +504,37 @@ export default function Products() {
 
     setIsCreatingCategory(true);
     try {
+      let imageUrl = newCategory.image;
+      if (categoryImageFile) {
+        imageUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            try {
+              const response = await axiosClient.post("/api/admin/upload-image", {
+                base64: event.target.result,
+                fileName: categoryImageFile.name,
+              });
+              resolve(response.data.imageUrl);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => reject(new Error("Could not read image file"));
+          reader.readAsDataURL(categoryImageFile);
+        });
+      }
+
       const slug = newCategory.slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       await axiosClient.post("/api/admin/categories", {
         ...newCategory,
         name,
         slug,
+        image: imageUrl,
       });
       toast.success("Category created successfully");
       setNewCategory({ name: "", slug: "", description: "", image: "" });
+      setCategoryImageFile(null);
+      setCategoryImagePreview("");
       setShowCreateCategoryModal(false);
 
       const response = await axiosClient.get("/api/customerprofile/categories");
@@ -519,7 +544,18 @@ export default function Products() {
     } finally {
       setIsCreatingCategory(false);
     }
-  }, [newCategory]);
+  }, [categoryImageFile, newCategory]);
+
+  const handleCategoryImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.warning("Please select an image file");
+      return;
+    }
+    setCategoryImageFile(file);
+    setCategoryImagePreview(URL.createObjectURL(file));
+  };
 
   // Loading State
   if (loading) {
@@ -1432,7 +1468,6 @@ export default function Products() {
                 {[
                   ["name", "Category name", true],
                   ["slug", "Slug", false],
-                  ["image", "Image URL", false],
                 ].map(([field, label, required]) => (
                   <label key={field} className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
                     {label}
@@ -1444,6 +1479,22 @@ export default function Products() {
                     />
                   </label>
                 ))}
+                <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
+                  Category image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCategoryImageChange}
+                    className="mt-2 block w-full text-sm text-[#8B4513] dark:text-[#D4A017] file:mr-3 file:rounded-lg file:border-0 file:bg-[#27AE60] file:px-3 file:py-2 file:font-semibold file:text-white"
+                  />
+                  {categoryImagePreview && (
+                    <img
+                      src={categoryImagePreview}
+                      alt="Category preview"
+                      className="mt-3 h-24 w-24 rounded-xl object-cover"
+                    />
+                  )}
+                </label>
                 <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
                   Description
                   <textarea
