@@ -183,8 +183,10 @@ export const updateVendorProfilePicture = async (file) => {
       "/api/vendors/profile-picture",
       formData,
       {
+        headers: { "Content-Type": undefined },
         transformRequest: (data, headers) => {
           delete headers["Content-Type"];
+          delete headers["content-type"];
           return data;
         },
         timeout: 30000,
@@ -211,8 +213,10 @@ export const updateVendorCoverPicture = async (file) => {
     const formData = new FormData();
     formData.append("cover", file);
     const response = await vendorAxiosClient.put("/api/vendors/cover-picture", formData, {
+      headers: { "Content-Type": undefined },
       transformRequest: (data, headers) => {
         delete headers["Content-Type"];
+        delete headers["content-type"];
         return data;
       },
       timeout: 30000,
