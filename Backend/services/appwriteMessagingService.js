@@ -51,13 +51,39 @@ function normalizePhoneValue(phone) {
 
 function buildStableTargetId(prefix, userId, identifier) {
   const normalized = String(identifier || "").trim().toLowerCase();
+  const hashLength = Math.max(1, 36 - prefix.length - 1);
   const hash = crypto
     .createHash("sha256")
     .update(`${userId}:${prefix}:${normalized}`)
     .digest("hex")
-    .slice(0, 32);
+    .slice(0, hashLength);
 
   return `${prefix}_${hash}`;
+}
+
+async function resolveAppwriteUserId(userId, email) {
+  if (!userId) return null;
+
+  try {
+    await users.get(userId);
+    return userId;
+  } catch (userError) {
+    const normalizedEmail = normalizeEmailValue(email);
+    if (!normalizedEmail) return null;
+
+    try {
+      const result = await users.list([
+        Query.equal("email", normalizedEmail),
+        Query.limit(1),
+      ]);
+      return result.users?.[0]?.$id || null;
+    } catch (lookupError) {
+      console.warn(
+        `[AppwriteMessaging] Cannot resolve Auth user ${userId}: ${lookupError.message}`,
+      );
+      return null;
+    }
+  }
 }
 
 /**
@@ -97,21 +123,17 @@ async function ensureEmailTarget(userId, email) {
   const normalizedEmail = normalizeEmailValue(email);
   if (!userId || !normalizedEmail) return null;
 
-  const cacheKey = `email:${userId}:${normalizedEmail}`;
+  const appwriteUserId = await resolveAppwriteUserId(userId, normalizedEmail);
+  if (!appwriteUserId) {
+    console.warn(`[AppwriteMessaging] Cannot create email target: user ${userId} has no Appwrite Auth account`);
+    return null;
+  }
+
+  const cacheKey = `email:${appwriteUserId}:${normalizedEmail}`;
   if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
 
   try {
-    try {
-      await users.get(userId);
-    } catch (userError) {
-      if (userError.message && userError.message.includes("could not be found")) {
-        console.warn(`[AppwriteMessaging] Cannot create email target: user ${userId} not found`);
-        return null;
-      }
-      throw userError;
-    }
-
-    const existing = await users.listTargets(userId);
+    const existing = await users.listTargets(appwriteUserId);
     const emailTarget = (existing.targets || []).find((t) => {
       const targetIdentifier = String(t.identifier || "").trim().toLowerCase();
       return t.type === "email" && targetIdentifier === normalizedEmail;
@@ -125,7 +147,7 @@ async function ensureEmailTarget(userId, email) {
 
     try {
       const target = await users.createTarget({
-        userId,
+        userId: appwriteUserId,
         targetId,
         providerType: "email",
         identifier: normalizedEmail,
@@ -140,7 +162,7 @@ async function ensureEmailTarget(userId, email) {
 
       if (isDuplicate) {
         try {
-          const retry = await users.listTargets(userId);
+          const retry = await users.listTargets(appwriteUserId);
           const existingTarget = (retry.targets || []).find((t) => {
             const targetIdentifier = String(t.identifier || "").trim().toLowerCase();
             return t.type === "email" && targetIdentifier === normalizedEmail;
@@ -170,21 +192,17 @@ async function ensureSmsTarget(userId, phone) {
   const normalizedPhone = normalizePhoneValue(phone);
   if (!userId || !normalizedPhone) return null;
 
-  const cacheKey = `sms:${userId}:${normalizedPhone}`;
+  const appwriteUserId = await resolveAppwriteUserId(userId, null);
+  if (!appwriteUserId) {
+    console.warn(`[AppwriteMessaging] Cannot create SMS target: user ${userId} has no Appwrite Auth account`);
+    return null;
+  }
+
+  const cacheKey = `sms:${appwriteUserId}:${normalizedPhone}`;
   if (targetCache.has(cacheKey)) return targetCache.get(cacheKey);
 
   try {
-    try {
-      await users.get(userId);
-    } catch (userError) {
-      if (userError.message?.includes("could not be found")) {
-        console.warn(`[AppwriteMessaging] Cannot create SMS target: user ${userId} not found`);
-        return null;
-      }
-      throw userError;
-    }
-
-    const existing = await users.listTargets(userId);
+    const existing = await users.listTargets(appwriteUserId);
     const smsTarget = (existing.targets || []).find((t) => {
       const targetIdentifier = String(t.identifier || "").trim();
       return t.type === "sms" && targetIdentifier === normalizedPhone;
@@ -198,7 +216,7 @@ async function ensureSmsTarget(userId, phone) {
 
     try {
       const target = await users.createTarget({
-        userId,
+        userId: appwriteUserId,
         targetId,
         providerType: "sms",
         identifier: normalizedPhone,
@@ -213,7 +231,7 @@ async function ensureSmsTarget(userId, phone) {
 
       if (isDuplicate) {
         try {
-          const retry = await users.listTargets(userId);
+          const retry = await users.listTargets(appwriteUserId);
           const existingTarget = (retry.targets || []).find((t) => {
             const targetIdentifier = String(t.identifier || "").trim();
             return t.type === "sms" && targetIdentifier === normalizedPhone;
