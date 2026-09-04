@@ -10,13 +10,24 @@ const AddressService = {
     }
 
     try {
-      const response = await db.listDocuments(
+      try {
+        const response = await db.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_ADDRESS_COLLECTION_ID,
+          [Query.equal("user", userId)],
+        );
+        if (response.documents.length > 0) return response.documents;
+      } catch (primaryError) {
+        console.warn("Primary address lookup skipped:", primaryError.message);
+      }
+
+      // Older address records may use userId instead of user.
+      const legacyResponse = await db.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_ADDRESS_COLLECTION_ID,
-        [Query.equal("user", userId)]
+        [Query.equal("userId", userId)],
       );
-      // console.log("Fetched addresses for user:", userId, response.documents);
-      return response.documents;
+      return legacyResponse.documents;
     } catch (error) {
       console.error("Error fetching addresses:", error);
       throw new Error("Failed to fetch addresses.");

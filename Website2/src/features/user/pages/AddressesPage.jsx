@@ -6,7 +6,6 @@ import Button from '@shared/ui/button/Button'
 import Badge from '@shared/ui/badge/Badge'
 import Modal from '@shared/ui/modal/Modal'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
-import Loader from '@shared/ui/loader/Loader'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { addressService } from '@api/services'
 
@@ -65,7 +64,7 @@ function AddressesPage() {
           ) : (
             <div className="space-y-4">
               {addresses.map((addr) => (
-                <div key={addr.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
+                <div key={addr.id || addr.$id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-3">

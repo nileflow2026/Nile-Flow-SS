@@ -15,7 +15,9 @@ export const addressService = {
     try {
       const response = await httpClient.get('/api/nilemart/addresses');
       const data = response.data;
-      const addresses = Array.isArray(data) ? data : data?.addresses;
+      const addresses = Array.isArray(data)
+        ? data
+        : data?.addresses || data?.result || data?.data;
       if (!Array.isArray(addresses)) return [];
 
       return addresses.map((address) => ({
