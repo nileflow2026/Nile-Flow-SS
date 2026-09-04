@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
-import PrimaryButton from '@shared/ui/button/PrimaryButton'
-import Badge from '@shared/ui/badge/Badge'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
-import { ProtectedRoute } from '@api/context/ProtectedRoute'
 import { notificationService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
@@ -78,8 +75,7 @@ function NotificationPage() {
   }
 
   return (
-    <ProtectedRoute requireAuth>
-      <PageShell>
+    <PageShell>
         <ResponsiveSection eyebrow="Notifications" title="Your activity" description="Stay updated on orders, deals, and account activity." className="py-10 sm:py-14 lg:py-16">
           <div className="mx-auto max-w-2xl">
             <div className="mb-6 flex items-center justify-between">
@@ -117,7 +113,6 @@ function NotificationPage() {
           </div>
         </ResponsiveSection>
       </PageShell>
-    </ProtectedRoute>
   )
 }
 

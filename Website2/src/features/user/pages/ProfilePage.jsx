@@ -23,15 +23,26 @@ function ProfilePage() {
 
     const loadProfileData = async () => {
       setLoadingStats(true)
-      const [session, orders, addresses, notifications] = await Promise.all([
+      const userId = user?.$id || user?.id || user?.userId
+      const [session, orders, addresses, notifications, milesResponse] = await Promise.all([
         authService.validateSession(),
         orderService.getOrders(),
         addressService.getAddresses(),
         notificationService.getNotifications(),
+        userId
+          ? httpClient.get(`/api/nilemiles/nilemiles/status?userId=${encodeURIComponent(userId)}`).catch(() => ({ data: null }))
+          : Promise.resolve({ data: null }),
       ])
 
       if (!active) return
-      if (session?.user) setProfile(session.user)
+      const miles = milesResponse?.data?.currentMiles
+      if (session?.user || miles !== undefined) {
+        setProfile((current) => ({
+          ...current,
+          ...(session?.user || {}),
+          ...(miles !== undefined ? { nileMiles: Number(miles) } : {}),
+        }))
+      }
       setStats({
         orders: orders.length,
         addresses: addresses.length,
@@ -42,7 +53,7 @@ function ProfilePage() {
 
     loadProfileData()
     return () => { active = false }
-  }, [authService])
+  }, [authService, user])
 
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0]
