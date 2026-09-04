@@ -409,12 +409,22 @@ const getProducts = async (req, res) => {
 
     const totalProducts = batch.total;
 
+    const productsWithAttributes = batch.documents.map((doc) => {
+      let attributes = {};
+      try {
+        attributes = doc.specifications ? JSON.parse(doc.specifications) : {};
+      } catch {
+        attributes = {};
+      }
+      return { ...doc, attributes };
+    });
+
     // --- Currency enrichment ---
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
     const enrichedProducts = enrichProductsWithCurrency(
-      batch.documents,
+      productsWithAttributes,
       targetCurrency,
       rate,
     );

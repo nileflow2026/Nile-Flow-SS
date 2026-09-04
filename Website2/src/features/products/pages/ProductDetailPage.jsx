@@ -34,6 +34,7 @@ function ProductDetailPage() {
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState({})
+  const [showFullDescription, setShowFullDescription] = useState(false)
 
   const loadReviews = useCallback(async () => {
     if (!productId) return
@@ -166,6 +167,11 @@ function ProductDetailPage() {
   }
 
   const description = product?.description || ''
+  const descriptionLimit = 220
+  const hasLongDescription = description.length > descriptionLimit
+  const displayedDescription = showFullDescription || !hasLongDescription
+    ? description
+    : `${description.slice(0, descriptionLimit).trimEnd()}...`
   const rawImages = product?.images || []
   const primaryImage = product?.image || product?.imageUrl || ''
   const productImages = primaryImage
@@ -216,7 +222,7 @@ function ProductDetailPage() {
     <PageShell>
       <SeoHead
         title={name}
-        description={description || `Buy ${name} on Nile Flow`}
+        description={displayedDescription || `Buy ${name} on Nile Flow`}
         keywords={[category, vendorName, 'buy online', 'African marketplace'].filter(Boolean)}
         breadcrumbs={breadcrumbItems}
         ogImage={product?.image || product?.images?.[0] || undefined}
@@ -227,7 +233,7 @@ function ProductDetailPage() {
         <Breadcrumbs items={breadcrumbItems} />
       </div>
 
-      <ResponsiveSection eyebrow={category || 'Product'} title={name} description={description} className="py-6 sm:py-10 lg:py-16">
+      <ResponsiveSection eyebrow={category || 'Product'} title={name} description={displayedDescription} className="py-6 sm:py-10 lg:py-16">
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <ImageCarousel images={productImages} alt={name} />
@@ -268,8 +274,17 @@ function ProductDetailPage() {
             {description && (
               <div className="mt-4 max-w-prose">
                 <p className="text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base">
-                  {description}
+                  {displayedDescription}
                 </p>
+                {hasLongDescription && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFullDescription((current) => !current)}
+                    className="mt-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                  >
+                    {showFullDescription ? 'Show less' : 'Read more'}
+                  </button>
+                )}
               </div>
             )}
 
