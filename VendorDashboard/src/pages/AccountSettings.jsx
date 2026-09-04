@@ -119,6 +119,11 @@ const AccountSettings = () => {
           ? { type: "success", text: "Cover picture updated successfully!" }
           : { type: "error", text: result.error || "Failed to update cover picture" },
       );
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error?.message || "Failed to update cover picture",
+      });
     } finally {
       setIsLoading(false);
       event.target.value = "";
@@ -449,7 +454,7 @@ const AccountSettings = () => {
                   ? "Uploading..."
                   : "Click the camera icon to update your profile picture"}
               </p>
-              {user?.avatar && (
+              {(user?.profileImage || user?.avatar) && (
                 <button
                   onClick={handleRemovePicture}
                   disabled={isLoading}
@@ -465,7 +470,14 @@ const AccountSettings = () => {
             <h3 className="text-lg font-semibold text-amber-800 mb-4">Cover Picture</h3>
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-500">
               {user?.coverImage ? (
-                <img src={user.coverImage} alt="Store cover" className="h-32 w-full object-cover" />
+                <img
+                  src={user.coverImage}
+                  alt="Store cover"
+                  className="h-32 w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
               ) : (
                 <div className="flex h-32 items-center justify-center text-sm font-semibold text-white">No cover picture</div>
               )}

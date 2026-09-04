@@ -163,7 +163,7 @@ const vendorController = {
   // Controller to remove profile picture
   async removeProfilePicture(req, res) {
     try {
-      const vendorId = req.vendorId;
+      const vendorId = req.user.userId;
 
       // Get current vendor data to find the file ID
       const currentVendor = await db.getDocument(

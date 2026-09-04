@@ -117,7 +117,10 @@ vendorAxiosClient.interceptors.response.use(
       originalRequest.url?.includes("/api/vendor/auth/login") ||
       originalRequest.url?.includes("/api/vendor/auth/register");
     const shouldHandleRefresh =
-      error.response?.status === 401 && isVendorRoute && !isAuthRoute;
+      error.response?.status === 401 &&
+      isVendorRoute &&
+      !isAuthRoute &&
+      !originalRequest._skipAuthRetry;
 
     if (!shouldHandleRefresh || originalRequest._retry) {
       return Promise.reject(error);

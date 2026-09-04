@@ -188,6 +188,7 @@ export const updateVendorProfilePicture = async (file) => {
           return data;
         },
         timeout: 30000,
+        _skipAuthRetry: true,
       },
     );
 
@@ -215,6 +216,7 @@ export const updateVendorCoverPicture = async (file) => {
         return data;
       },
       timeout: 30000,
+      _skipAuthRetry: true,
     });
     return { success: true, data: response.data };
   } catch (error) {
