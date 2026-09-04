@@ -33,6 +33,8 @@ const users = new Users(client);
 // In-memory cache of known target IDs to avoid redundant lookups
 const targetCache = new Map();
 
+console.log("[AppwriteMessaging] target manager v3: Appwrite-generated target IDs");
+
 function normalizeEmailValue(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -158,6 +160,11 @@ async function ensureEmailTarget(userId, email) {
         } catch (retryErr) {
           console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
         }
+
+        console.warn(
+          `[AppwriteMessaging] Duplicate email target response but no matching target was found for Auth user ${appwriteUserId}`,
+        );
+        return null;
       }
 
       console.warn(`[AppwriteMessaging] Failed to create email target for ${userId}: ${createError.message}`);
@@ -225,6 +232,11 @@ async function ensureSmsTarget(userId, phone) {
         } catch (retryErr) {
           console.warn(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
         }
+
+        console.warn(
+          `[AppwriteMessaging] Duplicate SMS target response but no matching target was found for Auth user ${appwriteUserId}`,
+        );
+        return null;
       }
       console.warn(`[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`);
       return null;

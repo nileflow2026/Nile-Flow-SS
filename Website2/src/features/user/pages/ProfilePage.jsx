@@ -78,6 +78,7 @@ function ProfilePage() {
   const name = profile?.name || profile?.username || profile?.email?.split('@')[0] || 'User'
   const email = profile?.email || ''
   const phone = profile?.phone || ''
+  const nileMiles = Number(profile?.nileMiles ?? profile?.totalMilesEarned ?? 0)
   const avatarValue = profile?.avatarUrl || profile?.avatar || profile?.profileImage || ''
   const avatarSource = typeof avatarValue === 'object'
     ? avatarValue.url || avatarValue.imageUrl || avatarValue.href || ''
@@ -129,11 +130,12 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             {[
               { label: 'Orders', value: loadingStats ? '...' : stats.orders, link: '/orders' },
               { label: 'Addresses', value: loadingStats ? '...' : stats.addresses, link: '/addresses' },
               { label: 'Notifications', value: loadingStats ? '...' : stats.notifications, link: '/notifications' },
+              { label: 'Nile Miles', value: nileMiles.toLocaleString(), link: '/profile' },
               { label: 'Premium', value: profile?.isPremium ? 'Active' : 'No', link: '/premium-deals' },
             ].map((stat) => (
               <Link key={stat.label} to={stat.link} className="group rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-lg)]">

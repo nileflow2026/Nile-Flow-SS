@@ -2,7 +2,7 @@
 const bcrypt = require("bcryptjs");
 const { env } = require("../../src/env");
 const { Query, ID } = require("node-appwrite");
-const { instrumentedDb } = require("../../services/appwriteService");
+const { instrumentedDb, users } = require("../../services/appwriteService");
 const {
   signAccessToken,
   signRefreshToken,
@@ -218,6 +218,8 @@ const riderAuthController = {
    * Rider Registration
    */
   async registerRider(req, res) {
+    let createdAuthUser = null;
+
     try {
       const {
         name,
@@ -278,11 +280,23 @@ const riderAuthController = {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
+      createdAuthUser = await users.create(
+        ID.unique(),
+        email,
+        null,
+        password,
+        name,
+      );
+      await users.updatePrefs(createdAuthUser.$id, {
+        role: "rider",
+        phone,
+      });
+
       // Create rider
       const rider = await instrumentedDb.createDocument(
         env.RIDER_DATABASE_ID,
         env.RIDER_COLLECTION_ID,
-        ID.unique(),
+        createdAuthUser.$id,
         {
           name,
           email,
@@ -350,6 +364,23 @@ const riderAuthController = {
       });
     } catch (error) {
       log.error("Registration error:", error?.message || error);
+
+      if (createdAuthUser) {
+        try {
+          await users.delete(createdAuthUser.$id);
+          log.info("Rolled back Appwrite Auth user after registration failure.");
+        } catch (cleanupError) {
+          log.error("Auth user cleanup failed:", cleanupError?.message);
+        }
+      }
+
+      if (error.code === 409) {
+        return res.status(409).json({
+          success: false,
+          error: "A user with this email already exists",
+        });
+      }
+
       res.status(500).json({
         success: false,
         error: "Failed to create rider account",

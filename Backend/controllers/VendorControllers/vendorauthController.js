@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const { env } = require("../../src/env");
 const { Query, ID } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { db, users } = require("../../services/appwriteService");
 const {
   signAccessToken,
   signRefreshToken,
@@ -251,6 +251,8 @@ const vendorauthController = {
    * Vendor Registration
    */
   async registerVendor(req, res) {
+    let createdAuthUser = null;
+
     try {
       const {
         name,
@@ -322,12 +324,21 @@ const vendorauthController = {
         rating: 0,
       };
 
-      // Create vendor
-      // Create vendor
+      createdAuthUser = await users.create(
+        ID.unique(),
+        email,
+        null,
+        password,
+        name,
+      );
+      await users.updatePrefs(createdAuthUser.$id, {
+        role: "vendor",
+      });
+
       const vendor = await db.createDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_COLLECTION_ID,
-        ID.unique(),
+        createdAuthUser.$id,
         {
           name,
           storeName,
@@ -408,6 +419,23 @@ const vendorauthController = {
       });
     } catch (error) {
       log.error("Registration error:", error?.message || error);
+
+      if (createdAuthUser) {
+        try {
+          await users.delete(createdAuthUser.$id);
+          log.info("Rolled back Appwrite Auth user after registration failure.");
+        } catch (cleanupError) {
+          log.error("Auth user cleanup failed:", cleanupError?.message);
+        }
+      }
+
+      if (error.code === 409) {
+        return res.status(409).json({
+          success: false,
+          error: "A user with this email already exists",
+        });
+      }
+
       res.status(500).json({
         success: false,
         error: "Failed to create vendor account",

@@ -13,7 +13,7 @@ export const addressService = {
    */
   async getAddresses() {
     try {
-      const response = await httpClient.get('/api/addresses');
+      const response = await httpClient.get('/api/nilemart/addresses');
       const data = response.data;
       if (Array.isArray(data)) return data;
       if (Array.isArray(data?.addresses)) return data.addresses;
@@ -31,7 +31,7 @@ export const addressService = {
    */
   async addAddress(addressData) {
     try {
-      const response = await httpClient.post('/api/add/address', addressData);
+      const response = await httpClient.post('/api/nilemart/add/address', addressData);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message || 'Failed to add address' };
@@ -47,7 +47,7 @@ export const addressService = {
    */
   async updateAddress(addressId, addressData) {
     try {
-      const response = await httpClient.put(`/api/addresses/${addressId}`, addressData);
+      const response = await httpClient.put(`/api/nilemart/addresses/${addressId}`, addressData);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.message || 'Failed to update address' };
@@ -62,7 +62,7 @@ export const addressService = {
    */
   async deleteAddress(addressId) {
     try {
-      await httpClient.delete(`/api/addresses/${addressId}`);
+      await httpClient.delete(`/api/nilemart/addresses/${addressId}`);
       return true;
     } catch {
       return false;

@@ -2,9 +2,11 @@ import { Component, useEffect, useState } from "react";
 import { checkForUpdate } from "../core/versionManager";
 
 const CHECK_INTERVAL_MS = 60_000; // 60 seconds
+const DISMISSED_VERSION_KEY = "vendor_dashboard_dismissed_update_version";
 
 function UpdateBanner() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [availableVersion, setAvailableVersion] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -14,12 +16,20 @@ function UpdateBanner() {
       if (cancelled) return;
 
       if (result.hasUpdate) {
+        const nextVersion = result.version || "unknown";
+        const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY);
+
+        if (dismissedVersion === nextVersion) {
+          setUpdateAvailable(false);
+          return;
+        }
+
         if (result.force) {
           const forcedVersionKey = "vendor_dashboard_last_forced_reload";
           const lastForcedVersion = sessionStorage.getItem(forcedVersionKey);
-          const nextVersion = result.version || "unknown";
 
           if (lastForcedVersion === nextVersion) {
+            setAvailableVersion(nextVersion);
             setUpdateAvailable(true);
             return;
           }
@@ -28,6 +38,7 @@ function UpdateBanner() {
           window.location.reload();
           return;
         }
+        setAvailableVersion(nextVersion);
         setUpdateAvailable(true);
       }
     }
@@ -66,7 +77,13 @@ function UpdateBanner() {
         A new version of the vendor dashboard is available.
       </span>
       <button
-        onClick={() => window.location.reload()}
+        onClick={() => {
+          if (availableVersion) {
+            localStorage.setItem(DISMISSED_VERSION_KEY, availableVersion);
+          }
+          setUpdateAvailable(false);
+          window.location.reload();
+        }}
         style={{
           background: "#f59e0b",
           color: "#111827",

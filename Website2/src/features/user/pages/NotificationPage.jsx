@@ -65,8 +65,15 @@ function NotificationPage() {
 
   const unread = notifications.filter((n) => !n.read).length
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    const saved = await notificationService.markAllAsRead()
+    if (!saved) {
+      push({ title: 'Update failed', message: 'Could not mark notifications as read.' })
+      return
+    }
+
     setNotifications((cur) => cur.map((n) => ({ ...n, read: true })))
+    window.dispatchEvent(new Event('notifications:updated'))
     push({ title: 'Done', message: 'All notifications marked as read.' })
   }
 

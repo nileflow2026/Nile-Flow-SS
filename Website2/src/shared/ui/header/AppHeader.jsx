@@ -4,7 +4,7 @@ import Button from '@shared/ui/button/Button'
 import { useTheme } from '@app/providers/ThemeProvider'
 import { useAuth } from '@auth/AuthContext'
 import { usePostHog } from '@posthog/react'
-import { cartService } from '@api/services'
+import { cartService, notificationService } from '@api/services'
 
 const navItems = [
   { label: 'Home', to: '/home' },
@@ -19,6 +19,13 @@ const ProfileIcon = () => (
   </svg>
 )
 
+const NotificationIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+)
+
 function AppHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
@@ -26,6 +33,7 @@ function AppHeader() {
   const { isAuthenticated, user, signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
   const [cartCount, setCartCount] = useState(0)
+  const [notificationCount, setNotificationCount] = useState(0)
   const posthog = usePostHog()
 
   const isLandingRoute = ['/', '/landing', '/Landing'].includes(location.pathname)
@@ -68,6 +76,31 @@ function AppHeader() {
     return () => {
       active = false
       window.removeEventListener('cart:updated', handleCartUpdate)
+    }
+  }, [isAuthenticated, userId])
+
+  useEffect(() => {
+    let active = true
+
+    const loadNotificationCount = async () => {
+      if (!isAuthenticated || !userId) {
+        setNotificationCount(0)
+        return
+      }
+
+      const notifications = await notificationService.getNotifications()
+      if (active) {
+        setNotificationCount(notifications.filter((notification) => !notification.read).length)
+      }
+    }
+
+    loadNotificationCount()
+    const id = setInterval(loadNotificationCount, 60_000)
+    window.addEventListener('notifications:updated', loadNotificationCount)
+    return () => {
+      active = false
+      clearInterval(id)
+      window.removeEventListener('notifications:updated', loadNotificationCount)
     }
   }, [isAuthenticated, userId])
 
@@ -142,6 +175,20 @@ function AppHeader() {
             >
               {isDark ? '☀️' : '🌙'}
             </button>
+            {isAuthenticated && (
+              <Link
+                to="/notifications"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                aria-label={notificationCount ? `${notificationCount} unread notifications` : 'Notifications'}
+              >
+                <NotificationIcon />
+                {notificationCount > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link to="/profile">
@@ -187,6 +234,21 @@ function AppHeader() {
               </span>
             )}
           </Link>
+
+          {isAuthenticated && (
+            <Link
+              to="/notifications"
+              className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+              aria-label={notificationCount ? `${notificationCount} unread notifications` : 'Notifications'}
+            >
+              <NotificationIcon />
+              {notificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  {notificationCount > 99 ? '99+' : notificationCount}
+                </span>
+              )}
+            </Link>
+          )}
 
           <button
             type="button"
