@@ -14,8 +14,7 @@
  *
  * 2. Email target creation race: When two requests create an email target for
  *    the same user simultaneously, the second one gets 409 "already exists".
- *    The old code didn't catch this, causing "no target" on the second request.
- *    FIX: Handle 409 gracefully by listing targets and finding the existing one.
+ *    FIX: Use Appwrite-generated target IDs and handle 409 by listing targets.
  *
  * 3. "No enabled provider": Appwrite Messaging requires at least one provider
  *    configured per channel (email, SMS, push) in the Appwrite Console under
@@ -24,7 +23,6 @@
  * @see https://appwrite.io/docs/products/messaging
  */
 
-const crypto = require("crypto");
 const { ID, Messaging, Users, Query } = require("node-appwrite");
 const { client } = require("./appwriteService");
 const { env } = require("../src/env");
@@ -47,18 +45,6 @@ function normalizePhoneValue(phone) {
   if (sanitized.startsWith("0")) sanitized = `254${sanitized.slice(1)}`;
   if (!sanitized.startsWith("+")) sanitized = `+${sanitized}`;
   return sanitized;
-}
-
-function buildStableTargetId(prefix, userId, identifier) {
-  const normalized = String(identifier || "").trim().toLowerCase();
-  const hashLength = Math.max(1, 36 - prefix.length - 1);
-  const hash = crypto
-    .createHash("sha256")
-    .update(`${userId}:${prefix}:${normalized}`)
-    .digest("hex")
-    .slice(0, hashLength);
-
-  return `${prefix}_${hash}`;
 }
 
 async function resolveAppwriteUserId(userId, email) {
@@ -143,12 +129,10 @@ async function ensureEmailTarget(userId, email) {
       return emailTarget.$id;
     }
 
-    const targetId = buildStableTargetId("email", userId, normalizedEmail);
-
     try {
       const target = await users.createTarget({
         userId: appwriteUserId,
-        targetId,
+        targetId: ID.unique(),
         providerType: "email",
         identifier: normalizedEmail,
       });
@@ -212,12 +196,10 @@ async function ensureSmsTarget(userId, phone) {
       return smsTarget.$id;
     }
 
-    const targetId = buildStableTargetId("sms", userId, normalizedPhone);
-
     try {
       const target = await users.createTarget({
         userId: appwriteUserId,
-        targetId,
+        targetId: ID.unique(),
         providerType: "sms",
         identifier: normalizedPhone,
       });
