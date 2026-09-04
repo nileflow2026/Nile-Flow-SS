@@ -43,7 +43,8 @@ exports.getAddressesMobile = async (req, res) => {
 // Controller to add a new address
 exports.addAddress = async (req, res) => {
   try {
-    const { userId, ...newAddressData } = req.body;
+    const userId = req.user?.userId;
+    const { ...newAddressData } = req.body;
 
     if (!userId) {
       return res
