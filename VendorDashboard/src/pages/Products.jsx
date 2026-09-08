@@ -118,12 +118,12 @@ const Products = () => {
     loadProducts();
   }, []);
 
-  // Fetch categories when modal opens
+  // Fetch categories when either modal opens
   useEffect(() => {
-    if (showAddModal) {
+    if (showAddModal || showEditModal) {
       fetchCategories();
     }
-  }, [showAddModal]);
+  }, [showAddModal, showEditModal]);
 
   const fetchCategories = async () => {
     try {
@@ -2376,14 +2376,23 @@ const Products = () => {
                         onChange={handleEditInputChange}
                         required
                         className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 bg-white/80"
-                        disabled={isLoading}
+                        disabled={isLoading || categories.length === 0}
                       >
                         <option value="">Select category</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Accessories">Accessories</option>
-                        <option value="Fashion">Fashion</option>
-                        <option value="Home & Living">Home & Living</option>
+                        {categories.map((cat) => (
+                          <option
+                            key={cat.$id || cat.id}
+                            value={cat.$id || cat.id}
+                          >
+                            {cat.name}
+                          </option>
+                        ))}
                       </select>
+                      {categories.length === 0 && !isLoading && (
+                        <p className="text-red-500 text-xs mt-1">
+                          No categories available. Please contact support.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-amber-900 mb-2">

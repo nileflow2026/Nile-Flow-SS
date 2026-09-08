@@ -21,7 +21,7 @@ function CheckoutPage() {
     name: user?.name || user?.username || user?.email?.split('@')[0] || '',
     address: '',
     phone: user?.phone || user?.phoneNumber || '',
-    paymentMethod: 'Cash on Delivery',
+    paymentMethod: 'Payment on Delivery',
   })
   const [placing, setPlacing] = useState(false)
 
@@ -167,7 +167,7 @@ function CheckoutPage() {
                     value={form.paymentMethod}
                     onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
                   >
-                    <option>Cash on Delivery</option>
+                    <option>Payment on Delivery</option>
                     <option disabled>M-Pesa — Coming soon</option>
                     <option disabled>Card — Coming soon</option>
                   </select>
@@ -236,7 +236,7 @@ function CheckoutPage() {
 
       ]}>
         <div className="space-y-3">
-          <p className="text-sm leading-7 text-[var(--color-text-secondary)]">Choose Cash on Delivery at checkout — pay when your order arrives. We'll keep your order flow simple and transparent from start to finish.</p>
+          <p className="text-sm leading-7 text-[var(--color-text-secondary)]">Choose Payment on Delivery at checkout — pay when your order arrives. We'll keep your order flow simple and transparent from start to finish.</p>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <a href="tel:+254713637104" className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-left transition hover:border-emerald-500 hover:bg-emerald-50">
