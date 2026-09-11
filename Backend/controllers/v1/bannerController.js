@@ -34,19 +34,26 @@ async function getBanners(req, res) {
       ],
     );
 
-    const banners = result.documents.map((doc) => ({
-      id: doc.$id,
-      title: doc.title || "",
-      subtitle: doc.subtitle || "",
-      cta: doc.cta || "Learn more",
-      ctaHref: doc.ctaHref || "#",
-      image: doc.image || null,
-      gradient: doc.gradient || null,
-      order: doc.order || 0,
-      isActive: doc.isActive !== false,
-      $createdAt: doc.$createdAt,
-      $updatedAt: doc.$updatedAt,
-    }));
+    const banners = result.documents.map((doc) => {
+      // Normalize any existing admin-mode URLs to public for frontend display
+      let image = doc.image || null;
+      if (image && image.includes("mode=admin")) {
+        image = image.replace("mode=admin", "mode=public");
+      }
+      return {
+        id: doc.$id,
+        title: doc.title || "",
+        subtitle: doc.subtitle || "",
+        cta: doc.cta || "Learn more",
+        ctaHref: doc.ctaHref || "#",
+        image,
+        gradient: doc.gradient || null,
+        order: doc.order || 0,
+        isActive: doc.isActive !== false,
+        $createdAt: doc.$createdAt,
+        $updatedAt: doc.$updatedAt,
+      };
+    });
 
     res.status(200).json({ success: true, data: banners });
   } catch (error) {
@@ -78,7 +85,7 @@ async function createBanner(req, res) {
         InputFile.fromBuffer(req.file.buffer, req.file.originalname),
       );
 
-      imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${BANNER_STORAGE_BUCKET}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=admin`;
+      imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${BANNER_STORAGE_BUCKET}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
     }
 
     const doc = await db.createDocument(
@@ -149,7 +156,7 @@ async function updateBanner(req, res) {
         InputFile.fromBuffer(req.file.buffer, req.file.originalname),
       );
 
-      updatePayload.image = `${env.APPWRITE_ENDPOINT}/storage/buckets/${BANNER_STORAGE_BUCKET}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=admin`;
+      updatePayload.image = `${env.APPWRITE_ENDPOINT}/storage/buckets/${BANNER_STORAGE_BUCKET}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
     }
 
     const doc = await db.updateDocument(
