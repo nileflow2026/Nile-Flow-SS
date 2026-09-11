@@ -983,15 +983,14 @@ async function verifyVendorResetCode(req, res) {
       return res.status(400).json({ success: false, error: "Reset code has expired" });
     }
 
-    // Update password in Appwrite Auth
+    // Hash and sync password in BOTH Appwrite Auth AND the vendors collection
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     await users.updatePassword(vendor.$id, newPassword);
-
-    // Clear reset code
     await db.updateDocument(
       env.VENDOR_DATABASE_ID,
       env.VENDOR_COLLECTION_ID,
       vendor.$id,
-      { resetCode: null, resetCodeExpiry: null },
+      { password: hashedPassword, resetCode: null, resetCodeExpiry: null },
     );
 
     // Revoke all sessions
@@ -1039,8 +1038,15 @@ async function resetVendorPassword(req, res) {
       return res.status(404).json({ success: false, error: "Vendor not found" });
     }
 
-    // Update password in Appwrite Auth using the server SDK (no current password needed)
+    // Hash and sync password in BOTH Appwrite Auth AND the vendors collection
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     await users.updatePassword(vendor.$id, newPassword);
+    await db.updateDocument(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_COLLECTION_ID,
+      vendorId,
+      { password: hashedPassword },
+    );
 
     // Invalidate all sessions
     const tokens = await db.listDocuments(
