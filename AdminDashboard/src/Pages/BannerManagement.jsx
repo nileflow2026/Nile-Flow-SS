@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import axiosClient from '../../api'
 
+const API_BASE = 'https://nile-flow-backend-5dqm.onrender.com'
+
 /**
  * Admin Banner Management Page
  * Allows admins to create, edit, and delete promotional banners
@@ -78,35 +80,36 @@ function BannerManagement() {
         formDataToSend.append('image', selectedImage)
       }
 
-      let result
-      if (isEditing && editingId) {
-        result = await axiosClient.patch(`/api/v1/banners/${editingId}`, formDataToSend, {
-          headers: { 'Content-Type': undefined },
-          transformRequest: [(data, headers) => {
-            delete headers['Content-Type']
-            delete headers['content-type']
-            return data
-          }],
-        })
-        setSuccessMsg('Banner updated successfully')
-      } else {
-        result = await axiosClient.post('/api/v1/banners', formDataToSend, {
-          headers: { 'Content-Type': undefined },
-          transformRequest: [(data, headers) => {
-            delete headers['Content-Type']
-            delete headers['content-type']
-            return data
-          }],
-        })
-        setSuccessMsg('Banner created successfully')
+      const token = localStorage.getItem('admin_token')
+      const url = isEditing && editingId
+        ? `${API_BASE}/api/v1/banners/${editingId}`
+        : `${API_BASE}/api/v1/banners`
+      const method = isEditing && editingId ? 'PATCH' : 'POST'
+
+      const res = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formDataToSend,
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `HTTP ${res.status}`)
       }
 
-      if (result.status >= 200 && result.status < 300) {
-        loadBanners()
-        resetForm()
+      const result = await res.json()
+      if (isEditing) {
+        setSuccessMsg('Banner updated successfully')
+      } else {
+        setSuccessMsg('Banner created successfully')
       }
+      loadBanners()
+      resetForm()
     } catch (err) {
-      setErrorMsg(err?.response?.data?.error || err?.message || 'Operation failed')
+      setErrorMsg(err?.message || 'Operation failed')
     } finally {
       setSubmitting(false)
     }
