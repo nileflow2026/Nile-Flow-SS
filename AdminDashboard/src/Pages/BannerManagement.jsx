@@ -107,8 +107,14 @@ function BannerManagement() {
       const formDataToSend = new FormData()
       Object.keys(formData).forEach(key => {
         const val = formData[key]
+        // Skip empty strings but allow other falsy values like 0, false
         if (val !== null && val !== undefined && val !== '') {
-          formDataToSend.append(key, val)
+          // Handle boolean values properly for FormData
+          if (typeof val === 'boolean') {
+            formDataToSend.append(key, val ? 'true' : 'false')
+          } else {
+            formDataToSend.append(key, val)
+          }
         }
       })
       if (selectedImage) {
