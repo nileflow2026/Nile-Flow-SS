@@ -193,9 +193,9 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
 
             {/* Content */}
             <div className="relative z-10 mx-auto w-full max-w-lg sm:max-w-xl md:max-w-2xl">
-              <span className="inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm sm:px-4 sm:py-1.5 sm:text-xs">
+              {/* <span className="inline-block rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm sm:px-4 sm:py-1.5 sm:text-xs">
                 Featured
-              </span>
+              </span> */}
               <h2 className="mt-3 text-lg font-bold leading-tight text-white sm:mt-4 sm:text-xl md:mt-5 md:text-2xl lg:text-3xl xl:text-4xl">
                 {banner.title}
               </h2>
