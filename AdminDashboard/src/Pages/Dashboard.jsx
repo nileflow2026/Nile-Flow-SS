@@ -24,7 +24,6 @@ import {
   updateOrderStatus,
   getProfile,
   fetchUsers,
-  getCommissionAnalytics,
 } from "../../adminService";
 
 import Sidebar from "../components/Sidebar";
@@ -44,7 +43,6 @@ import ApplicantsDashboard from "./ApplicantsDashboard";
 import { useAuth } from "../core/auth";
 import { getCurrentUser } from "../../authService";
 import ProductApprovals from "./ProductApprovals";
-import Commission from "./Commission";
 import Finance from "./FinancePage";
 import BannerManagement from "./BannerManagement";
 import DealsManagement from "./DealsManagement";
@@ -63,8 +61,7 @@ export default function Dashboard() {
   const [dateRange, setDateRange] = useState("last7");
   const [drillData, setDrillData] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [commissionData, setCommissionData] = useState(null);
-  const { user } = useAuth();
+    const { user } = useAuth();
   console.log("useAuth()", useAuth());
 
   const getDateFilter = () => {
@@ -100,13 +97,6 @@ export default function Dashboard() {
         setOrders(fetchedOrders);
         setProducts(fetchedProducts);
         setUserCount(fetchedUsers);
-        // Fetch commission data
-        try {
-          const commissionAnalytics = await getCommissionAnalytics(dateRange);
-          setCommissionData(commissionAnalytics);
-        } catch (commissionError) {
-          console.warn("Commission data not available:", commissionError);
-        }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       }
@@ -210,8 +200,6 @@ export default function Dashboard() {
         return <SendNewsletter setSection={setSection} />;
       case "Applications":
         return <ApplicantsDashboard />;
-      case "Commission":
-        return <Commission data={commissionData} />;
       case "Customer Messages":
         return <AdminMessages />;
       case "Finance":

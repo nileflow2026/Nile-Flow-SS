@@ -37,7 +37,7 @@ const getUsers = async (_req, res) => {
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
     );
-    res.json(documents);
+    res.json({ users: documents });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

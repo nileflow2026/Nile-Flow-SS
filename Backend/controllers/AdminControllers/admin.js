@@ -39,7 +39,7 @@ const getCancelledOrders = async (req, res) => {
     );
 
     res.status(200).json({
-      response: response.documents,
+      orders: response.documents,
       total: response.total,
       page,
       limit,
@@ -91,7 +91,7 @@ const getOrders = async (req, res) => {
     );
 
     res.status(200).json({
-      response: response.documents,
+      orders: response.documents,
       total: response.total,
       page,
       limit,
