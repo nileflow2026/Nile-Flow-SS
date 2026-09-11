@@ -121,7 +121,19 @@ export const productService = {
       : [];
 
     return heroProducts;
-  }
+  },
+
+  /**
+   * Fetch all featured products (no limit).
+   * @param {boolean} [all] - If true, fetches unlimited featured products
+   * @returns {Promise<Array>}
+   */
+  async getFeaturedProducts(all = false) {
+    const response = await httpClient.get(`${BASE}/featured-products`, {
+      params: all ? { showAll: 'true' } : {},
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  },
 };
 
 export default productService;

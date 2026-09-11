@@ -36,25 +36,22 @@ const fallbackProducts = [
 function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts)
   const [banners, setBanners] = useState(null)
-  console.log('Featured Products State:', featuredProducts) // Debugging line
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true)
-      try {
-        const result = await productService.getHeroProducts()
-        const items = result?.slice(0, 6) || []
-        setFeaturedProducts(items.length ? items : fallbackProducts)
-        console.log('Loaded hero products:', items)
-      } catch {
-        setFeaturedProducts(fallbackProducts)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadProducts()
+    let cancelled = false
+    setLoading(true)
+    productService.getFeaturedProducts(true)
+      .then((items) => {
+        if (!cancelled) setFeaturedProducts(items.slice(0, 4).length ? items.slice(0, 4) : fallbackProducts)
+      })
+      .catch(() => {
+        if (!cancelled) setFeaturedProducts(fallbackProducts)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [])
 
   // Use a direct fetch for banners (public endpoint) to avoid race conditions
@@ -96,8 +93,8 @@ function HomePage() {
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Featured products</p>
             <h2 className="mt-2 text-3xl font-bold text-[var(--color-text-primary)]">Popular picks right now</h2>
           </div>
-          <Link to="/products" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
-            Explore all products →
+          <Link to="/featured-products" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700">
+            Explore all Featured products →
           </Link>
         </div>
 

@@ -34,6 +34,7 @@ const SettingsPage = lazy(() => import('@features/user/pages/SettingsPage'))
 const NotificationPage = lazy(() => import('@features/user/pages/NotificationPage'))
 const AccountDeletionPage = lazy(() => import('@features/user/pages/AccountDeletionPage'))
 const ProductListingPage = lazy(() => import('@features/products/pages/ProductListingPage'))
+const FeaturedProductsPage = lazy(() => import('@features/products/pages/FeaturedProductsPage'))
 const ProductDetailPage = lazy(() => import('@features/products/pages/ProductDetailPage'))
 const SearchPage = lazy(() => import('@features/products/pages/SearchPage'))
 const StorePage = lazy(() => import('@features/store/pages/StorePage'))
@@ -78,6 +79,7 @@ export default function AppRouter() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/Landing" element={<LandingPage />} />
         <Route path="/products" element={<ProductListingPage />} />
+        <Route path="/featured-products" element={<FeaturedProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/store/:vendorId" element={<StorePage />} />
