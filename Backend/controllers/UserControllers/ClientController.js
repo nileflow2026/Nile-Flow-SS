@@ -1192,6 +1192,50 @@ const getDealProducts = async (req, res) => {
   }
 };
 
+const getFlashSales = async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+
+    const flashSales = await instrumentedDb.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_FLASH_SALE_COLLECTION_ID,
+      [
+        Query.equal("isFlashSale", true),
+        Query.greaterThan("saleEndTime", now),
+        Query.orderDesc("$createdAt"),
+      ],
+    );
+
+    // Enrich with timeLeft and currency
+    const targetCurrency = validateCurrencyCode(req.currency) || "KES";
+    const rates = await getAllRates();
+    const rate = rates[targetCurrency] ?? 1;
+
+    const enriched = flashSales.documents.map((sale) => {
+      const timeLeft = calculateTimeLeft(sale.saleEndTime || now);
+      const basePrice = sale.salePrice || sale.price || 0;
+      const converted = enrichProductWithCurrency(
+        { ...sale, price: basePrice },
+        targetCurrency,
+        rate,
+        true,
+      );
+      return {
+        ...converted,
+        price: basePrice,
+        salePrice: basePrice,
+        timeLeft,
+        isExpiringSoon: timeLeft.totalHours <= 6,
+      };
+    });
+
+    res.status(200).json(enriched);
+  } catch (error) {
+    console.error("Error fetching flash sales:", error);
+    res.status(500).json({ error: "Failed to fetch flash sales." });
+  }
+};
+
 const getDealAnalytics = async (req, res) => {
   try {
     // Get all active deals
@@ -1697,6 +1741,7 @@ module.exports = {
   getCategories,
   getProductsForMobile,
   getDealProducts,
+  getFlashSales,
   getDealAnalytics,
   getGlobalDealCountdown,
   getHeroProducts,

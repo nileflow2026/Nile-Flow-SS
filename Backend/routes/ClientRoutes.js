@@ -76,6 +76,7 @@ router.get(
 );
 router.get("/featured-products", getFeaturedProducts);
 router.get("/deal-products", currencyMiddleware, getDealProducts);
+router.get("/flash-sales", currencyMiddleware, getFlashSales);
 router.get("/deal-analytics", getDealAnalytics);
 router.get("/deal-countdown", getGlobalDealCountdown);
 router.get("/hero-products", getHeroProducts);
