@@ -6,9 +6,10 @@ import {
   Trash2,
   Edit,
   Clock,
-  TrendingUp,
   Package,
-  Filter,
+  Plus,
+  X,
+  Check,
 } from 'lucide-react'
 import axiosClient from '../../api'
 
@@ -19,6 +20,15 @@ const DealsManagement = () => {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [analytics, setAnalytics] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [formStatus, setFormStatus] = useState('')
+  const [dealType, setDealType] = useState('product') // 'product', 'premium', 'flash'
+
+  // Form fields for regular deal creation
+  const [selectedProduct, setSelectedProduct] = useState('')
+  const [discount, setDiscount] = useState('')
+  const [durationHours, setDurationHours] = useState('24')
 
   const categories = [
     { value: 'all', label: 'All Deals' },
@@ -27,7 +37,6 @@ const DealsManagement = () => {
     { value: 'premium', label: 'Premium Deals' },
   ]
 
-  // Fetch deals and products on mount
   useEffect(() => {
     fetchDeals()
     fetchProducts()
@@ -76,7 +85,78 @@ const DealsManagement = () => {
   }, [deals, filter, search])
 
   const handleCreateDeal = () => {
-    toast.info('Create deal form coming soon')
+    setShowForm(true)
+    setFormStatus('')
+  }
+
+  const handleCloseForm = () => {
+    setShowForm(false)
+    setFormStatus('')
+    setSelectedProduct('')
+    setDiscount('')
+    setDurationHours('24')
+  }
+
+  const handleSubmitDeal = async (e) => {
+    e.preventDefault()
+    if (!selectedProduct || !discount) {
+      setFormStatus({ type: 'error', text: 'Please fill in all required fields.' })
+      return
+    }
+
+    setSubmitting(true)
+    setFormStatus(null)
+
+    try {
+      // Get selected product details
+      const product = products.find(p => p.$id === selectedProduct)
+      if (!product) {
+        setFormStatus({ type: 'error', text: 'Selected product not found.' })
+        setSubmitting(false)
+        return
+      }
+
+      const discountPercent = parseFloat(discount)
+      const originalPrice = parseFloat(product.price)
+      const dealPrice = originalPrice * (1 - discountPercent / 100)
+
+      // Create deal via API
+      const payload = {
+        productId: selectedProduct,
+        productName: product.productName,
+        price: originalPrice,
+        dealPrice: dealPrice,
+        discount: discountPercent,
+        category: product.category || 'general',
+        image: product.image,
+        images: product.images,
+        description: product.description || '',
+        durationHours: parseInt(durationHours) || 24,
+        isFlash: dealType === 'flash',
+        premiumDeal: dealType === 'premium',
+        active: true,
+      }
+
+      const response = await axiosClient.post('/api/admin/deals', payload)
+
+      setDeals(prev => [response.data.deal, ...prev])
+      setFormStatus({ type: 'success', text: 'Deal created successfully!' })
+      toast.success('Deal created')
+
+      // Reset form and close after delay
+      setTimeout(() => {
+        handleCloseForm()
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to create deal:', error)
+      setFormStatus({
+        type: 'error',
+        text: error.response?.data?.error || 'Failed to create deal. Product may already have an active deal.'
+      })
+      toast.error(error.response?.data?.error || 'Failed to create deal')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleEditDeal = async (deal) => {
@@ -106,14 +186,6 @@ const DealsManagement = () => {
     }
   }
 
-  const getBadgeColor = (type, discount) => {
-    if (type === 'flash') return 'bg-red-500'
-    if (type === 'premium') return 'bg-blue-500'
-    if (discount >= 50) return 'bg-amber-500'
-    if (discount >= 30) return 'bg-green-500'
-    return 'bg-gray-500'
-  }
-
   const getTimeDisplay = (endTime) => {
     if (!endTime) return 'No deadline'
     const diff = new Date(endTime) - new Date()
@@ -141,6 +213,155 @@ const DealsManagement = () => {
           Create New Deal
         </button>
       </div>
+
+      {/* Create Deal Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-[#2A2A2A] rounded-2xl border border-[#E8D6B5] dark:border-[#3A3A3A] w-full max-w-lg shadow-xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#8B6914] flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#2C1810] dark:text-[#F5E6D3]">Create New Deal</h2>
+                  <p className="text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">
+                    {dealType === 'flash' ? '⚡ Flash Sale' : dealType === 'premium' ? '⭐ Premium Deal' : '🏷️ Product Deal'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseForm}
+                className="p-2 rounded-full hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] transition-colors"
+              >
+                <X className="w-5 h-5 text-[#8B4513]/70 dark:text-[#D4A017]/70" />
+              </button>
+            </div>
+
+            {/* Deal Type Selector */}
+            <div className="p-5 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+              <p className="text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-3">Deal Type</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'product', label: 'Product Deal', icon: '🏷️' },
+                  { value: 'premium', label: 'Premium', icon: '⭐' },
+                  { value: 'flash', label: 'Flash Sale', icon: '⚡' },
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => setDealType(type.value)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      dealType === type.value
+                        ? 'bg-gradient-to-r from-[#D4A017] to-[#8B6914] text-white shadow-md'
+                        : 'bg-[#FAF7F2] dark:bg-[#1A1A1A] border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#2C1810] dark:text-[#F5E6D3] hover:border-[#D4A017]'
+                    }`}
+                  >
+                    {type.icon} {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <form onSubmit={handleSubmitDeal} className="p-5 space-y-4">
+              {/* Product Selection */}
+              <div>
+                <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
+                  Select Product *
+                </label>
+                <select
+                  value={selectedProduct}
+                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#1A1A1A] text-[#2C1810] dark:text-[#F5E6D3] focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50"
+                  required
+                >
+                  <option value="">-- Choose a product --</option>
+                  {products.map((product) => (
+                    <option key={product.$id} value={product.$id}>
+                      {product.productName} - Ksh {parseFloat(product.price).toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Discount Percentage */}
+              <div>
+                <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
+                  Discount Percentage *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    placeholder="Enter discount %"
+                    className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#1A1A1A] text-[#2C1810] dark:text-[#F5E6D3] focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 pr-10"
+                    required
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B4513]/70 dark:text-[#D4A017]/70 font-semibold">%</span>
+                </div>
+              </div>
+
+              {/* Duration Hours */}
+              <div>
+                <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
+                  Duration (hours)
+                </label>
+                <select
+                  value={durationHours}
+                  onChange={(e) => setDurationHours(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#1A1A1A] text-[#2C1810] dark:text-[#F5E6D3] focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50"
+                >
+                  <option value="6">6 hours</option>
+                  <option value="12">12 hours</option>
+                  <option value="24">24 hours</option>
+                  <option value="48">48 hours</option>
+                  <option value="72">72 hours (3 days)</option>
+                  <option value="168">168 hours (7 days)</option>
+                </select>
+              </div>
+
+              {/* Status Message */}
+              {formStatus && (
+                <div className={`flex items-center gap-2 p-3 rounded-xl ${
+                  formStatus.type === 'error'
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                    : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                }`}>
+                  {formStatus.type === 'error' ? (
+                    <X className="w-4 h-4" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  <p className="text-sm font-medium">{formStatus.text}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={submitting || !selectedProduct || !discount}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#8B6914] text-white font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Creating...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Create {dealType === 'flash' ? 'Flash Sale' : dealType === 'premium' ? 'Premium Deal' : 'Product Deal'}
+                  </div>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Analytics Summary */}
       {analytics && (
@@ -203,6 +424,13 @@ const DealsManagement = () => {
           <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70 mt-2">
             Try adjusting your filters or create a new deal
           </p>
+          <button
+            onClick={handleCreateDeal}
+            className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#8B6914] text-white font-semibold hover:shadow-lg transition-all duration-200"
+          >
+            <Package className="w-4 h-4" />
+            Create New Deal
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -218,7 +446,7 @@ const DealsManagement = () => {
                     ⚡ Flash
                   </span>
                 )}
-                {deal.isPremium && (
+                {deal.premiumDeal && (
                   <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-500 text-white">
                     PREMIUM
                   </span>
