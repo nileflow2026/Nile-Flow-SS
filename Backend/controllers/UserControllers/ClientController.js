@@ -1232,7 +1232,7 @@ const getDealProducts = async (req, res) => {
 
       return {
         ...converted,
-        price: basePrice, // Keep as number for frontend rendering
+        price: originalPrice, // Original price for strikethrough display
         dealPrice: converted.price?.convertedPrice ?? basePrice,
         image: buildImageUrl(product.image),
         images: product.images ? normalizeImagesToUrls(product.images) : [],
