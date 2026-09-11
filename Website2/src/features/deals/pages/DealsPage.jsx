@@ -416,7 +416,7 @@ const DealsPage = () => {
             {/* Deals Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
               {filteredProducts.map((product) => {
-                const isFlash = flashSales.some((f) => f.productId === product.productId)
+                const isFlash = product.isFlash || flashSales.some((f) => f.productId === product.productId)
                 const isPremium = product.isPremium || product.premiumDeal
                 const discount = product.discount || 0
 

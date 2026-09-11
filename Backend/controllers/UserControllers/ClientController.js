@@ -1253,6 +1253,7 @@ const getDealProducts = async (req, res) => {
         isExpiringSoon: product.dealEndTime && (new Date(product.dealEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
         isHighDiscount: discount >= 40,
         isPremium: product.premiumDeal || false,
+        isFlash: product.isFlash || false,
       };
     }));
 
@@ -1271,57 +1272,42 @@ const getFlashSales = async (req, res) => {
   try {
     const now = new Date().toISOString();
 
+    // Flash sales are stored in the DEALS collection with isFlash = true
     const flashSales = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_FLASH_SALE_COLLECTION_ID,
+      env.APPWRITE_DEALS_COLLECTION_ID,
       [
-        Query.equal("isFlashSale", true),
-        Query.greaterThan("saleEndTime", now),
+        Query.equal("isFlash", true),
+        Query.greaterThan("dealEndTime", now),
         Query.orderDesc("$createdAt"),
       ],
     );
-
-    // DEBUG: log flash sales result details
-    console.log(`[DEBUG] Flash sales query: ${flashSales.total} docs, collection=${env.APPWRITE_FLASH_SALE_COLLECTION_ID}`);
-    if (flashSales.documents.length > 0) {
-      console.log("[DEBUG] First flash sale:", JSON.stringify({
-        id: flashSales.documents[0].$id,
-        productId: flashSales.documents[0].productId,
-        saleEndTime: flashSales.documents[0].saleEndTime,
-        isFlashSale: flashSales.documents[0].isFlashSale,
-      }));
-    }
 
     // Enrich with timeLeft and currency
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
 
-    const enriched = await Promise.all(flashSales.documents.map(async (sale) => {
-      const basePrice = sale.salePrice || sale.price || 0;
+    const enriched = await Promise.all(flashSales.documents.map(async (deal) => {
+      const basePrice = deal.dealPrice || deal.price || 0;
       const converted = enrichProductWithCurrency(
-        { ...sale, price: basePrice },
+        { ...deal, price: basePrice },
         targetCurrency,
         rate,
         true,
       );
       return {
         ...converted,
-        price: basePrice, // Keep as number for frontend rendering
-        salePrice: basePrice,
+        price: basePrice,
         dealPrice: basePrice,
-        productId: sale.productId || sale.$id,
-        image: buildImageUrl(sale.image),
-        images: sale.images ? normalizeImagesToUrls(sale.images) : [],
-        endTime: sale.saleEndTime || now,
-        isExpiringSoon: sale.saleEndTime && (new Date(sale.saleEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
+        productId: deal.productId || deal.$id,
+        image: buildImageUrl(deal.image),
+        images: deal.images ? normalizeImagesToUrls(deal.images) : [],
+        endTime: deal.dealEndTime || now,
+        isExpiringSoon: deal.dealEndTime && (new Date(deal.dealEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
       };
     }));
 
-    // DEBUG: log flash sale productIds for matching
-    if (enriched.length > 0) {
-      console.log("[DEBUG] Flash productId sample:", enriched[0].productId, "flash count:", enriched.length);
-    }
     res.status(200).json(enriched);
   } catch (error) {
     console.error("Error fetching flash sales:", error);
