@@ -53,7 +53,17 @@ const PremiumDealsPage = () => {
         description="Unlock member-only savings and exclusive discounts on Nile Flow. Premium benefits included."
         keywords={['premium', 'deals', 'exclusive', 'members', 'discount']}
       />
-      <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/50 via-emerald-50/30 to-amber-50/50 px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-amber-950/10 dark:via-emerald-950/5 dark:to-amber-950/10">
+      <div
+        className="relative overflow-hidden bg-gradient-to-br from-amber-50/50 via-emerald-50/30 to-amber-50/50 px-4 py-8 sm:py-10 text-center"
+        style={{
+          backgroundImage: 'url(/Premium Rewards Banner.png)',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="absolute inset-0 bg-white/50" />
+        <div className="relative z-10">
         <Badge variant="primary" className="mb-4">⭐ Premium Member</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
           Exclusive Premium Deals
@@ -68,6 +78,7 @@ const PremiumDealsPage = () => {
           <Link to="/deals" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-500 hover:text-emerald-600">
             Flash sales
           </Link>
+        </div>
         </div>
       </div>
 

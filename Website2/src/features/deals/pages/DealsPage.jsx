@@ -70,7 +70,17 @@ const DealsPage = () => {
         description="Exclusive discounts and limited-time offers on Nile Flow products."
         keywords={['deals', 'flash sale', 'discount', 'premium', 'shopping']}
       />
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/50 via-amber-50/30 to-orange-50/50 px-4 py-14 text-center sm:px-6 sm:py-20 dark:from-emerald-950/10 dark:via-amber-950/5 dark:to-orange-950/10">
+      <div
+        className="relative overflow-hidden bg-gradient-to-br from-emerald-50/50 via-amber-50/30 to-orange-50/50 px-4 py-8 sm:py-10 text-center"
+        style={{
+          backgroundImage: 'url(/DealImage.png)',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="absolute inset-0 bg-white/50" />
+        <div className="relative z-10">
         <Badge variant="danger" className="mb-4">🔥 Hot Deals</Badge>
         <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
           Limited-Time Savings
@@ -85,6 +95,7 @@ const DealsPage = () => {
           <Link to="/featured-products" className="inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:scale-105 hover:shadow-xl active:scale-95">
             Shop featured
           </Link>
+        </div>
         </div>
       </div>
 

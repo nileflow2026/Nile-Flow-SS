@@ -708,6 +708,7 @@ safeMount("/api/finance", require("../routes/financeRoutes"), "Finance & Tax Rep
 safeMount("/api/admin/staff", staffRoutes, "Admin Staff");
 safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");
+safeMount("/api/admin/commission", commissionRoutes, "Admin Commission");
 safeMount("/api", userRoutes, "User Routes");
 safeMount("/api/notifications", notificationRoutes, "Notifications");
 
