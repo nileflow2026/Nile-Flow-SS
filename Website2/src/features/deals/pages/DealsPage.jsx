@@ -135,7 +135,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
       <div className="px-2 pb-2 sm:px-4 sm:pb-4">
         {/* Category */}
         <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-0.5 sm:mb-1">
-          {product.category}
+          {product.categoryName || product.category?.categoryName || product.category   || 'Uncategorized'}
         </p>
 
         {/* Product Name */}
@@ -185,6 +185,37 @@ function DealCard({ product, isFlash, isPremium, discount }) {
       </div>
     </div>
   )
+}
+
+// ── Flash Sale Ticker Countdown ──────────────────────────────────────────────
+function TickerCountdown({ flashSales }) {
+  const [display, setDisplay] = useState('--:--:--')
+  const intervalRef = useRef(null)
+
+  useEffect(() => {
+    const tick = () => {
+      const nearest = flashSales.reduce((min, f) => {
+        if (!f.endTime) return min
+        const total = Math.floor((new Date(f.endTime).getTime() - Date.now()) / 1000)
+        if (total <= 0) return min
+        return total < (min?.total ?? Infinity) ? { ...f, total } : min
+      }, null)
+      if (!nearest || !nearest.total) {
+        setDisplay('--:--:--')
+        return
+      }
+      const h = Math.floor(nearest.total / 3600)
+      const m = Math.floor((nearest.total % 3600) / 60)
+      const s = nearest.total % 60
+      setDisplay(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`)
+    }
+
+    tick()
+    intervalRef.current = setInterval(tick, 1000)
+    return () => clearInterval(intervalRef.current)
+  }, [flashSales])
+
+  return <span>{display}</span>
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
@@ -237,10 +268,13 @@ const DealsPage = () => {
   useEffect(() => {
     if (products.length === 0) return
     const nearest = products.reduce((min, p) => {
-      if (!p.timeLeft) return min
-      const totalSec = p.timeLeft.totalHours * 3600 + p.timeLeft.minutes * 60 + p.timeLeft.seconds
+      if (!p.endTime) return min
+      const totalSec = Math.floor((new Date(p.endTime).getTime() - Date.now()) / 1000)
+      if (totalSec <= 0) return min
+      const hours = Math.floor(totalSec / 3600)
+      const minutes = Math.floor((totalSec % 3600) / 60)
       return totalSec < (min?.totalSeconds ?? Infinity)
-        ? { ...p.timeLeft, productId: p.$id, totalSeconds: totalSec }
+        ? { totalHours: hours, minutes, seconds: totalSec % 60, totalSeconds: totalSec }
         : min
     }, null)
     setGlobalTimeLeft(nearest)
@@ -328,18 +362,7 @@ const DealsPage = () => {
             </div>
             <div className="flex items-center gap-2 text-xs font-mono bg-black/20 px-3 py-1 rounded-lg">
               <Clock className="w-3 h-3" />
-              <span>Next flash deal ends in: {(() => {
-                const nearest = flashSales.reduce((min, f) => {
-                  if (!f.timeLeft) return min
-                  const total = f.timeLeft.totalHours * 3600 + f.timeLeft.minutes * 60 + f.timeLeft.seconds
-                  return total < (min?.total ?? Infinity) ? { ...f.timeLeft, total } : min
-                }, null)
-                if (!nearest) return '--:--:--'
-                const h = Math.floor(nearest.total / 3600)
-                const m = Math.floor((nearest.total % 3600) / 60)
-                const s = nearest.total % 60
-                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-              })()}</span>
+              <TickerCountdown flashSales={flashSales} />
             </div>
           </div>
         </div>

@@ -10,9 +10,10 @@
 
 "use strict";
 
-const { Query, ID, Permission } = require("node-appwrite");
+const { Query, ID } = require("node-appwrite");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const { resolveCategoryName } = require("../../utils/categoryResolver");
 
 /**
  * GET /api/admin/deals
@@ -55,10 +56,11 @@ async function getDeals(req, res) {
       queries
     );
 
-    const deals = response.documents.map((doc) => ({
+    const deals = await Promise.all(response.documents.map(async (doc) => ({
       ...doc,
       type: doc.premiumDeal ? "premium" : "product",
-    }));
+      categoryName: await resolveCategoryName(doc.category, instrumentedDb, env),
+    })));
 
     res.status(200).json({ success: true, deals });
   } catch (error) {

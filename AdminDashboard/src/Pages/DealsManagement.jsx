@@ -195,6 +195,12 @@ const DealsManagement = () => {
     return `${hours}h ${minutes}m`
   }
 
+  const getDealImage = (deal) => {
+    if (deal.image) return deal.image
+    const product = products.find(p => p.$id === deal.productId)
+    return product?.image || null
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -459,11 +465,20 @@ const DealsManagement = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] flex items-center justify-center text-white font-bold">
-                  {deal.productName?.[0] || 'P'}
-                </div>
+                {getDealImage(deal) ? (
+                  <img
+                    src={getDealImage(deal)}
+                    alt={deal.productName}
+                    className="w-12 h-12 rounded-xl object-cover border border-[#E8D6B5] dark:border-[#3A3A3A]"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] flex items-center justify-center text-white font-bold">
+                    {deal.productName?.[0] || 'P'}
+                  </div>
+                )}
                 <div className="flex-1">
-                  <p className="text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">{deal.category}</p>
+                  <p className="text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">{deal.categoryName || deal.category}</p>
                   <p className="font-semibold text-[#2C1810] dark:text-[#F5E6D3] mt-0.5">
                     {deal.productName}
                   </p>
