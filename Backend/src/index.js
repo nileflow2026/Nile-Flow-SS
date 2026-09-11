@@ -482,21 +482,8 @@ try {
   console.warn("Logging middleware failed:", loggingError.message);
 }
 
-// ========== FILE UPLOAD ==========
-try {
-  if (fileUpload) {
-    app.use(
-      fileUpload({
-        useTempFiles: false,
-        createParentPath: true,
-        limits: { fileSize: 50 * 1024 * 1024 },
-        abortOnLimit: true,
-      }),
-    );
-  }
-} catch (uploadError) {
-  console.warn("File upload middleware failed:", uploadError.message);
-}
+// Note: We use multer for file uploads (see routes/v1.js), not express-fileupload
+// to avoid middleware conflicts that corrupt multipart streams
 
 // ========== APPWRITE INITIALIZATION MIDDLEWARE ==========
 let appwriteLastFailedAt = 0;
