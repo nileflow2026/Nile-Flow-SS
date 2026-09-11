@@ -4,7 +4,7 @@ import PageShell from '@shared/ui/layout/PageShell'
 import { SeoHead } from '@shared/seo/SeoHead'
 import ProductCard from '@shared/ui/product-card/ProductCard'
 import BannerCarousel from '@shared/ui/banner-carousel/BannerCarousel'
-import { productService, bannerService } from '@api/services'
+import { productService } from '@api/services'
 
 const fallbackProducts = [
   {
@@ -57,8 +57,30 @@ function HomePage() {
     loadProducts()
   }, [])
 
+  // Use a direct fetch for banners (public endpoint) to avoid race conditions
+  // with the httpClient not being ready yet on initial page load / refresh.
   useEffect(() => {
-    bannerService.getBanners().then(setBanners).catch(() => setBanners(null))
+    let cancelled = false
+    const API_BASE = 'https://nile-flow-backend-5dqm.onrender.com'
+
+    const loadBanners = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/banners`, {
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        if (!cancelled) {
+          const data = Array.isArray(json?.data) ? json.data : []
+          setBanners(data.length > 0 ? data : null)
+        }
+      } catch {
+        if (!cancelled) setBanners(null)
+      }
+    }
+
+    loadBanners()
+    return () => { cancelled = true }
   }, [])
 
   return (

@@ -31,7 +31,7 @@ function BannerManagement() {
   const loadBanners = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await axiosClient.get('/v1/banners')
+      const res = await axiosClient.get('/api/v1/banners')
       const data = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
       setBanners(data)
     } catch (err) {
