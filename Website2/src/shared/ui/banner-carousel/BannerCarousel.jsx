@@ -39,15 +39,21 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
   const hasMultiple = total > 1
   const isPausedRef = useRef(false)
 
-  const goTo = useCallback((index) => {
-    if (isTransitioning || !hasMultiple) return
-    setIsTransitioning(true)
-    setActiveIndex(Math.max(0, Math.min(index, total - 1)))
-    setTimeout(() => setIsTransitioning(false), 500)
-  }, [isTransitioning, hasMultiple, total])
+  // Use refs for values that change frequently to avoid stale closures in setInterval
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
+  const totalRef = useRef(total)
+  totalRef.current = total
+  const isTransitioningRef = useRef(isTransitioning)
+  isTransitioningRef.current = isTransitioning
 
-  const goNext = useCallback(() => goTo(activeIndex + 1), [activeIndex, goTo])
-  const goPrev = useCallback(() => goTo(activeIndex - 1), [activeIndex, goTo])
+  const goTo = useCallback((index) => {
+    if (isTransitioningRef.current || !hasMultiple) return
+    setIsTransitioning(true)
+    const nextIndex = Math.max(0, Math.min(index, totalRef.current - 1))
+    setActiveIndex(nextIndex)
+    setTimeout(() => setIsTransitioning(false), 500)
+  }, [])
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -56,19 +62,36 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
     }
   }, [])
 
-  const startTimer = useCallback(() => {
-    clearTimer()
-    timerRef.current = setInterval(() => {
-      if (!isPausedRef.current) goNext()
-    }, autoPlayInterval)
-  }, [clearTimer, goNext, autoPlayInterval])
+  // Auto-play effect — only starts when banners actually change
+  // Uses a ref to track the resolvedBanners reference to avoid restarting on every render
+  const bannersKeyRef = useRef(0)
+  const currentBannersKey = resolvedBanners.map(b => b.id + b.title).join('|')
 
-  // Auto-play — only active on mobile (sm and below)
   useEffect(() => {
     if (!hasMultiple || autoPlayInterval <= 0) return
-    startTimer()
+
+    // Only restart timer if the banner content actually changed
+    if (bannersKeyRef.current !== currentBannersKey) {
+      bannersKeyRef.current = currentBannersKey
+      clearTimer()
+      timerRef.current = setInterval(() => {
+        if (!isPausedRef.current) {
+          const next = (activeIndexRef.current + 1) % totalRef.current
+          goTo(next)
+        }
+      }, autoPlayInterval)
+    } else if (!timerRef.current) {
+      // Timer was cleared but banners haven't changed — restart it
+      timerRef.current = setInterval(() => {
+        if (!isPausedRef.current) {
+          const next = (activeIndexRef.current + 1) % totalRef.current
+          goTo(next)
+        }
+      }, autoPlayInterval)
+    }
+
     return clearTimer
-  }, [hasMultiple, autoPlayInterval, startTimer, clearTimer])
+  }, [hasMultiple, autoPlayInterval, clearTimer, goTo, currentBannersKey])
 
   // Pause on touch start, resume on touch end
   const handleTouchStart = useCallback(() => {
@@ -78,8 +101,15 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
 
   const handleTouchEnd = useCallback(() => {
     isPausedRef.current = false
-    startTimer()
-  }, [startTimer])
+    if (hasMultiple && autoPlayInterval > 0 && !timerRef.current) {
+      timerRef.current = setInterval(() => {
+        if (!isPausedRef.current) {
+          const next = (activeIndexRef.current + 1) % totalRef.current
+          goTo(next)
+        }
+      }, autoPlayInterval)
+    }
+  }, [hasMultiple, autoPlayInterval, goTo, clearTimer])
 
   // Pause on hover for desktop
   const handleMouseEnter = useCallback(() => {
@@ -89,18 +119,31 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
 
   const handleMouseLeave = useCallback(() => {
     isPausedRef.current = false
-    startTimer()
-  }, [startTimer])
+    if (hasMultiple && autoPlayInterval > 0 && !timerRef.current) {
+      timerRef.current = setInterval(() => {
+        if (!isPausedRef.current) {
+          const next = (activeIndexRef.current + 1) % totalRef.current
+          goTo(next)
+        }
+      }, autoPlayInterval)
+    }
+  }, [hasMultiple, autoPlayInterval, goTo, clearTimer])
 
   // Keyboard navigation
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'ArrowLeft') goPrev()
-      if (e.key === 'ArrowRight') goNext()
+      if (e.key === 'ArrowLeft') {
+        const prev = (activeIndexRef.current - 1 + totalRef.current) % totalRef.current
+        goTo(prev)
+      }
+      if (e.key === 'ArrowRight') {
+        const next = (activeIndexRef.current + 1) % totalRef.current
+        goTo(next)
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [goNext, goPrev])
+  }, [goTo])
 
   return (
     <section
@@ -179,8 +222,7 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
         <>
           <button
             type="button"
-            onClick={goPrev}
-            disabled={activeIndex === 0}
+            onClick={() => goTo((activeIndex - 1 + total) % total)}
             className="absolute left-2 top-1/2 -translate-y-1/2 z-20 hidden h-8 w-8 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-0 disabled:pointer-events-none sm:left-3 sm:h-9 sm:w-9 md:left-4 md:h-10 md:w-10"
             aria-label="Previous banner"
           >
@@ -190,8 +232,7 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
           </button>
           <button
             type="button"
-            onClick={goNext}
-            disabled={activeIndex === total - 1}
+            onClick={() => goTo((activeIndex + 1) % total)}
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 hidden h-8 w-8 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-105 active:scale-95 disabled:opacity-0 disabled:pointer-events-none sm:right-3 sm:h-9 sm:w-9 md:right-4 md:h-10 md:w-10"
             aria-label="Next banner"
           >
@@ -207,12 +248,12 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
         <>
           <div
             className="absolute inset-y-0 left-0 w-1/3 z-10 sm:hidden cursor-pointer"
-            onClick={goPrev}
+            onClick={() => goTo((activeIndex - 1 + total) % total)}
             aria-hidden="true"
           />
           <div
             className="absolute inset-y-0 right-0 w-1/3 z-10 sm:hidden cursor-pointer"
-            onClick={goNext}
+            onClick={() => goTo((activeIndex + 1) % total)}
             aria-hidden="true"
           />
         </>
