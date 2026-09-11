@@ -100,7 +100,7 @@ async function createBanner(req, res) {
         image: imageUrl,
         gradient: gradient || null,
         order: parseInt(order, 10) || 0,
-        isActive: isActive !== false,
+        isActive: isActive === "true",
       },
     );
 
@@ -141,7 +141,7 @@ async function updateBanner(req, res) {
     if (ctaHref !== undefined) updatePayload.ctaHref = ctaHref;
     if (gradient !== undefined) updatePayload.gradient = gradient;
     if (order !== undefined) updatePayload.order = parseInt(order, 10);
-    if (isActive !== undefined) updatePayload.isActive = isActive;
+    if (isActive !== undefined) updatePayload.isActive = isActive === "true";
 
     // Replace image if new file uploaded
     if (req.file) {
