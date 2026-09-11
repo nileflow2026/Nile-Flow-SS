@@ -1256,6 +1256,10 @@ const getDealProducts = async (req, res) => {
       };
     }));
 
+    // DEBUG: log first deal's productId for flash filter matching
+    if (enrichedProducts.length > 0) {
+      console.log("[DEBUG] Deal productId sample:", enrichedProducts[0].productId, "deals count:", enrichedProducts.length);
+    }
     res.status(200).json(enrichedProducts);
   } catch (error) {
     console.error("Error fetching deal products:", error);
@@ -1303,6 +1307,10 @@ const getFlashSales = async (req, res) => {
       };
     }));
 
+    // DEBUG: log flash sale productIds for matching
+    if (enriched.length > 0) {
+      console.log("[DEBUG] Flash productId sample:", enriched[0].productId, "flash count:", enriched.length);
+    }
     res.status(200).json(enriched);
   } catch (error) {
     console.error("Error fetching flash sales:", error);

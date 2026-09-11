@@ -214,6 +214,13 @@ const DealsPage = () => {
       ])
       setProducts(deals)
       setFlashSales(flash)
+      // DEBUG: log for flash filter matching
+      if (flash.length > 0) {
+        console.log('[DEBUG] Flash sale productIds:', flash.map(f => f.productId))
+      }
+      if (deals.length > 0) {
+        console.log('[DEBUG] Deal productIds:', deals.slice(0, 3).map(d => d.productId))
+      }
     } catch (error) {
       console.error('Failed to fetch deals:', error)
       push({ title: 'Error', message: 'Could not load deals. Please try again.' })
