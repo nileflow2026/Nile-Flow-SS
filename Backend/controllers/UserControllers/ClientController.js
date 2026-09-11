@@ -1167,6 +1167,8 @@ const getDealProducts = async (req, res) => {
 
       return {
         ...converted,
+        price: basePrice, // Keep as number for frontend rendering
+        dealPrice: converted.price?.convertedPrice ?? basePrice,
         discount,
         timeLeft,
         originalPrice: {
@@ -1222,8 +1224,9 @@ const getFlashSales = async (req, res) => {
       );
       return {
         ...converted,
-        price: basePrice,
+        price: basePrice, // Keep as number for frontend rendering
         salePrice: basePrice,
+        dealPrice: basePrice,
         timeLeft,
         isExpiringSoon: timeLeft.totalHours <= 6,
       };
