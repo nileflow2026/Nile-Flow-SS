@@ -19,6 +19,7 @@ import { RouteGuard } from "./core/auth";
 import ProductApprovals from "./Pages/ProductApprovals";
 import Finance from "./Pages/FinancePage";
 import GroupBuyManagement from "./Pages/GroupBuyManagement";
+import DealsManagement from "./Pages/DealsManagement";
 import UpdateNotifier from "./components/UpdateNotifier";
 
 function App() {
@@ -97,6 +98,15 @@ function App() {
                 element={
                   <RouteGuard requiredResource="products" requiredAction="approve">
                     <ProductApprovals />
+                  </RouteGuard>
+                }
+              />
+              {/* Deal Management — admin only */}
+              <Route
+                path="/deals"
+                element={
+                  <RouteGuard>
+                    <DealsManagement />
                   </RouteGuard>
                 }
               />

@@ -29,6 +29,7 @@ export default function Sidebar({ setSection, current, isOpen, setIsOpen }) {
         { label: "Staff", icon: <FaUserCog className="w-4 h-4 sm:w-5 sm:h-5" />, color: "from-[#E74C3C] to-[#C0392B]" },
         { label: "Approved Products", icon: <FaUserCog className="w-4 h-4 sm:w-5 sm:h-5" />, color: "from-[#E74C3C] to-[#C0392B]" },
         { label: "Banners", icon: <FaImage className="w-4 h-4 sm:w-5 sm:h-5" />, color: "from-[#F39C12] to-[#D68910]" },
+        { label: "Deals", icon: <FaBoxOpen className="w-4 h-4 sm:w-5 sm:h-5" />, color: "from-[#E74C3C] to-[#C0392B]" },
       ],
     },
     {

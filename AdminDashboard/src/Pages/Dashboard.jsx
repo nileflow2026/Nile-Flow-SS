@@ -47,6 +47,7 @@ import ProductApprovals from "./ProductApprovals";
 import Commission from "./Commission";
 import Finance from "./FinancePage";
 import BannerManagement from "./BannerManagement";
+import DealsManagement from "./DealsManagement";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658"];
 
@@ -219,6 +220,8 @@ export default function Dashboard() {
         return <Settings />;
       case "Banners":
         return <BannerManagement />;
+      case "Deals":
+        return <DealsManagement />;
 
       default:
         return (

@@ -28,6 +28,13 @@ const {
   updatePremiumDeal,
   createCategory,
 } = require("../controllers/AdminControllers/admin");
+const {
+  getDeals,
+  getDealAnalytics,
+  createDeal,
+  updateDeal,
+  deleteDeal,
+} = require("../controllers/AdminControllers/dealsController");
 const authenticateToken = require("../middleware/authMiddleware");
 const { instrumentedDb } = require("../services/appwriteService");
 const { env } = require("../src/env");
@@ -56,6 +63,14 @@ router.post("/products/listrewards", authenticateToken, listRewards);
 router.post("/products/flashsale", authenticateToken, addFlashSale);
 // A new route for fetching flash sales
 router.get("/products/flashsale", authenticateToken, getFlashSales);
+
+// ── Deals Routes ───────────────────────────────────────────────────────────────
+router.get("/deals", authenticateToken, getDeals);
+router.post("/deals", authenticateToken, createDeal);
+router.patch("/deals/:dealId", authenticateToken, updateDeal);
+router.delete("/deals/:dealId", authenticateToken, deleteDeal);
+router.get("/deals/analytics", authenticateToken, getDealAnalytics);
+
 // GET all subcategories under a specific category
 router.get("/categories/:id/subcategories", getSubcategoriesByCategoryId);
 router.get("/products/subcategory/:id", getProductsBySubcategoryId);

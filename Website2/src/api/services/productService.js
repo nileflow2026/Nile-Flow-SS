@@ -6,25 +6,16 @@
  */
 
 import { httpClient } from '@api/client/HttpClient';
-import { parsePaginatedResponse } from '@api/utils/helpers';
 
 const BASE = '/api/customerprofile';
 
 export const productService = {
   /**
    * Fetch all products with optional filters and cursor-based pagination.
-   *
-   * @param {Object} [options]
-   * @param {string} [options.category] - Category slug or ID
-   * @param {string} [options.search] - Search query
-   * @param {string} [options.cursor] - Pagination cursor
-   * @param {number} [options.limit] - Items per page
-   * @returns {Promise<{products: Array, nextCursor: string|null}>}
    */
   async getProducts(options = {}) {
     const { category, search, cursor, limit, vendorId } = options;
     const params = {};
-
     if (category && category !== 'all') params.category = category;
     if (search) params.search = search;
     if (cursor) params.cursor = cursor;
@@ -32,33 +23,21 @@ export const productService = {
     if (vendorId) params.vendorId = vendorId;
 
     const response = await httpClient.get(`${BASE}/fetch-product`, params);
-
     const products = Array.isArray(response.data?.products)
       ? response.data.products
       : [];
-
     return {
       products,
       nextCursor: response.data?.nextCursor || null,
       total: response.data?.total || products.length,
     };
   },
- 
-  /**
-   * Fetch all products (simplified, for non-paginated views).
-   * @returns {Promise<Array>}
-   */
+
   async getAllProducts() {
     const response = await httpClient.get(`${BASE}/fetch-products`);
     return Array.isArray(response.data?.products) ? response.data.products : [];
   },
 
-  /**
-   * Fetch a single product by ID.
-   *
-   * @param {string} productId
-   * @returns {Promise<Object|null>}
-   */
   async getProduct(productId) {
     const response = await httpClient.get(`${BASE}/fetch-product`, {
       productId,
@@ -66,13 +45,6 @@ export const productService = {
     return response.data?.product || response.data || null;
   },
 
-  /**
-   * Check product stock availability.
-   *
-   * @param {string} productId
-   * @param {number} [quantity=1]
-   * @returns {Promise<{available: boolean, stock: number}>}
-   */
   async checkStock(productId, quantity = 1) {
     try {
       const response = await httpClient.get(
@@ -87,51 +59,37 @@ export const productService = {
     }
   },
 
-  /**
-   * Get featured products.
-   * @returns {Promise<Array>}
-   */
-  async getFeaturedProducts() {
-    const response = await httpClient.get(`${BASE}/fetch-product`, {
-      featured: true,
-    });
-    return Array.isArray(response.data?.products) ? response.data.products : [];
-  },
-
-  async getDealProducts() {
-    const response = await httpClient.get(`${BASE}/deal-products`, {
-      deal: true,
-    });
-    return Array.isArray(response.data?.products) ? response.data.products : [];
-  },
-
-  async getHeroProducts() {
-    const response = await httpClient.get(`${BASE}/hero-products`, {
-      hero: true,
-    });
-    const data = response.data ?? {};
-    const payload = Array.isArray(data.featured) || Array.isArray(data.products)
-      ? data
-      : data.data ?? {};
-
-    const heroProducts = Array.isArray(payload.products)
-      ? payload.products
-      : Array.isArray(payload.featured)
-      ? payload.featured
-      : [];
-
-    return heroProducts;
-  },
-
-  /**
-   * Fetch all featured products (no limit).
-   * @param {boolean} [all] - If true, fetches unlimited featured products
-   * @returns {Promise<Array>}
-   */
   async getFeaturedProducts(all = false) {
     const response = await httpClient.get(`${BASE}/featured-products`, {
       params: all ? { showAll: 'true' } : {},
     });
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  /**
+   * Fetch all active deal products with discounts, time left, and premium flags.
+   * Backend returns enriched deal objects directly (not wrapped in products array).
+   */
+  async getDealProducts() {
+    const response = await httpClient.get(`${BASE}/deal-products`);
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  async getHeroProducts() {
+    const response = await httpClient.get(`${BASE}/hero-products`);
+    const data = response.data ?? {};
+    const payload = Array.isArray(data.featured) || Array.isArray(data.products)
+      ? data
+      : data.data ?? {};
+    return Array.isArray(payload.products)
+      ? payload.products
+      : Array.isArray(payload.featured)
+        ? payload.featured
+        : [];
+  },
+
+  async getFlashSales() {
+    const response = await httpClient.get(`${BASE}/flash-sales`);
     return Array.isArray(response.data) ? response.data : [];
   },
 };

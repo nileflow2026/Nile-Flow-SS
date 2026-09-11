@@ -1,764 +1,661 @@
-/* eslint-disable no-unused-vars */
-import axiosClient from "./api";
+// adminService.js — Consolidated service module for AdminDashboard
+// Contains all API calls used across pages and components
 
-export const getNotifications = async (type) => {
+import axiosClient from './api';
+
+// ─── Authentication & User Profile ──────────────────────────────────────────
+
+export const login = async (credentials) => {
   try {
-    let url = "/api/notifications";
-    if (type && type !== "all") {
-      url += `?type=${type}`;
-    }
-
-    const response = await axiosClient.get(url);
-    console.log("Notifications:", response.data.notifications);
-    return response.data.notifications;
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    throw new Error("Failed to fetch notifications.");
-  }
-};
-
-export const clearAllNotifications = async () => {
-  try {
-    const response = await axiosClient.get("/api/notifications/clear");
-    return response.data.response;
-  } catch (error) {
-    console.error("Error clearing notifications:", error);
-    throw new Error("Failed to clear notifications.");
-  }
-};
-
-export const fetchAdminNotifications = async () => {
-  try {
-    const response = await axiosClient.get("/api/notifications/admin");
-    console.log("Admin notifications response:", response.data);
-    console.log(
-      "Total notifications fetched:",
-      response.data.result?.length || 0,
-    );
-
-    // Log notification types for debugging
-    if (response.data.result) {
-      const types = [
-        ...new Set(response.data.result.map((n) => n.type).filter(Boolean)),
-      ];
-      console.log("Notification types found:", types);
-    }
-
-    return response.data.result;
-  } catch (error) {
-    console.error("Error fetching admin notifications:", error);
-    throw new Error("Failed to fetch admin notifications.");
-  }
-};
-
-export const markNotificationsAsRead = async (ids) => {
-  try {
-    const response = await axiosClient.post("/api/notifications/mark-as-read", {
-      ids,
-    });
-    // Optionally update your frontend state after successful update
+    const response = await axiosClient.post('/api/admin/auth/login', credentials);
     return response.data;
   } catch (error) {
-    console.error(
-      "Error marking notifications as read:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(
-      error.response?.data?.error || "Failed to mark notifications as read.",
-    );
+    throw error.response?.data || error.message;
   }
 };
+
+export const logout = async () => {
+  try {
+    await axiosClient.post('/api/admin/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/auth/me');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const getProfile = async (userId) => {
+  try {
+    const response = await axiosClient.get(`/api/admin/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const updateUserPreferences = async (userId, preferences) => {
+  try {
+    const response = await axiosClient.patch(`/api/admin/users/${userId}/preferences`, preferences);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── Users ───────────────────────────────────────────────────────────────────
 
 export const fetchUsers = async () => {
   try {
-    const response = await axiosClient.get("/api/users/users");
-    return response.data; // Returns the array of users (documents)
+    const response = await axiosClient.get('/api/admin/users');
+    return response.data?.users || [];
   } catch (error) {
-    console.error(
-      "Error fetching users:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch users.");
+    console.error('Error fetching users:', error);
+    return [];
   }
 };
 
-export const getProfile = async () => {
+// ─── Vendors ─────────────────────────────────────────────────────────────────
+
+export const getVendors = async (filters = {}) => {
   try {
-    const response = await axiosClient.get("/api/admin/profile");
+    const response = await axiosClient.get('/api/admin/vendors', { params: filters });
+    return response.data?.vendors || [];
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    return [];
+  }
+};
+
+export const getVendorStats = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/vendors/stats');
+    return response.data?.stats || {};
+  } catch (error) {
+    console.error('Error fetching vendor stats:', error);
+    return {};
+  }
+};
+
+export const toggleVendorStatus = async (vendorId, newStatus) => {
+  try {
+    const response = await axiosClient.patch(`/api/admin/vendors/${vendorId}/status`, { status: newStatus });
     return response.data;
   } catch (error) {
-    console.error(
-      "Profile fetch error:",
-      error.response?.data || error.message,
-    );
-    throw error;
+    throw error.response?.data || error.message;
   }
 };
 
-export const getOrders = async () => {
+export const resetVendorPassword = async (vendorId, newPassword) => {
   try {
-    const response = await axiosClient.get("/api/orders/orders");
-    return response.data.response; // Returns the array of orders (documents)
+    const response = await axiosClient.post('/api/vendor/auth/reset-vendor-password', { vendorId, newPassword });
+    return response.data;
   } catch (error) {
-    console.error(
-      "Error fetching orders:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch orders.");
+    throw error.response?.data || error.message;
+  }
+};
+
+export const sendVendorForgotPasswordCode = async (email) => {
+  try {
+    const response = await axiosClient.post('/api/vendor/auth/forgot-password/send-code', { email });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+export const getOrders = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/orders', { params: filters });
+    return response.data?.orders || [];
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return [];
   }
 };
 
 export const getCancelledOrders = async () => {
   try {
-    const response = await axiosClient.get("/api/orders/orders/cancelled");
-    return response.data.response; // Returns the array of orders (documents)
+    const response = await axiosClient.get('/api/admin/orders/cancelled');
+    return response.data?.orders || [];
   } catch (error) {
-    console.error(
-      "Error fetching orders:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch orders.");
-  }
-};
-
-export const getProduct = async () => {
-  try {
-    const response = await axiosClient.get("/api/products/products");
-    console.log("Products fetched successfully:", response.data.response);
-    return response.data.response;
-  } catch (error) {
-    console.error(
-      "Error fetching products:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch products.");
-  }
-};
-
-export const getProducts = async (category = "", search = "", setLoading) => {
-  try {
-    if (typeof setLoading === "function") setLoading(true);
-
-    const response = await axiosClient.get("/api/products/products", {
-      params: { category, search },
-    });
-    console.log("Products fetched:", response.data.products.length);
-
-    if (!response || !response.data || !Array.isArray(response.data.products)) {
-      console.error("Invalid response structure:", response);
-      return [];
-    }
-
-    return response.data.products;
-  } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error('Error fetching cancelled orders:', error);
     return [];
-  } finally {
-    if (typeof setLoading === "function") setLoading(false);
   }
 };
 
-export const addProducts = async () => {
+export const getRiders = async () => {
   try {
-    const response = await axiosClient.get(
-      "/api/admin/addproducts/addproducts",
-    );
-    return response.data.response;
+    const response = await axiosClient.get('/api/admin/riders');
+    return response.data?.riders || [];
   } catch (error) {
-    console.error(
-      "Error adding products:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to add products.");
+    console.error('Error fetching riders:', error);
+    return [];
   }
 };
 
-export const getAuditLogs = async () => {
+export const assignRiderToOrder = async (orderId, riderId) => {
   try {
-    const response = await axiosClient.get("/api/audit-logs/audit-logs");
-    /* console.log(' Received response:', response); */
+    const response = await axiosClient.post('/api/admin/orders/assign-delivery', { orderId, riderId });
     return response.data;
   } catch (error) {
-    console.error(
-      "Error fetching products:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch products.");
+    throw error.response?.data || error.message;
   }
 };
 
-// User-specific data fetching functions for admin panel
-export const getUserById = async (userId) => {
+export const updateOrderStatus = async (orderId, status) => {
   try {
-    // Use existing users endpoint and filter by ID
-    const response = await axiosClient.get("/api/users/users");
-    const users = response.data;
-    const user = users.find((u) => u.$id === userId);
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    return user;
+    const response = await axiosClient.post('/api/admin/orderStatus', { orderId, status });
+    return response.data;
   } catch (error) {
-    console.error(
-      "Error fetching user:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to fetch user.");
+    throw error.response?.data || error.message;
   }
 };
+
+export const getCustomerAddress = async (customerId) => {
+  try {
+    const response = await axiosClient.get(`/api/admin/customers/${customerId}/address`);
+    return response.data?.address || null;
+  } catch (error) {
+    console.error('Error fetching customer address:', error);
+    return null;
+  }
+};
+
+// ─── Products ────────────────────────────────────────────────────────────────
+
+export const getProducts = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/products', { params: filters });
+    return response.data?.products || [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+};
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export const getNotifications = async (type) => {
+  try {
+    let url = '/api/notifications';
+    if (type && type !== 'all') {
+      url += `?type=${type}`;
+    }
+    const response = await axiosClient.get(url);
+    return response.data?.notifications || [];
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+};
+
+export const clearAllNotifications = async () => {
+  try {
+    const response = await axiosClient.delete('/api/notifications/clear');
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+    return null;
+  }
+};
+
+export const fetchAdminNotifications = async () => {
+  try {
+    const response = await axiosClient.get('/api/notifications/admin');
+    return response.data?.result || [];
+  } catch (error) {
+    console.error('Error fetching admin notifications:', error);
+    return [];
+  }
+};
+
+export const markNotificationsAsRead = async (ids) => {
+  try {
+    const response = await axiosClient.post('/api/notifications/mark-as-read', { ids });
+    return response.data;
+  } catch (error) {
+    console.error('Error marking notifications as read:', error);
+    return null;
+  }
+};
+
+export const fetchAllNotificationTypes = async () => {
+  try {
+    const response = await axiosClient.get('/api/notifications/all');
+    return response.data?.notifications || [];
+  } catch (error) {
+    console.error('Error fetching all notifications:', error);
+    return [];
+  }
+};
+
+export const forceRefreshNotifications = async () => {
+  try {
+    const timestamp = new Date().getTime();
+    const response = await axiosClient.get(`/api/notifications?_t=${timestamp}&force=true`);
+    return response.data?.result || response.data?.notifications || [];
+  } catch (error) {
+    console.error('Error force refreshing notifications:', error);
+    return [];
+  }
+};
+
+// ─── Analytics & Dashboard Stats ─────────────────────────────────────────────
+
+export const getDashboardStats = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/stats');
+    return response.data?.stats || {};
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return {};
+  }
+};
+
+export const getAuditLogs = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/audit-logs', { params: filters });
+    return response.data?.logs || [];
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    return [];
+  }
+};
+
+// ─── Commission Management ───────────────────────────────────────────────────
+
+export const getCommissionSettings = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/commission/settings');
+    return response.data?.settings || {};
+  } catch (error) {
+    console.error('Error fetching commission settings:', error);
+    return {};
+  }
+};
+
+export const updateCommissionRate = async (rate) => {
+  try {
+    const response = await axiosClient.post('/api/admin/commission/rate', { rate });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const getCommissionAnalytics = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/commission/analytics', { params: filters });
+    return response.data?.analytics || {};
+  } catch (error) {
+    console.error('Error fetching commission analytics:', error);
+    return {};
+  }
+};
+
+export const getGMVData = async (timeframe = 'last30') => {
+  try {
+    const response = await axiosClient.get('/api/admin/commission/gmv', { params: { timeframe } });
+    return response.data?.gmv || {};
+  } catch (error) {
+    console.error('Error fetching GMV data:', error);
+    return {};
+  }
+};
+
+export const batchRecalculateCommissions = async () => {
+  try {
+    const response = await axiosClient.post('/api/admin/commission/recalculate');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── User Management ───────────────────────────────────────────────────────
 
 export const getUserOrders = async (userId) => {
   try {
-    // Use existing orders endpoint and filter by user ID
-    const response = await axiosClient.get("/api/orders/orders");
-    const allOrders = response.data.response || response.data; // Handle different response formats
-
-    // Filter orders for the specific user
-    // Orders might have user ID in different fields, check common ones
-    const userOrders = allOrders.filter(
-      (order) =>
-        order.users === userId ||
-        order.userId === userId ||
-        order.user === userId ||
-        order.users?.includes?.(userId), // If users is an array
-    );
-
-    console.log(`Found ${userOrders.length} orders for user ${userId}`);
-    return userOrders;
+    const response = await axiosClient.get(`/api/admin/users/${userId}/orders`);
+    return response.data?.orders || [];
   } catch (error) {
-    console.error(
-      "Error fetching user orders:",
-      error.response?.data?.error || error.message,
-    );
-    // Return empty array instead of throwing to gracefully handle missing orders
+    console.error('Error fetching user orders:', error);
     return [];
   }
 };
 
 export const getUserAddresses = async (userId) => {
   try {
-    // Try to use a general addresses endpoint or return empty for now
-    // Since addresses endpoint may not exist, we'll return empty array
-    console.log("Address endpoint not available, returning empty array");
-    return [];
+    const response = await axiosClient.get(`/api/admin/users/${userId}/addresses`);
+    return response.data?.addresses || [];
   } catch (error) {
-    console.error(
-      "Error fetching user addresses:",
-      error.response?.data?.error || error.message,
-    );
-    // Return empty array instead of throwing to gracefully handle missing addresses
+    console.error('Error fetching user addresses:', error);
     return [];
   }
 };
 
 export const getUserPreferences = async (userId) => {
   try {
-    console.log("Fetching user preferences for user ID:", userId);
-    const response = await axiosClient.get(`/api/users/${userId}/preferences`);
-    console.log("User preferences fetched:", response.data);
-    return response.data.preferences || response.data;
+    const response = await axiosClient.get(`/api/admin/users/${userId}/preferences`);
+    return response.data?.preferences || {};
   } catch (error) {
-    console.error(
-      "Error fetching user preferences:",
-      error.response?.data?.error || error.message,
-    );
-    // Return default preferences structure instead of null
-    return {
-      preferredPaymentMethod: "Credit Card",
-      preferredShippingMethod: "Standard Shipping",
-      emailNotifications: true,
-      smsNotifications: true,
-      marketingEmails: false,
-      currency: "KSh",
-      language: "en",
-      timezone: "Africa/Nairobi",
-    };
+    console.error('Error fetching user preferences:', error);
+    return {};
   }
 };
 
-export const updateUserPreferences = async (userId, preferences) => {
-  try {
-    console.log("Updating user preferences for user ID:", userId, preferences);
-    const response = await axiosClient.put(`/api/users/${userId}/preferences`, {
-      preferences,
-    });
-    console.log("User preferences updated:", response.data);
-    return response.data.preferences || response.data;
-  } catch (error) {
-    console.error(
-      "Error updating user preferences:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error("Failed to update user preferences.");
-  }
-};
+// ─── Newsletter Management ─────────────────────────────────────────────────
 
-// Rider Management Functions
-export const getRiders = async () => {
+export const sendBroadcast = async (broadcastData) => {
   try {
-    const response = await axiosClient.get("/api/rider/riders");
-    return response.data.response || response.data.riders || [];
-  } catch (error) {
-    console.error(
-      "Error fetching riders:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error("Failed to fetch riders.");
-  }
-};
-
-export const assignRiderToOrder = async ({
-  deliveryId,
-  riderId,
-  pickupAddress,
-}) => {
-  try {
-    const response = await axiosClient.post("/api/deliveries/assign-delivery", {
-      deliveryId,
-      riderId,
-      pickupAddress,
-    });
+    const response = await axiosClient.post('/api/admin/newsletter/broadcast', broadcastData);
     return response.data;
   } catch (error) {
-    console.error(
-      "Error assigning rider to order:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(
-      error.response?.data?.error || "Failed to assign delivery.",
-    );
-  }
-};
-
-export const updateOrderStatus = async (orderId, orderStatus) => {
-  try {
-    const response = await axiosClient.post(
-      `/api/orders/orderStatus`,
-
-      { orderId, orderStatus },
-    );
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Error updating order status:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error("Failed to update order status.");
-  }
-};
-
-// Function to fetch customer addresses by type
-export const getCustomerAddress = async (
-  customerId,
-  addressType = "pickup",
-) => {
-  try {
-    const response = await axiosClient.get(
-      `/api/nileflow/addresses/customer/${customerId}?type=${addressType}`,
-    );
-    console.log("Customer addresses fetched:", response.data.addresses);
-    return response.data.addresses || [];
-  } catch (error) {
-    console.error(
-      "Error fetching customer address:",
-      error.response?.data?.error || error.message,
-    );
-    return [];
-  }
-};
-
-// Comprehensive notification fetching function
-export const fetchAllNotificationTypes = async () => {
-  try {
-    console.log("Fetching all notification types...");
-
-    // Add cache-busting timestamp
-    const timestamp = new Date().getTime();
-
-    // Try admin endpoint first with cache busting
-    const adminResponse = await axiosClient.get(
-      `/api/notifications/admin?_t=${timestamp}`,
-    );
-    console.log("Admin endpoint response:", adminResponse.data);
-    console.log(
-      "Admin endpoint count:",
-      adminResponse.data.result?.length || 0,
-    );
-
-    if (adminResponse.data.result && adminResponse.data.result.length > 0) {
-      // Log the latest notification from admin endpoint
-      const sorted = adminResponse.data.result.sort(
-        (a, b) =>
-          new Date(b.timestamp || b.$createdAt) -
-          new Date(a.timestamp || a.$createdAt),
-      );
-      console.log("Latest notification from admin:", sorted[0]);
-      return adminResponse.data.result;
-    }
-
-    // If admin endpoint returns empty or limited results, try regular endpoint
-    console.log("Admin endpoint limited, trying regular endpoint...");
-    const regularResponse = await axiosClient.get(
-      `/api/notifications?_t=${timestamp}`,
-    );
-    console.log("Regular endpoint response:", regularResponse.data);
-    console.log(
-      "Regular endpoint count:",
-      regularResponse.data.notifications?.length || 0,
-    );
-
-    if (
-      regularResponse.data.notifications &&
-      regularResponse.data.notifications.length > 0
-    ) {
-      // Log the latest notification from regular endpoint
-      const sorted = regularResponse.data.notifications.sort(
-        (a, b) =>
-          new Date(b.timestamp || b.$createdAt) -
-          new Date(a.timestamp || a.$createdAt),
-      );
-      console.log("Latest notification from regular:", sorted[0]);
-      return regularResponse.data.notifications;
-    }
-
-    return [];
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-
-    // Fallback: try to get notifications by individual type
-    try {
-      console.log("Trying type-specific fetching...");
-      const types = [
-        "order",
-        "user",
-        "system",
-        "payment",
-        "warning",
-        "delivery_update",
-      ];
-      const allNotifications = [];
-
-      for (const type of types) {
-        try {
-          const response = await axiosClient.get(
-            `/api/notifications?type=${type}`,
-          );
-          if (response.data.notifications) {
-            allNotifications.push(...response.data.notifications);
-          }
-        } catch (typeError) {
-          console.warn(`Failed to fetch ${type} notifications:`, typeError);
-        }
-      }
-
-      console.log(
-        `Fetched ${allNotifications.length} notifications across all types`,
-      );
-      return allNotifications;
-    } catch (fallbackError) {
-      console.error("All notification fetching methods failed:", fallbackError);
-      throw new Error("Failed to fetch notifications from any endpoint.");
-    }
-  }
-};
-
-// Force refresh notifications - bypasses all caching
-export const forceRefreshNotifications = async () => {
-  try {
-    console.log("🔄 Force refreshing notifications...");
-    const timestamp = new Date().getTime();
-
-    // Try multiple endpoints with cache busting
-    const endpoints = [
-      `/api/notifications/admin?_t=${timestamp}&force=true`,
-      `/api/notifications?_t=${timestamp}&force=true`,
-      `/api/notifications/all?_t=${timestamp}&force=true`,
-    ];
-
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`Trying endpoint: ${endpoint}`);
-        const response = await axiosClient.get(endpoint);
-        console.log(`Response from ${endpoint}:`, response.data);
-
-        const notifications =
-          response.data.result || response.data.notifications || response.data;
-
-        if (Array.isArray(notifications) && notifications.length > 0) {
-          console.log(
-            `✅ Got ${notifications.length} notifications from ${endpoint}`,
-          );
-
-          // Sort by timestamp descending to see newest first
-          const sorted = notifications.sort(
-            (a, b) =>
-              new Date(b.timestamp || b.$createdAt) -
-              new Date(a.timestamp || a.$createdAt),
-          );
-
-          console.log(
-            "📅 Latest notification timestamp:",
-            sorted[0]?.timestamp || sorted[0]?.$createdAt,
-          );
-          console.log("📄 Latest notification:", sorted[0]);
-
-          return sorted;
-        }
-      } catch (endpointError) {
-        console.warn(`Endpoint ${endpoint} failed:`, endpointError.message);
-      }
-    }
-
-    throw new Error("All endpoints failed to return fresh data");
-  } catch (error) {
-    console.error("❌ Force refresh failed:", error);
-    throw error;
-  }
-};
-
-// Broadcast / Platform-wide communication API functions
-export const sendBroadcast = async (payload) => {
-  try {
-    const response = await axiosClient.post("/api/admin/newsletter/send-broadcast", payload);
-    return response.data;
-  } catch (error) {
-    console.error("Error sending broadcast:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to send broadcast.");
+    throw error.response?.data || error.message;
   }
 };
 
 export const getBroadcastAudienceStats = async () => {
   try {
-    const response = await axiosClient.get("/api/admin/newsletter/broadcast-stats");
-    return response.data.data;
+    const response = await axiosClient.get('/api/admin/newsletter/audience-stats');
+    return response.data?.stats || {};
   } catch (error) {
-    console.error("Error fetching broadcast stats:", error.response?.data?.error || error.message);
-    return { subscribers: 0, endUsers: 0, vendors: 0, allPlatform: 0 };
+    console.error('Error fetching audience stats:', error);
+    return {};
   }
 };
 
-// Commission System API Functions
-export const getCommissionSettings = async () => {
-  try {
-    const response = await axiosClient.get("/api/admin/commission/settings");
-    return {
-      commission_rate: 0,
-      ...response.data,
-    };
-  } catch (error) {
-    console.error("Error fetching commission settings:", error);
-    // Return safe defaults instead of throwing
-    return {
-      commission_rate: 0,
-      success: false,
-      error: "Failed to fetch commission settings",
-    };
-  }
-};
-
-export const updateCommissionRate = async (newRate) => {
-  try {
-    const response = await axiosClient.put("/api/admin/commission/settings", {
-      commission_rate: newRate,
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error updating commission rate:", error);
-    throw new Error("Failed to update commission rate.");
-  }
-};
-
-export const getCommissionAnalytics = async (timeframe = "last30") => {
-  try {
-    const response = await axiosClient.get(
-      `/api/admin/commission/analytics?timeframe=${timeframe}`,
-    );
-    return {
-      total_gmv: 0,
-      total_commission_earned: 0,
-      orders_with_commission: 0,
-      average_commission_per_order: 0,
-      top_vendors: [],
-      ...response.data,
-    };
-  } catch (error) {
-    console.error("Error fetching commission analytics:", error);
-    // Return safe defaults instead of throwing
-    return {
-      total_gmv: 0,
-      total_commission_earned: 0,
-      orders_with_commission: 0,
-      average_commission_per_order: 0,
-      top_vendors: [],
-      success: false,
-      error: "Failed to fetch commission analytics",
-    };
-  }
-};
-
-export const getGMVData = async (timeframe = "last30") => {
-  try {
-    const response = await axiosClient.get(
-      `/api/admin/commission/gmv?timeframe=${timeframe}`,
-    );
-    return response.data.data;
-  } catch (error) {
-    console.error("Error fetching GMV data:", error);
-    // Return safe defaults instead of throwing
-    return {
-      daily_gmv: [],
-      success: false,
-      error: "Failed to fetch GMV data",
-    };
-  }
-};
-
-export const recalculateOrderCommission = async (orderId) => {
-  try {
-    const response = await axiosClient.post(
-      `/api/admin/commission/order/${orderId}/recalculate`,
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error recalculating commission:", error);
-    throw new Error("Failed to recalculate commission.");
-  }
-};
-
-// Vendor management API functions
-export const getVendors = async (filters = {}) => {
-  try {
-    const params = new URLSearchParams();
-    if (filters.search) params.append("search", filters.search);
-    if (filters.status) params.append("status", filters.status);
-    if (filters.page) params.append("page", filters.page);
-    if (filters.limit) params.append("limit", filters.limit);
-
-    const url = `/api/admin/vendors${params.toString() ? `?${params.toString()}` : ""}`;
-    const response = await axiosClient.get(url);
-    return response.data.data;
-  } catch (error) {
-    console.error("Error fetching vendors:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to fetch vendors.");
-  }
-};
-
-export const getVendorStats = async () => {
-  try {
-    const response = await axiosClient.get("/api/admin/vendors/stats");
-    return response.data.data;
-  } catch (error) {
-    console.error("Error fetching vendor stats:", error.response?.data?.error || error.message);
-    return { total: 0, active: 0, inactive: 0 };
-  }
-};
-
-export const toggleVendorStatus = async (vendorId, isActive) => {
-  try {
-    const response = await axiosClient.patch(`/api/admin/vendors/${vendorId}/status`, { isActive });
-    return response.data;
-  } catch (error) {
-    console.error("Error toggling vendor status:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to update vendor status.");
-  }
-};
-
-export const getVendorById = async (vendorId) => {
-  try {
-    const response = await axiosClient.get(`/api/admin/vendors/${vendorId}`);
-    return response.data.data.vendor;
-  } catch (error) {
-    console.error("Error fetching vendor:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to fetch vendor details.");
-  }
-};
-
-// Subscriber management
 export const listSubscribers = async (filters = {}) => {
   try {
-    const params = new URLSearchParams();
-    if (filters.search) params.append("search", filters.search);
-    if (filters.page) params.append("page", filters.page);
-    if (filters.limit) params.append("limit", filters.limit);
-    const url = `/api/admin/newsletter/subscribers${params.toString() ? `?${params.toString()}` : ""}`;
-    const response = await axiosClient.get(url);
-    return response.data.data;
+    const response = await axiosClient.get('/api/admin/newsletter/subscribers', { params: filters });
+    return response.data?.subscribers || [];
   } catch (error) {
-    console.error("Error listing subscribers:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to list subscribers.");
+    console.error('Error listing subscribers:', error);
+    return [];
   }
 };
 
-export const removeSubscriber = async (id) => {
+export const removeSubscriber = async (subscriberId) => {
   try {
-    await axiosClient.delete(`/api/admin/newsletter/subscribers/${id}`);
+    const response = await axiosClient.delete(`/api/admin/newsletter/subscribers/${subscriberId}`);
+    return response.data;
   } catch (error) {
-    console.error("Error removing subscriber:", error.response?.data?.error || error.message);
-    throw new Error(error.response?.data?.error || "Failed to remove subscriber.");
+    throw error.response?.data || error.message;
   }
 };
 
 export const exportSubscribersCSV = async () => {
   try {
-    const response = await axiosClient.get("/api/admin/newsletter/subscribers/export", {
-      responseType: "blob",
+    const response = await axiosClient.get('/api/admin/newsletter/subscribers/export', {
+      responseType: 'blob',
     });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "nileflow-subscribers.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
+    return response.data;
   } catch (error) {
-    console.error("Error exporting subscribers:", error);
-    throw new Error("Failed to export subscribers.");
+    console.error('Error exporting subscribers:', error);
+    return null;
   }
 };
 
-export const batchRecalculateCommissions = async (filters = {}) => {
+// ─── Banner Management ───────────────────────────────────────────────────────
+
+export const getBanners = async () => {
   try {
-    const response = await axiosClient.post(
-      "/api/admin/commission/batch-recalculate",
-      filters,
-    );
-    return response.data;
+    const response = await axiosClient.get('/api/v1/banners');
+    return response.data?.banners || response.data || [];
   } catch (error) {
-    console.error("Error batch recalculating commissions:", error);
-    throw new Error("Failed to batch recalculate commissions.");
+    console.error('Error fetching banners:', error);
+    return [];
   }
 };
 
-// Vendor password management
-export const sendVendorForgotPasswordCode = async (email) => {
+export const createBanner = async (formData) => {
   try {
-    const response = await axiosClient.post(
-      "/api/vendor/auth/forgot-password/send-code",
-      { email },
-    );
+    const response = await axiosClient.post('/api/v1/banners', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   } catch (error) {
-    console.error(
-      "Error sending vendor password code:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to send reset code.");
+    throw error.response?.data || error.message;
   }
 };
 
-export const resetVendorPassword = async (vendorId, newPassword) => {
+export const updateBanner = async (bannerId, formData) => {
   try {
-    const response = await axiosClient.post(
-      "/api/vendor/auth/reset-vendor-password",
-      { vendorId, newPassword },
-    );
+    const response = await axiosClient.patch(`/api/v1/banners/${bannerId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   } catch (error) {
-    console.error(
-      "Error resetting vendor password:",
-      error.response?.data?.error || error.message,
-    );
-    throw new Error(error.response?.data?.error || "Failed to reset password.");
+    throw error.response?.data || error.message;
   }
+};
+
+export const deleteBanner = async (bannerId) => {
+  try {
+    const response = await axiosClient.delete(`/api/v1/banners/${bannerId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── Product Approval ────────────────────────────────────────────────────────
+
+export const getPendingProducts = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/products/pending');
+    return response.data?.products || [];
+  } catch (error) {
+    console.error('Error fetching pending products:', error);
+    return [];
+  }
+};
+
+export const approveProduct = async (productId) => {
+  try {
+    const response = await axiosClient.post(`/api/admin/products/approve/${productId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const rejectProduct = async (productId, reason) => {
+  try {
+    const response = await axiosClient.post(`/api/admin/products/reject/${productId}`, { reason });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── Commission & Finance ───────────────────────────────────────────────────
+
+export const getCommissionData = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/commission', { params: filters });
+    return response.data?.commission || {};
+  } catch (error) {
+    console.error('Error fetching commission data:', error);
+    return {};
+  }
+};
+
+export const getFinanceData = async (filters = {}) => {
+  try {
+    const response = await axiosClient.get('/api/admin/finance', { params: filters });
+    return response.data?.finance || {};
+  } catch (error) {
+    console.error('Error fetching finance data:', error);
+    return {};
+  }
+};
+
+// ─── Settings ───────────────────────────────────────────────────────────────
+
+export const getSettings = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/settings');
+    return response.data?.settings || {};
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return {};
+  }
+};
+
+export const updateSettings = async (settings) => {
+  try {
+    const response = await axiosClient.patch('/api/admin/settings', settings);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// ─── Deals Management ───────────────────────────────────────────────────────
+
+export const getDeals = async (type = 'all', options = {}) => {
+  try {
+    const params = {};
+    if (type !== 'all') params.type = type;
+    if (options.category) params.category = options.category;
+    if (options.search) params.search = options.search;
+
+    const response = await axiosClient.get('/api/admin/deals', { params });
+    return response.data?.deals || [];
+  } catch (error) {
+    console.error('Error fetching deals:', error);
+    throw new Error('Failed to fetch deals');
+  }
+};
+
+export const createDeal = async (dealData) => {
+  try {
+    const formData = new FormData();
+    Object.entries(dealData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach((v, i) => formData.append(`${key}[${i}]`, v));
+        } else {
+          formData.append(key, value);
+        }
+      }
+    });
+    const response = await axiosClient.post('/api/admin/deals', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.deal;
+  } catch (error) {
+    console.error('Error creating deal:', error);
+    throw new Error('Failed to create deal');
+  }
+};
+
+export const updateDeal = async (dealId, dealData) => {
+  try {
+    const formData = new FormData();
+    Object.entries(dealData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach((v, i) => formData.append(`${key}[${i}]`, v));
+        } else {
+          formData.append(key, value);
+        }
+      }
+    });
+    const response = await axiosClient.patch(`/api/admin/deals/${dealId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data?.deal;
+  } catch (error) {
+    console.error('Error updating deal:', error);
+    throw new Error('Failed to update deal');
+  }
+};
+
+export const deleteDeal = async (dealId) => {
+  try {
+    const response = await axiosClient.delete(`/api/admin/deals/${dealId}`);
+    return response.data?.success;
+  } catch (error) {
+    console.error('Error deleting deal:', error);
+    return false;
+  }
+};
+
+export const getDealAnalytics = async () => {
+  try {
+    const response = await axiosClient.get('/api/admin/deals/analytics');
+    return response.data?.analytics || {};
+  } catch (error) {
+    console.error('Error fetching deal analytics:', error);
+    return {};
+  }
+};
+
+export default {
+  login,
+  logout,
+  getCurrentUser,
+  getProfile,
+  updateUserPreferences,
+  fetchUsers,
+  getVendors,
+  getVendorStats,
+  toggleVendorStatus,
+  resetVendorPassword,
+  sendVendorForgotPasswordCode,
+  getOrders,
+  getProducts,
+  getNotifications,
+  clearAllNotifications,
+  fetchAdminNotifications,
+  markNotificationsAsRead,
+  fetchAllNotificationTypes,
+  forceRefreshNotifications,
+  getDashboardStats,
+  getAuditLogs,
+  getBanners,
+  createBanner,
+  updateBanner,
+  deleteBanner,
+  getPendingProducts,
+  approveProduct,
+  rejectProduct,
+  getCommissionData,
+  getFinanceData,
+  getSettings,
+  updateSettings,
+  getCancelledOrders,
+  getRiders,
+  assignRiderToOrder,
+  updateOrderStatus,
+  getCustomerAddress,
+  getCommissionSettings,
+  updateCommissionRate,
+  getCommissionAnalytics,
+  getGMVData,
+  batchRecalculateCommissions,
+  getDeals,
+  createDeal,
+  updateDeal,
+  deleteDeal,
+  getDealAnalytics,
+  getUserOrders,
+  getUserAddresses,
+  getUserPreferences,
+  sendBroadcast,
+  getBroadcastAudienceStats,
+  listSubscribers,
+  removeSubscriber,
+  exportSubscribersCSV,
 };
