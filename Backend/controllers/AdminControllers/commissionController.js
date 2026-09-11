@@ -4,7 +4,7 @@ const {
 } = require("../../services/platformSettingsService");
 const { commissionService } = require("../../services/commissionService");
 const { VendorPayoutService } = require("../../services/vendorPayoutService");
-const {  } = require("../../services/appwriteService");
+const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Query } = require("node-appwrite");
 const { logAuditFromRequest } = require("../../utils/auditLogger");
