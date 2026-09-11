@@ -1249,7 +1249,7 @@ const getDealProducts = async (req, res) => {
             targetCurrency,
           ),
         },
-        productId: product.$id,
+        productId: product.productId || product.$id,
         isExpiringSoon: product.dealEndTime && (new Date(product.dealEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
         isHighDiscount: discount >= 40,
         isPremium: product.premiumDeal || false,
