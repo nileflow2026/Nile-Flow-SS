@@ -306,7 +306,7 @@ function ProductDetailPage() {
               )}
               {premium && <Badge variant="warning">Premium eligible</Badge>}
               {vendorName && (
-                <Badge variant="neutral">{vendorName}</Badge>
+                <Badge variant="neutral" className="max-w-[180px] truncate">{vendorName}</Badge>
               )}
               {vendorId && storeLink && (
                 <Link
@@ -327,14 +327,14 @@ function ProductDetailPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)] sm:text-xs">
               {categoryName || 'Nile Flow'}
             </p>
-            <h1 className="mt-2 text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl">
+            <h1 className="mt-2 line-clamp-2 text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl" title={name}>
               {name}
             </h1>
             <p className="mt-2 text-2xl font-bold text-amber-600 sm:text-3xl">{priceStr}</p>
 
             {description && (
               <div className="mt-4 max-w-prose">
-                <p className="text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base">
+                <p className="whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base">
                   {displayedDescription}
                 </p>
                 {hasLongDescription && (
