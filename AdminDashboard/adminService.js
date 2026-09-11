@@ -295,7 +295,8 @@ export const updateCommissionRate = async (rate) => {
 export const getCommissionAnalytics = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/commission/analytics', { params: filters });
-    return response.data?.analytics || {};
+    // Backend may return { success: true, data: {...} } or { success: true, analytics: {...} }
+    return response.data?.analytics || response.data?.data || {};
   } catch (error) {
     console.error('Error fetching commission analytics:', error);
     return {};

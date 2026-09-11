@@ -695,27 +695,16 @@ try {
 }
 safeMount("/api/admin/vendors", vendorAdminRoutes, "Admin Vendors");
 
-// Mount admin router at specific sub-paths for backwards compatibility
-safeMount("/api/admin/products", adminRouter, "Admin Products");
-// Order tracking routes must be mounted BEFORE order management routes
-// to prevent `/:orderId` catching `/tracking/:orderId` paths.
+// Mount admin router - handles ALL admin routes at /api/admin/*
+safeMount("/api/admin", adminRouter, "Admin Router");
+
+// Order tracking routes (non-admin)
 safeMount("/api/orders", orderTrackingRoutes, "Order Tracking");
-safeMount("/api/orders", adminRouter, "Orders (Admin)");
-safeMount("/api/products", adminRouter, "Products (Admin)");
-safeMount("/api/deliveries", adminRouter, "Deliveries");
-safeMount("/api/admin/orderStatus", adminRouter, "Admin Order Status");
-safeMount("/api/admin/addproducts", adminRouter, "Admin Add Products");
-safeMount("/api/admin/commission", commissionRoutes, "Admin Commission");
-safeMount(
-  "/api/finance",
-  require("../routes/financeRoutes"),
-  "Finance & Tax Reporting",
-);
-safeMount(
-  "/api/admin/customer-messages",
-  adminRouter,
-  "Admin Customer Messages",
-);
+
+// Finance routes
+safeMount("/api/finance", require("../routes/financeRoutes"), "Finance & Tax Reporting");
+
+// Staff, careers, newsletter (separate routers)
 safeMount("/api/admin/staff", staffRoutes, "Admin Staff");
 safeMount("/api/admin/careers", careersRoutes, "Admin Careers");
 safeMount("/api/admin/newsletter", newsletterRoutes, "Admin Newsletter");

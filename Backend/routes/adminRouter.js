@@ -36,6 +36,14 @@ const {
   deleteDeal,
 } = require("../controllers/AdminControllers/dealsController");
 const authenticateToken = require("../middleware/authMiddleware");
+
+// Additional controllers
+const { getAuditLogs } = require("../controllers/AdminControllers/auditLoggerController");
+const { getUsers, getAdminProfile } = require("../controllers/AdminControllers/userController");
+const { getRiders } = require("../controllers/RiderControler/RiderController");
+const { newsletter, sendnewsletter } = require("../controllers/AdminControllers/newsletterController");
+const subscriberController = require("../controllers/AdminControllers/subscriberController");
+const CommissionController = require("../controllers/AdminControllers/commissionController");
 const { instrumentedDb } = require("../services/appwriteService");
 const { env } = require("../src/env");
 const {
@@ -91,13 +99,11 @@ router.post("/assign-delivery", authenticateToken, assignDeliveryToRider);
 router.get("/products/:productId/stock", async (req, res) => {
   try {
     const { productId } = req.params;
-
     const product = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       productId,
     );
-
     res.json({
       productId,
       stock: product.stock || 0,
@@ -107,11 +113,29 @@ router.get("/products/:productId/stock", async (req, res) => {
       isActive: product.isActive,
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to check stock",
-      details: error.message,
-    });
+    res.status(500).json({ error: "Failed to check stock", details: error.message });
   }
 });
+
+// ── Admin User Routes ────────────────────────────────────────────────────────
+router.get("/users", authenticateToken, getUsers);
+router.get("/users/profile", authenticateToken, getAdminProfile);
+router.get("/riders", authenticateToken, getRiders);
+
+// ── Audit & Stats ────────────────────────────────────────────────────────────
+router.get("/audit-logs", authenticateToken, getAuditLogs);
+
+// ── Commission Routes ────────────────────────────────────────────────────────
+router.get("/commission/settings", authenticateToken, CommissionController.getCommissionSettings.bind(CommissionController));
+router.put("/commission/rate", authenticateToken, CommissionController.updateCommissionRate.bind(CommissionController));
+router.get("/commission/analytics", authenticateToken, CommissionController.getCommissionAnalytics.bind(CommissionController));
+router.get("/commission/gmv", authenticateToken, CommissionController.getGMVData.bind(CommissionController));
+router.post("/commission/recalculate", authenticateToken, CommissionController.batchCalculateCommissions.bind(CommissionController));
+
+// ── Newsletter Routes ────────────────────────────────────────────────────────
+router.post("/newsletter/broadcast", authenticateToken, sendnewsletter);
+router.get("/newsletter/subscribers", authenticateToken, subscriberController.listSubscribers.bind(subscriberController));
+router.delete("/newsletter/subscribers/:id", authenticateToken, subscriberController.removeSubscriber.bind(subscriberController));
+router.get("/newsletter/subscribers/export", authenticateToken, subscriberController.exportSubscribers.bind(subscriberController));
 
 module.exports = router;
