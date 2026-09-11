@@ -40,11 +40,13 @@ const optionalAuth = (req, res, next) => {
 // ── Controllers ───────────────────────────────────────────────────────────────
 
 const { getHomeFeed } = require("../controllers/v1/homeFeedController");
-
-// ── Cache middleware factory ──────────────────────────────────────────────────
-
-const { cacheMiddleware } = require("../src/lib/cache/cacheClient");
-const { CacheKeys, TTL } = require("../src/lib/cache/cacheKeys");
+const {
+  getBanners,
+  createBanner,
+  updateBanner,
+  deleteBanner,
+} = require("../controllers/v1/bannerController");
+const upload = require("../Config/multer");
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -84,5 +86,29 @@ router.get("/cache/stats", (req, res) => {
   const { getStats } = require("../src/lib/cache/cacheClient");
   res.json({ success: true, data: getStats() });
 });
+
+/**
+ * GET /api/v1/banners
+ * Public — returns all banners sorted by creation time.
+ */
+router.get("/banners", getBanners);
+
+/**
+ * POST /api/v1/banners
+ * Admin — creates a new banner with optional image upload.
+ */
+router.post("/banners", authenticateToken, upload.single("image"), createBanner);
+
+/**
+ * PATCH /api/v1/banners/:bannerId
+ * Admin — updates an existing banner with optional image replacement.
+ */
+router.patch("/banners/:bannerId", authenticateToken, upload.single("image"), updateBanner);
+
+/**
+ * DELETE /api/v1/banners/:bannerId
+ * Admin — deletes a banner.
+ */
+router.delete("/banners/:bannerId", authenticateToken, deleteBanner);
 
 module.exports = router;

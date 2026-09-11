@@ -23,6 +23,7 @@ export { uploadService } from './uploadService';
 export { addressService } from './addressService';
 export { groupBuyService } from './groupBuyService';
 export { discoveryService } from './discoveryService';
+export { bannerService } from './bannerService';
 
 export { initializeApi, getHttpClient } from '@api/client';
 export { config } from '@api/config';

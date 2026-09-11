@@ -46,6 +46,7 @@ import { getCurrentUser } from "../../authService";
 import ProductApprovals from "./ProductApprovals";
 import Commission from "./Commission";
 import Finance from "./FinancePage";
+import BannerManagement from "./BannerManagement";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658"];
 
@@ -216,6 +217,8 @@ export default function Dashboard() {
         return <Finance />;
       case "Settings":
         return <Settings />;
+      case "Banners":
+        return <BannerManagement />;
 
       default:
         return (

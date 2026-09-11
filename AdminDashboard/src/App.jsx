@@ -13,6 +13,7 @@ import Vendors from "./Pages/Vendors";
 import Orders from "./Pages/Orders";
 import Settings from "./Pages/Settings";
 import UserPage from "./Pages/UserPage";
+import BannerManagement from "./Pages/BannerManagement";
 import { AuthProvider } from "./core/auth";
 import { RouteGuard } from "./core/auth";
 import ProductApprovals from "./Pages/ProductApprovals";
@@ -29,6 +30,14 @@ function App() {
           <main className="flex-1 p-8">
             <Routes>
               {/* Root Dashboard — protected */}
+              <Route
+                path="/banners"
+                element={
+                  <RouteGuard>
+                    <BannerManagement />
+                  </RouteGuard>
+                }
+              />
               <Route
                 path="/"
                 element={
