@@ -15,5 +15,11 @@ router.get("/me", authenticateToken, authController.getCurrentVendor);
 router.post("/refresh", authController.handleRefreshToken);
 router.post("/logout", authenticateToken, authController.logoutVendor);
 
+// Password reset (public)
+router.post("/forgot-password/send-code", authController.sendVendorResetCode);
+router.post("/forgot-password/verify", authController.verifyVendorResetCode);
+
+// Admin: direct password reset (requires auth)
+router.post("/reset-vendor-password", authenticateToken, authController.resetVendorPassword);
+
 module.exports = router;
-/*   validate(validationSchemas.registerSchema), */

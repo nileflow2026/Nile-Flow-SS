@@ -248,6 +248,30 @@ export const removeVendorProfilePicture = async () => {
   }
 };
 
+/**
+ * Send reset code to vendor email
+ */
+export const sendVendorResetCode = async (email) => {
+  try {
+    const response = await vendorAxiosClient.post("/api/vendor/auth/forgot-password/send-code", { email });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || "Failed to send reset code" };
+  }
+};
+
+/**
+ * Verify reset code and set new password
+ */
+export const verifyVendorResetCode = async (email, code, newPassword) => {
+  try {
+    const response = await vendorAxiosClient.post("/api/vendor/auth/forgot-password/verify", { email, code, newPassword });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, error: error.response?.data?.error || "Failed to reset password" };
+  }
+};
+
 export default {
   registerVendor,
   loginVendor,
@@ -258,4 +282,6 @@ export default {
   updateVendorProfilePicture,
   updateVendorCoverPicture,
   removeVendorProfilePicture,
+  sendVendorResetCode,
+  verifyVendorResetCode,
 };

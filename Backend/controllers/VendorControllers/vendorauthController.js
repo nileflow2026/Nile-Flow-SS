@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { env } = require("../../src/env");
 const { Query, ID } = require("node-appwrite");
 const { db, users } = require("../../services/appwriteService");
@@ -13,6 +14,10 @@ const {
 const {
   sendVendorOnboardingEmails,
 } = require("../../services/vendorMailService");
+const { sendBrandedEmail } = require("../../services/emailTheme");
+const { Resend } = require("resend");
+
+const resend = new Resend(env.RESEND_API_KEY);
 
 // Logger
 const log = {
@@ -887,4 +892,181 @@ const vendorauthController = {
   },
 };
 
+/**
+ * Send 6-digit reset code to vendor email
+ * POST /api/vendor/auth/forgot-password/send-code
+ */
+async function sendVendorResetCode(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: "Email is required" });
+    }
+
+    const vendors = await db.listDocuments(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_COLLECTION_ID,
+      [Query.equal("email", email)],
+    );
+
+    if (vendors.total === 0) {
+      return res.status(404).json({ success: false, error: "No vendor account found with this email" });
+    }
+
+    const vendor = vendors.documents[0];
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    await db.updateDocument(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_COLLECTION_ID,
+      vendor.$id,
+      { resetCode: code, resetCodeExpiry: expiry },
+    );
+
+    await sendBrandedEmail(resend, {
+      from: "Nile Flow <noreply@nileflowafrica.com>",
+      to: email,
+      subject: "Your Vendor Password Reset Code",
+      html: `
+        <div style="max-width:480px;margin:0 auto;font-family:sans-serif;">
+          <div style="background:#10b981;padding:24px;text-align:center;">
+            <h1 style="color:#fff;margin:0;font-size:22px;">Nile Flow Vendor</h1>
+          </div>
+          <div style="padding:32px;background:#f9fafb;">
+            <h2 style="color:#111827;margin:0 0 12px;">Password Reset Code</h2>
+            <p style="color:#6b7280;font-size:14px;line-height:1.6;">Use the code below to reset your password. It expires in 15 minutes.</p>
+            <div style="background:#d1fae5;border:2px dashed #10b981;border-radius:12px;padding:24px;text-align:center;margin:24px 0;">
+              <span style="font-size:36px;font-weight:800;color:#065f46;letter-spacing:8px;font-family:monospace;">${code}</span>
+            </div>
+            <p style="color:#9ca3af;font-size:12px;">If you didn't request this, ignore this email.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.json({ success: true, message: "Reset code sent" });
+  } catch (error) {
+    console.error("[vendor-reset] error:", error?.message);
+    res.status(500).json({ success: false, error: "Failed to send reset code" });
+  }
+}
+
+/**
+ * Verify reset code and update password
+ * POST /api/vendor/auth/forgot-password/verify
+ */
+async function verifyVendorResetCode(req, res) {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ success: false, error: "Email, code, and new password are required" });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: "Password must be at least 8 characters" });
+    }
+
+    const vendors = await db.listDocuments(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_COLLECTION_ID,
+      [Query.equal("email", email)],
+    );
+    if (vendors.total === 0) {
+      return res.status(400).json({ success: false, error: "Invalid or expired code" });
+    }
+
+    const vendor = vendors.documents[0];
+    if (!vendor.resetCode || vendor.resetCode !== code) {
+      return res.status(400).json({ success: false, error: "Invalid reset code" });
+    }
+    if (vendor.resetCodeExpiry && new Date(vendor.resetCodeExpiry) < new Date()) {
+      return res.status(400).json({ success: false, error: "Reset code has expired" });
+    }
+
+    // Update password in Appwrite Auth
+    await users.updatePassword(vendor.$id, newPassword);
+
+    // Clear reset code
+    await db.updateDocument(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_COLLECTION_ID,
+      vendor.$id,
+      { resetCode: null, resetCodeExpiry: null },
+    );
+
+    // Revoke all sessions
+    const tokens = await db.listDocuments(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_SESSIONS_COLLECTION_ID,
+      [Query.equal("vendorId", vendor.$id)],
+    );
+    for (const doc of tokens.documents) {
+      if (!doc.revoked) {
+        await db.updateDocument(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_SESSIONS_COLLECTION_ID,
+          doc.$id,
+          { revoked: true, revokedAt: new Date().toISOString() },
+        );
+      }
+    }
+
+    res.json({ success: true, message: "Password reset successful" });
+  } catch (error) {
+    console.error("[vendor-reset-verify] error:", error?.message);
+    res.status(500).json({ success: false, error: "Failed to reset password" });
+  }
+}
+
+/**
+ * Admin: directly update vendor password (no code needed)
+ * POST /api/vendor/auth/reset-vendor-password
+ * Requires admin token
+ */
+async function resetVendorPassword(req, res) {
+  try {
+    const { vendorId, newPassword } = req.body;
+    if (!vendorId || !newPassword) {
+      return res.status(400).json({ success: false, error: "vendorId and newPassword are required" });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, error: "Password must be at least 8 characters" });
+    }
+
+    // Verify vendor exists
+    const vendor = await db.getDocument(env.VENDOR_DATABASE_ID, env.VENDOR_COLLECTION_ID, vendorId);
+    if (!vendor) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    // Update password in Appwrite Auth using the server SDK (no current password needed)
+    await users.updatePassword(vendor.$id, newPassword);
+
+    // Invalidate all sessions
+    const tokens = await db.listDocuments(
+      env.VENDOR_DATABASE_ID,
+      env.VENDOR_SESSIONS_COLLECTION_ID,
+      [Query.equal("vendorId", vendorId)],
+    );
+    for (const doc of tokens.documents) {
+      if (!doc.revoked) {
+        await db.updateDocument(
+          env.VENDOR_DATABASE_ID,
+          env.VENDOR_SESSIONS_COLLECTION_ID,
+          doc.$id,
+          { revoked: true, revokedAt: new Date().toISOString() },
+        );
+      }
+    }
+
+    res.json({ success: true, message: "Vendor password updated successfully" });
+  } catch (error) {
+    console.error("[vendor-reset-admin] error:", error?.message);
+    res.status(500).json({ success: false, error: "Failed to update vendor password" });
+  }
+}
+
 module.exports = vendorauthController;
+module.exports.sendVendorResetCode = sendVendorResetCode;
+module.exports.verifyVendorResetCode = verifyVendorResetCode;
+module.exports.resetVendorPassword = resetVendorPassword;

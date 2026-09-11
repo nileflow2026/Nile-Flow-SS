@@ -729,3 +729,36 @@ export const batchRecalculateCommissions = async (filters = {}) => {
     throw new Error("Failed to batch recalculate commissions.");
   }
 };
+
+// Vendor password management
+export const sendVendorForgotPasswordCode = async (email) => {
+  try {
+    const response = await axiosClient.post(
+      "/api/vendor/auth/forgot-password/send-code",
+      { email },
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error sending vendor password code:",
+      error.response?.data?.error || error.message,
+    );
+    throw new Error(error.response?.data?.error || "Failed to send reset code.");
+  }
+};
+
+export const resetVendorPassword = async (vendorId, newPassword) => {
+  try {
+    const response = await axiosClient.post(
+      "/api/vendor/auth/reset-vendor-password",
+      { vendorId, newPassword },
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error resetting vendor password:",
+      error.response?.data?.error || error.message,
+    );
+    throw new Error(error.response?.data?.error || "Failed to reset password.");
+  }
+};

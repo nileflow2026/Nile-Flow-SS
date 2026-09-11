@@ -3,6 +3,8 @@ import {
   getVendors,
   getVendorStats,
   toggleVendorStatus,
+  resetVendorPassword,
+  sendVendorForgotPasswordCode,
 } from "../../adminService";
 import {
   Search,
@@ -15,10 +17,14 @@ import {
   RefreshCw,
   ChevronDown,
   Eye,
-  MoreVertical,
   UserCheck,
   UserX,
   Download,
+  Key,
+  Lock,
+  AlertCircle,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +44,11 @@ export default function Vendors() {
   const [totalPages, setTotalPages] = useState(1);
   const [expandedVendor, setExpandedVendor] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [resetModal, setResetModal] = useState(null); // vendor object or null
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState("");
 
   const itemsPerPage = 10;
 
@@ -87,6 +98,40 @@ export default function Vendors() {
       toast.error("Failed to update vendor status");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleResetPassword = async (vendorId, email) => {
+    setResetLoading(true);
+    setResetError("");
+    try {
+      await sendVendorForgotPasswordCode(email);
+      setResetSent(true);
+      toast.success("Reset code sent to vendor email");
+    } catch (err) {
+      setResetError(err.message || "Failed to send reset code");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleDirectReset = async () => {
+    if (!resetModal) return;
+    if (resetPassword.length < 8) {
+      setResetError("Password must be at least 8 characters");
+      return;
+    }
+    setResetLoading(true);
+    setResetError("");
+    try {
+      await resetVendorPassword(resetModal.$id, resetPassword);
+      toast.success(`Password reset for ${resetModal.storeName}`);
+      setResetModal(null);
+      setResetPassword("");
+    } catch (err) {
+      setResetError(err.message || "Failed to reset password");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -486,10 +531,16 @@ export default function Vendors() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setResetModal(vendor);
+                        setResetPassword("");
+                        setResetSent(false);
+                        setResetError("");
+                      }}
                       className="p-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] transition-colors"
-                      title="More Actions"
+                      title="Reset Password"
                     >
-                      <MoreVertical className="w-4 h-4 text-[#8B4513] dark:text-[#D4A017]" />
+                      <Key className="w-4 h-4 text-[#D4A017]" />
                     </button>
                   </div>
                 </div>
@@ -610,6 +661,91 @@ export default function Vendors() {
                 Next
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {resetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setResetModal(null)}
+          />
+          <div className="relative bg-white dark:bg-[#2A2A2A] rounded-2xl border border-[#E8D6B5] dark:border-[#3A3A3A] shadow-2xl w-full max-w-md p-6">
+            <button
+              onClick={() => setResetModal(null)}
+              className="absolute top-4 right-4 text-[#8B4513]/50 dark:text-[#D4A017]/50 hover:text-[#E74C3C]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#8B6914] flex items-center justify-center">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#2C1810] dark:text-[#F5E6D3]">
+                  Reset Password
+                </h3>
+                <p className="text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">
+                  {resetModal.storeName || resetModal.name}
+                </p>
+              </div>
+            </div>
+
+            {resetError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {resetError}
+              </div>
+            )}
+
+            {!resetSent ? (
+              <div className="space-y-4">
+                <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70">
+                  Send a reset code to the vendor's email so they can set a new password?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setResetModal(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] hover:bg-[#E8D6B5]/20 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleResetPassword(resetModal.$id, resetModal.email)}
+                    disabled={resetLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] text-white font-semibold hover:shadow-lg disabled:opacity-70 transition-all flex items-center justify-center gap-2"
+                  >
+                    {resetLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        Send Code
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  Reset code sent to {resetModal.email}
+                </div>
+                <button
+                  onClick={() => setResetModal(null)}
+                  className="w-full py-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] hover:bg-[#E8D6B5]/20 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

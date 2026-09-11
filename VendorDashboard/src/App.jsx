@@ -21,6 +21,8 @@ import Customers from "./pages/Customers";
 import ProtectedRoute from "../components/layout/Auth/ProtectedRoute";
 import Login from "./Auth/Login";
 import Register from "./Auth/Register";
+import ForgotPassword from "./Auth/ForgotPassword";
+import ResetPassword from "./Auth/ResetPassword";
 import AccountSettings from "./pages/AccountSettings";
 import VendorAuthProvider, { useAuth } from "../contexts/VendorAuthContext";
 import NotificationsPage from "./pages/NotificationPage";
@@ -53,6 +55,22 @@ function AppContent() {
         element={
           <PublicRoute>
             <Register />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicRoute>
+            <ResetPassword />
           </PublicRoute>
         }
       />

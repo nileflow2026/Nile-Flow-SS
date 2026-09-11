@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import axiosClient from '../../api'
 
 /**
@@ -7,10 +6,8 @@ import axiosClient from '../../api'
  * Allows admins to create, edit, and delete promotional banners
  */
 function BannerManagement() {
-  const navigate = useNavigate()
   const [banners, setBanners] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
@@ -84,12 +81,22 @@ function BannerManagement() {
       let result
       if (isEditing && editingId) {
         result = await axiosClient.patch(`/api/v1/banners/${editingId}`, formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { 'Content-Type': undefined },
+          transformRequest: [(data, headers) => {
+            delete headers['Content-Type']
+            delete headers['content-type']
+            return data
+          }],
         })
         setSuccessMsg('Banner updated successfully')
       } else {
         result = await axiosClient.post('/api/v1/banners', formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { 'Content-Type': undefined },
+          transformRequest: [(data, headers) => {
+            delete headers['Content-Type']
+            delete headers['content-type']
+            return data
+          }],
         })
         setSuccessMsg('Banner created successfully')
       }
