@@ -116,7 +116,7 @@ function PremiumDealCard({ product, discount }) {
 
         {/* CTA */}
         <Link
-          to={`/products/${product.productId || product.$id}`}
+          to={`/deal/${product.$id}`}
           className="block w-full text-center py-2 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-200"
         >
           {isExpired ? 'Deal Ended' : 'Shop Now →'}

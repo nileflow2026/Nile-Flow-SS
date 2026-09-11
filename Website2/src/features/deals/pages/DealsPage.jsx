@@ -171,7 +171,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
 
         {/* CTA Button */}
         <Link
-          to={`/products/${product.productId || product.$id}`}
+          to={`/deal/${product.$id}`}
           className={`block w-full text-center py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${
             isFlash
               ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl'

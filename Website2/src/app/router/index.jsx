@@ -40,6 +40,7 @@ const SearchPage = lazy(() => import('@features/products/pages/SearchPage'))
 const StorePage = lazy(() => import('@features/store/pages/StorePage'))
 const PremiumDealsPage = lazy(() => import('@features/premium/pages/PremiumDealsPage'))
 const DealsPage = lazy(() => import('@features/deals/pages/DealsPage'))
+const DealProductPage = lazy(() => import('@features/deals/pages/DealProductPage'))
 const CategoryPage = lazy(() => import('@features/discovery/pages/CategoryPage'))
 const GroupBuyPage = lazy(() => import('@features/group-buy/pages/GroupBuyPage'))
 const PaymentPage = lazy(() => import('@features/payments/pages/PaymentPage'))
@@ -86,6 +87,7 @@ export default function AppRouter() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/premium-deals" element={<PremiumDealsPage />} />
         <Route path="/deals" element={<DealsPage />} />
+        <Route path="/deal/:dealId" element={<DealProductPage />} />
         <Route path="/category/:slug" element={<CategoryPage />} />
         <Route path="/group-buy" element={<GroupBuyPage />} />
 
