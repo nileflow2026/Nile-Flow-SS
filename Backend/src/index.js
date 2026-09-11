@@ -420,15 +420,30 @@ app.use((req, res, next) => {
 // ========== REQUEST PARSING ==========
 try {
   if (express) {
-    app.use(
-      express.json({
-        limit: "50mb",
-        verify: (req, res, buf) => {
-          req.rawBody = buf;
-        },
-      }),
-    );
-    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+    // Only parse JSON when Content-Type is application/json —
+    // do NOT let express.json() consume multipart streams, which would
+    // corrupt the body before busboy/multer can parse it.
+    app.use((req, res, next) => {
+      const ct = (req.headers["content-type"] || "").toLowerCase();
+      if (ct.includes("application/json")) {
+        express.json({
+          limit: "50mb",
+          verify: (r, r2, buf) => {
+            r.rawBody = buf;
+          },
+        })(req, res, next);
+      } else {
+        next();
+      }
+    });
+    app.use((req, res, next) => {
+      const ct = (req.headers["content-type"] || "").toLowerCase();
+      if (ct.includes("application/x-www-form-urlencoded")) {
+        express.urlencoded({ extended: true, limit: "50mb" })(req, res, next);
+      } else {
+        next();
+      }
+    });
   }
 
   if (cookieParser) {

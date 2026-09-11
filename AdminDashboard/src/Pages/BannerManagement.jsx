@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import axiosClient from '../../api'
 
-const API_BASE = 'https://nile-flow-backend-5dqm.onrender.com'
+const API_BASE = 'https://nile-flow-backend-5dqm.onrender.com/api'
 
 /**
  * Admin Banner Management Page
@@ -23,7 +23,7 @@ function BannerManagement() {
   const [editingId, setEditingId] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -31,12 +31,11 @@ function BannerManagement() {
   const loadBanners = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await axiosClient.get('/api/v1/banners')
+      const res = await axiosClient.get('/v1/banners')
       const data = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
       setBanners(data)
-      setError(null)
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to load banners')
+      setErrorMsg(err?.response?.data?.error || err?.message || 'Failed to load banners')
     } finally {
       setLoading(false)
     }
@@ -63,44 +62,61 @@ function BannerManagement() {
     }
   }
 
+  // Use XHR directly for multipart uploads to bypass axios JSON interceptor
+  // and ensure the browser sets the correct Content-Type with boundary
+  const submitBanner = (formDataToSend, isEdit, id) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      // Use full absolute URL so cookies are sent cross-origin correctly
+      const url = isEdit && id ? `${API_BASE}/v1/banners/${id}` : `${API_BASE}/v1/banners`
+      const method = isEdit && id ? 'PATCH' : 'POST'
+
+      xhr.open(method, url)
+      xhr.withCredentials = true
+      // Do NOT set Content-Type — let the browser set it with the correct boundary
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText))
+          } catch {
+            resolve({ success: true })
+          }
+        } else {
+          let errMsg = `HTTP ${xhr.status}`
+          try {
+            const errData = JSON.parse(xhr.responseText)
+            errMsg = errData.error || errData.message || errMsg
+          } catch {}
+          reject(new Error(errMsg))
+        }
+      }
+      xhr.onerror = () => reject(new Error('Network error'))
+      xhr.ontimeout = () => reject(new Error('Request timeout'))
+      xhr.timeout = 60000 // 60s timeout for large image uploads
+      xhr.send(formDataToSend)
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitting(true)
+    setIsSubmitting(true)
     setSuccessMsg('')
     setErrorMsg('')
 
     try {
       const formDataToSend = new FormData()
       Object.keys(formData).forEach(key => {
-        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
-          formDataToSend.append(key, formData[key])
+        const val = formData[key]
+        if (val !== null && val !== undefined && val !== '') {
+          formDataToSend.append(key, val)
         }
       })
       if (selectedImage) {
         formDataToSend.append('image', selectedImage)
       }
 
-      const token = localStorage.getItem('admin_token')
-      const url = isEditing && editingId
-        ? `${API_BASE}/api/v1/banners/${editingId}`
-        : `${API_BASE}/api/v1/banners`
-      const method = isEditing && editingId ? 'PATCH' : 'POST'
+      await submitBanner(formDataToSend, isEditing, editingId)
 
-      const res = await fetch(url, {
-        method,
-        credentials: 'include',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formDataToSend,
-      })
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || `HTTP ${res.status}`)
-      }
-
-      const result = await res.json()
       if (isEditing) {
         setSuccessMsg('Banner updated successfully')
       } else {
@@ -111,7 +127,7 @@ function BannerManagement() {
     } catch (err) {
       setErrorMsg(err?.message || 'Operation failed')
     } finally {
-      setSubmitting(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -154,7 +170,7 @@ function BannerManagement() {
     if (!window.confirm('Are you sure you want to delete this banner?')) return
     setLoading(true)
     try {
-      await axiosClient.delete(`/api/v1/banners/${bannerId}`)
+      await axiosClient.delete(`/v1/banners/${bannerId}`)
       setSuccessMsg('Banner deleted successfully')
       loadBanners()
     } catch (err) {
@@ -314,16 +330,16 @@ function BannerManagement() {
           <div className="flex gap-2 mt-6">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={isSubmitting}
               className="flex-1 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] text-white text-sm font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 disabled:opacity-50"
             >
-              {submitting ? 'Saving...' : (isEditing ? 'Update Banner' : 'Create Banner')}
+              {isSubmitting ? 'Saving...' : (isEditing ? 'Update Banner' : 'Create Banner')}
             </button>
             {(isEditing || selectedImage) && (
               <button
                 type="button"
                 onClick={resetForm}
-                disabled={submitting}
+                disabled={isSubmitting}
                 className="px-6 py-2.5 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#2C1810] dark:text-[#F5E6D3] text-sm font-semibold hover:bg-[#E8D6B5]/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50"
               >
                 Cancel
