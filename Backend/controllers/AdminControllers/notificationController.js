@@ -4,7 +4,13 @@ const { env } = require("../../src/env");
 
 const getNotifications = async (req, res) => {
   try {
-    const query = [Query.orderDesc("$createdAt")];
+    // Filter by authenticated user's ID to prevent data leakage
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ error: "Unauthorized: No user information found." });
+    }
+
+    const userId = req.user.userId;
+    const query = [Query.equal("userId", userId), Query.orderDesc("$createdAt")];
     const notificationType = req.query.type;
 
     if (
@@ -49,10 +55,12 @@ const fetchAdminNotifications = async (req, res) => {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
+    // Filter to only this user's notifications
     const result = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [
+        Query.equal("userId", userId),
         Query.equal("type", [
           "order",
           "user",
@@ -84,9 +92,11 @@ const clearAllNotifications = async (req, res) => {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
+    // Only delete this user's own notifications
     const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+      [Query.equal("userId", userId)],
     );
 
     const deletions = response.documents.map((doc) =>
@@ -108,30 +118,41 @@ const clearAllNotifications = async (req, res) => {
 const markNotificationsAsRead = async (req, res) => {
   const { ids = [] } = req.body;
   try {
-    if (!req.user) {
+    if (!req.user || !req.user.userId) {
       return res
         .status(401)
         .json({ error: "Unauthorized: No user information found." });
     }
 
     const userId = req.user.userId;
-    console.log("userId:", userId);
 
     if (!userId) {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
+    // Only mark notifications belonging to this user as read
+    let updatedCount = 0;
     await Promise.all(
-      ids.map((id) =>
-        instrumentedDb.updateDocument(
-          env.APPWRITE_DATABASE_ID,
-          env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
-          id,
-          { read: true },
-        ),
-      ),
+      ids.map(async (id) => {
+        try {
+          const notification = await instrumentedDb.getDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+            id,
+          );
+          if (notification.userId === userId) {
+            await instrumentedDb.updateDocument(
+              env.APPWRITE_DATABASE_ID,
+              env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+              id,
+              { read: true },
+            );
+            updatedCount++;
+          }
+        } catch {}
+      }),
     );
-    res.json({ updated: ids.length });
+    res.json({ updated: updatedCount });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
