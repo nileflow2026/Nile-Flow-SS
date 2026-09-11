@@ -1281,6 +1281,17 @@ const getFlashSales = async (req, res) => {
       ],
     );
 
+    // DEBUG: log flash sales result details
+    console.log(`[DEBUG] Flash sales query: ${flashSales.total} docs, collection=${env.APPWRITE_FLASH_SALE_COLLECTION_ID}`);
+    if (flashSales.documents.length > 0) {
+      console.log("[DEBUG] First flash sale:", JSON.stringify({
+        id: flashSales.documents[0].$id,
+        productId: flashSales.documents[0].productId,
+        saleEndTime: flashSales.documents[0].saleEndTime,
+        isFlashSale: flashSales.documents[0].isFlashSale,
+      }));
+    }
+
     // Enrich with timeLeft and currency
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
     const rates = await getAllRates();
