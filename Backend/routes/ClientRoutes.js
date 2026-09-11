@@ -19,6 +19,7 @@ const {
   getProductsForMobile,
   getFeaturedProducts,
   getDealProducts,
+  getFlashSales,
   getHeroProducts,
   getProductsByCategory,
   getMobileCategories,
