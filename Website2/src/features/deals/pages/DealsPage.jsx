@@ -1,12 +1,193 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
-import Badge from '@shared/ui/badge/Badge'
 import { productService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { SeoHead } from '@shared/seo/SeoHead'
+import { imageProxyUrl } from '@api/config'
+import { Zap, Flame, Clock, ArrowRight, Tag } from 'lucide-react'
 
+// ── Countdown Hook ───────────────────────────────────────────────────────────
+function useCountdown(endTime) {
+  const [display, setDisplay] = useState('')
+  const [isExpired, setIsExpired] = useState(false)
+  const intervalRef = useRef(null)
+  const endTimeRef = useRef(endTime)
+
+  // Keep ref in sync when endTime prop changes (e.g. after manual refresh)
+  useEffect(() => {
+    endTimeRef.current = endTime
+  }, [endTime])
+
+  useEffect(() => {
+    if (!endTime) return
+
+    const formatTime = () => {
+      const target = new Date(endTimeRef.current).getTime()
+      const now = Date.now()
+      const totalSeconds = Math.max(0, Math.floor((target - now) / 1000))
+      if (totalSeconds <= 0) {
+        setIsExpired(true)
+        return '00:00:00'
+      }
+      const h = Math.floor(totalSeconds / 3600)
+      const m = Math.floor((totalSeconds % 3600) / 60)
+      const s = totalSeconds % 60
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    }
+
+    setDisplay(formatTime())
+    intervalRef.current = setInterval(() => {
+      setDisplay(formatTime())
+    }, 1000)
+
+    return () => clearInterval(intervalRef.current)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps — interval must not restart; endTime is accessed via ref
+
+  return { display, isExpired }
+}
+
+// ── Urgency Badge Component ──────────────────────────────────────────────────
+function UrgencyBadge({ discount, isExpiringSoon, isFlash, isPremium }) {
+  if (isFlash) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
+        <Zap className="w-3 h-3" />
+        FLASH SALE
+      </div>
+    )
+  }
+  if (isPremium) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-purple-600 text-white text-xs font-bold">
+        <Flame className="w-3 h-3" />
+        PREMIUM
+      </div>
+    )
+  }
+  if (discount >= 50) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-600 text-white text-xs font-bold">
+        <Tag className="w-3 h-3" />
+        MEGA DEAL
+      </div>
+    )
+  }
+  if (isExpiringSoon) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500 text-white text-xs font-bold animate-pulse">
+        <Clock className="w-3 h-3" />
+        ENDING SOON
+      </div>
+    )
+  }
+  return null
+}
+
+// ── Deal Card Component ──────────────────────────────────────────────────────
+function DealCard({ product, isFlash, isPremium, discount }) {
+  const { display: countdown, isExpired } = useCountdown(product.endTime)
+
+  return (
+    <div
+      className={`group relative rounded-2xl border-2 bg-[var(--color-surface)] shadow-md transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
+        isFlash
+          ? 'border-red-500 hover:border-red-600'
+          : isPremium
+          ? 'border-purple-500 hover:border-purple-600'
+          : discount >= 50
+          ? 'border-orange-500 hover:border-orange-600'
+          : 'border-[var(--color-border)] hover:border-red-400'
+      }`}
+    >
+      {/* Top Badges */}
+      <div className="absolute top-2 left-2 right-2 flex flex-wrap gap-1 z-10">
+        <UrgencyBadge
+          discount={discount}
+          isExpiringSoon={product.isExpiringSoon}
+          isFlash={isFlash}
+          isPremium={isPremium}
+        />
+        {discount >= 50 && (
+          <span className="px-2 py-0.5 rounded-full bg-yellow-500 text-white text-xs font-black animate-pulse">
+            BEST VALUE
+          </span>
+        )}
+      </div>
+
+      {/* Image */}
+      <div className="relative px-2 pt-12 pb-2 sm:px-4 sm:pt-16 sm:pb-4">
+        <div className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-xs shadow-lg ${
+          discount >= 50 ? 'bg-red-600 animate-pulse' : 'bg-gradient-to-br from-red-500 to-orange-500'
+        }`}>
+          -{discount}%
+        </div>
+        <img
+          src={product.image ? imageProxyUrl(product.image, 400, 90) : '/logo.png'}
+          alt={product.productName}
+          className="w-full h-36 sm:h-48 object-cover rounded-xl bg-[var(--color-surface-muted)]"
+          onError={(e) => { e.target.src = '/logo.png' }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="px-2 pb-2 sm:px-4 sm:pb-4">
+        {/* Category */}
+        <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-0.5 sm:mb-1">
+          {product.category}
+        </p>
+
+        {/* Product Name */}
+        <h3 className="font-bold text-[var(--color-text-primary)] text-xs sm:text-sm line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] mb-2 sm:mb-3 group-hover:text-red-600 transition-colors">
+          {product.productName}
+        </h3>
+
+        {/* Price */}
+        <div className="flex items-baseline gap-1 sm:gap-2 mb-2 sm:mb-3">
+          <span className="text-base sm:text-xl font-black text-red-600">
+            KES {product.dealPrice?.toLocaleString?.() ?? product.dealPrice}
+          </span>
+          <span className="text-xs sm:text-sm text-[var(--color-text-muted)] line-through">
+            KES {product.price?.toLocaleString?.() ?? product.price}
+          </span>
+        </div>
+
+        {/* Countdown Timer */}
+        <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg mb-2 sm:mb-3 ${
+          isExpired
+            ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]'
+            : product.isExpiringSoon
+            ? 'bg-red-50 text-red-700 animate-pulse'
+            : 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
+        }`}>
+          <Clock className={`w-3 h-3 sm:w-4 sm:h-4 ${product.isExpiringSoon ? 'text-red-600' : ''}`} />
+          {isExpired ? (
+            <span className="text-[10px] sm:text-xs font-medium">Deal Expired</span>
+          ) : (
+            <span className="text-[10px] sm:text-xs font-mono font-bold">{countdown}</span>
+          )}
+        </div>
+
+        {/* CTA Button */}
+        <Link
+          to={`/products/${product.productId || product.$id}`}
+          className={`block w-full text-center py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${
+            isFlash
+              ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl'
+              : isPremium
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+              : 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] hover:bg-red-600 hover:text-white'
+          }`}
+        >
+          {isExpired ? 'Deal Ended' : 'View Deal →'}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 const DealsPage = () => {
   const [searchParams] = useSearchParams()
   const initialFilter = searchParams.get('type') || 'all'
@@ -14,20 +195,23 @@ const DealsPage = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [flashSales, setFlashSales] = useState([])
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(null)
   const { push } = useToast()
 
   const categories = [
-    { value: 'all', label: 'All Deals' },
-    { value: 'product', label: 'Product Deals' },
-    { value: 'flash', label: 'Flash Sales' },
-    { value: 'premium', label: 'Premium Deals' },
+    { value: 'all', label: 'All Deals', icon: '🔥' },
+    { value: 'product', label: 'Product Deals', icon: '🏷️' },
+    { value: 'flash', label: 'Flash Sales', icon: '⚡' },
+    { value: 'premium', label: 'Premium', icon: '⭐' },
   ]
 
   const fetchData = async () => {
     try {
       setLoading(true)
-      const deals = await productService.getDealProducts()
-      const flash = await productService.getFlashSales()
+      const [deals, flash] = await Promise.all([
+        productService.getDealProducts(),
+        productService.getFlashSales(),
+      ])
       setProducts(deals)
       setFlashSales(flash)
     } catch (error) {
@@ -39,8 +223,28 @@ const DealsPage = () => {
   }
 
   useEffect(() => {
+    // Refresh data every 5 minutes
+    const interval = setInterval(fetchData, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [fetchData])
+
+  // Initial fetch
+  useEffect(() => {
     fetchData()
   }, [])
+
+  // Update global countdown from all deals
+  useEffect(() => {
+    if (products.length === 0) return
+    const nearest = products.reduce((min, p) => {
+      if (!p.timeLeft) return min
+      const totalSec = p.timeLeft.totalHours * 3600 + p.timeLeft.minutes * 60 + p.timeLeft.seconds
+      return totalSec < (min?.totalSeconds ?? Infinity)
+        ? { ...p.timeLeft, productId: p.$id, totalSeconds: totalSec }
+        : min
+    }, null)
+    setGlobalTimeLeft(nearest)
+  }, [products])
 
   const filteredProducts = products.filter((p) => {
     if (filter === 'all') return true
@@ -49,19 +253,7 @@ const DealsPage = () => {
     return true
   })
 
-  const getBadgeVariant = (discount) => {
-    if (discount >= 50) return 'warning'
-    if (discount >= 30) return 'success'
-    return 'secondary'
-  }
-
-  const getTimeDisplay = (timeLeft) => {
-    if (!timeLeft || timeLeft.totalHours < 0) return 'No time limit'
-    if (timeLeft.totalHours < 1) {
-      return `${Math.floor(timeLeft.minutes)}m ${Math.floor(timeLeft.seconds)}s`
-    }
-    return `${Math.floor(timeLeft.totalHours)}h ${Math.floor(timeLeft.minutes % 60)}m`
-  }
+  const isFilteredFlash = filter === 'flash'
 
   return (
     <PageShell>
@@ -70,8 +262,10 @@ const DealsPage = () => {
         description="Exclusive discounts and limited-time offers on Nile Flow products."
         keywords={['deals', 'flash sale', 'discount', 'premium', 'shopping']}
       />
+
+      {/* ── Hero Section ── */}
       <div
-        className="relative overflow-hidden bg-gradient-to-br from-emerald-50/50 via-amber-50/30 to-orange-50/50 px-4 py-8 sm:py-10 text-center"
+        className="relative overflow-hidden bg-gradient-to-br from-red-950 via-orange-950 to-amber-950 px-4 py-12 text-center sm:py-16"
         style={{
           backgroundImage: 'url(/DealImage.png)',
           backgroundSize: 'contain',
@@ -79,126 +273,156 @@ const DealsPage = () => {
           backgroundRepeat: 'no-repeat',
         }}
       >
-        <div className="absolute inset-0 bg-white/50" />
-        <div className="relative z-10">
-        <Badge variant="danger" className="mb-4">🔥 Hot Deals</Badge>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl lg:text-5xl">
-          Limited-Time Savings
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[var(--color-text-secondary)]">
-          Up to 50% off on handpicked African products. These deals won't last — grab yours before they're gone.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/products?featured=true" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-500 hover:text-emerald-600">
-            Browse all products
-          </Link>
-          <Link to="/featured-products" className="inline-flex min-h-11 items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:scale-105 hover:shadow-xl active:scale-95">
-            Shop featured
-          </Link>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse">
+              <Flame className="w-3 h-3" /> HOT DEALS
+            </span>
+            {globalTimeLeft && (
+              <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-orange-600/90 text-white text-xs font-bold">
+                <Clock className="w-3 h-3" />
+                Ends in {globalTimeLeft.totalHours}h {globalTimeLeft.minutes}m
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl drop-shadow-lg">
+            <span className="text-red-400">Limited-Time</span> Savings
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-gray-200">
+            Up to <span className="font-bold text-red-400">50% off</span> on handpicked African products.
+            These deals won't last — grab yours before they're gone.
+          </p>
+
+          <div className="mt-8 flex flex-nowrap items-center justify-center gap-4 sm:gap-6">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 min-h-10 sm:min-h-11 rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-white/20 hover:border-white/50"
+            >
+              Browse All Products
+            </Link>
+            <Link
+              to="/featured-products"
+              className="inline-flex items-center gap-2 min-h-10 sm:min-h-11 rounded-full bg-gradient-to-r from-red-600 to-orange-600 px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-xl transition hover:scale-105 hover:shadow-2xl active:scale-95"
+            >
+              Shop Featured Deals
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+            </Link>
+          </div>
         </div>
       </div>
 
+      {/* ── Flash Sale Ticker ── */}
+      {flashSales.length > 0 && !isFilteredFlash && (
+        <div className="bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white px-4 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-2 text-sm font-bold animate-pulse">
+                <Zap className="w-5 h-5 text-yellow-300" />
+                ⚡ FLASH SALE ACTIVE
+              </span>
+              <span className="text-xs text-red-100 hidden sm:inline">
+                {flashSales.length} deals ending soon
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono bg-black/20 px-3 py-1 rounded-lg">
+              <Clock className="w-3 h-3" />
+              <span>Next flash deal ends in: {(() => {
+                const nearest = flashSales.reduce((min, f) => {
+                  if (!f.timeLeft) return min
+                  const total = f.timeLeft.totalHours * 3600 + f.timeLeft.minutes * 60 + f.timeLeft.seconds
+                  return total < (min?.total ?? Infinity) ? { ...f.timeLeft, total } : min
+                }, null)
+                if (!nearest) return '--:--:--'
+                const h = Math.floor(nearest.total / 3600)
+                const m = Math.floor((nearest.total % 3600) / 60)
+                const s = nearest.total % 60
+                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+              })()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Content ── */}
       <ResponsiveSection className="py-10 sm:py-14 lg:py-16">
-        <div className="mb-8 flex flex-wrap gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat.value}
-              onClick={() => setFilter(cat.value)}
-              className={`rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-200 ${
-                cat.value === filter
-                  ? 'border-emerald-600 bg-emerald-600 text-white'
-                  : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500 hover:text-emerald-600'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+        {/* Category Filters - Scrollable on small screens */}
+        <div className="mb-8 overflow-x-auto">
+          <div className="flex gap-2 justify-start sm:justify-center min-w-max px-1">
+            {categories.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => setFilter(cat.value)}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+                  cat.value === filter
+                    ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg scale-105'
+                    : 'bg-[var(--color-surface)] border-2 border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-red-400 hover:text-red-600'
+                }`}
+              >
+                <span>{cat.icon}</span>
+                {cat.label}
+                {cat.value === 'flash' && flashSales.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 rounded-full text-white">
+                    {flashSales.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Loading State */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-emerald-600" />
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="relative">
+              <div className="h-16 w-16 animate-spin rounded-full border-4 border-red-200 border-t-red-600"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Flame className="w-6 h-6 text-red-600 animate-pulse" />
+              </div>
+            </div>
+            <p className="text-sm text-[var(--color-text-muted)]">Loading amazing deals...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-            <Badge variant="secondary" className="mb-4">No active deals</Badge>
-            <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">All deals sold out</h3>
+          <div className="rounded-3xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-muted)] p-12 text-center">
+            <div className="text-6xl mb-4">😕</div>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)]">No deals found</h3>
             <p className="mt-2 text-[var(--color-text-secondary)]">
-              Check back later or browse our featured products for new arrivals.
+              Try adjusting your filters or check back later for new deals.
             </p>
-            <Link to="/featured-products" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
-              Shop featured
+            <Link
+              to="/featured-products"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              Browse Featured Products
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
           <>
-            {filter === 'all' && flashSales.length > 0 && (
-              <div className="mb-6 rounded-2xl bg-gradient-to-r from-red-50/30 to-orange-50/30 p-5 shadow-[var(--shadow-sm)] dark:from-red-950/20 dark:to-orange-950/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Badge variant="danger" className="mb-2">⚡ Flash Sale</Badge>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">Lightning deals ending soon</p>
-                  </div>
-                  <Badge variant="danger" className="text-xs">Limited stock</Badge>
-                </div>
-              </div>
-            )}
+            {/* Results Count */}
+            <div className="mb-6 text-sm text-[var(--color-text-muted)]">
+              Showing <span className="font-semibold text-red-600">{filteredProducts.length}</span> deals
+              {filter !== 'all' && <span> in <span className="font-semibold">{categories.find(c => c.value === filter)?.label}</span></span>}
+            </div>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.$id}
-                  className="group relative rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-lg hover:-translate-y-1 sm:p-6"
-                >
-                  {(product.isPremium || product.premiumDeal) && (
-                    <div className="absolute right-3 top-3 z-10">
-                      <Badge variant="primary" className="text-xs font-bold">PREMIUM</Badge>
-                    </div>
-                  )}
+            {/* Deals Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              {filteredProducts.map((product) => {
+                const isFlash = flashSales.some((f) => f.productId === product.productId)
+                const isPremium = product.isPremium || product.premiumDeal
+                const discount = product.discount || 0
 
-                  {flashSales.some((f) => f.productId === product.productId) && (
-                    <div className="absolute left-3 top-3 z-10">
-                      <Badge variant="danger" className="text-xs font-bold">⚡ FLASH</Badge>
-                    </div>
-                  )}
-
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[1rem] bg-[var(--color-surface-muted)] text-2xl">
-                    {product.image}
-                  </div>
-                  <p className="mt-3 text-sm text-[var(--color-text-muted)]">{product.category}</p>
-                  <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)] group-hover:text-emerald-600">
-                    {product.productName}
-                  </p>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-lg font-bold text-amber-600">{product.dealPrice}</span>
-                      <span className="text-sm text-[var(--color-text-muted)] line-through">{product.price}</span>
-                    </div>
-                    <Badge variant={getBadgeVariant(product.discount)} className="text-xs font-bold">
-                      {product.discount}% OFF
-                    </Badge>
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
-                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 8v4l3 3" />
-                    </svg>
-                    <span>{getTimeDisplay(product.timeLeft)}</span>
-                    {product.isExpiringSoon && (
-                      <Badge variant="danger" className="text-xs">Ending soon</Badge>
-                    )}
-                  </div>
-
-                  <Link
-                    to={`/products/${product.productId || product.$id}`}
-                    className="mt-4 block w-full rounded-full bg-[var(--color-surface-muted)] px-4 py-2 text-center text-xs font-semibold text-[var(--color-text-secondary)] transition hover:bg-emerald-600 hover:text-white active:scale-95"
-                  >
-                    View product
-                  </Link>
-                </div>
-              ))}
+                return (
+                  <DealCard
+                    key={product.$id}
+                    product={product}
+                    isFlash={isFlash}
+                    isPremium={isPremium}
+                    discount={discount}
+                  />
+                )
+              })}
             </div>
           </>
         )}

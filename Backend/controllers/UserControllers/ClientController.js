@@ -571,8 +571,70 @@ const getProductsForMobile = async (req, res) => {
       .json({ success: false, message: "Failed to fetch products" });
   }
 };
-// Normalize an images array (from Appwrite) to plain URL strings.
-// Handles: string URLs, objects like { url, id, filename }, and JSON-stringified objects.
+/**
+ * Convert an Appwrite file ID or URL to a full image URL.
+ * If the input is already a full URL, return it as-is.
+ * If it's a file ID, build the proper Appwrite storage URL.
+ */
+const buildImageUrl = (imageData) => {
+  if (!imageData) return null;
+  if (typeof imageData === "string") {
+    // Already a URL
+    if (imageData.startsWith("http")) return imageData;
+    // Raw file ID - build the URL
+    return `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${imageData}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
+  }
+  if (typeof imageData === "object" && !Array.isArray(imageData)) {
+    // Object with url/id fields
+    return imageData.url || imageData.imageUrl || buildImageUrl(imageData.id);
+  }
+  return null;
+};
+
+// Simple in-memory cache for categories
+let _categoryCache = null;
+let _categoryCacheTime = 0;
+const CATEGORY_CACHE_TTL = 60 * 1000; // 1 minute
+
+/**
+ * Resolve a category ID to its name (with caching).
+ */
+const resolveCategoryName = async (categoryId) => {
+  if (!categoryId) return categoryId;
+  // Return if it's already a string name (not a 24-char hex ID)
+  if (typeof categoryId === "string" && categoryId.length !== 24) return categoryId;
+
+  // Check cache
+  const now = Date.now();
+  if (_categoryCache && now - _categoryCacheTime < CATEGORY_CACHE_TTL) {
+    return _categoryCache[categoryId] || categoryId;
+  }
+
+  // Refresh cache
+  try {
+    const { documents } = await instrumentedDb.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_CATEGORIES_COLLECTION_ID,
+      [Query.limit(200)],
+    );
+    _categoryCache = {};
+    documents.forEach((cat) => {
+      _categoryCache[cat.$id] = cat.name || cat.$id;
+    });
+    _categoryCacheTime = now;
+    console.log(`[CategoryCache] Loaded ${documents.length} categories`);
+  } catch (err) {
+    console.error("[CategoryCache] Failed to load:", err.message);
+    return categoryId;
+  }
+
+  return _categoryCache[categoryId] || categoryId;
+};
+
+/**
+ * Normalize an images array (from Appwrite) to plain URL strings.
+ * Handles: string URLs, objects like { url, id, filename }, and JSON-stringified objects.
+ */
 const normalizeImagesToUrls = (images) => {
   if (!Array.isArray(images)) return [];
   return images
@@ -1148,7 +1210,7 @@ const getDealProducts = async (req, res) => {
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
 
-    const enrichedProducts = response.documents.map((product) => {
+    const enrichedProducts = await Promise.all(response.documents.map(async (product) => {
       const discount = product.discount || 0;
       const timeLeft = calculateTimeLeft(
         product.dealEndTime || new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -1157,7 +1219,7 @@ const getDealProducts = async (req, res) => {
       const basePrice = product.dealPrice || product.price || 0;
       const originalPrice = product.price || 0;
 
-      // Apply currency conversion with psychological pricing for deals
+      // Enrich with currency conversion
       const converted = enrichProductWithCurrency(
         { ...product, price: basePrice },
         targetCurrency,
@@ -1165,12 +1227,18 @@ const getDealProducts = async (req, res) => {
         true, // psychological pricing on deals
       );
 
+      // Resolve category name from ID
+      const categoryName = await resolveCategoryName(product.category);
+
       return {
         ...converted,
         price: basePrice, // Keep as number for frontend rendering
         dealPrice: converted.price?.convertedPrice ?? basePrice,
+        image: buildImageUrl(product.image),
+        images: product.images ? normalizeImagesToUrls(product.images) : [],
+        category: categoryName,
         discount,
-        timeLeft,
+        endTime: product.dealEndTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         originalPrice: {
           basePrice: originalPrice,
           baseCurrency: "KES",
@@ -1181,11 +1249,11 @@ const getDealProducts = async (req, res) => {
             targetCurrency,
           ),
         },
-        isExpiringSoon: timeLeft.totalHours <= 6,
+        isExpiringSoon: product.dealEndTime && (new Date(product.dealEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
         isHighDiscount: discount >= 40,
         isPremium: product.premiumDeal || false,
       };
-    });
+    }));
 
     res.status(200).json(enrichedProducts);
   } catch (error) {
@@ -1213,8 +1281,7 @@ const getFlashSales = async (req, res) => {
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
 
-    const enriched = flashSales.documents.map((sale) => {
-      const timeLeft = calculateTimeLeft(sale.saleEndTime || now);
+    const enriched = await Promise.all(flashSales.documents.map(async (sale) => {
       const basePrice = sale.salePrice || sale.price || 0;
       const converted = enrichProductWithCurrency(
         { ...sale, price: basePrice },
@@ -1227,10 +1294,12 @@ const getFlashSales = async (req, res) => {
         price: basePrice, // Keep as number for frontend rendering
         salePrice: basePrice,
         dealPrice: basePrice,
-        timeLeft,
-        isExpiringSoon: timeLeft.totalHours <= 6,
+        image: buildImageUrl(sale.image),
+        images: sale.images ? normalizeImagesToUrls(sale.images) : [],
+        endTime: sale.saleEndTime || now,
+        isExpiringSoon: sale.saleEndTime && (new Date(sale.saleEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
       };
-    });
+    }));
 
     res.status(200).json(enriched);
   } catch (error) {
