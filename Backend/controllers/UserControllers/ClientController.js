@@ -1249,6 +1249,7 @@ const getDealProducts = async (req, res) => {
             targetCurrency,
           ),
         },
+        productId: product.$id,
         isExpiringSoon: product.dealEndTime && (new Date(product.dealEndTime).getTime() - Date.now()) <= 6 * 60 * 60 * 1000,
         isHighDiscount: discount >= 40,
         isPremium: product.premiumDeal || false,
@@ -1294,6 +1295,7 @@ const getFlashSales = async (req, res) => {
         price: basePrice, // Keep as number for frontend rendering
         salePrice: basePrice,
         dealPrice: basePrice,
+        productId: sale.productId || sale.$id,
         image: buildImageUrl(sale.image),
         images: sale.images ? normalizeImagesToUrls(sale.images) : [],
         endTime: sale.saleEndTime || now,
