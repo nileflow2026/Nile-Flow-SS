@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Link } from 'react-router-dom'
 
 const DEFAULT_BANNERS = [
   {
@@ -202,15 +203,16 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
                 {banner.subtitle}
               </p>
               <div className="mt-4 sm:mt-5 md:mt-6">
-                <a
-                  href={banner.ctaHref}
+                <Link
+                  to={banner.ctaHref}
+                  onClick={() => { clearTimer(); isPausedRef.current = false }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg transition hover:scale-105 hover:shadow-xl active:scale-95 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm md:px-6 md:py-3"
                 >
                   {banner.cta}
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-4 sm:h-4">
                     <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
-                </a>
+                </Link>
               </div>
             </div>
           </div>
