@@ -229,6 +229,11 @@ async function submitToIndexNow(urls) {
   if (urls.length === 0) return;
 
   var INDEXNOW_KEY = process.env.INDEXNOW_KEY || "";
+  if (!INDEXNOW_KEY) {
+    console.debug("[IndexNow] INDEXNOW_KEY not configured — skipping.");
+    return;
+  }
+
   var SITE_URL = "https://www.nileflowafrica.com";
   var HOST = "www.nileflowafrica.com";
 

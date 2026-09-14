@@ -23,12 +23,13 @@
  * @see https://appwrite.io/docs/products/messaging
  */
 
-const { ID, Messaging, Users, Query } = require("node-appwrite");
+const { ID, Messaging, Users, Databases, Query } = require("node-appwrite");
 const { client } = require("./appwriteService");
 const { env } = require("../src/env");
 
 const messaging = new Messaging(client);
 const users = new Users(client);
+const db = new Databases(client);
 
 // In-memory cache of known target IDs to avoid redundant lookups
 const targetCache = new Map();
@@ -49,6 +50,35 @@ function normalizePhoneValue(phone) {
   return sanitized;
 }
 
+/**
+ * When an admin ID from the database doesn't exist in Appwrite Auth,
+ * look up the Auth user by email in the admin DB collection.
+ */
+async function resolveAuthUserByEmailFromAdminCollection(email) {
+  const normalizedEmail = normalizeEmailValue(email);
+  if (!normalizedEmail) return null;
+
+  try {
+    const result = await db.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADMIN_COLLECTION_ID,
+      [Query.equal("email", normalizedEmail), Query.limit(1)],
+    );
+    const adminDoc = result.documents[0];
+    if (!adminDoc) return null;
+
+    // Found admin DB record — look up Auth user by email
+    const authResult = await users.list([
+      Query.equal("email", normalizedEmail),
+      Query.limit(1),
+    ]);
+    return authResult.users?.[0]?.$id || null;
+  } catch (err) {
+    console.debug(`[AppwriteMessaging] Admin lookup failed for ${email}: ${err.message}`);
+    return null;
+  }
+}
+
 async function resolveAppwriteUserId(userId, email) {
   if (!userId) return null;
 
@@ -56,21 +86,27 @@ async function resolveAppwriteUserId(userId, email) {
     await users.get(userId);
     return userId;
   } catch (userError) {
+    // First try direct email-based Auth lookup
     const normalizedEmail = normalizeEmailValue(email);
-    if (!normalizedEmail) return null;
-
-    try {
-      const result = await users.list([
-        Query.equal("email", normalizedEmail),
-        Query.limit(1),
-      ]);
-      return result.users?.[0]?.$id || null;
-    } catch (lookupError) {
-      console.warn(
-        `[AppwriteMessaging] Cannot resolve Auth user ${userId}: ${lookupError.message}`,
-      );
-      return null;
+    if (normalizedEmail) {
+      try {
+        const result = await users.list([
+          Query.equal("email", normalizedEmail),
+          Query.limit(1),
+        ]);
+        if (result.users?.[0]?.$id) return result.users[0].$id;
+      } catch {}
     }
+
+    // If userId is from the admin DB collection (not an Auth user),
+    // look up the Auth user by email via the admin DB collection
+    const fallback = await resolveAuthUserByEmailFromAdminCollection(normalizedEmail);
+    if (fallback) return fallback;
+
+    console.debug(
+      `[AppwriteMessaging] No Auth user found for userId=${userId} email=${normalizedEmail}`,
+    );
+    return null;
   }
 }
 
@@ -161,9 +197,7 @@ async function ensureEmailTarget(userId, email) {
           console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
         }
 
-        console.warn(
-          `[AppwriteMessaging] Duplicate email target response but no matching target was found for Auth user ${appwriteUserId}`,
-        );
+        // Email target exists externally but not in this session's list — accept silently
         return null;
       }
 
@@ -233,9 +267,7 @@ async function ensureSmsTarget(userId, phone) {
           console.warn(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
         }
 
-        console.warn(
-          `[AppwriteMessaging] Duplicate SMS target response but no matching target was found for Auth user ${appwriteUserId}`,
-        );
+        // SMS target exists externally but not in this session's list — accept silently
         return null;
       }
       console.warn(`[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`);
@@ -259,7 +291,7 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
 
     const targetId = await ensureEmailTarget(userId, email);
     if (!targetId) {
-      console.warn(`[AppwriteMessaging] Cannot send email to ${userId}: no target`);
+      console.debug(`[AppwriteMessaging] Skipping email to ${userId}: no Auth target (user not in Appwrite)`);
       return;
     }
 
@@ -294,7 +326,7 @@ async function sendSms({ userId, phone, content }) {
 
     const targetId = await ensureSmsTarget(userId, phone);
     if (!targetId) {
-      console.warn(`[AppwriteMessaging] Cannot send SMS to ${userId}: no target`);
+      console.debug(`[AppwriteMessaging] Skipping SMS to ${userId}: no Auth target (user not in Appwrite)`);
       return;
     }
 
