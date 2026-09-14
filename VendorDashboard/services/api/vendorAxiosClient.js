@@ -9,7 +9,7 @@ const vendorAxiosClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 30000,
   withCredentials: true, // CRITICAL: Send cookies with requests
 });
 
@@ -28,79 +28,7 @@ const processQueue = (error, success = false) => {
   failedQueue = [];
 };
 
-// NO REQUEST INTERCEPTOR NEEDED - cookies are sent automatically
 
-// Response interceptor - handle token refresh on 401
-/* vendorAxiosClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If error is not 401 or request already retried, reject
-    if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-
-    // If already refreshing, queue this request
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        failedQueue.push({ resolve, reject });
-      })
-        .then(() => vendorAxiosClient(originalRequest))
-        .catch((err) => Promise.reject(err));
-    }
-
-    originalRequest._retry = true;
-    isRefreshing = true;
-
-    try {
-      // Get deviceId from sessionStorage if available
-      const deviceId = sessionStorage.getItem("vendorDeviceId") || null;
-
-      console.log("[Vendor Axios] Refreshing token...");
-
-      // Refresh token is sent via httpOnly cookie automatically
-      const response = await axios.post(
-        `${API_BASE_URL}/api/vendor/auth/refresh`,
-        { deviceId },
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      console.log("[Vendor Axios] Token refreshed successfully");
-
-      // Process queued requests
-      processQueue(null, true);
-      isRefreshing = false;
-
-      // Retry original request
-      return vendorAxiosClient(originalRequest);
-    } catch (refreshError) {
-      isRefreshing = false;
-      processQueue(refreshError, false);
-      failedQueue = [];
-
-      console.error(
-        "[Vendor Axios] Refresh token failed:",
-        refreshError.response?.data || refreshError.message
-      );
-
-      // Trigger logout event (only once)
-      if (!window.__vendor_auth_logout_triggered) {
-        window.__vendor_auth_logout_triggered = true;
-        window.dispatchEvent(new CustomEvent("vendor:logout"));
-
-        setTimeout(() => {
-          window.__vendor_auth_logout_triggered = false;
-        }, 1000);
-      }
-
-      return Promise.reject(refreshError);
-    }
-  }
-); */
 // Response interceptor - FIXED VERSION
 vendorAxiosClient.interceptors.response.use(
   (response) => response,

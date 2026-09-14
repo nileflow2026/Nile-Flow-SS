@@ -410,8 +410,9 @@ const productController = {
 
           if (requiresApproval) {
             // ── APPROVAL REQUIRED: Send pending-approval notifications ──
-            for (const admin of admins.documents) {
-              await CreateProductApprovalNotification({
+            // Parallelize admin notifications, then send vendor notification
+            const adminNotifPromises = admins.documents.map(admin =>
+              CreateProductApprovalNotification({
                 message: `New product submission: "${name}" by ${vendorDetails.storeName}`,
                 type: "product_submission",
                 username: admin.name || "Admin",
@@ -429,8 +430,9 @@ const productController = {
                   submittedAt: new Date().toISOString(),
                   actionUrl: `/admin/products/pending/${productId}`,
                 }),
-              });
-            }
+              })
+            );
+            await Promise.allSettled(adminNotifPromises);
 
             await CreateProductApprovalNotification({
               message: `Your product "${name}" has been submitted for admin approval`,
@@ -481,9 +483,10 @@ const productController = {
           } else {
             // ── NO APPROVAL REQUIRED: Send informational "published" notifications ──
             const publishedAt = new Date().toISOString();
-            
-            for (const admin of admins.documents) {
-              await CreateProductPublishedNotification({
+
+            // Parallelize admin notifications, then send vendor notification
+            const adminNotifPromises = admins.documents.map(admin =>
+              CreateProductPublishedNotification({
                 message: `🆕 New product published: "${name}" by ${vendorDetails.storeName} — $${parseFloat(price)}`,
                 type: "product_published",
                 username: admin.name || "Admin",
@@ -502,8 +505,9 @@ const productController = {
                   status: "live",
                   actionUrl: `/admin/products/${productId}`,
                 }),
-              });
-            }
+              })
+            );
+            await Promise.allSettled(adminNotifPromises);
 
             // Notify vendor their product is live
             await CreateProductPublishedNotification({

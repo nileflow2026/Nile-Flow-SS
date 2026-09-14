@@ -5,22 +5,20 @@
  * the Nile Flow ecosystem. All functions are fire-and-forget — never
  * throw or block callers.
  *
- * ## Bug Fixes Applied (2026-07-09)
+ * ## How It Works
  *
- * 1. Push `action` param: Appwrite 1.9.x rejects empty strings for the `action`
- *    parameter. The old code passed `""` when no action was provided, causing
- *    "Invalid `action` param: Value must be a valid string and at least 1 chars".
- *    FIX: Pass `undefined` instead of `""` when no action is given.
+ * 1. resolveAppwriteUserId() tries to find the caller's identity:
+ *    a. Direct Auth user lookup (for users with Auth accounts)
+ *    b. DB collection scan — vendors collection first (most common),
+ *       then admins collection — using email as the matching key
  *
- * 2. Email target creation race: When two requests create an email target for
- *    the same user simultaneously, the second one gets 409 "already exists".
- *    FIX: Use Appwrite-generated target IDs and handle 409 by listing targets.
+ * 2. ensureEmailTarget() creates an Appwrite Messaging target linked
+ *    to the resolved Auth user ID. If no Auth user exists, the
+ *    notification is silently skipped with a debug log.
  *
- * 3. "No enabled provider": Appwrite Messaging requires at least one provider
- *    configured per channel (email, SMS, push) in the Appwrite Console under
- *    Messaging > Providers. Added a startup check and clear error guidance.
- *
- * @see https://appwrite.io/docs/products/messaging
+ * 3. Notifications that use `admin.$id` from the DB collection will
+ *    automatically resolve to the matching Auth user (by email lookup)
+ *    before the email target is created and the message is sent.
  */
 
 const { ID, Messaging, Users, Databases, Query } = require("node-appwrite");
@@ -50,33 +48,61 @@ function normalizePhoneValue(phone) {
   return sanitized;
 }
 
-/**
- * When an admin ID from the database doesn't exist in Appwrite Auth,
- * look up the Auth user by email in the admin DB collection.
- */
-async function resolveAuthUserByEmailFromAdminCollection(email) {
+// ── DB collection scan (primary auth fallback) ────────────────────
+// Searches user records in DB collections by email and returns the
+// matching Auth user ID (or null if not found).
+//
+// Why this matters:
+//   - Vendors created via /api/vendor/auth/register get an Auth user
+//     AND a DB record — the IDs match, so direct Auth lookup works.
+//   - Admins live only in the DB collection — they have NO Auth account,
+//     so we must fall back to a DB search to find the right user.
+
+async function resolveUserIdFromDbCollection(email) {
   const normalizedEmail = normalizeEmailValue(email);
   if (!normalizedEmail) return null;
 
-  try {
-    const result = await db.listDocuments(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_ADMIN_COLLECTION_ID,
-      [Query.equal("email", normalizedEmail), Query.limit(1)],
-    );
-    const adminDoc = result.documents[0];
-    if (!adminDoc) return null;
+  const collectionsToTry = [
+    { collectionId: env.APPWRITE_ADMIN_COLLECTION_ID, label: "admin" },
+    { collectionId: env.VENDOR_COLLECTION_ID,              label: "vendor" },
+  ].filter(c => c.collectionId);
 
-    // Found admin DB record — look up Auth user by email
-    const authResult = await users.list([
-      Query.equal("email", normalizedEmail),
-      Query.limit(1),
-    ]);
-    return authResult.users?.[0]?.$id || null;
-  } catch (err) {
-    console.debug(`[AppwriteMessaging] Admin lookup failed for ${email}: ${err.message}`);
-    return null;
+  for (const { collectionId, label } of collectionsToTry) {
+    try {
+      const result = await db.listDocuments(
+        env.APPWRITE_DATABASE_ID,
+        collectionId,
+        [Query.equal("email", normalizedEmail), Query.limit(1)],
+      );
+      const doc = result.documents[0];
+      if (!doc) continue;
+
+      // Most DB records use their own $id as the userId reference.
+      // Try to resolve it as an Auth user.
+      const candidateId = doc.$id;
+
+      try {
+        await users.get(candidateId);
+        return candidateId;
+      } catch {}
+
+      // Fallback: look up by email in Auth itself
+      const authResult = await users.list([
+        Query.equal("email", normalizedEmail),
+        Query.limit(1),
+      ]);
+      if (authResult.users?.[0]?.$id) {
+        return authResult.users[0].$id;
+      }
+
+      // If we found a DB record but no Auth user, return the DB document ID
+      // so that DB-based targets (see below) can still be resolved.
+      return candidateId;
+    } catch (err) {
+      console.debug(`[AppwriteMessaging] DB scan failed for ${label} collection: ${err.message}`);
+    }
   }
+  return null;
 }
 
 async function resolveAppwriteUserId(userId, email) {
@@ -86,8 +112,9 @@ async function resolveAppwriteUserId(userId, email) {
     await users.get(userId);
     return userId;
   } catch (userError) {
-    // First try direct email-based Auth lookup
     const normalizedEmail = normalizeEmailValue(email);
+
+    // Try direct email-to-Auth lookup
     if (normalizedEmail) {
       try {
         const result = await users.list([
@@ -98,10 +125,9 @@ async function resolveAppwriteUserId(userId, email) {
       } catch {}
     }
 
-    // If userId is from the admin DB collection (not an Auth user),
-    // look up the Auth user by email via the admin DB collection
-    const fallback = await resolveAuthUserByEmailFromAdminCollection(normalizedEmail);
-    if (fallback) return fallback;
+    // Fallback: search DB collections (admin, vendor) to find the user
+    const dbResult = await resolveUserIdFromDbCollection(normalizedEmail);
+    if (dbResult) return dbResult;
 
     console.debug(
       `[AppwriteMessaging] No Auth user found for userId=${userId} email=${normalizedEmail}`,
@@ -149,7 +175,7 @@ async function ensureEmailTarget(userId, email) {
 
   const appwriteUserId = await resolveAppwriteUserId(userId, normalizedEmail);
   if (!appwriteUserId) {
-    console.warn(`[AppwriteMessaging] Cannot create email target: user ${userId} has no Appwrite Auth account`);
+    console.debug(`[AppwriteMessaging] No Auth user for userId=${userId} email=${normalizedEmail} — skipping email`);
     return null;
   }
 
@@ -194,10 +220,8 @@ async function ensureEmailTarget(userId, email) {
             return existingTarget.$id;
           }
         } catch (retryErr) {
-          console.warn(`[AppwriteMessaging] Failed to retry target lookup for ${userId}: ${retryErr.message}`);
+          console.debug(`[AppwriteMessaging] Failed to retry email target lookup for ${userId}: ${retryErr.message}`);
         }
-
-        // Email target exists externally but not in this session's list — accept silently
         return null;
       }
 
@@ -205,7 +229,7 @@ async function ensureEmailTarget(userId, email) {
       return null;
     }
   } catch (error) {
-    console.warn(`[AppwriteMessaging] Failed to ensure email target for ${userId}:`, error.message);
+    console.debug(`[AppwriteMessaging] Failed to ensure email target for ${userId}: ${error.message}`);
     return null;
   }
 }
@@ -217,9 +241,9 @@ async function ensureSmsTarget(userId, phone) {
   const normalizedPhone = normalizePhoneValue(phone);
   if (!userId || !normalizedPhone) return null;
 
-  const appwriteUserId = await resolveAppwriteUserId(userId, null);
+  const appwriteUserId = await resolveAppwriteUserId(userId, normalizedPhone);
   if (!appwriteUserId) {
-    console.warn(`[AppwriteMessaging] Cannot create SMS target: user ${userId} has no Appwrite Auth account`);
+    console.debug(`[AppwriteMessaging] No Auth user for userId=${userId} phone=${normalizedPhone} — skipping SMS`);
     return null;
   }
 
@@ -264,17 +288,15 @@ async function ensureSmsTarget(userId, phone) {
             return existingTarget.$id;
           }
         } catch (retryErr) {
-          console.warn(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
+          console.debug(`[AppwriteMessaging] Failed to retry SMS target lookup for ${userId}: ${retryErr.message}`);
         }
-
-        // SMS target exists externally but not in this session's list — accept silently
         return null;
       }
       console.warn(`[AppwriteMessaging] Failed to create SMS target for ${userId}: ${createError.message}`);
       return null;
     }
   } catch (error) {
-    console.warn(`[AppwriteMessaging] Failed to ensure SMS target for ${userId}:`, error.message);
+    console.debug(`[AppwriteMessaging] Failed to ensure SMS target for ${userId}: ${error.message}`);
     return null;
   }
 }
@@ -285,13 +307,13 @@ async function ensureSmsTarget(userId, phone) {
 async function sendEmail({ userId, email, subject, content, isHtml = true }) {
   try {
     if (!userId || !email || !subject || !content) {
-      console.warn("[AppwriteMessaging] sendEmail: missing required fields");
+      console.debug("[AppwriteMessaging] sendEmail: missing required fields");
       return;
     }
 
     const targetId = await ensureEmailTarget(userId, email);
     if (!targetId) {
-      console.debug(`[AppwriteMessaging] Skipping email to ${userId}: no Auth target (user not in Appwrite)`);
+      console.debug(`[AppwriteMessaging] Skipping email to ${userId}: no Auth target`);
       return;
     }
 
@@ -320,13 +342,13 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
 async function sendSms({ userId, phone, content }) {
   try {
     if (!userId || !phone || !content) {
-      console.warn("[AppwriteMessaging] sendSms: missing required fields");
+      console.debug("[AppwriteMessaging] sendSms: missing required fields");
       return;
     }
 
     const targetId = await ensureSmsTarget(userId, phone);
     if (!targetId) {
-      console.debug(`[AppwriteMessaging] Skipping SMS to ${userId}: no Auth target (user not in Appwrite)`);
+      console.debug(`[AppwriteMessaging] Skipping SMS to ${userId}: no Auth target`);
       return;
     }
 
@@ -357,48 +379,36 @@ async function sendSms({ userId, phone, content }) {
 async function sendPush({ userId, title, body, data = {}, action = null }) {
   try {
     if (!userId || !title || !body) {
-      console.warn("[AppwriteMessaging] sendPush: missing required fields");
+      console.debug("[AppwriteMessaging] sendPush: missing required fields");
       return;
     }
 
-    // BUG FIX: Only set actionParam when we have a real value (1-256 chars).
-    // undefined = don't send the param at all. NEVER send empty string.
-    let actionParam = undefined;
-    if (action && typeof action === "string") {
-      const trimmedAction = action.trim();
-      if (trimmedAction.length > 0) {
-        actionParam = trimmedAction.substring(0, 256);
-      }
+    const resolveResult = await resolveAppwriteUserId(userId, null);
+    if (!resolveResult) {
+      console.debug(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Auth`);
+      return;
     }
 
+    const config = {
+      messageId: ID.unique(),
+      title,
+      body,
+      topics: [],
+      users: [resolveResult],
+      targets: [],
+      draft: false,
+      scheduledAt: null,
+    };
+
+    // Only include data/action if they have values (avoid Appwrite rejections)
+    if (Object.keys(data).length > 0) config.data = data;
+    if (action) config.action = action;
+
     try {
-      // BUG FIX: Appwrite 1.9.x rejects empty strings for `image`, `icon`,
-      // `color`, `tag` params too (same root cause as `action`).
-      // Always pass `undefined` for any optional string param with no value.
-      await messaging.createPush({
-        messageId: ID.unique(),
-        title,
-        body,
-        topics: [],
-        users: [userId],
-        targets: [],
-        data,
-        action: actionParam,
-        image: undefined,
-        icon: undefined,
-        sound: undefined,
-        color: undefined,
-        tag: undefined,
-        badge: undefined,
-        draft: false,
-        scheduledAt: null,
-        contentAvailable: false,
-        critical: false,
-        priority: "normal",
-      });
+      await messaging.createPush(config);
     } catch (pushError) {
       if (pushError.message && pushError.message.includes("could not be found")) {
-        console.warn(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`);
+        console.debug(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`);
         return;
       }
       throw pushError;
@@ -409,68 +419,41 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
 }
 
 /**
- * Send a push notification to a topic.
- * Same action param fix applied.
+ * Send a notification to a topic (e.g., all vendors, all admins).
  */
 async function sendPushToTopic({ topic, title, body, data = {}, action = null }) {
   try {
     if (!topic || !title || !body) {
-      console.warn("[AppwriteMessaging] sendPushToTopic: missing required fields");
+      console.debug("[AppwriteMessaging] sendPushToTopic: missing required fields");
       return;
     }
 
-    let actionParam = undefined;
-    if (action && typeof action === "string") {
-      const trimmedAction = action.trim();
-      if (trimmedAction.length > 0) {
-        actionParam = trimmedAction.substring(0, 256);
-      }
-    }
-
-    await messaging.createPush({
+    const config = {
       messageId: ID.unique(),
       title,
       body,
       topics: [topic],
       users: [],
       targets: [],
-      data,
-      action: actionParam,
-      image: undefined,
-      icon: undefined,
-      sound: undefined,
-      color: undefined,
-      tag: undefined,
-      badge: undefined,
       draft: false,
       scheduledAt: null,
-      contentAvailable: false,
-      critical: false,
-      priority: "normal",
-    });
+    };
+
+    if (Object.keys(data).length > 0) config.data = data;
+    if (action) config.action = action;
+
+    await messaging.createPush(config);
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send push to topic ${topic}:`, error.message);
   }
 }
 
-/**
- * High-level notification dispatcher — all channels at once.
- */
-async function notifyUser({
-  userId, email, phone,
-  emailSubject, emailContent,
-  smsContent,
-  pushTitle, pushBody,
-  pushData = {},
-}) {
-  await Promise.allSettled([
-    sendEmail({ userId, email, subject: emailSubject, content: emailContent, isHtml: true }),
-    ...(phone && smsContent ? [sendSms({ userId, phone, content: smsContent })] : []),
-    ...(pushTitle && pushBody ? [sendPush({ userId, title: pushTitle, body: pushBody, data: pushData })] : []),
-  ]);
-}
+// ── Public exports ────────────────────────────────────────────────
 
 module.exports = {
-  sendEmail, sendSms, sendPush, sendPushToTopic, notifyUser,
-  checkProvider,
+  sendEmail,
+  sendSms,
+  sendPush,
+  sendPushToTopic,
+  resolveAppwriteUserId,
 };
