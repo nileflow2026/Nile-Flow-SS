@@ -86,9 +86,13 @@ export const cartService = {
    */
   async removeFromCart(cartItemId, userId) {
     try {
-      await httpClient.delete(`${BASE}/remove/${cartItemId}`);
-      notifyCartUpdated(userId, -1);
-      return true;
+      const response = await httpClient.delete(`${BASE}/remove/${cartItemId}`, {
+        data: userId ? { userId } : {},
+      });
+      if (response.success) {
+        notifyCartUpdated(userId, -1);
+      }
+      return response.success;
     } catch {
       return false;
     }

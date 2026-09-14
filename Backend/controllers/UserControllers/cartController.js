@@ -197,19 +197,30 @@ const updateQuantity = async (req, res) => {
 const removeFromCart = async (req, res) => {
   try {
     const { cartItemId } = req.params;
-    const userId = req.user?.userId;
+    // Support both authenticated (cookie) and unauthenticated (body) users
+    const userId = req.user?.userId || req.body?.userId;
 
     if (!cartItemId) {
       return res.status(400).json({ error: "Missing cartItemId" });
     }
 
-    // Ownership check: verify the item belongs to the authenticated user
+    // Ownership check: verify the item belongs to the user
     if (userId) {
-      const doc = await instrumentedDb.getDocument(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_CART_COLLECTION_ID,
-        cartItemId,
-      );
+      let doc;
+      try {
+        doc = await instrumentedDb.getDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_CART_COLLECTION_ID,
+          cartItemId,
+        );
+      } catch (err) {
+        // Item already deleted or never existed — treat as success
+        if (err.code === 404 || err.code === "not_found") {
+          return res.status(200).json({ message: "Item removed successfully" });
+        }
+        throw err;
+      }
+
       if (doc.userId !== userId) {
         return res
           .status(403)
@@ -225,7 +236,9 @@ const removeFromCart = async (req, res) => {
 
     res.status(200).json({ message: "Item removed successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Failed to remove from cart" });
+    console.error("RemoveFromCart Error:", err);
+    const status = err?.code === 404 || err?.code === "not_found" ? 404 : 500;
+    res.status(status).json({ error: err?.message || "Failed to remove from cart" });
   }
 };
 

@@ -35,7 +35,7 @@ function LoginPage() {
     event.preventDefault()
     setError('')
 
-    if (!form.email || !form.password) {
+    if (!form.email || !form.password) { 
       setError('Please enter your email and password.')
       return
     }

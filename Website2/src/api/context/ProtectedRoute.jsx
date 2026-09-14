@@ -41,7 +41,7 @@ export function ProtectedRoute({
 
     // Guest-only page + authenticated → redirect home
     if (guestOnly && isAuthenticated) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/home" replace />;
     }
 
     // Protected page + not authenticated → redirect to login

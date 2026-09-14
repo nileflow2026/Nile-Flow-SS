@@ -85,7 +85,7 @@ export function ProtectedRoute({
  */
 export function GuestRoute({
   children,
-  redirectTo = '/',
+  redirectTo = '/home',
   fallback,
 }) {
   const { isAuthenticated, isLoading } = useAuth();
