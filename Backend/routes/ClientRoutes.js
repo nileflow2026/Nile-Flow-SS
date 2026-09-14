@@ -25,6 +25,7 @@ const {
   getMobileCategories,
   getCategorie,
   getCategoryById,
+  getSubcategoriesByCategoryId,
   getCategoryBySlug,
   getProducts2,
   getPopularSearches,
@@ -67,6 +68,7 @@ router.post("/updatedAvatar", authenticateToken, updateUserAvatar);
 router.get("/categories", getCategories);
 router.get("/categories/getcategories", getCategorie);
 router.get("/categories/:categoryId", getCategoryById);
+router.get("/categories/:categoryId/subcategories", getSubcategoriesByCategoryId);
 router.get("/category-by-slug/:slug", getCategoryBySlug);
 router.get("/mobile-categories", getMobileCategories);
 router.get("/mobile-products", currencyMiddleware, getProducts2);

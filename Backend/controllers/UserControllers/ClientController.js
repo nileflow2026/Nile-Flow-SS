@@ -1638,6 +1638,36 @@ const getCategoryById = async (req, res) => {
   }
 };
 
+const getSubcategoriesByCategoryId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Check if category exists
+    let category;
+    try {
+      category = await instrumentedDb.getDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_CATEGORIES_COLLECTION_ID,
+        id,
+      );
+    } catch {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // 2. Query subcategories with relationship field "category"
+    const subcategories = await instrumentedDb.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_SUBCATEGORY_COLLECTION_ID,
+      [Query.equal("categoryId", [id])],
+    );
+
+    res.status(200).json({ category, subcategories: subcategories.documents });
+  } catch (error) {
+    console.error("Failed to fetch SubcategoriesByCategoryId:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 const getMobileCategories = async (req, res) => {
   try {
     const products = await instrumentedDb.listDocuments(
@@ -1826,6 +1856,7 @@ module.exports = {
   getMobileProducts,
   getCategorie,
   getCategoryById,
+  getSubcategoriesByCategoryId,
   getProducts2,
   getPopularSearches,
   getProductImages,
