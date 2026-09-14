@@ -419,6 +419,26 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
 }
 
 /**
+ * Send email, SMS, and/or push to a single user.
+ * Uses userId + email/phone to resolve the correct Auth target.
+ * All channels are attempted independently — failures in one don't block others.
+ */
+async function notifyUser({ userId, email, phone, emailSubject, emailContent, smsContent, pushTitle, pushBody, pushData, pushAction }) {
+  // Send email if we have email subject/content
+  if (emailSubject && emailContent) {
+    await sendEmail({ userId, email, subject: emailSubject, content: emailContent });
+  }
+  // Send SMS if we have phone and content
+  if (phone && smsContent) {
+    await sendSms({ userId, phone, content: smsContent });
+  }
+  // Send push if we have title/body
+  if (pushTitle && pushBody) {
+    await sendPush({ userId, title: pushTitle, body: pushBody, data: pushData, action: pushAction });
+  }
+}
+
+/**
  * Send a notification to a topic (e.g., all vendors, all admins).
  */
 async function sendPushToTopic({ topic, title, body, data = {}, action = null }) {
@@ -455,5 +475,6 @@ module.exports = {
   sendSms,
   sendPush,
   sendPushToTopic,
+  notifyUser,
   resolveAppwriteUserId,
 };
