@@ -63,11 +63,11 @@ async function resolveUserIdFromDbCollection(email) {
   if (!normalizedEmail) return null;
 
   const collectionsToTry = [
-    { collectionId: env.APPWRITE_ADMIN_COLLECTION_ID, label: "admin" },
-    { collectionId: env.VENDOR_COLLECTION_ID,              label: "vendor" },
+    { collectionId: env.APPWRITE_ADMIN_COLLECTION_ID },
+    { collectionId: env.VENDOR_COLLECTION_ID },
   ].filter(c => c.collectionId);
 
-  for (const { collectionId, label } of collectionsToTry) {
+  for (const { collectionId } of collectionsToTry) {
     try {
       const result = await db.listDocuments(
         env.APPWRITE_DATABASE_ID,
@@ -105,35 +105,83 @@ async function resolveUserIdFromDbCollection(email) {
   return null;
 }
 
-async function resolveAppwriteUserId(userId, email) {
+async function resolveAuthUserById(userId) {
   if (!userId) return null;
 
+  // Direct Auth check (fastest path)
   try {
     await users.get(userId);
     return userId;
-  } catch (userError) {
-    const normalizedEmail = normalizeEmailValue(email);
+  } catch {}
 
-    // Try direct email-to-Auth lookup
-    if (normalizedEmail) {
+  // Search DB collections by ID to find the record, then get its email
+  const collectionsToTry = [
+    { collectionId: env.APPWRITE_ADMIN_COLLECTION_ID },
+    { collectionId: env.VENDOR_COLLECTION_ID },
+  ].filter(c => c.collectionId);
+
+  for (const { collectionId } of collectionsToTry) {
+    try {
+      const doc = await db.getDocument(env.APPWRITE_DATABASE_ID, collectionId, userId);
+      if (!doc) continue;
+
+      // Document found — try its $id as Auth user ID (usually the same)
       try {
-        const result = await users.list([
-          Query.equal("email", normalizedEmail),
-          Query.limit(1),
-        ]);
-        if (result.users?.[0]?.$id) return result.users[0].$id;
+        await users.get(doc.$id);
+        return doc.$id;
       } catch {}
-    }
 
-    // Fallback: search DB collections (admin, vendor) to find the user
+      // No Auth account for this ID — try to find Auth user by the doc's email
+      const adminEmail = normalizeEmailValue(doc.email);
+      if (adminEmail) {
+        try {
+          const authResult = await users.list([
+            Query.equal("email", adminEmail),
+            Query.limit(1),
+          ]);
+          if (authResult.users?.[0]?.$id) return authResult.users[0].$id;
+        } catch {}
+      }
+    } catch {
+      // Not in this collection, try next
+    }
+  }
+  return null;
+}
+
+async function resolveAppwriteUserId(userId, email) {
+  if (!userId) return null;
+
+  // Fast path: userId is already a valid Auth user ID
+  try {
+    await users.get(userId);
+    return userId;
+  } catch {}
+
+  // Try email-based Auth lookup first
+  const normalizedEmail = normalizeEmailValue(email);
+  if (normalizedEmail) {
+    try {
+      const result = await users.list([
+        Query.equal("email", normalizedEmail),
+        Query.limit(1),
+      ]);
+      if (result.users?.[0]?.$id) return result.users[0].$id;
+    } catch {}
+
+    // DB scan by email
     const dbResult = await resolveUserIdFromDbCollection(normalizedEmail);
     if (dbResult) return dbResult;
-
-    console.debug(
-      `[AppwriteMessaging] No Auth user found for userId=${userId} email=${normalizedEmail}`,
-    );
-    return null;
   }
+
+  // Last resort: search DB collections by userId to find the record's email
+  const byId = await resolveAuthUserById(userId);
+  if (byId) return byId;
+
+  console.debug(
+    `[AppwriteMessaging] No Auth user found for userId=${userId} email=${email}`,
+  );
+  return null;
 }
 
 /**
