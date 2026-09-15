@@ -26,10 +26,13 @@ const WhatsappChatModal = ({ messages, onSend, onNewChat = () => {}, onClose, is
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     inputRef.current?.focus();
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose, showEmojiPicker]);
