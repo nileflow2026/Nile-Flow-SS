@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { httpClient } from "@api/client/HttpClient";
 import io from "socket.io-client";
 import WhatsappChatModal from "./WhatsappChatModal";
@@ -121,34 +122,34 @@ const WhatsappChat = () => {
 
   const { messages, sendMessage, startNewChat, isSending, error, connectionStatus } = useChatMessages();
 
-  return (
-    <div>
-      {/* Render the floating button and chat modal on every non-landing page */}
-      {!isLandingPage && (
-        <>
-          <button
-            type="button"
-            onClick={() => setShow(true)}
-            className="wa-floating-chat-btn"
-            aria-label="Open WhatsApp chat"
-          >
-            💬
-          </button>
+  if (isLandingPage) return null;
 
-          {show && (
-            <WhatsappChatModal
-              messages={messages}
-              onSend={sendMessage}
-              onNewChat={startNewChat}
-              onClose={() => setShow(false)}
-              isSending={isSending}
-              error={error}
-              connectionStatus={connectionStatus}
-            />
-          )}
-        </>
+  return (
+    <>
+      {createPortal(
+        <button
+          type="button"
+          onClick={() => setShow(true)}
+          className="wa-floating-chat-btn"
+          aria-label="Open WhatsApp chat"
+        >
+          💬
+        </button>,
+        document.body,
       )}
-    </div>
+
+      {show && (
+        <WhatsappChatModal
+          messages={messages}
+          onSend={sendMessage}
+          onNewChat={startNewChat}
+          onClose={() => setShow(false)}
+          isSending={isSending}
+          error={error}
+          connectionStatus={connectionStatus}
+        />
+      )}
+    </>
   );
 };
 
