@@ -1,14 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCheck, Headphones, Send, Smile, X } from "lucide-react";
+import { CheckCheck, Send, Smile, X } from "lucide-react";
+
+const EMOJIS = [
+  "😀", "😂", "😊", "😍", "🥰", "😎", "🤝", "👍", "👏", "🙏",
+  "❤️", "💚", "🎉", "✨", "🔥", "💡", "📦", "🛍️", "🚚", "✅",
+  "😅", "🤔", "😢", "😮", "😡", "🙌", "💯", "⭐", "🌍", "☀️",
+];
 
 const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connectionStatus }) => {
   const inputRef = useRef(null);
   const messagesRef = useRef(null);
+  const pickerRef = useRef(null);
   const [draft, setDraft] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (event.key === "Escape" && showEmojiPicker) {
+        setShowEmojiPicker(false);
+        return;
+      }
       if (event.key === "Escape") {
         onClose();
       }
@@ -23,7 +35,7 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, showEmojiPicker]);
 
   useEffect(() => {
     const messageList = messagesRef.current;
@@ -47,6 +59,20 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
     }
   };
 
+  const insertEmoji = (emoji) => {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? draft.length;
+    const end = input?.selectionEnd ?? draft.length;
+    const nextDraft = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
+    setDraft(nextDraft);
+    setShowEmojiPicker(false);
+    requestAnimationFrame(() => {
+      input?.focus();
+      const cursorPosition = start + emoji.length;
+      input?.setSelectionRange(cursorPosition, cursorPosition);
+    });
+  };
+
   const statusLabel = connectionStatus === "online" ? "Online now" : "Usually replies quickly";
 
   return createPortal(
@@ -59,7 +85,9 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="wa-chat-header">
-          <div className="wa-chat-avatar" aria-hidden="true"><Headphones size={18} /></div>
+          <div className="wa-chat-avatar" aria-hidden="true">
+            <img src="/logo.png" alt="" />
+          </div>
           <div>
             <span className="wa-chat-eyebrow">Nile Flow Support</span>
             <h2 id="wa-chat-title">Nile Flow Support</h2>
@@ -75,7 +103,9 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
         <div ref={messagesRef} className="wa-chat-messages" aria-live="polite">
           {messages.length === 0 && (
             <div className="wa-chat-welcome">
-              <div className="wa-welcome-icon"><Headphones size={22} /></div>
+              <div className="wa-welcome-icon">
+                <img src="/logo.png" alt="" />
+              </div>
               <strong>Welcome to Nile Flow Support</strong>
               <p>Ask us anything about products, orders, or delivery. We're here to help.</p>
             </div>
@@ -99,9 +129,36 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
         </div>
 
         <form className="wa-input-area" onSubmit={handleSubmit}>
-          <button className="wa-composer-icon" type="button" aria-label="Add emoji" title="Emoji">
+          <div className="wa-emoji-picker-wrap" ref={pickerRef}>
+            {showEmojiPicker && (
+              <div className="wa-emoji-picker" role="dialog" aria-label="Emoji picker">
+                <div className="wa-emoji-picker-title">Choose an emoji</div>
+                <div className="wa-emoji-grid">
+                  {EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="wa-emoji-option"
+                      onClick={() => insertEmoji(emoji)}
+                      aria-label={`Insert ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button
+              className={`wa-composer-icon ${showEmojiPicker ? "is-active" : ""}`}
+              type="button"
+              onClick={() => setShowEmojiPicker((isOpen) => !isOpen)}
+              aria-label="Add emoji"
+              aria-expanded={showEmojiPicker}
+              title="Emoji"
+            >
             <Smile size={19} />
-          </button>
+            </button>
+          </div>
           <textarea
             ref={inputRef}
             name="message"

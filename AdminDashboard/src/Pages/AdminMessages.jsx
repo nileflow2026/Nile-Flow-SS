@@ -710,13 +710,29 @@ const AdminMessages = () => {
 
         {/* Reply Modal */}
         {selectedMessage && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-gradient-to-br from-[#FAF7F2] to-white dark:from-[#1A1A1A] dark:to-[#2A2A2A] rounded-2xl border border-[#E8D6B5] dark:border-[#3A3A3A] w-full max-w-2xl shadow-2xl">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setSelectedMessage(null);
+                setReplyEmail("");
+                setReplyMessage("");
+              }
+            }}
+          >
+            <div
+              className="flex w-full max-w-2xl max-h-[min(90vh,760px)] flex-col overflow-hidden rounded-2xl border border-[#E8D6B5] bg-gradient-to-br from-[#FAF7F2] to-white shadow-2xl dark:border-[#3A3A3A] dark:from-[#1A1A1A] dark:to-[#2A2A2A]"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-chat-title"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
               {/* Modal Header */}
               <div className="p-6 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">
+                    <h3 id="admin-chat-title" className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">
                       Chat with {selectedMessage.username}
                     </h3>
                     <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70 mt-1">
@@ -737,7 +753,8 @@ const AdminMessages = () => {
               </div>
 
               {/* Original Message */}
-              <div className="p-6 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+              <div className="min-h-0 flex-1 overflow-y-auto border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+                <div className="p-6">
                   <h4 className="text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-2">
                   Conversation
                 </h4>
@@ -760,10 +777,11 @@ const AdminMessages = () => {
                     </span>
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* Reply Form */}
-              <form onSubmit={handleReply} className="p-6">
+              <form onSubmit={handleReply} className="shrink-0 border-t border-[#E8D6B5] bg-white/80 p-6 dark:border-[#3A3A3A] dark:bg-[#1A1A1A]/80">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">

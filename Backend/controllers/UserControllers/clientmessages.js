@@ -11,6 +11,7 @@ const clientmessages = async (req, res) => {
     }
 
     let document;
+    const initialReply = "Thanks for contacting Nile Flow Support. Your message has been received, and our team will get back to you shortly.";
     if (conversationId) {
       const existing = await instrumentedDb.getDocument(
         env.APPWRITE_DATABASE_ID,
@@ -28,7 +29,6 @@ const clientmessages = async (req, res) => {
         { message: transcript },
       );
     } else {
-      const initialReply = "Thanks for contacting Nile Flow Support. Your message has been received, and our team will get back to you shortly.";
       document = await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
