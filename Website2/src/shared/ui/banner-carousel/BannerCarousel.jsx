@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { imageProxyUrl } from '@api/config'
 
 const DEFAULT_BANNERS = [
   {
@@ -197,11 +198,17 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
             {/* Banner image */}
             {banner.image && (
               <img
-                src={banner.image}
+                src={banner.image.includes('appwrite.io')
+                  ? imageProxyUrl(banner.image, 1400, 82)
+                  : banner.image}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
                 decoding="async"
+                onError={(event) => {
+                  event.currentTarget.onerror = null
+                  event.currentTarget.src = '/logo.png'
+                }}
               />
             )}
 
