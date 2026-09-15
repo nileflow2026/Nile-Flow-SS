@@ -1,46 +1,44 @@
-import React, { useEffect, useState } from "react";
-import io from "socket.io-client";
+import React, { useState } from "react";
+import { httpClient } from "@api/client/HttpClient";
 import WhatsappChatModal from "./WhatsappChatModal";
 
-const useWebSocket = (onlyOnHome) => {
+const useChatMessages = () => {
   const [messages, setMessages] = useState([]);
-  const [socket, setSocket] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    // Only connect socket if we're on the home page (or no restriction)
-    if (onlyOnHome && window.location.pathname !== "/home") {
-      return; // Skip socket initialization entirely
-    }
+  const sendMessage = async (text) => {
+    const trimmedText = text.trim();
+    if (!trimmedText || isSending) return;
 
-    const newSocket = io("https://nile-flow-backend-5dqm.onrender.com", {
-      transports: ["websocket"],
-    });
-    setSocket(newSocket);
-
-    newSocket.on("connect", () => {
-      console.log("WebSocket connected");
-    });
-
-    newSocket.on("new_message", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    newSocket.on("message_echo", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    return () => {
-      newSocket.disconnect();
+    setIsSending(true);
+    setError("");
+    const message = {
+      text: trimmedText,
+      type: "user",
+      timestamp: new Date().toISOString(),
     };
-  }, [onlyOnHome, window.location.pathname]);
+    setMessages((prev) => [...prev, message]);
 
-  const sendMessage = (text) => {
-    if (socket && text.trim()) {
-      socket.emit("send_message", { text, userId: "current_user" });
+    try {
+      await httpClient.post(
+        "/api/contact-nile-flow/contact",
+        {
+          username: "Guest visitor",
+          email: "guest@nileflowafrica.com",
+          message: trimmedText,
+        },
+        { skipAuth: true, withCredentials: false },
+      );
+    } catch {
+      setMessages((prev) => prev.filter((item) => item !== message));
+      setError("We could not send your message. Please try again.");
+    } finally {
+      setIsSending(false);
     }
   };
 
-  return { messages, sendMessage };
+  return { messages, sendMessage, isSending, error };
 };
 
 const WhatsappChat = () => {
@@ -51,7 +49,7 @@ const WhatsappChat = () => {
   // lives outside the React Router context (before AppProviders).
   const onlyOnHome = window.location.pathname === "/home";
 
-  const { messages, sendMessage } = useWebSocket(onlyOnHome);
+  const { messages, sendMessage, isSending, error } = useChatMessages();
 
   return (
     <div>
@@ -67,7 +65,15 @@ const WhatsappChat = () => {
             💬
           </button>
 
-          {show && <WhatsappChatModal messages={messages} onSend={sendMessage} onClose={() => setShow(false)} />}
+          {show && (
+            <WhatsappChatModal
+              messages={messages}
+              onSend={sendMessage}
+              onClose={() => setShow(false)}
+              isSending={isSending}
+              error={error}
+            />
+          )}
         </>
       )}
     </div>

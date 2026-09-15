@@ -16,7 +16,10 @@ export const bannerService = {
    * @returns {Promise<Array>} Array of banner objects
    */
   async getBanners() {
-    const response = await httpClient.get('/api/v1/banners');
+    const response = await httpClient.get('/api/v1/banners', {}, {
+      skipAuth: true,
+      withCredentials: false,
+    });
     return Array.isArray(response.data?.data)
       ? response.data.data
       : [];

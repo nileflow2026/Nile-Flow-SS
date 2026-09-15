@@ -108,6 +108,7 @@ const allowedOrigins = [
   "https://nileflowvendordashboard.onrender.com",
   "https://nile-flow-adminpanel.onrender.com",
   "https://nile-flow-website.onrender.com",
+  "https://nile-flow-website2.onrender.com",
   "https://admin.nileflowafrica.com",
   "https://vendor.nileflowafrica.com",
   "https://nile-flow-backend.onrender.com",

@@ -246,6 +246,12 @@ a {
   line-height: 1.5;
 }
 
+.wa-chat-error {
+  margin: 0.75rem 0 0;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
 .wa-chat-message {
   width: fit-content;
   max-width: 80%;
@@ -305,4 +311,9 @@ a {
   border-radius: 20px;
   cursor: pointer;
   font-size: 0.875rem;
+}
+
+.wa-input-area button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }

@@ -60,6 +60,7 @@ router.post("/orderStatus", authenticateToken, updateOrderStatus);
 router.post("/addproducts", authenticateToken, addProduct);
 router.put("/updateproducts", authenticateToken, updateProduct);
 router.get("/messages", authenticateToken, clientmesseags);
+router.get("/customer-messages/messages", authenticateToken, clientmesseags);
 router.post("/contact/reply", authenticateToken, replyclientmessages);
 router.post("/products/feature", authenticateToken, addFeaturedProducts);
 router.post("/products/deal", authenticateToken, addProductsDeal);

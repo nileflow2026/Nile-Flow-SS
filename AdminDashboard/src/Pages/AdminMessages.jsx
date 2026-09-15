@@ -69,9 +69,7 @@ const AdminMessages = () => {
   const fetchMessages = async () => {
     try {
       setLoading(true);
-      const response = await axiosClient.get(
-        "/api/admin/customer-messages/messages"
-      );
+      const response = await axiosClient.get("/api/admin/messages");
       setMessages(response.data);
       toast.success("Messages loaded successfully");
     } catch (error) {
@@ -91,7 +89,7 @@ const AdminMessages = () => {
 
     setReplyLoading(true);
     try {
-      await axiosClient.post("/api/admin/customer-messages/contact/reply", {
+      await axiosClient.post("/api/admin/contact/reply", {
         toEmail: replyEmail,
         subject: `Re: Your message to Nile Mart`,
         message: replyMessage,

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
-const WhatsappChatModal = ({ messages, onSend, onClose }) => {
+const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -69,11 +69,14 @@ const WhatsappChatModal = ({ messages, onSend, onClose }) => {
               </span>
             </div>
           ))}
+          {error && <p className="wa-chat-error" role="alert">{error}</p>}
         </div>
 
         <form className="wa-input-area" onSubmit={handleSubmit}>
           <input ref={inputRef} type="text" name="message" placeholder="Type a message..." aria-label="Message" />
-          <button type="submit">Send</button>
+          <button type="submit" disabled={isSending}>
+            {isSending ? "Sending..." : "Send"}
+          </button>
         </form>
       </section>
     </div>,

@@ -25,7 +25,7 @@ export function authInterceptor() {
   return {
     onFulfilled: (requestConfig) => {
       const token = secureTokenManager.getAccessToken();
-      if (token && requestConfig.headers) {
+      if (!requestConfig.skipAuth && token && requestConfig.headers) {
         requestConfig.headers.Authorization = `Bearer ${token}`;
       }
       return requestConfig;

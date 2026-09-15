@@ -36,6 +36,7 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const timerRef = useRef(null)
+  const touchStartXRef = useRef(null)
   const total = resolvedBanners.length
   const hasMultiple = total > 1
   const isPausedRef = useRef(false)
@@ -96,11 +97,32 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
 
   // Pause on touch start, resume on touch end
   const handleTouchStart = useCallback(() => {
+    touchStartXRef.current = null
     isPausedRef.current = true
     clearTimer()
   }, [clearTimer])
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchMove = useCallback((event) => {
+    if (touchStartXRef.current === null) {
+      touchStartXRef.current = event.touches[0]?.clientX ?? null
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback((event) => {
+    const startX = touchStartXRef.current
+    const endX = event.changedTouches[0]?.clientX
+    touchStartXRef.current = null
+
+    if (startX !== null && typeof endX === 'number') {
+      const distance = endX - startX
+      if (Math.abs(distance) > 50) {
+        const nextIndex = distance < 0
+          ? (activeIndexRef.current + 1) % totalRef.current
+          : (activeIndexRef.current - 1 + totalRef.current) % totalRef.current
+        goTo(nextIndex)
+      }
+    }
+
     isPausedRef.current = false
     if (hasMultiple && autoPlayInterval > 0 && !timerRef.current) {
       timerRef.current = setInterval(() => {
@@ -152,6 +174,7 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
       aria-roledescription="carousel"
       aria-label="Promotional banners"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -242,22 +265,6 @@ function BannerCarousel({ banners, autoPlayInterval = 5000 }) {
               <path d="M8 5l5 5-5 5" />
             </svg>
           </button>
-        </>
-      )}
-
-      {/* Touch swipe zones (mobile) */}
-      {hasMultiple && (
-        <>
-          <div
-            className="absolute inset-y-0 left-0 w-1/3 z-10 sm:hidden cursor-pointer"
-            onClick={() => goTo((activeIndex - 1 + total) % total)}
-            aria-hidden="true"
-          />
-          <div
-            className="absolute inset-y-0 right-0 w-1/3 z-10 sm:hidden cursor-pointer"
-            onClick={() => goTo((activeIndex + 1) % total)}
-            aria-hidden="true"
-          />
         </>
       )}
 

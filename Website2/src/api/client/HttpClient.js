@@ -261,6 +261,7 @@ class HttpClient {
         delete requestConfig._retryCount;
         delete requestConfig._retryDelay;
         delete requestConfig._uploadId;
+        delete requestConfig.skipAuth;
 
         const request = this.instance.request(requestConfig);
 
