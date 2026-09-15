@@ -4,29 +4,46 @@ const { env } = require("../../src/env");
 
 const clientmessages = async (req, res) => {
   try {
-    const { username, email, message } = req.body;
+    const { username, email, message, conversationId } = req.body;
 
     if (!username || !email || !message) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
-    // Save the message to your Appwrite database
-    const document = await instrumentedDb.createDocument(
-      env.APPWRITE_DATABASE_ID, // Your contact database ID
-      env.APPWRITE_USER_MESSAGES_COLLECTION_ID, // Your messages collection ID
-      ID.unique(),
-      {
-        username,
-        email,
-        message,
-      },
-    );
+    let document;
+    if (conversationId) {
+      const existing = await instrumentedDb.getDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
+        conversationId,
+      );
+      if (existing.email !== email) {
+        return res.status(403).json({ error: "Conversation access denied." });
+      }
+      const transcript = `${existing.message || ""}\n\nCustomer: ${message}`.trim();
+      document = await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
+        conversationId,
+        { message: transcript },
+      );
+    } else {
+      const initialReply = "Thanks for contacting Nile Flow Support. Your message has been received, and our team will get back to you shortly.";
+      document = await instrumentedDb.createDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
+        ID.unique(),
+        { username, email, message: `Customer: ${message}\n\nSupport: ${initialReply}` },
+      );
+    }
 
     res.status(200).json({
       success: true,
       data: {
         messageId: document.$id,
-        reply: "Thanks for contacting Nile Flow Support. Your message has been received, and our team will get back to you shortly.",
+        reply: conversationId
+          ? null
+          : initialReply,
       },
     });
   } catch (error) {

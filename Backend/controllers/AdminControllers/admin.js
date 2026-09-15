@@ -881,6 +881,20 @@ const replyclientmessages = async (req, res) => {
     });
 
     if (messageId) {
+      const conversation = await instrumentedDb.getDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
+        messageId,
+      );
+      if (conversation.email !== toEmail) {
+        return res.status(400).json({ error: "Reply recipient does not match the conversation." });
+      }
+      await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_USER_MESSAGES_COLLECTION_ID,
+        messageId,
+        { message: `${conversation.message || ""}\n\nSupport: ${message}`.trim() },
+      );
       socketService.sendChatReply(messageId, message);
     }
 

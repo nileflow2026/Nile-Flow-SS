@@ -99,9 +99,24 @@ const AdminMessages = () => {
       // Update message status
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.email === replyEmail ? { ...msg, replied: true, read: true } : msg
+          msg.$id === selectedMessage?.$id
+            ? {
+                ...msg,
+                message: `${msg.message || ""}\n\nSupport: ${replyMessage}`.trim(),
+                replied: true,
+                read: true,
+              }
+            : msg
         )
       );
+      setSelectedMessage((prev) => prev
+        ? {
+            ...prev,
+            message: `${prev.message || ""}\n\nSupport: ${replyMessage}`.trim(),
+            replied: true,
+            read: true,
+          }
+        : prev);
 
       toast.success("Reply sent successfully!", {
         description: "Your response has been delivered to the customer",
@@ -109,9 +124,7 @@ const AdminMessages = () => {
         icon: <CheckCircle className="w-5 h-5 text-green-500" />,
       });
 
-      setReplyEmail("");
       setReplyMessage("");
-      setSelectedMessage(null);
     } catch (error) {
       console.error("Error sending reply:", error);
       toast.error("Failed to send reply", {
@@ -704,10 +717,10 @@ const AdminMessages = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">
-                      Reply to {selectedMessage.username}
+                      Chat with {selectedMessage.username}
                     </h3>
                     <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70 mt-1">
-                      Send a response to this customer inquiry
+                      Continue the conversation with this customer
                     </p>
                   </div>
                   <button
@@ -725,11 +738,11 @@ const AdminMessages = () => {
 
               {/* Original Message */}
               <div className="p-6 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
-                <h4 className="text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-2">
-                  Original Message
+                  <h4 className="text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-2">
+                  Conversation
                 </h4>
                 <div className="p-4 rounded-xl bg-white/50 dark:bg-[#2A2A2A]/50 border border-[#E8D6B5] dark:border-[#3A3A3A]">
-                  <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3] whitespace-pre-wrap">
+                    <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3] whitespace-pre-wrap leading-relaxed">
                     {selectedMessage.message}
                   </p>
                   <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#E8D6B5] dark:border-[#3A3A3A]">
@@ -772,7 +785,7 @@ const AdminMessages = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
-                      Your Reply *
+                      Continue Chat *
                     </label>
                     <textarea
                       value={replyMessage}

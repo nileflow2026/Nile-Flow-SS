@@ -1,8 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { CheckCheck, Headphones, Send, Smile, X } from "lucide-react";
 
-const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
+const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connectionStatus }) => {
   const inputRef = useRef(null);
+  const messagesRef = useRef(null);
+  const [draft, setDraft] = useState("");
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -22,15 +25,29 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
     };
   }, [onClose]);
 
+  useEffect(() => {
+    const messageList = messagesRef.current;
+    if (messageList) messageList.scrollTop = messageList.scrollHeight;
+  }, [messages]);
+
   const handleSubmit = (event) => {
     event.preventDefault();
-    const text = event.currentTarget.elements.message.value;
+    const text = draft.trim();
 
     if (text.trim()) {
       onSend(text);
-      event.currentTarget.reset();
+      setDraft("");
     }
   };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
+  };
+
+  const statusLabel = connectionStatus === "online" ? "Online now" : "Usually replies quickly";
 
   return createPortal(
     <div className="wa-modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -41,19 +58,27 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
         aria-labelledby="wa-chat-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="wa-chat-header">
+        <header className="wa-chat-header">
+          <div className="wa-chat-avatar" aria-hidden="true"><Headphones size={18} /></div>
           <div>
-            <span className="wa-chat-eyebrow">WhatsApp support</span>
+            <span className="wa-chat-eyebrow">Nile Flow Support</span>
             <h2 id="wa-chat-title">Nile Flow Support</h2>
+            <span className={`wa-chat-status ${connectionStatus === "online" ? "is-online" : ""}`}>
+              <span /> {statusLabel}
+            </span>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close chat">
-            ×
+          <button className="wa-icon-button" type="button" onClick={onClose} aria-label="Close chat">
+            <X size={19} />
           </button>
-        </div>
+        </header>
 
-        <div className="wa-chat-messages" aria-live="polite">
+        <div ref={messagesRef} className="wa-chat-messages" aria-live="polite">
           {messages.length === 0 && (
-            <p className="wa-chat-empty">Send us a message and our support team will get back to you.</p>
+            <div className="wa-chat-welcome">
+              <div className="wa-welcome-icon"><Headphones size={22} /></div>
+              <strong>Welcome to Nile Flow Support</strong>
+              <p>Ask us anything about products, orders, or delivery. We're here to help.</p>
+            </div>
           )}
           {messages.map((msg, index) => (
             <div
@@ -61,11 +86,12 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
               className={`wa-chat-message ${msg.type === "user" ? "is-user" : ""}`}
             >
               {msg.text}
-              <span>
+              <span className="wa-chat-meta">
                 {new Date(msg.timestamp).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
+                {msg.type === "user" && <CheckCheck size={13} />}
               </span>
             </div>
           ))}
@@ -73,9 +99,21 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error }) => {
         </div>
 
         <form className="wa-input-area" onSubmit={handleSubmit}>
-          <input ref={inputRef} type="text" name="message" placeholder="Type a message..." aria-label="Message" />
-          <button type="submit" disabled={isSending}>
-            {isSending ? "Sending..." : "Send"}
+          <button className="wa-composer-icon" type="button" aria-label="Add emoji" title="Emoji">
+            <Smile size={19} />
+          </button>
+          <textarea
+            ref={inputRef}
+            name="message"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Write a message"
+            aria-label="Message"
+            rows="1"
+          />
+          <button className="wa-send-button" type="submit" disabled={isSending || !draft.trim()} aria-label="Send message">
+            <Send size={17} />
           </button>
         </form>
       </section>
