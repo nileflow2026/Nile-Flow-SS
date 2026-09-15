@@ -11,7 +11,11 @@ class SocketService {
   initialize(httpServer) {
     this.io = new Server(httpServer, {
       cors: {
-        origin: process.env.FRONTEND_URL_PROD || "http://localhost:5173",
+        origin: [
+          process.env.FRONTEND_URL_PROD || "http://localhost:5173",
+          "https://admin.nileflowafrica.com",
+          "http://localhost:5174",
+        ],
         methods: ["GET", "POST"],
       },
     });
@@ -24,6 +28,10 @@ class SocketService {
         const roomName = `chat-${messageId.trim()}`;
         socket.join(roomName);
         socket.emit("joined-chat-room", { messageId: messageId.trim() });
+      });
+
+      socket.on("join-admin-chat", () => {
+        socket.join("admin-chat");
       });
 
       // Handle customer joining order tracking room
@@ -158,6 +166,17 @@ class SocketService {
     this.io.to(`chat-${messageId}`).emit("chat-reply", {
       text: message,
       type: "support",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  sendCustomerMessage(messageId, message) {
+    if (!this.io || !messageId || !message) return;
+
+    this.io.to("admin-chat").emit("customer-chat-message", {
+      messageId,
+      text: message,
+      type: "user",
       timestamp: new Date().toISOString(),
     });
   }

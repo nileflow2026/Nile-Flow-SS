@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "../../api";
+import io from "socket.io-client";
 import {
   Mail,
   User,
@@ -54,6 +55,34 @@ const AdminMessages = () => {
 
   useEffect(() => {
     fetchMessages();
+  }, []);
+
+  useEffect(() => {
+    const chatSocket = io("https://nile-flow-backend-5dqm.onrender.com", {
+      transports: ["websocket"],
+    });
+
+    chatSocket.on("connect", () => chatSocket.emit("join-admin-chat"));
+    chatSocket.on("customer-chat-message", (incoming) => {
+      setMessages((prev) => prev.map((message) => {
+        if (message.$id !== incoming.messageId) return message;
+        return {
+          ...message,
+          message: `${message.message || ""}\n\nCustomer: ${incoming.text}`.trim(),
+          read: false,
+        };
+      }));
+      setSelectedMessage((current) => {
+        if (current?.$id !== incoming.messageId) return current;
+        return {
+          ...current,
+          message: `${current.message || ""}\n\nCustomer: ${incoming.text}`.trim(),
+          read: false,
+        };
+      });
+    });
+
+    return () => chatSocket.disconnect();
   }, []);
 
   // Calculate statistics
@@ -246,6 +275,11 @@ const AdminMessages = () => {
 
     return filtered;
   }, [messages, searchTerm, statusFilter, priorityFilter]);
+
+  const isChatConversation = Boolean(
+    selectedMessage?.message?.includes("Customer:") ||
+    selectedMessage?.message?.includes("Support:")
+  );
 
   // Loading skeleton
   if (loading && messages.length === 0) {
@@ -722,7 +756,11 @@ const AdminMessages = () => {
             }}
           >
             <div
-              className="flex w-full max-w-2xl max-h-[min(90vh,760px)] flex-col overflow-hidden rounded-2xl border border-[#E8D6B5] bg-gradient-to-br from-[#FAF7F2] to-white shadow-2xl dark:border-[#3A3A3A] dark:from-[#1A1A1A] dark:to-[#2A2A2A]"
+              className={`flex w-full max-w-2xl max-h-[min(90vh,760px)] flex-col overflow-hidden rounded-2xl border shadow-2xl ${
+                isChatConversation
+                  ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white dark:border-emerald-900/60 dark:from-emerald-950/40 dark:to-[#1A1A1A]"
+                  : "border-[#E8D6B5] bg-gradient-to-br from-[#FAF7F2] to-white dark:border-[#3A3A3A] dark:from-[#1A1A1A] dark:to-[#2A2A2A]"
+              }`}
               role="dialog"
               aria-modal="true"
               aria-labelledby="admin-chat-title"
@@ -733,10 +771,12 @@ const AdminMessages = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 id="admin-chat-title" className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">
-                      Chat with {selectedMessage.username}
+                      {isChatConversation ? "Chat with" : "Reply to"} {selectedMessage.username}
                     </h3>
                     <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70 mt-1">
-                      Continue the conversation with this customer
+                      {isChatConversation
+                        ? "Continue the live support conversation"
+                        : "Send a reply to this customer email"}
                     </p>
                   </div>
                   <button
@@ -756,7 +796,7 @@ const AdminMessages = () => {
               <div className="min-h-0 flex-1 overflow-y-auto border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
                 <div className="p-6">
                   <h4 className="text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-2">
-                  Conversation
+                  {isChatConversation ? "Conversation" : "Original Message"}
                 </h4>
                 <div className="p-4 rounded-xl bg-white/50 dark:bg-[#2A2A2A]/50 border border-[#E8D6B5] dark:border-[#3A3A3A]">
                     <p className="text-sm text-[#2C1810] dark:text-[#F5E6D3] whitespace-pre-wrap leading-relaxed">
@@ -803,14 +843,14 @@ const AdminMessages = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
-                      Continue Chat *
+                      {isChatConversation ? "Continue Chat *" : "Email Reply *"}
                     </label>
                     <textarea
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent min-h-[150px]"
                       rows="5"
-                      placeholder="Type your response here..."
+                      placeholder={isChatConversation ? "Write a chat reply..." : "Write your email reply..."}
                       required
                     />
                     <div className="flex items-center justify-between mt-2">

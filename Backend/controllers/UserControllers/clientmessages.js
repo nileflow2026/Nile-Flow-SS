@@ -1,6 +1,7 @@
 const { ID } = require("node-appwrite");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const socketService = require("../../services/socketService");
 
 const clientmessages = async (req, res) => {
   try {
@@ -28,6 +29,7 @@ const clientmessages = async (req, res) => {
         conversationId,
         { message: transcript },
       );
+      socketService.sendCustomerMessage(conversationId, message);
     } else {
       document = await instrumentedDb.createDocument(
         env.APPWRITE_DATABASE_ID,
