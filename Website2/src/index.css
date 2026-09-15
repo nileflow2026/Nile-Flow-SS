@@ -188,8 +188,8 @@ a {
 
 .wa-chat-modal {
   width: min(420px, calc(100vw - 1.5rem));
-  height: min(680px, calc(100vh - 1.5rem));
   height: min(680px, calc(100dvh - 1.5rem));
+  max-height: calc(100dvh - 0.75rem);
   margin-top: 0;
   min-height: 0;
   display: flex;
@@ -208,6 +208,9 @@ a {
 }
 
 .wa-chat-header {
+  flex: 0 0 auto;
+  min-height: 72px;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -220,7 +223,9 @@ a {
 }
 
 .wa-chat-header > div:nth-child(2) {
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .wa-chat-avatar {
@@ -253,6 +258,9 @@ a {
 }
 
 .wa-chat-header h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
@@ -292,6 +300,7 @@ a {
   gap: 0.3rem;
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .wa-chat-status span {
@@ -409,13 +418,14 @@ a {
 
   .wa-chat-modal {
     width: 100%;
-    height: calc(100vh - 0.5rem);
     height: calc(100dvh - 0.5rem);
+    max-height: calc(100dvh - 0.5rem);
     margin-top: 0;
     border-radius: 20px 20px 0 0;
   }
 
   .wa-chat-header {
+    min-height: 64px;
     padding: 0.8rem 1rem;
   }
 
@@ -436,8 +446,8 @@ a {
 
 @media (max-height: 700px) {
   .wa-chat-modal {
-    height: calc(100vh - 1rem);
     height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
   }
 
   .wa-chat-header {

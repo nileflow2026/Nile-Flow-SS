@@ -34,6 +34,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const getChatTranscript = (message = "") => message
+  .split(/\n\s*\n/)
+  .map((entry) => {
+    const separatorIndex = entry.indexOf(":");
+    if (separatorIndex < 0) return { sender: "Customer", text: entry };
+    return {
+      sender: entry.slice(0, separatorIndex).trim(),
+      text: entry.slice(separatorIndex + 1).trim(),
+    };
+  })
+  .filter((entry) => entry.text);
+
 const AdminMessages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -297,6 +309,9 @@ const AdminMessages = () => {
     selectedMessage?.message?.includes("Customer:") ||
     selectedMessage?.message?.includes("Support:")
   );
+  const chatTranscript = isChatConversation
+    ? getChatTranscript(selectedMessage?.message)
+    : [];
 
   // Loading skeleton
   if (loading && messages.length === 0) {
@@ -784,13 +799,13 @@ const AdminMessages = () => {
               onMouseDown={(event) => event.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="p-6 border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+              <div className={`shrink-0 border-b p-5 ${isChatConversation ? "border-emerald-200 bg-[#075e54] text-white" : "border-[#E8D6B5] dark:border-[#3A3A3A]"}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 id="admin-chat-title" className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">
+                    <h3 id="admin-chat-title" className={`text-xl font-bold ${isChatConversation ? "text-white" : "text-[#2C1810] dark:text-[#F5E6D3]"}`}>
                       {isChatConversation ? "Chat with" : "Reply to"} {selectedMessage.username}
                     </h3>
-                    <p className="text-sm text-[#8B4513]/70 dark:text-[#D4A017]/70 mt-1">
+                    <p className={`mt-1 text-sm ${isChatConversation ? "text-white/75" : "text-[#8B4513]/70 dark:text-[#D4A017]/70"}`}>
                       {isChatConversation
                         ? "Continue the live support conversation"
                         : "Send a reply to this customer email"}
@@ -802,15 +817,30 @@ const AdminMessages = () => {
                       setReplyEmail("");
                       setReplyMessage("");
                     }}
-                    className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] transition-colors"
+                    className={`rounded-full p-2 transition-colors ${isChatConversation ? "text-white hover:bg-white/10" : "text-[#8B4513] hover:bg-[#E8D6B5]/20 dark:text-[#D4A017] dark:hover:bg-[#3A3A3A]"}`}
                   >
-                    <X className="w-5 h-5 text-[#8B4513] dark:text-[#D4A017]" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               </div>
 
-              {/* Original Message */}
-              <div className="min-h-0 flex-1 overflow-y-auto border-b border-[#E8D6B5] dark:border-[#3A3A3A]">
+              {/* Conversation or email content */}
+              <div className={`min-h-0 flex-1 overflow-y-auto border-b ${isChatConversation ? "border-emerald-200 bg-[#efeae2] p-5" : "border-[#E8D6B5] dark:border-[#3A3A3A]"}`}>
+                {isChatConversation ? (
+                  <div className="space-y-3">
+                    {chatTranscript.map((entry, index) => {
+                      const isSupport = entry.sender.toLowerCase().startsWith("support");
+                      return (
+                        <div key={`${entry.sender}-${index}`} className={`flex ${isSupport ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[82%] rounded-2xl px-3 py-2 shadow-sm ${isSupport ? "rounded-br-sm bg-[#d9fdd3] text-[#183b24]" : "rounded-bl-sm bg-white text-[#263238]"}`}>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{entry.text}</p>
+                            <span className="mt-1 block text-right text-[10px] text-slate-500">{isSupport ? "Support" : selectedMessage.username}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <div className="p-6">
                   <h4 className="text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-2">
                   {isChatConversation ? "Conversation" : "Original Message"}
@@ -835,12 +865,13 @@ const AdminMessages = () => {
                   </div>
                 </div>
                 </div>
+                )}
               </div>
 
               {/* Reply Form */}
-              <form onSubmit={handleReply} className="shrink-0 border-t border-[#E8D6B5] bg-white/80 p-6 dark:border-[#3A3A3A] dark:bg-[#1A1A1A]/80">
+              <form onSubmit={handleReply} className={`shrink-0 border-t p-5 ${isChatConversation ? "border-emerald-200 bg-[#f0f2f5]" : "border-[#E8D6B5] bg-white/80 dark:border-[#3A3A3A] dark:bg-[#1A1A1A]/80"}`}>
                 <div className="space-y-4">
-                  <div>
+                  {!isChatConversation && <div>
                     <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
                       Reply To Email
                     </label>
@@ -856,7 +887,7 @@ const AdminMessages = () => {
                         readOnly
                       />
                     </div>
-                  </div>
+                  </div>}
 
                   <div>
                     <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017] mb-2">
@@ -865,16 +896,16 @@ const AdminMessages = () => {
                     <textarea
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent min-h-[150px]"
+                      className={`w-full border px-4 py-3 text-[#2C1810] placeholder-[#8B4513]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent dark:text-[#F5E6D3] ${isChatConversation ? "min-h-[44px] max-h-28 resize-y rounded-2xl border-0 bg-white" : "min-h-[150px] rounded-xl border-[#E8D6B5] bg-white dark:border-[#3A3A3A] dark:bg-[#2A2A2A] dark:placeholder-[#D4A017]/50"}`}
                       rows="5"
                       placeholder={isChatConversation ? "Write a chat reply..." : "Write your email reply..."}
                       required
                     />
-                    <div className="flex items-center justify-between mt-2">
+                    <div className="mt-2 flex items-center justify-between">
                       <p className="text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">
                         Your reply will be sent to {selectedMessage.email}
                       </p>
-                      <div className="flex items-center gap-2">
+                      {!isChatConversation && <div className="flex items-center gap-2">
                         <button
                           type="button"
                           className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] transition-colors"
@@ -889,7 +920,7 @@ const AdminMessages = () => {
                         >
                           <Tag className="w-4 h-4 text-[#8B4513] dark:text-[#D4A017]" />
                         </button>
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 </div>
