@@ -129,9 +129,7 @@ function ProductListingPage() {
       />
       <ResponsiveSection  title="Discover curated products" description="Browse our handpicked collection of authentic African products." className="py-10 sm:py-14 lg:py-16">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {loading ? 'Loading…' : `${products.length} products`}
-          </p>
+          
           <div className="-mx-4 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0 sm:overflow-visible">
             <div className="flex w-max gap-2 px-4 sm:w-auto sm:flex-wrap sm:px-0">
               {categoryFilters.map((cat) => (

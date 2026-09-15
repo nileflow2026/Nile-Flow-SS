@@ -1,7 +1,13 @@
 import AppProviders from '@app/providers/AppProviders'
+import WhatsappChat from '@features/chat/WhatsappChat'
 
 function App() {
-  return <AppProviders />
+  return (
+    <div>
+      <WhatsappChat />
+      <AppProviders />
+    </div>
+  )
 }
 
 export default App
