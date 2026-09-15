@@ -81,6 +81,23 @@ const AdminMessages = () => {
         };
       });
     });
+    chatSocket.on("customer-chat-started", (incoming) => {
+      setMessages((prev) => {
+        if (prev.some((message) => message.$id === incoming.messageId)) return prev;
+        return [
+          {
+            $id: incoming.messageId,
+            username: incoming.username || "Guest visitor",
+            email: incoming.email || "guest@nileflowafrica.com",
+            message: `Customer: ${incoming.text}`,
+            read: false,
+            replied: false,
+            $createdAt: incoming.timestamp,
+          },
+          ...prev,
+        ];
+      });
+    });
 
     return () => chatSocket.disconnect();
   }, []);

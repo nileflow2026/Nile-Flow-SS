@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCheck, Send, Smile, X } from "lucide-react";
+import { CheckCheck, MessageSquarePlus, Send, Smile, X } from "lucide-react";
 
 const EMOJIS = [
   "😀", "😂", "😊", "😍", "🥰", "😎", "🤝", "👍", "👏", "🙏",
@@ -8,7 +8,7 @@ const EMOJIS = [
   "😅", "🤔", "😢", "😮", "😡", "🙌", "💯", "⭐", "🌍", "☀️",
 ];
 
-const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connectionStatus }) => {
+const WhatsappChatModal = ({ messages, onSend, onNewChat = () => {}, onClose, isSending, error, connectionStatus }) => {
   const inputRef = useRef(null);
   const messagesRef = useRef(null);
   const pickerRef = useRef(null);
@@ -26,13 +26,10 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
       }
     };
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     inputRef.current?.focus();
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose, showEmojiPicker]);
@@ -73,6 +70,16 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
     });
   };
 
+  const handleNewChat = () => {
+    if (messages.length > 0 && !window.confirm("Start a new chat? Your current chat will remain available to support, but it will be cleared from this window.")) {
+      return;
+    }
+    setDraft("");
+    setShowEmojiPicker(false);
+    onNewChat();
+    inputRef.current?.focus();
+  };
+
   const statusLabel = connectionStatus === "online" ? "Online now" : "Usually replies quickly";
 
   return createPortal(
@@ -95,9 +102,20 @@ const WhatsappChatModal = ({ messages, onSend, onClose, isSending, error, connec
               <span /> {statusLabel}
             </span>
           </div>
-          <button className="wa-icon-button" type="button" onClick={onClose} aria-label="Close chat">
-            <X size={19} />
-          </button>
+          <div className="wa-header-actions">
+            <button
+              className="wa-icon-button"
+              type="button"
+              onClick={handleNewChat}
+              aria-label="Start a new chat"
+              title="New chat"
+            >
+              <MessageSquarePlus size={18} />
+            </button>
+            <button className="wa-icon-button" type="button" onClick={onClose} aria-label="Close chat">
+              <X size={19} />
+            </button>
+          </div>
         </header>
 
         <div ref={messagesRef} className="wa-chat-messages" aria-live="polite">

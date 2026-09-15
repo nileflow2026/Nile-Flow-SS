@@ -102,23 +102,29 @@ const useChatMessages = () => {
     }
   };
 
-  return { messages, sendMessage, isSending, error, connectionStatus };
+  const startNewChat = () => {
+    setMessageId(null);
+    setMessages([]);
+    setError("");
+    setIsSending(false);
+    localStorage.removeItem(storageKey);
+  };
+
+  return { messages, sendMessage, startNewChat, isSending, error, connectionStatus };
 };
 
 const WhatsappChat = () => {
   const [show, setShow] = useState(false);
 
-  // Only show on /home path, not on / (LandingPage)
-  // Using window.location instead of useLocation() since this component
-  // lives outside the React Router context (before AppProviders).
-  const onlyOnHome = window.location.pathname === "/home";
+  // Keep the landing page distraction-free; show chat everywhere else.
+  const isLandingPage = ["/", "/landing", "/Landing"].includes(window.location.pathname);
 
-  const { messages, sendMessage, isSending, error, connectionStatus } = useChatMessages();
+  const { messages, sendMessage, startNewChat, isSending, error, connectionStatus } = useChatMessages();
 
   return (
     <div>
-      {/* Only render the floating button and chat modal on home page */}
-      {onlyOnHome && (
+      {/* Render the floating button and chat modal on every non-landing page */}
+      {!isLandingPage && (
         <>
           <button
             type="button"
@@ -133,6 +139,7 @@ const WhatsappChat = () => {
             <WhatsappChatModal
               messages={messages}
               onSend={sendMessage}
+              onNewChat={startNewChat}
               onClose={() => setShow(false)}
               isSending={isSending}
               error={error}

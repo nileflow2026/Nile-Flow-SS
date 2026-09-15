@@ -37,6 +37,11 @@ const clientmessages = async (req, res) => {
         ID.unique(),
         { username, email, message: `Customer: ${message}\n\nSupport: ${initialReply}` },
       );
+      socketService.sendCustomerMessage(document.$id, message, {
+        isNew: true,
+        username,
+        email,
+      });
     }
 
     res.status(200).json({

@@ -174,19 +174,25 @@ a {
 
 /* Chat modal */
 .wa-modal-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
+  min-height: 100%;
+  height: max(100%, 100vh);
   display: grid;
-  place-items: center;
-  padding: 1rem;
+  align-items: start;
+  justify-items: center;
+  padding: 0.75rem;
   background: rgba(15, 23, 42, 0.58);
   backdrop-filter: blur(4px);
   z-index: 1100;
 }
 
 .wa-chat-modal {
-  width: min(100%, 420px);
-  max-height: min(680px, calc(100dvh - 2rem));
+  width: min(420px, calc(100vw - 1.5rem));
+  height: min(680px, calc(100vh - 1.5rem));
+  height: min(680px, calc(100dvh - 1.5rem));
+    margin-top: 1rem;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -212,6 +218,10 @@ a {
   border-radius: 20px 20px 0 0;
   background: #075e54;
   color: #fff;
+}
+
+.wa-chat-header > div:nth-child(2) {
+  min-width: 0;
 }
 
 .wa-chat-avatar {
@@ -260,8 +270,14 @@ a {
   line-height: 1;
 }
 
-.wa-icon-button {
+.wa-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   margin-left: auto;
+}
+
+.wa-icon-button {
   display: grid;
   width: 34px;
   height: 34px;
@@ -290,10 +306,12 @@ a {
 .wa-chat-status.is-online span { background: #86efac; }
 
 .wa-chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
   padding: 1rem 1.25rem;
-  min-height: 180px;
-  height: min(44vh, 360px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   font-size: 0.875rem;
   background: #efeae2;
   background-image: radial-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px);
@@ -372,6 +390,9 @@ a {
 .wa-chat-message.is-user .wa-chat-meta { color: #159447; }
 
 .wa-input-area {
+  flex: 0 0 auto;
+  min-height: 70px;
+  box-sizing: border-box;
   padding: 1rem 1.25rem;
   border-top: 1px solid #e2e8f0;
   display: flex;
@@ -382,19 +403,62 @@ a {
 
 @media (max-width: 480px) {
   .wa-modal-backdrop {
-    align-items: end;
+    align-items: start;
     padding: 0;
   }
 
   .wa-chat-modal {
     width: 100%;
-    max-height: calc(100dvh - 0.75rem);
+    height: calc(100vh - 0.5rem);
+    height: calc(100dvh - 0.5rem);
+      margin-top: 0;
     border-radius: 20px 20px 0 0;
+  }
+
+  .wa-chat-header {
+    padding: 0.8rem 1rem;
+  }
+
+  .wa-chat-messages {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .wa-input-area {
+    min-height: 64px;
+    padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom));
+  }
+
+  .wa-emoji-picker {
+    left: -0.25rem;
+    bottom: 44px;
+  }
+}
+
+@media (max-height: 700px) {
+  .wa-chat-modal {
+    height: calc(100vh - 1rem);
+    height: calc(100dvh - 1rem);
+  }
+
+  .wa-chat-header {
+    padding-block: 0.65rem;
+  }
+
+  .wa-chat-avatar {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .wa-input-area {
+    min-height: 58px;
+    padding-block: 0.5rem;
   }
 }
 
 .wa-input-area textarea {
   flex: 1;
+  min-width: 0;
   min-height: 38px;
   max-height: 96px;
   padding: 0.62rem 0.8rem;
@@ -436,7 +500,7 @@ a {
   bottom: 46px;
   left: 0;
   z-index: 3;
-  width: 250px;
+  width: min(250px, calc(100vw - 1.5rem));
   padding: 0.7rem;
   border: 1px solid #e2e8f0;
   border-radius: 14px;

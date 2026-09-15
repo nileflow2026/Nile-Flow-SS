@@ -170,14 +170,16 @@ class SocketService {
     });
   }
 
-  sendCustomerMessage(messageId, message) {
+  sendCustomerMessage(messageId, message, metadata = {}) {
     if (!this.io || !messageId || !message) return;
 
-    this.io.to("admin-chat").emit("customer-chat-message", {
+    this.io.to("admin-chat").emit(metadata.isNew ? "customer-chat-started" : "customer-chat-message", {
       messageId,
       text: message,
       type: "user",
       timestamp: new Date().toISOString(),
+      username: metadata.username,
+      email: metadata.email,
     });
   }
 
