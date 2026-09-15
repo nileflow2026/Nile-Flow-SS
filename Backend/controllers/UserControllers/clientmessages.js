@@ -11,7 +11,7 @@ const clientmessages = async (req, res) => {
     }
 
     // Save the message to your Appwrite database
-    await instrumentedDb.createDocument(
+    const document = await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID, // Your contact database ID
       env.APPWRITE_USER_MESSAGES_COLLECTION_ID, // Your messages collection ID
       ID.unique(),
@@ -23,7 +23,11 @@ const clientmessages = async (req, res) => {
     );
 
     res.status(200).json({
-      message: "Message sent successfully! We will get back to you shortly.",
+      success: true,
+      data: {
+        messageId: document.$id,
+        reply: "Thanks for contacting Nile Flow Support. Your message has been received, and our team will get back to you shortly.",
+      },
     });
   } catch (error) {
     console.error("Contact form submission failed:", error);

@@ -93,6 +93,7 @@ const AdminMessages = () => {
         toEmail: replyEmail,
         subject: `Re: Your message to Nile Mart`,
         message: replyMessage,
+        messageId: selectedMessage?.$id,
       });
 
       // Update message status

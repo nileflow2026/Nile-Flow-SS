@@ -19,6 +19,13 @@ class SocketService {
     this.io.on("connection", (socket) => {
       console.log("🔗 Client connected:", socket.id);
 
+      socket.on("join-chat-room", (messageId) => {
+        if (typeof messageId !== "string" || !messageId.trim()) return;
+        const roomName = `chat-${messageId.trim()}`;
+        socket.join(roomName);
+        socket.emit("joined-chat-room", { messageId: messageId.trim() });
+      });
+
       // Handle customer joining order tracking room
       socket.on("join-order-tracking", (data) => {
         const { orderId, userId } = data;
@@ -143,6 +150,16 @@ class SocketService {
 
     console.log("🚀 Socket.IO server initialized");
     return this.io;
+  }
+
+  sendChatReply(messageId, message) {
+    if (!this.io || !messageId || !message) return;
+
+    this.io.to(`chat-${messageId}`).emit("chat-reply", {
+      text: message,
+      type: "support",
+      timestamp: new Date().toISOString(),
+    });
   }
 
   // Method to broadcast location updates from API endpoints

@@ -9,6 +9,7 @@ const {
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
+const socketService = require("../../services/socketService");
 
 const getCancelledOrders = async (req, res) => {
   try {
@@ -866,7 +867,7 @@ const clientmesseags = async (req, res) => {
 
 const replyclientmessages = async (req, res) => {
   try {
-    const { toEmail, subject, message } = req.body;
+    const { toEmail, subject, message, messageId } = req.body;
 
     if (!toEmail || !subject || !message) {
       return res.status(400).json({ error: "All fields are required." });
@@ -879,7 +880,11 @@ const replyclientmessages = async (req, res) => {
       html: `<p>Dear Customer,</p><p>${message}</p><p>Best regards,</p><p>The Nile Flow Team</p>`,
     });
 
-    res.status(200).json({ message: "Reply sent successfully." });
+    if (messageId) {
+      socketService.sendChatReply(messageId, message);
+    }
+
+    res.status(200).json({ success: true, message: "Reply sent successfully." });
   } catch (error) {
     console.error("Failed to send reply:", error);
     res
