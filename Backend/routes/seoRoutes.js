@@ -225,23 +225,41 @@ router.get("/merchant-feed.xml", async function(req, res) {
 
 // ── IndexNow URL Submission ────────────────────────────────────
 async function submitToIndexNow(urls) {
-  urls = urls || [];
-  if (urls.length === 0) return;
-
-  var INDEXNOW_KEY = process.env.INDEXNOW_KEY || "";
-  if (!INDEXNOW_KEY) {
-    console.debug("[IndexNow] INDEXNOW_KEY not configured — skipping.");
-    return;
+  urls = Array.isArray(urls) ? urls : [];
+  if (urls.length === 0) {
+    return { success: false, status: 400, error: "No URLs provided" };
   }
 
-  var SITE_URL = "https://www.nileflowafrica.com";
-  var HOST = "www.nileflowafrica.com";
+  var INDEXNOW_KEY = env.INDEXNOW_KEY || process.env.INDEXNOW_KEY || "";
+  if (!INDEXNOW_KEY) {
+    console.warn("[IndexNow] INDEXNOW_KEY is not configured.");
+    return { success: false, status: 503, error: "IndexNow is not configured" };
+  }
+
+  var SITE_URL = (env.INDEXNOW_SITE_URL || "https://www.nileflowafrica.com").replace(/\/$/, "");
+  var site = new URL(SITE_URL);
+  var validUrls = urls.filter(function(url) {
+    try {
+      var parsed = new URL(url);
+      return parsed.protocol === "https:" && parsed.hostname === site.hostname;
+    } catch {
+      return false;
+    }
+  }).slice(0, 10000);
+
+  if (validUrls.length !== urls.length || validUrls.length === 0) {
+    return {
+      success: false,
+      status: 422,
+      error: "All URLs must be HTTPS URLs on " + site.hostname,
+    };
+  }
 
   var payload = JSON.stringify({
-    host: HOST,
+    host: site.hostname,
     key: INDEXNOW_KEY,
     keyLocation: SITE_URL + "/" + INDEXNOW_KEY + ".txt",
-    urlList: urls.slice(0, 10000)
+    urlList: validUrls,
   });
 
   try {
@@ -252,19 +270,26 @@ async function submitToIndexNow(urls) {
     });
 
     if (response.ok) {
-      console.log("[IndexNow] Submitted " + urls.length + " URLs successfully");
+      console.log("[IndexNow] Submitted " + validUrls.length + " URLs successfully");
+      return { success: true, status: response.status, submitted: validUrls.length };
     } else {
       var text = await response.text();
       console.warn("[IndexNow] Submission returned " + response.status + ": " + text);
+      return { success: false, status: response.status, error: text || "IndexNow rejected the submission" };
     }
   } catch (error) {
     console.warn("[IndexNow] Submission failed:", error.message);
+    return { success: false, status: 502, error: "IndexNow request failed" };
   }
 }
 
 async function submitProductToIndexNow(productId) {
   var url = "https://www.nileflowafrica.com/products/" + productId;
-  await submitToIndexNow([url]);
+  var result = await submitToIndexNow([url]);
+  if (!result.success) {
+    throw new Error(result.error || "IndexNow submission failed");
+  }
+  return result;
 }
 
 router.post("/indexnow", express.json(), async function(req, res) {
@@ -273,8 +298,11 @@ router.post("/indexnow", express.json(), async function(req, res) {
     if (urls.length === 0) {
       return res.status(400).json({ error: "No URLs provided" });
     }
-    await submitToIndexNow(urls);
-    res.json({ success: true, submitted: urls.length });
+    var result = await submitToIndexNow(urls);
+    if (!result.success) {
+      return res.status(result.status || 500).json(result);
+    }
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

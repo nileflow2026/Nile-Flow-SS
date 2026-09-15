@@ -90,6 +90,8 @@ const schema = Joi.object({
     .default("sandbox"),
   MPESA_CALLBACK_URL: Joi.string().uri().optional(),
   BACKEND_URL: Joi.string().uri().optional(),
+  INDEXNOW_KEY: Joi.string().pattern(/^[A-Za-z0-9-]{8,128}$/).optional(),
+  INDEXNOW_SITE_URL: Joi.string().uri().optional(),
   // PayPal API
   PAYPAL_CLIENT_ID: Joi.string().optional(),
   PAYPAL_CLIENT_SECRET: Joi.string().optional(),
