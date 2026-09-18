@@ -333,6 +333,7 @@ const getProducts = async (req, res) => {
       vendorId,
       limit = 100,
       page = 1,
+      productId,
     } = req.query;
 
     // Base filters applied to both queries
@@ -372,6 +373,19 @@ const getProducts = async (req, res) => {
     // Vendor filter
     if (vendorId) {
       baseFilters.push(Query.equal("vendorId", vendorId));
+    }
+
+    // Direct product lookup by product ID or Appwrite document ID.
+    if (productId) {
+      const normalizedProductId = String(productId).trim();
+      if (normalizedProductId) {
+        baseFilters.push(
+          Query.or([
+            Query.equal("$id", normalizedProductId),
+            Query.equal("productId", normalizedProductId),
+          ]),
+        );
+      }
     }
 
     console.log("Appwrite Base Filters:", baseFilters);
@@ -470,7 +484,7 @@ const getProducts = async (req, res) => {
 
 const getProductsForMobile = async (req, res) => {
   try {
-    const { category, search, limit = 20, cursor, subcategoryId } = req.query;
+    const { category, search, limit = 20, cursor, subcategoryId, productId } = req.query;
 
     let queries = [];
 
@@ -487,6 +501,19 @@ const getProductsForMobile = async (req, res) => {
     // Search filter
     if (search) {
       queries.push(Query.search("productName", search));
+    }
+
+    // Direct product lookup by product ID or Appwrite document ID.
+    if (productId) {
+      const normalizedProductId = String(productId).trim();
+      if (normalizedProductId) {
+        queries.push(
+          Query.or([
+            Query.equal("$id", normalizedProductId),
+            Query.equal("productId", normalizedProductId),
+          ]),
+        );
+      }
     }
 
     // Pagination and Limit

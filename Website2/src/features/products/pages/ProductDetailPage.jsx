@@ -79,12 +79,18 @@ function ProductDetailPage() {
           (p) => (p.productId || p.$id || p.id) === productId,
         )
 
-        if (featuredMatch?.productId) {
-          const productFromCollection = await productService.getProduct(featuredMatch.productId)
-          if (productFromCollection) {
-            setProduct(productFromCollection)
-            return
-          }
+        if (featuredMatch) {
+          setProduct(featuredMatch)
+          return
+        }
+
+        const directFeaturedMatch = featuredProducts.find(
+          (p) => String(p?.productId || p?.$id || p?.id || '').toLowerCase() === String(productId || '').toLowerCase(),
+        )
+
+        if (directFeaturedMatch) {
+          setProduct(directFeaturedMatch)
+          return
         }
 
         setError('Product not found.')
