@@ -130,13 +130,16 @@ function CategoryPage() {
               {products.length} product{products.length > 1 ? 's' : ''} in {categoryName.toLowerCase()}
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.$id || product.id}
-                  product={product}
-                  href={`/products/${product.$id || product.id}`}
-                />
-              ))}
+              {products.map((product) => {
+                const productId = product?.productId || product?.$id || product?.id
+                return (
+                  <ProductCard
+                    key={productId}
+                    product={product}
+                    href={`/products/${productId}`}
+                  />
+                )
+              })}
             </div>
           </>
         )}

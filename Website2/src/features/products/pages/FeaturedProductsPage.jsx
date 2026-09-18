@@ -11,7 +11,7 @@ import { SeoHead } from '@shared/seo/SeoHead'
 function FeaturedProductsPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-
+ 
   useEffect(() => {
     let cancelled = false
     setLoading(true)

@@ -33,28 +33,56 @@ function ProductListingPage() {
     ]).then(([cats, result]) => {
       if (cancelled) return
 
-      const nameMap = {}
-      for (const c of (cats || [])) {
-        const cid = c.$id || c.id
-        const cname = c.name || c.category
-        if (cid && cname) nameMap[cid] = cname
+      const categories = Array.isArray(cats) ? cats : []
+      const seen = new Set()
+      const filterMap = new Map()
+
+      const registerFilter = (id, name) => {
+        if (!id && !name) return
+        const safeId = id ? String(id).trim() : ''
+        const safeName = name ? String(name).trim() : ''
+        if (!safeId && !safeName) return
+
+        const key = safeId || safeName
+        if (seen.has(key)) return
+        seen.add(key)
+
+        filterMap.set(key, {
+          id: safeId || safeName,
+          name: safeName || key,
+        })
       }
 
-      const ids = new Set()
-      for (const p of (result.products || [])) {
-        const raw = p.category || p.categoryId || p.categoryName
-        if (!raw) continue
-        if (Array.isArray(raw)) {
-          raw.forEach((r) => { if (r && typeof r === 'string') ids.add(r.trim()) })
-        } else if (typeof raw === 'string') {
-          ids.add(raw.trim())
+      for (const category of categories) {
+        const categoryId = category?.$id || category?.id || category?.categoryId
+        const categoryName = category?.name || category?.category || category?.title
+        registerFilter(categoryId, categoryName)
+      }
+
+      for (const product of (result.products || [])) {
+        const productCategory = product?.category || product?.categoryId || product?.categoryName
+        if (Array.isArray(productCategory)) {
+          productCategory.forEach((item) => registerFilter(item?.$id || item?.id || item?.categoryId || item, item?.name || item?.category || item?.title || item))
+        } else if (typeof productCategory === 'object') {
+          registerFilter(
+            productCategory.$id || productCategory.id || productCategory.categoryId,
+            productCategory.name || productCategory.category || productCategory.title || productCategory.categoryName,
+          )
+        } else if (typeof productCategory === 'string') {
+          const matchedCategory = categories.find((category) => {
+            const cid = category?.$id || category?.id || category?.categoryId
+            const cname = category?.name || category?.category || category?.title
+            return cid === productCategory || cname === productCategory
+          })
+
+          registerFilter(
+            matchedCategory ? (matchedCategory.$id || matchedCategory.id || matchedCategory.categoryId) : productCategory,
+            matchedCategory ? (matchedCategory.name || matchedCategory.category || matchedCategory.title) : productCategory,
+          )
         }
       }
 
-      const filters = [{ id: null, name: 'All' }]
-      for (const id of [...ids].sort()) {
-        filters.push({ id, name: nameMap[id] || id })
-      }
+      const filters = [{ id: null, name: 'All' }, ...[...filterMap.values()].sort((a, b) => a.name.localeCompare(b.name))]
 
       setProducts(result.products)
       setNextCursor(result.nextCursor)
@@ -168,13 +196,16 @@ function ProductListingPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.$id || product.id}
-                  product={product}
-                  href={`/products/${product.$id || product.id}`}
-                />
-              ))}
+              {products.map((product) => {
+                const productId = product?.productId || product?.$id || product?.id
+                return (
+                  <ProductCard
+                    key={productId}
+                    product={product}
+                    href={`/products/${productId}`}
+                  />
+                )
+              })}
             </div>
 
             {nextCursor && (

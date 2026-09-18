@@ -58,27 +58,34 @@ function ProductDetailPage() {
       setLoading(true)
       setError(null)
       try {
+        console.log('[ProductDetailPage] Loading product for route id:', productId)
+
         const directMatch = await productService.getProduct(productId)
+        console.log('[ProductDetailPage] directMatch result:', directMatch)
         if (directMatch) {
           setProduct(directMatch)
           return
         }
 
         const allResult = await productService.getProducts()
+        console.log('[ProductDetailPage] allResult.products sample:', allResult.products?.slice(0, 3))
         const found = allResult.products?.find(
           (p) => (p.productId || p.$id || p.id) === productId,
         )
 
+        console.log('[ProductDetailPage] allResult match result:', found)
         if (found) {
           setProduct(found)
           return
         }
 
         const featuredProducts = await productService.getFeaturedProducts(true)
+        console.log('[ProductDetailPage] featuredProducts sample:', featuredProducts?.slice(0, 3))
         const featuredMatch = featuredProducts.find(
           (p) => (p.productId || p.$id || p.id) === productId,
         )
 
+        console.log('[ProductDetailPage] featured direct match:', featuredMatch)
         if (featuredMatch) {
           setProduct(featuredMatch)
           return
@@ -88,13 +95,16 @@ function ProductDetailPage() {
           (p) => String(p?.productId || p?.$id || p?.id || '').toLowerCase() === String(productId || '').toLowerCase(),
         )
 
+        console.log('[ProductDetailPage] featured lowercase match:', directFeaturedMatch)
         if (directFeaturedMatch) {
           setProduct(directFeaturedMatch)
           return
         }
 
+        console.log('[ProductDetailPage] no product match found for route id:', productId)
         setError('Product not found.')
       } catch (err) {
+        console.error('[ProductDetailPage] Product load error:', err)
         setError(err?.message || 'Failed to load product details.')
       } finally {
         setLoading(false)

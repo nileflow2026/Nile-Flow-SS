@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Badge from '../badge/Badge'
 import StarRating from '../star-rating/StarRating'
 import { imageProxyUrl } from '@api/config'
 
 function ProductCard({ product, href = '#', compact = false }) {
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageFailed, setImageFailed] = useState(false)
+
   const id = product?.productId || product?.$id || product?.id
   const title = product?.productName || product?.title || product?.name || 'Nile Flow product'
 
@@ -52,6 +56,11 @@ function ProductCard({ product, href = '#', compact = false }) {
       className={`group block overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-md)] ${outOfStock ? 'opacity-60 pointer-events-none' : ''}`}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-surface-muted)]">
+        {!imageLoaded && !imageFailed && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-surface-muted)]">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" aria-label="Loading product image" />
+          </div>
+        )}
         <img
           src={imageUrl}
           alt={imageAlt}
@@ -59,7 +68,15 @@ function ProductCard({ product, href = '#', compact = false }) {
           height={450}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onLoad={() => {
+            setImageLoaded(true)
+            setImageFailed(false)
+          }}
+          onError={() => {
+            setImageFailed(true)
+            setImageLoaded(false)
+          }}
+          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         {(premium || featured || outOfStock) && (

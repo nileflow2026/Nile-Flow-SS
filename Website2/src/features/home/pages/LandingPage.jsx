@@ -77,14 +77,17 @@ function LandingPage() {
                   </div>
                 </div>
               ) : (
-                featuredProducts.map((product) => (
-                  <ProductCard
-                    key={product.$id || product.id}
-                    product={product}
-                    href={`/products/${product.$id || product.id}`}
-                    compact
-                  />
-                ))
+                featuredProducts.map((product) => {
+                  const productId = product?.productId || product?.$id || product?.id
+                  return (
+                    <ProductCard
+                      key={productId}
+                      product={product}
+                      href={`/products/${productId}`}
+                      compact
+                    />
+                  )
+                })
               )}
             </div>
 
