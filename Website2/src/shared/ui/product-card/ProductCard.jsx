@@ -4,7 +4,7 @@ import StarRating from '../star-rating/StarRating'
 import { imageProxyUrl } from '@api/config'
 
 function ProductCard({ product, href = '#', compact = false }) {
-  const id = product?.$id || product?.id
+  const id = product?.productId || product?.$id || product?.id
   const title = product?.productName || product?.title || product?.name || 'Nile Flow product'
 
   const rawImage = product?.image || product?.imageUrl || ''

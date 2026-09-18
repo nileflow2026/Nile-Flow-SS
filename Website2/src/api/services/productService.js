@@ -42,7 +42,18 @@ export const productService = {
     const response = await httpClient.get(`${BASE}/fetch-product`, {
       productId,
     });
-    return response.data?.product || response.data || null;
+
+    const payload = response.data ?? {};
+
+    if (payload?.product) return payload.product;
+    if (Array.isArray(payload)) {
+      return payload.find((product) => (product?.productId || product?.$id || product?.id) === productId) || null;
+    }
+    if (Array.isArray(payload?.products)) {
+      return payload.products.find((product) => (product?.productId || product?.$id || product?.id) === productId) || null;
+    }
+
+    return null;
   },
 
   async checkStock(productId, quantity = 1) {

@@ -58,15 +58,36 @@ function ProductDetailPage() {
       setLoading(true)
       setError(null)
       try {
+        const directMatch = await productService.getProduct(productId)
+        if (directMatch) {
+          setProduct(directMatch)
+          return
+        }
+
         const allResult = await productService.getProducts()
         const found = allResult.products?.find(
-          (p) => (p.$id || p.id) === productId,
+          (p) => (p.productId || p.$id || p.id) === productId,
         )
+
         if (found) {
           setProduct(found)
-        } else {
-          setError('Product not found.')
+          return
         }
+
+        const featuredProducts = await productService.getFeaturedProducts(true)
+        const featuredMatch = featuredProducts.find(
+          (p) => (p.productId || p.$id || p.id) === productId,
+        )
+
+        if (featuredMatch?.productId) {
+          const productFromCollection = await productService.getProduct(featuredMatch.productId)
+          if (productFromCollection) {
+            setProduct(productFromCollection)
+            return
+          }
+        }
+
+        setError('Product not found.')
       } catch (err) {
         setError(err?.message || 'Failed to load product details.')
       } finally {
