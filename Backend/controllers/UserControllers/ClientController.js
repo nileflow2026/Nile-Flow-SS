@@ -375,19 +375,6 @@ const getProducts = async (req, res) => {
       baseFilters.push(Query.equal("vendorId", vendorId));
     }
 
-    // Direct product lookup by product ID or Appwrite document ID.
-    if (productId) {
-      const normalizedProductId = String(productId).trim();
-      if (normalizedProductId) {
-        baseFilters.push(
-          Query.or([
-            Query.equal("$id", normalizedProductId),
-            Query.equal("productId", normalizedProductId),
-          ]),
-        );
-      }
-    }
-
     console.log("Appwrite Base Filters:", baseFilters);
 
     // Sort options
@@ -429,9 +416,17 @@ const getProducts = async (req, res) => {
       queries,
     );
 
-    const totalProducts = batch.total;
+    const normalizedProductId = productId ? String(productId).trim() : "";
+    const matchedDocuments = normalizedProductId
+      ? batch.documents.filter((doc) => {
+          const documentIds = [doc.$id, doc.id, doc.productId].filter(Boolean);
+          return documentIds.some((id) => String(id) === normalizedProductId);
+        })
+      : batch.documents;
 
-    const productsWithAttributes = batch.documents.map((doc) => {
+    const totalProducts = matchedDocuments.length || batch.total;
+
+    const productsWithAttributes = matchedDocuments.map((doc) => {
       let attributes = {};
       try {
         attributes = doc.specifications ? JSON.parse(doc.specifications) : {};
@@ -503,19 +498,6 @@ const getProductsForMobile = async (req, res) => {
       queries.push(Query.search("productName", search));
     }
 
-    // Direct product lookup by product ID or Appwrite document ID.
-    if (productId) {
-      const normalizedProductId = String(productId).trim();
-      if (normalizedProductId) {
-        queries.push(
-          Query.or([
-            Query.equal("$id", normalizedProductId),
-            Query.equal("productId", normalizedProductId),
-          ]),
-        );
-      }
-    }
-
     // Pagination and Limit
     queries.push(Query.limit(parseInt(limit)));
     queries.push(Query.orderDesc("$createdAt"));
@@ -530,8 +512,16 @@ const getProductsForMobile = async (req, res) => {
       queries,
     );
 
+    const normalizedProductId = productId ? String(productId).trim() : "";
+    const matchedDocuments = normalizedProductId
+      ? batch.documents.filter((doc) => {
+          const documentIds = [doc.$id, doc.id, doc.productId].filter(Boolean);
+          return documentIds.some((id) => String(id) === normalizedProductId);
+        })
+      : batch.documents;
+
     // 2️⃣ NO PROMISE.ALL loops. Simply map properties synchronously out of the document.
-    const productsWithReviews = batch.documents.map((doc) => {
+    const productsWithReviews = matchedDocuments.map((doc) => {
       // Gracefully fetch attributes stored directly on the product document
       const totalRatings = doc.totalRatings || 0;
       const avgRating = doc.avgRating || 0;
