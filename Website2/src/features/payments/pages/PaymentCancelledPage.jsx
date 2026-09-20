@@ -1,10 +1,32 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Button from '@shared/ui/button/Button'
 import Alert from '@shared/ui/alert/Alert'
+import { httpClient } from '@api/services'
 
 function PaymentCancelledPage() {
+  const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('orderId')
+  const [cancelError, setCancelError] = useState('')
+
+  useEffect(() => {
+    if (!orderId) return undefined
+
+    let cancelled = false
+    httpClient.post(`/api/payments/pesapal/cancel/${encodeURIComponent(orderId)}`)
+      .catch((error) => {
+        if (!cancelled && error?.response?.status !== 409) {
+          setCancelError(error?.response?.data?.message || 'We could not update the order status.')
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [orderId])
+
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-16 sm:px-6 sm:py-20 lg:py-28">
@@ -16,6 +38,7 @@ function PaymentCancelledPage() {
           <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
             Your payment was not processed. No charges have been made to your account.
           </p>
+          {cancelError && <p className="mt-3 text-sm text-red-600">{cancelError}</p>}
 
           <div className="mt-6 text-left">
             <Alert

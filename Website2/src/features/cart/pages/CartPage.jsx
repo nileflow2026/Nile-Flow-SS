@@ -253,6 +253,7 @@ function CartPage() {
                 items: items.map((item) => ({
                   id: item.$id || item.id,
                   productId: item.productId,
+                  vendor_id: item.vendor_id || item.vendorId || item.vendor || '',
                   name: item.productName || item.name || 'Product',
                   price: getItemPrice(item),
                   unitDisplay: item?.price?.displayValue || `KSh ${Math.round(getItemPrice(item)).toLocaleString()}`,

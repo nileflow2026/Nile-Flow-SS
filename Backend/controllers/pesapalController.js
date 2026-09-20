@@ -225,10 +225,12 @@ async function syncStatus(order, orderTrackingId) {
   }
 
   const paymentStatus = completed ? "succeeded" : failed ? "failed" : "pending";
+  const paymentMethod = payment.payment_method || payment.paymentMethod;
+  const paymentReference = payment.confirmation_code || payment.confirmationCode;
   await OrderRepository.update(order.$id, {
     paymentStatus,
-    paymentReference: payment.confirmation_code || "",
-    pesapalPaymentMethod: payment.payment_method || "",
+    ...(paymentReference ? { paymentReference } : {}),
+    ...(paymentMethod ? { pesapalPaymentMethod: paymentMethod } : {}),
     updatedAt: new Date().toISOString(),
     ...(completed ? { orderStatus: "Ordered", status: "Ordered" } : {}),
   });
@@ -245,6 +247,46 @@ async function status(req, res) {
   return res.status(result.status || 200).json(result);
 }
 
+async function cancel(req, res) {
+  const order = await OrderRepository.findById(req.params.orderId);
+  if (!order || order.userId !== req.user.userId) {
+    return res.status(404).json({ success: false, message: "Order not found" });
+  }
+
+  if (order.paymentMethod !== "Pesapal") {
+    return res.status(409).json({ success: false, message: "Order is not a Pesapal payment" });
+  }
+
+  if (order.paymentStatus === "succeeded") {
+    return res.status(409).json({ success: false, message: "A completed payment cannot be cancelled" });
+  }
+
+  await OrderRepository.update(order.$id, {
+    status: "Failed",
+    orderStatus: "cancelled",
+    paymentStatus: "failed",
+    failureReason: "Customer cancelled Pesapal payment",
+    updatedAt: new Date().toISOString(),
+  });
+
+  logger.info("Pesapal payment cancelled", {
+    meta: {
+      correlationId: req.correlationId,
+      orderId: order.$id,
+      orderNumber: order.orderNumber,
+      userId: req.user.userId,
+    },
+  });
+
+  return res.json({
+    success: true,
+    orderId: order.$id,
+    orderNumber: order.orderNumber,
+    paymentStatus: "failed",
+    orderStatus: "cancelled",
+  });
+}
+
 async function ipn(req, res) {
   const payload = { ...(req.query || {}), ...(req.body || {}) };
   const order = await OrderRepository.findByOrderNumber(payload.OrderMerchantReference || payload.orderMerchantReference);
@@ -257,4 +299,4 @@ async function ipn(req, res) {
   });
 }
 
-module.exports = { initiate, status, ipn, traceRequestEntry };
+module.exports = { initiate, status, cancel, ipn, traceRequestEntry };

@@ -133,6 +133,11 @@ router.get(
   authenticateToken,
   pesapalController.status,
 );
+router.post(
+  "/pesapal/cancel/:orderId",
+  authenticateToken,
+  pesapalController.cancel,
+);
 router.all("/pesapal/ipn", pesapalController.ipn);
 router.post(
   "/cash-on-delivery/cancel",

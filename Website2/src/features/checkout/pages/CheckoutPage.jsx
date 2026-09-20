@@ -47,6 +47,7 @@ function CheckoutPage() {
     // Build cart matching the OrderValidator expectations
     const cart = items.map((item) => ({
       productId: item.productId,
+      vendor_id: item.vendor_id || item.vendorId || item.vendor || '',
       productName: item.name,
       name: item.name,
       price: item.price,

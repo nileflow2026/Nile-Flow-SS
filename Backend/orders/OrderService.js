@@ -60,6 +60,15 @@ async function createCodOrder(body, authUser, options = {}) {
     return { success: false, status: 400, message: 'Invalid order total' };
   }
 
+  // Keep the server total aligned with the checkout pricing rule. Delivery is
+  // free at or above KES 1,000 and KES 150 otherwise.
+  const deliveryFee = trustedTotal >= 1000 ? 0 : 150;
+  const trustedOrderTotal = Math.round(trustedTotal + deliveryFee);
+  const vendorId = cart.find((item) => item.vendor_id || item.vendorId || item.vendor)?.vendor_id
+    || cart.find((item) => item.vendor_id || item.vendorId || item.vendor)?.vendorId
+    || cart.find((item) => item.vendor_id || item.vendorId || item.vendor)?.vendor
+    || '';
+
   // 3. Check stock availability
   const stockCheck = await checkStockAvailability(cart);
   if (!stockCheck.isAvailable) {
@@ -80,8 +89,15 @@ async function createCodOrder(body, authUser, options = {}) {
     userId,
     customerEmail,
     username,
+    deliveryAddress: body.deliveryAddress || '',
+    customerPhone: body.customerPhone || '',
+    CustomerPhone: body.customerPhone || '',
+    phone: body.customerPhone || '',
+    vendor_id: vendorId,
+    deliveryFee,
+    orderMonth: new Date().toISOString().slice(0, 7),
     items: JSON.stringify(cart),
-    amount: Math.round(trustedTotal),
+    amount: trustedOrderTotal,
     currency: currency || 'KES',
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     status: ORDER_STATUS.PENDING,
@@ -105,6 +121,8 @@ async function createCodOrder(body, authUser, options = {}) {
         paymentMethod: orderDocument.paymentMethod,
         paymentStatus: orderDocument.paymentStatus,
         amount: orderDocument.amount,
+        deliveryFee,
+        productSubtotal: trustedTotal,
         currency: orderDocument.currency,
         documentKeys: Object.keys(orderDocument),
         errorName: err.name,
@@ -166,7 +184,9 @@ async function createCodOrder(body, authUser, options = {}) {
     userId,
     email: customerEmail,
     username,
-    amount: trustedTotal,
+    amount: trustedOrderTotal,
+    orderTotal: trustedOrderTotal,
+    deliveryFee,
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     cartItems: cart,
     actor: `customer:${userId}`,
