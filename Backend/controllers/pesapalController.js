@@ -166,9 +166,6 @@ async function initiate(req, res) {
         durationMs: Date.now() - startedAt,
       },
     });
-    if (!payment?.redirect_url || !payment.order_tracking_id) {
-      throw new Error(payment?.message || "Pesapal did not return a payment URL");
-    }
 
     await updateOrder(created.orderId, {
       pesapalTrackingId: payment.order_tracking_id,
@@ -193,7 +190,7 @@ async function initiate(req, res) {
       }, "failure status");
     }
 
-    const pesapalError = error.response?.data?.error || error.response?.data;
+    const pesapalError = error.providerResponse || error.response?.data?.error || error.response?.data;
     logger.error("[Pesapal] Initiation failed", {
       meta: {
         correlationId: req.correlationId,
@@ -206,7 +203,7 @@ async function initiate(req, res) {
     });
     return res.status(502).json({
       success: false,
-      message: "Unable to start Pesapal payment",
+      message: error.providerResponse?.message || "Unable to start Pesapal payment",
       code: "PESAPAL_INITIATION_FAILED",
     });
   }

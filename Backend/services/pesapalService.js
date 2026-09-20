@@ -119,6 +119,9 @@ async function pesapalRequest(method, path, data) {
         providerStatus: response.data?.status,
         providerMessage: response.data?.message,
         providerError: response.data?.error,
+        responseKeys: Object.keys(response.data || {}),
+        merchantReference: response.data?.merchant_reference || response.data?.merchantReference,
+        responseMessage: response.data?.message,
         hasRedirectUrl: Boolean(response.data?.redirect_url),
         hasTrackingId: Boolean(response.data?.order_tracking_id),
         durationMs: Date.now() - startedAt,
@@ -150,7 +153,19 @@ async function submitOrder(order, customerDetails = {}) {
     throw new Error("PESAPAL_NOTIFICATION_ID is not configured");
   }
 
-  return pesapalRequest("POST", "/api/Transactions/SubmitOrderRequest", {
+  logger.info("Pesapal order configuration", {
+    meta: {
+      environment: env.PESAPAL_ENVIRONMENT,
+      baseUrl: getBaseUrl(),
+      notificationIdPresent: true,
+      notificationIdSuffix: String(env.PESAPAL_NOTIFICATION_ID).slice(-6),
+      frontendUrl: env.FRONTEND_URL,
+      callbackUrl: `${env.FRONTEND_URL}/payment/success`,
+      cancellationUrl: `${env.FRONTEND_URL}/payment/cancelled`,
+    },
+  });
+
+  const response = await pesapalRequest("POST", "/api/Transactions/SubmitOrderRequest", {
     id: order.orderNumber,
     currency: order.currency,
     amount: Number(order.amount),
@@ -166,6 +181,30 @@ async function submitOrder(order, customerDetails = {}) {
       line_1: customerDetails.deliveryAddress || order.deliveryAddress,
     },
   });
+
+  // Pesapal may return HTTP 200 with an application-level error object.
+  const redirectUrl = response?.redirect_url || response?.redirectUrl;
+  const trackingId = response?.order_tracking_id || response?.orderTrackingId;
+  if (!redirectUrl || !trackingId) {
+    const providerMessage = response?.message || response?.error?.message || "Pesapal returned no payment URL";
+    const error = new Error(providerMessage);
+    error.code = "PESAPAL_INVALID_ORDER_RESPONSE";
+    error.providerResponse = {
+      status: response?.status,
+      message: response?.message,
+      error: response?.error,
+      merchantReference: response?.merchant_reference || response?.merchantReference,
+      hasRedirectUrl: Boolean(redirectUrl),
+      hasTrackingId: Boolean(trackingId),
+    };
+    throw error;
+  }
+
+  return {
+    ...response,
+    redirect_url: redirectUrl,
+    order_tracking_id: trackingId,
+  };
 }
 
 async function getTransactionStatus(orderTrackingId) {
