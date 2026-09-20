@@ -37,7 +37,7 @@ const { env } = require('../src/env');
  * @param {object} authUser   — Authenticated user { userId, role }
  * @returns {Promise<object>} — { success, orderId, orderNumber, ... }
  */
-async function createCodOrder(body, authUser) {
+async function createCodOrder(body, authUser, options = {}) {
   // 1. Validate input
   const validation = OrderValidator.validateCodRequest(body);
   if (!validation.valid) {
@@ -82,11 +82,11 @@ async function createCodOrder(body, authUser) {
     items: JSON.stringify(cart),
     amount: Math.round(trustedTotal),
     currency: currency || 'KES',
-    paymentMethod: PAYMENT_METHOD.CASH_ON_DELIVERY,
+    paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     status: ORDER_STATUS.PENDING,
     orderStatus: ORDER_STATUS.PENDING,
     orderStatusLabel: ORDER_STATUS_LABELS[ORDER_STATUS.PENDING],
-    paymentStatus: 'succeeded',
+    paymentStatus: options.paymentStatus || 'succeeded',
     stockChecked: true,
     stockUpdated: false,
     createdAt: new Date().toISOString(),
@@ -150,7 +150,7 @@ async function createCodOrder(body, authUser) {
     email: customerEmail,
     username,
     amount: trustedTotal,
-    paymentMethod: PAYMENT_METHOD.CASH_ON_DELIVERY,
+    paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     cartItems: cart,
     actor: `customer:${userId}`,
     metadata: { stockUpdated: true, productsUpdated: stockUpdateResult.updatedProducts.length },

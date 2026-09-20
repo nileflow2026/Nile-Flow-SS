@@ -1,11 +1,46 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Button from '@shared/ui/button/Button'
-
-const mockData = { orderId: 'NF-2024-003', amount: 'KES 4,400', delivery: '5–7 business days' }
+import { httpClient } from '@api/services'
 
 function PaymentSuccessPage() {
+  const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('orderId')
+  const [payment, setPayment] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!orderId) {
+      setError('We could not identify this order.')
+      return undefined
+    }
+
+    let cancelled = false
+    let timer
+    const poll = async () => {
+      try {
+        const response = await httpClient.get(`/api/payments/pesapal/status/${encodeURIComponent(orderId)}`)
+        const data = response.data || response
+        if (cancelled) return
+        setPayment(data)
+        if (data.paymentStatus === 'pending') timer = window.setTimeout(poll, 2500)
+      } catch (requestError) {
+        if (!cancelled) setError(requestError?.response?.data?.message || requestError.message || 'Unable to verify payment.')
+      }
+    }
+    poll()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [orderId])
+
+  const isPending = payment?.paymentStatus === 'pending' || (!payment && !error)
+  const isSuccessful = payment?.paymentStatus === 'succeeded'
+  const title = isPending ? 'Confirming your payment…' : isSuccessful ? 'Payment successful!' : 'Payment could not be confirmed'
+
   return (
     <PageShell>
       <section className="flex items-center justify-center px-4 py-16 sm:px-6 sm:py-20 lg:py-28">
@@ -15,19 +50,18 @@ function PaymentSuccessPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="mt-6 text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Payment successful!</h1>
+          <h1 className="mt-6 text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">{title}</h1>
           <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
-            Your order <span className="font-semibold text-[var(--color-text-primary)]">{mockData.orderId}</span> has been placed and payment of{' '}
-            <span className="font-semibold text-amber-600">{mockData.amount}</span> is confirmed.
+            {isPending ? 'Pesapal is processing your payment. This page will update automatically.' : error || (isSuccessful ? `Your order ${payment.orderNumber} has been placed and payment is confirmed.` : 'Please retry the payment or contact support.')}
           </p>
 
-          <div className="mx-auto mt-8 grid max-w-sm grid-cols-2 gap-4 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
-            <div><p className="text-xs text-[var(--color-text-muted)]">Amount paid</p><p className="mt-1 font-semibold text-[var(--color-text-primary)]">{mockData.amount}</p></div>
-            <div><p className="text-xs text-[var(--color-text-muted)]">Estimated delivery</p><p className="mt-1 font-semibold text-[var(--color-text-primary)]">{mockData.delivery}</p></div>
-          </div>
+          {isSuccessful && <div className="mx-auto mt-8 max-w-sm rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6">
+            <p className="text-xs text-[var(--color-text-muted)]">Order number</p>
+            <p className="mt-1 font-semibold text-[var(--color-text-primary)]">{payment.orderNumber}</p>
+          </div>}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link to="/orders"><PrimaryButton className="w-full justify-center sm:w-auto">View order</PrimaryButton></Link>
+            <Link to={isSuccessful ? '/orders' : '/cart'}><PrimaryButton className="w-full justify-center sm:w-auto">{isSuccessful ? 'View order' : 'Return to cart'}</PrimaryButton></Link>
             <Link to="/products"><Button variant="outline" className="w-full justify-center sm:w-auto">Continue shopping</Button></Link>
           </div>
         </div>

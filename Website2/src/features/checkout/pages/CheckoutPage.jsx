@@ -75,6 +75,16 @@ function CheckoutPage() {
     let orderNumber = ''
 
     try {
+      if (form.paymentMethod === 'Pesapal') {
+        const rawResponse = await httpClient.post('/api/payments/pesapal/initiate', orderPayload)
+        const responseData = rawResponse.data || rawResponse
+        if (rawResponse.success === false || responseData.success === false || !responseData.redirectUrl) {
+          throw new Error(responseData.message || rawResponse.message || 'Unable to start Pesapal payment.')
+        }
+        window.location.href = responseData.redirectUrl
+        return
+      }
+
       // POST /api/payments/cash-on-delivery uses the production-proven COD endpoint
       // which now calls OrderNumberGenerator.generateOrderNumber() producing NF-YYYY-NNNNNNNNN
       // and automatically clears the user's cart on the backend
@@ -168,8 +178,7 @@ function CheckoutPage() {
                     onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
                   >
                     <option>Payment on Delivery</option>
-                    <option disabled>M-Pesa — Coming soon</option>
-                    <option disabled>Card — Coming soon</option>
+                    <option>Pesapal</option>
                   </select>
                 </label>
               </div>

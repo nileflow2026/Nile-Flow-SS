@@ -28,6 +28,7 @@ const {
   cancelCodOrder,
   stripeMobilePaymentSheet,
 } = require("../controllers/AdminControllers/PaymentController");
+const pesapalController = require("../controllers/pesapalController");
 
 const {
   validateMpesaCallbackSource,
@@ -117,6 +118,21 @@ router.post(
   applyPremiumBenefits,
   cashonDelivery,
 );
+router.post(
+  "/pesapal/initiate",
+  authenticateToken,
+  paymentSecurity.validateUserAuthorization,
+  paymentSecurity.sanitizePaymentData,
+  paymentSecurity.validatePaymentAmount,
+  paymentSecurity.paymentRateLimit,
+  pesapalController.initiate,
+);
+router.get(
+  "/pesapal/status/:orderId",
+  authenticateToken,
+  pesapalController.status,
+);
+router.all("/pesapal/ipn", pesapalController.ipn);
 router.post(
   "/cash-on-delivery/cancel",
   authenticateToken,
