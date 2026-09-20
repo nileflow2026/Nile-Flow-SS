@@ -31,6 +31,14 @@ https://<backend-host>/api/payments/pesapal/ipn
 
 Copy the returned notification GUID into `PESAPAL_NOTIFICATION_ID`. Localhost is not reachable by Pesapal; use a deployed backend or an HTTPS tunnel during development.
 
+To register the IPN from the backend environment, set `BACKEND_URL` and run:
+
+```bash
+node scripts/register-pesapal-ipn.js
+```
+
+For live payments, run this with `PESAPAL_ENVIRONMENT=production`. Copy the returned `ipnId` into `PESAPAL_NOTIFICATION_ID` and redeploy. Sandbox and production IPN IDs are different and cannot be exchanged.
+
 ## Appwrite order attributes
 
 Run this once against the same Appwrite project used by the backend before testing checkout:
