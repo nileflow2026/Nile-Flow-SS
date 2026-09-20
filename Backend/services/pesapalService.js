@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { env } = require("../src/env");
+const logger = require("../utils/logger");
 
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
@@ -12,17 +13,60 @@ function getBaseUrl() {
 
 async function getAccessToken() {
   if (cachedToken && cachedTokenExpiresAt > Date.now() + 30_000) {
+    logger.debug("Pesapal token cache hit", {
+      meta: { expiresInMs: cachedTokenExpiresAt - Date.now() },
+    });
     return cachedToken;
   }
 
-  const response = await axios.post(
-    `${getBaseUrl()}/api/Auth/RequestToken`,
-    {
-      consumer_key: env.PESAPAL_CONSUMER_KEY,
-      consumer_secret: env.PESAPAL_CONSUMER_SECRET,
+  const url = `${getBaseUrl()}/api/Auth/RequestToken`;
+  const startedAt = Date.now();
+  logger.info("Pesapal authentication request started", {
+    meta: {
+      url,
+      environment: env.PESAPAL_ENVIRONMENT,
+      hasConsumerKey: Boolean(env.PESAPAL_CONSUMER_KEY),
+      hasConsumerSecret: Boolean(env.PESAPAL_CONSUMER_SECRET),
     },
-    { headers: { Accept: "application/json", "Content-Type": "application/json" } },
-  );
+  });
+
+  let response;
+  try {
+    response = await axios.post(
+      url,
+      {
+        consumer_key: env.PESAPAL_CONSUMER_KEY,
+        consumer_secret: env.PESAPAL_CONSUMER_SECRET,
+      },
+      { headers: { Accept: "application/json", "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    logger.error("Pesapal authentication request failed", {
+      meta: {
+        url,
+        status: error.response?.status,
+        code: error.code,
+        message: error.message,
+        response: error.response?.data,
+        durationMs: Date.now() - startedAt,
+        stack: error.stack,
+      },
+    });
+    throw error;
+  }
+
+  logger.info("Pesapal authentication response received", {
+    meta: {
+      url,
+      status: response.status,
+      providerStatus: response.data?.status,
+      hasToken: Boolean(response.data?.token),
+      expiryDate: response.data?.expiryDate,
+      providerMessage: response.data?.message,
+      providerError: response.data?.error,
+      durationMs: Date.now() - startedAt,
+    },
+  });
 
   if (!response.data?.token) {
     throw new Error(response.data?.message || "Pesapal authentication failed");
@@ -36,18 +80,66 @@ async function getAccessToken() {
 }
 
 async function pesapalRequest(method, path, data) {
-  const token = await getAccessToken();
-  const response = await axios({
-    method,
-    url: `${getBaseUrl()}${path}`,
-    data,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
+  const url = `${getBaseUrl()}${path}`;
+  const startedAt = Date.now();
+  logger.info("Pesapal API request started", {
+    meta: {
+      method,
+      url,
+      payload: method === "POST" ? {
+        id: data?.id,
+        currency: data?.currency,
+        amount: data?.amount,
+        notificationIdPresent: Boolean(data?.notification_id),
+        callbackUrl: data?.callback_url,
+        cancellationUrl: data?.cancellation_url,
+        billingEmailPresent: Boolean(data?.billing_address?.email_address),
+        billingPhonePresent: Boolean(data?.billing_address?.phone_number),
+      } : undefined,
     },
   });
-  return response.data;
+
+  try {
+    const token = await getAccessToken();
+    const response = await axios({
+      method,
+      url,
+      data,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+    logger.info("Pesapal API response received", {
+      meta: {
+        method,
+        url,
+        status: response.status,
+        providerStatus: response.data?.status,
+        providerMessage: response.data?.message,
+        providerError: response.data?.error,
+        hasRedirectUrl: Boolean(response.data?.redirect_url),
+        hasTrackingId: Boolean(response.data?.order_tracking_id),
+        durationMs: Date.now() - startedAt,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    logger.error("Pesapal API request failed", {
+      meta: {
+        method,
+        url,
+        status: error.response?.status,
+        code: error.code,
+        message: error.message,
+        response: error.response?.data,
+        durationMs: Date.now() - startedAt,
+        stack: error.stack,
+      },
+    });
+    throw error;
+  }
 }
 
 async function submitOrder(order) {

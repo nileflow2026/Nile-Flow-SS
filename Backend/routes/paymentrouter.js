@@ -120,6 +120,7 @@ router.post(
 );
 router.post(
   "/pesapal/initiate",
+  pesapalController.traceRequestEntry,
   authenticateToken,
   paymentSecurity.validateUserAuthorization,
   paymentSecurity.sanitizePaymentData,

@@ -2,27 +2,99 @@ const OrderService = require("../orders/OrderService");
 const OrderRepository = require("../orders/OrderRepository");
 const { env } = require("../src/env");
 const pesapalService = require("../services/pesapalService");
+const logger = require("../utils/logger");
+
+function errorDetails(error) {
+  return {
+    name: error?.name,
+    message: error?.message,
+    code: error?.code,
+    type: error?.type,
+    status: error?.status || error?.response?.status,
+    stack: error?.stack,
+    providerResponse: error?.response?.data?.error || error?.response?.data,
+  };
+}
+
+function requestSummary(req) {
+  const body = req.body || {};
+  return {
+    correlationId: req.correlationId,
+    userId: req.user?.userId,
+    cartItems: Array.isArray(body.cart) ? body.cart.length : 0,
+    totalAmount: body.totalAmount,
+    amount: body.amount,
+    currency: body.currency,
+    customerEmailPresent: Boolean(body.customerEmail),
+    customerPhonePresent: Boolean(body.customerPhone),
+    deliveryAddressPresent: Boolean(body.deliveryAddress),
+    paymentMethod: body.paymentMethod,
+  };
+}
+
+function traceRequestEntry(req, res, next) {
+  const startedAt = Date.now();
+  logger.info("Pesapal route entry", {
+    meta: {
+      correlationId: req.correlationId,
+      method: req.method,
+      path: req.originalUrl,
+      contentLength: req.headers["content-length"],
+      hasAuthorizationHeader: Boolean(req.headers.authorization),
+      bodyKeys: Object.keys(req.body || {}),
+    },
+  });
+
+  res.once("finish", () => {
+    logger.info("Pesapal route finished", {
+      meta: {
+        correlationId: req.correlationId,
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs: Date.now() - startedAt,
+      },
+    });
+  });
+  next();
+}
 
 function configured() {
   return env.PESAPAL_CONSUMER_KEY && env.PESAPAL_CONSUMER_SECRET && env.PESAPAL_NOTIFICATION_ID;
 }
 
 async function updateOrder(orderId, updates, phase) {
+  logger.debug("Pesapal order update started", {
+    meta: { orderId, phase, attributes: Object.keys(updates) },
+  });
   try {
-    return await OrderRepository.update(orderId, updates);
+    const result = await OrderRepository.update(orderId, updates);
+    logger.debug("Pesapal order update completed", {
+      meta: { orderId, phase, success: true },
+    });
+    return result;
   } catch (error) {
-    console.error(`[Pesapal] ${phase} order update failed:`, {
-      message: error.message,
-      code: error.code,
-      type: error.type,
-      attributes: Object.keys(updates),
+    logger.error(`[Pesapal] ${phase} order update failed`, {
+      meta: { orderId, phase, attributes: Object.keys(updates), ...errorDetails(error) },
     });
     return null;
   }
 }
 
 async function initiate(req, res) {
+  const startedAt = Date.now();
+  logger.info("Pesapal initiation started", { meta: requestSummary(req) });
+
   if (!configured()) {
+    logger.error("Pesapal initiation blocked: missing configuration", {
+      meta: {
+        correlationId: req.correlationId,
+        hasConsumerKey: Boolean(env.PESAPAL_CONSUMER_KEY),
+        hasConsumerSecret: Boolean(env.PESAPAL_CONSUMER_SECRET),
+        hasNotificationId: Boolean(env.PESAPAL_NOTIFICATION_ID),
+        environment: env.PESAPAL_ENVIRONMENT,
+      },
+    });
     return res.status(503).json({ success: false, message: "Pesapal is not configured" });
   }
 
@@ -32,18 +104,65 @@ async function initiate(req, res) {
     const body = { ...req.body, userId: req.user.userId, paymentMethod: "Pesapal" };
 
     phase = "order creation";
+    logger.info("Pesapal phase started", {
+      meta: { correlationId: req.correlationId, phase, ...requestSummary(req) },
+    });
     created = await OrderService.createCodOrder(body, req.user, {
       paymentMethod: "Pesapal",
       paymentStatus: "pending",
     });
+    logger.info("Pesapal order creation result", {
+      meta: { correlationId: req.correlationId, phase, created },
+    });
     if (!created.success) return res.status(created.status || 400).json(created);
 
     phase = "order reload";
+    logger.info("Pesapal phase started", {
+      meta: { correlationId: req.correlationId, phase, orderId: created.orderId },
+    });
     const order = await OrderRepository.findById(created.orderId);
+    logger.info("Pesapal order reload result", {
+      meta: {
+        correlationId: req.correlationId,
+        phase,
+        orderId: created.orderId,
+        found: Boolean(order),
+        orderNumber: order?.orderNumber,
+        amount: order?.amount,
+        currency: order?.currency,
+        hasEmail: Boolean(order?.customerEmail),
+        hasPhone: Boolean(order?.customerPhone),
+        hasAddress: Boolean(order?.deliveryAddress),
+      },
+    });
     if (!order) throw new Error("Created Pesapal order could not be reloaded");
 
     phase = "Pesapal order submission";
+    logger.info("Pesapal phase started", {
+      meta: {
+        correlationId: req.correlationId,
+        phase,
+        orderId: order.$id,
+        orderNumber: order.orderNumber,
+        amount: order.amount,
+        currency: order.currency,
+        environment: env.PESAPAL_ENVIRONMENT,
+      },
+    });
     const payment = await pesapalService.submitOrder(order);
+    logger.info("Pesapal order submission result", {
+      meta: {
+        correlationId: req.correlationId,
+        phase,
+        orderId: order.$id,
+        hasRedirectUrl: Boolean(payment?.redirect_url),
+        hasTrackingId: Boolean(payment?.order_tracking_id),
+        merchantReference: payment?.merchant_reference,
+        status: payment?.status,
+        providerError: payment?.error,
+        durationMs: Date.now() - startedAt,
+      },
+    });
     if (!payment?.redirect_url || !payment.order_tracking_id) {
       throw new Error(payment?.message || "Pesapal did not return a payment URL");
     }
@@ -72,12 +191,15 @@ async function initiate(req, res) {
     }
 
     const pesapalError = error.response?.data?.error || error.response?.data;
-    console.error("[Pesapal] Initiation failed:", {
-      phase,
-      message: error.message,
-      code: error.code,
-      type: error.type,
-      response: pesapalError,
+    logger.error("[Pesapal] Initiation failed", {
+      meta: {
+        correlationId: req.correlationId,
+        phase,
+        orderId: created?.orderId,
+        durationMs: Date.now() - startedAt,
+        providerError: pesapalError,
+        ...errorDetails(error),
+      },
     });
     return res.status(502).json({
       success: false,
@@ -135,4 +257,4 @@ async function ipn(req, res) {
   });
 }
 
-module.exports = { initiate, status, ipn };
+module.exports = { initiate, status, ipn, traceRequestEntry };

@@ -13,6 +13,17 @@ const paymentSecurity = {
    * Never trusts client-sent price, discount, tax, shipping, or serviceFee.
    */
   validatePaymentAmount: async (req, res, next) => {
+    logger.info("Pesapal payment amount validation started", {
+      meta: {
+        correlationId: req.correlationId,
+        path: req.originalUrl,
+        userId: req.user?.userId,
+        cartItems: Array.isArray(req.body?.cart) ? req.body.cart.length : 0,
+        amountPresent: req.body?.amount != null,
+        totalAmountPresent: req.body?.totalAmount != null,
+        currency: req.body?.currency,
+      },
+    });
     try {
       const { amount, totalAmount, cart } = req.body;
       const paymentAmount = parseFloat(amount || totalAmount);
@@ -106,7 +117,16 @@ const paymentSecurity = {
 
       next();
     } catch (error) {
-      logger.error("Payment amount validation error:", error);
+      logger.error("Payment amount validation error", {
+        meta: {
+          correlationId: req.correlationId,
+          path: req.originalUrl,
+          userId: req.user?.userId,
+          message: error.message,
+          code: error.code,
+          stack: error.stack,
+        },
+      });
       return res.status(400).json({
         error: "Invalid payment data",
         code: "VALIDATION_ERROR",
@@ -153,6 +173,14 @@ const paymentSecurity = {
    * Validate user authorization for payment
    */
   validateUserAuthorization: (req, res, next) => {
+    logger.info("Payment authorization validation started", {
+      meta: {
+        correlationId: req.correlationId,
+        path: req.originalUrl,
+        authenticatedUserId: req.user?.userId,
+        bodyUserId: req.body?.userId,
+      },
+    });
     const { userId } = req.body;
     const authenticatedUserId = req.user?.userId;
 
@@ -181,6 +209,17 @@ const paymentSecurity = {
    * Sanitize payment input data
    */
   sanitizePaymentData: (req, res, next) => {
+    logger.info("Payment data sanitization started", {
+      meta: {
+        correlationId: req.correlationId,
+        path: req.originalUrl,
+        userId: req.user?.userId,
+        hasAmount: req.body?.amount != null,
+        hasTotalAmount: req.body?.totalAmount != null,
+        hasPhone: Boolean(req.body?.phoneNumber || req.body?.customerPhone),
+        hasEmail: Boolean(req.body?.customerEmail),
+      },
+    });
     try {
       const { amount, totalAmount, phoneNumber, customerEmail } = req.body;
 
