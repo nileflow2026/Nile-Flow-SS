@@ -31,4 +31,14 @@ https://<backend-host>/api/payments/pesapal/ipn
 
 Copy the returned notification GUID into `PESAPAL_NOTIFICATION_ID`. Localhost is not reachable by Pesapal; use a deployed backend or an HTTPS tunnel during development.
 
+## Appwrite order attributes
+
+Run this once against the same Appwrite project used by the backend before testing checkout:
+
+```bash
+node scripts/setup-pesapal-order-attributes.js
+```
+
+The script creates optional `pesapalTrackingId`, `pesapalMerchantReference`, `pesapalPaymentMethod`, and `paymentReference` attributes when they are missing.
+
 The payment callback and cancellation URLs are generated from `FRONTEND_URL`. Pesapal callbacks do not contain payment status, so the backend always verifies the amount, currency, and final status using `GetTransactionStatus` before marking an order paid.

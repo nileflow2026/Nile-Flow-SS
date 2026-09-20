@@ -51,6 +51,13 @@ async function pesapalRequest(method, path, data) {
 }
 
 async function submitOrder(order) {
+  if (!order?.orderNumber || !order?.amount || !order?.currency) {
+    throw new Error("Pesapal order is missing order number, amount, or currency");
+  }
+  if (!env.PESAPAL_NOTIFICATION_ID) {
+    throw new Error("PESAPAL_NOTIFICATION_ID is not configured");
+  }
+
   return pesapalRequest("POST", "/api/Transactions/SubmitOrderRequest", {
     id: order.orderNumber,
     currency: order.currency,

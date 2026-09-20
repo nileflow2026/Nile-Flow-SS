@@ -7,40 +7,52 @@ function configured() {
   return env.PESAPAL_CONSUMER_KEY && env.PESAPAL_CONSUMER_SECRET && env.PESAPAL_NOTIFICATION_ID;
 }
 
+async function updateOrder(orderId, updates, phase) {
+  try {
+    return await OrderRepository.update(orderId, updates);
+  } catch (error) {
+    console.error(`[Pesapal] ${phase} order update failed:`, {
+      message: error.message,
+      code: error.code,
+      type: error.type,
+      attributes: Object.keys(updates),
+    });
+    return null;
+  }
+}
+
 async function initiate(req, res) {
   if (!configured()) {
     return res.status(503).json({ success: false, message: "Pesapal is not configured" });
   }
 
-  const body = { ...req.body, userId: req.user.userId, paymentMethod: "Pesapal" };
-  const created = await OrderService.createCodOrder(body, req.user, {
-    paymentMethod: "Pesapal",
-    paymentStatus: "pending",
-  });
-  if (!created.success) return res.status(created.status || 400).json(created);
-
-  await OrderRepository.update(created.orderId, {
-    deliveryAddress: body.deliveryAddress || "",
-    customerPhone: body.customerPhone || "",
-    phone: body.customerPhone || "",
-    paymentMethod: "Pesapal",
-    paymentStatus: "pending",
-    orderStatus: "Pending",
-    status: "Pending",
-  });
-  const order = await OrderRepository.findById(created.orderId);
-
+  let created;
+  let phase = "request validation";
   try {
+    const body = { ...req.body, userId: req.user.userId, paymentMethod: "Pesapal" };
+
+    phase = "order creation";
+    created = await OrderService.createCodOrder(body, req.user, {
+      paymentMethod: "Pesapal",
+      paymentStatus: "pending",
+    });
+    if (!created.success) return res.status(created.status || 400).json(created);
+
+    phase = "order reload";
+    const order = await OrderRepository.findById(created.orderId);
+    if (!order) throw new Error("Created Pesapal order could not be reloaded");
+
+    phase = "Pesapal order submission";
     const payment = await pesapalService.submitOrder(order);
     if (!payment?.redirect_url || !payment.order_tracking_id) {
       throw new Error(payment?.message || "Pesapal did not return a payment URL");
     }
 
-    await OrderRepository.update(created.orderId, {
+    await updateOrder(created.orderId, {
       pesapalTrackingId: payment.order_tracking_id,
       pesapalMerchantReference: payment.merchant_reference || order.orderNumber,
       updatedAt: new Date().toISOString(),
-    });
+    }, "Pesapal reference");
 
     return res.status(201).json({
       success: true,
@@ -49,15 +61,29 @@ async function initiate(req, res) {
       redirectUrl: payment.redirect_url,
     });
   } catch (error) {
-    await OrderRepository.update(created.orderId, {
-      paymentStatus: "failed",
-      orderStatus: "Failed",
-      status: "Failed",
-      failureReason: "Pesapal initiation failed",
-      updatedAt: new Date().toISOString(),
+    if (created?.orderId) {
+      await updateOrder(created.orderId, {
+        paymentStatus: "failed",
+        orderStatus: "Failed",
+        status: "Failed",
+        failureReason: "Pesapal initiation failed",
+        updatedAt: new Date().toISOString(),
+      }, "failure status");
+    }
+
+    const pesapalError = error.response?.data?.error || error.response?.data;
+    console.error("[Pesapal] Initiation failed:", {
+      phase,
+      message: error.message,
+      code: error.code,
+      type: error.type,
+      response: pesapalError,
     });
-    console.error("[Pesapal] Initiation failed:", error.response?.data || error.message);
-    return res.status(502).json({ success: false, message: "Unable to start Pesapal payment" });
+    return res.status(502).json({
+      success: false,
+      message: "Unable to start Pesapal payment",
+      code: "PESAPAL_INITIATION_FAILED",
+    });
   }
 }
 
