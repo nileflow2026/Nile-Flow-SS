@@ -13,6 +13,7 @@ const shopLinks = [
 
 const supportLinks = [
   { label: 'Help Center', to: '/help-center' },
+  { label: 'Payment Methods', to: '/payment-methods' },
   { label: 'My Orders', to: '/orders' },
   { label: 'Track Order', to: '/orders' },
   { label: 'Return Policy', to: '/return-policy' },

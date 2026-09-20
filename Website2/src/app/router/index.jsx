@@ -52,6 +52,7 @@ const HelpCenterPage = lazy(() => import('@features/info/pages/HelpCenterPage'))
 const PrivacyPage = lazy(() => import('@features/info/pages/PrivacyPage'))
 const ReturnPolicyPage = lazy(() => import('@features/info/pages/ReturnPolicyPage'))
 const TermsPage = lazy(() => import('@features/info/pages/TermsPage'))
+const PaymentMethodsPage = lazy(() => import('@features/info/pages/PaymentMethodsPage'))
 const CancelOrderPage = lazy(() => import('@features/info/pages/CancelOrderPage'))
 const CareersPage = lazy(() => import('@features/careers/pages/CareersPage'))
 const NotFoundPage = lazy(() => import('@features/not-found/pages/NotFoundPage'))
@@ -98,6 +99,7 @@ export default function AppRouter() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/return-policy" element={<ReturnPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/payment-methods" element={<PaymentMethodsPage />} />
         <Route path="/careers" element={<CareersPage />} />
 
         {/* ── Guest-only Routes ─────────────────────────────── */}
