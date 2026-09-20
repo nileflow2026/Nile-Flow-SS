@@ -66,6 +66,10 @@ function TeamMembersManagement() {
   };
 
   const removeSocial = (index) => setForm((current) => ({ ...current, socials: current.socials.filter((_, socialIndex) => socialIndex !== index) }));
+  const addSocial = () => setForm((current) => ({
+    ...current,
+    socials: [...current.socials, { label: '', href: '' }],
+  }));
 
   const resetForm = () => {
     setForm(emptyForm);
