@@ -45,6 +45,7 @@ import { getCurrentUser } from "../../authService";
 import ProductApprovals from "./ProductApprovals";
 import Finance from "./FinancePage";
 import BannerManagement from "./BannerManagement";
+import TeamMembersManagement from "./TeamMembersManagement";
 import DealsManagement from "./DealsManagement";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658"];
@@ -208,6 +209,8 @@ export default function Dashboard() {
         return <Settings />;
       case "Banners":
         return <BannerManagement />;
+      case "Team Members":
+        return <TeamMembersManagement />;
       case "Deals":
         return <DealsManagement />;
 

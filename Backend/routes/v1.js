@@ -47,6 +47,7 @@ const {
   deleteBanner,
 } = require("../controllers/v1/bannerController");
 const upload = require("../Config/multer");
+const teamMemberRoutes = require("./teamMemberRoutes");
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -110,5 +111,7 @@ router.patch("/banners/:bannerId", authenticateToken, upload.single("image"), up
  * Admin — deletes a banner.
  */
 router.delete("/banners/:bannerId", authenticateToken, deleteBanner);
+
+router.use("/team-members", teamMemberRoutes);
 
 module.exports = router;

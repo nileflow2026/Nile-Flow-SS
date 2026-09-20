@@ -50,3 +50,13 @@ node scripts/setup-pesapal-order-attributes.js
 The script creates optional `pesapalTrackingId`, `pesapalMerchantReference`, `pesapalPaymentMethod`, and `paymentReference` attributes when they are missing.
 
 The payment callback and cancellation URLs are generated from `FRONTEND_URL`. Pesapal callbacks do not contain payment status, so the backend always verifies the amount, currency, and final status using `GetTransactionStatus` before marking an order paid.
+
+## About page team members
+
+Set `TEAM_MEMBERS_COLLECTION_ID` to an Appwrite collection ID, then create the optional attributes with:
+
+```bash
+node scripts/setup-team-members-collection.js
+```
+
+The public API is `GET /api/v1/team-members`. Admin users can create, update, and delete members with `POST`, `PATCH /:teamMemberId`, and `DELETE /:teamMemberId` using an authenticated admin token.

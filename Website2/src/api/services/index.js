@@ -24,6 +24,7 @@ export { addressService } from './addressService';
 export { groupBuyService } from './groupBuyService';
 export { discoveryService } from './discoveryService';
 export { bannerService } from './bannerService';
+export { teamMemberService } from './teamMemberService';
 
 export { initializeApi, getHttpClient } from '@api/client';
 export { config } from '@api/config';

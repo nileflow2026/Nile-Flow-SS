@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { createAboutPageSchema } from '@shared/seo/SchemaFactory'
+import { teamMemberService } from '@api/services'
 
 const pillars = [
   {
@@ -18,46 +20,28 @@ const pillars = [
   },
 ]
 
-const teamMembers = [
-  {
-    name: 'Anthony Wai',
-    role: 'Founder & CEO',
-    bio: 'Anthony leads Nile Flow\u2019s vision, strategy, and product direction with a focus on trusted commerce and regional growth.',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
-    email: 'anthony@nileflowafrica.com',
-    phone: '+254 700 000 000',
-    socials: [
-      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
-      { label: 'Twitter', href: 'https://twitter.com/' },
-    ],
-  },
-  {
-    name: 'Japhet',
-    role: 'Co-Founder & COO',
-    bio: 'Japhet oversees operations, merchant partnerships, and delivery systems that keep Nile Flow reliable and scalable.',
-    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
-    email: 'japhet@nileflowafrica.com',
-    phone: '+254 700 000 001',
-    socials: [
-      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
-      { label: 'Email', href: 'mailto:japhet@nileflowafrica.com' },
-    ],
-  },
-  {
-    name: 'Ted',
-    role: 'Finance Officer',
-    bio: 'Ted manages financial operations, commercial discipline, and growth planning to support a sustainable platform.',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80',
-    email: 'ted@nileflowafrica.com',
-    phone: '+254 700 000 002',
-    socials: [
-      { label: 'LinkedIn', href: 'https://www.linkedin.com/' },
-      { label: 'Email', href: 'mailto:ted@nileflowafrica.com' },
-    ],
-  },
-]
-
 function AboutPage() {
+  const [teamMembers, setTeamMembers] = useState([])
+  const [teamLoading, setTeamLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    teamMemberService.getTeamMembers()
+      .then((members) => {
+        if (active) setTeamMembers(members)
+      })
+      .catch(() => {
+        if (active) setTeamMembers([])
+      })
+      .finally(() => {
+        if (active) setTeamLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   return (
     <PageShell>
       <SeoHead
@@ -135,8 +119,10 @@ function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {teamMembers.map((member) => (
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+            {teamLoading && <p className="col-span-full text-sm text-[var(--color-text-secondary)]">Loading leadership team...</p>}
+            {!teamLoading && teamMembers.length === 0 && <p className="col-span-full text-sm text-[var(--color-text-secondary)]">Leadership information is currently unavailable.</p>}
+            {!teamLoading && teamMembers.map((member) => (
               <div key={member.name} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6">
                 <img src={member.image} alt={member.name} className="h-24 w-24 rounded-full object-cover" />
                 <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">{member.name}</h3>

@@ -44,8 +44,8 @@ function normalizePhoneValue(phone) {
 
   let sanitized = digits;
   if (sanitized.startsWith("0")) sanitized = `254${sanitized.slice(1)}`;
-  if (!sanitized.startsWith("+")) sanitized = `+${sanitized}`;
-  return sanitized;
+  const normalized = `+${sanitized}`;
+  return /^\+[1-9]\d{7,14}$/.test(normalized) ? normalized : "";
 }
 
 // ── DB collection scan (primary auth fallback) ────────────────────
@@ -99,7 +99,7 @@ async function resolveUserIdFromDbCollection(email) {
       // so that DB-based targets (see below) can still be resolved.
       return candidateId;
     } catch (err) {
-      console.debug(`[AppwriteMessaging] DB scan failed for ${label} collection: ${err.message}`);
+      console.debug(`[AppwriteMessaging] DB scan failed for collection ${collectionId}: ${err.message}`);
     }
   }
   return null;
@@ -287,7 +287,12 @@ async function ensureEmailTarget(userId, email) {
  */
 async function ensureSmsTarget(userId, phone) {
   const normalizedPhone = normalizePhoneValue(phone);
-  if (!userId || !normalizedPhone) return null;
+  if (!userId || !normalizedPhone) {
+    if (phone) {
+      console.debug(`[AppwriteMessaging] Skipping SMS: invalid Kenyan phone format for user ${userId}`);
+    }
+    return null;
+  }
 
   const appwriteUserId = await resolveAppwriteUserId(userId, normalizedPhone);
   if (!appwriteUserId) {

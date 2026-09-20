@@ -34,6 +34,10 @@ const NotificationLogger = require('./NotificationLogger');
  * @returns {Promise<object>} — { status, logId }
  */
 async function dispatch({ event, channel, recipientId, recipient, template, pushData = {}, source = '' }) {
+  if (channel === CHANNEL.IN_APP) {
+    return { status: DELIVERY_STATUS.SKIPPED, logId: null };
+  }
+
   const deliveryFn = getDeliveryFn(channel);
   if (!deliveryFn) {
     console.warn(`[NotificationDispatcher] Unknown channel: ${channel}`);
@@ -95,6 +99,10 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
 async function dispatchAll({ event, channels, recipientId, recipient, recipientPhone, template, pushData = {}, source = '' }) {
   const results = {};
   for (const channel of channels) {
+    // In-app notifications use the database notification path below, not
+    // Appwrite Messaging provider targets.
+    if (channel === CHANNEL.IN_APP) continue;
+
     let targetRecipient = recipient;
     if (channel === CHANNEL.SMS) {
       targetRecipient = recipientPhone || recipient;

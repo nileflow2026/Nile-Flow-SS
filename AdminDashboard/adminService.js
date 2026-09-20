@@ -31,6 +31,28 @@ export const getCurrentUser = async () => {
   }
 };
 
+// ─── Team Members ───────────────────────────────────────────────────────────
+
+export const getTeamMembers = async () => {
+  const response = await axiosClient.get('/api/v1/team-members');
+  return response.data?.data || [];
+};
+
+export const createTeamMember = async (payload) => {
+  const response = await axiosClient.post('/api/v1/team-members', payload);
+  return response.data;
+};
+
+export const updateTeamMember = async (teamMemberId, payload) => {
+  const response = await axiosClient.patch(`/api/v1/team-members/${teamMemberId}`, payload);
+  return response.data;
+};
+
+export const deleteTeamMember = async (teamMemberId) => {
+  const response = await axiosClient.delete(`/api/v1/team-members/${teamMemberId}`);
+  return response.data;
+};
+
 export const getProfile = async (userId) => {
   try {
     const response = await axiosClient.get(`/api/admin/users/${userId}`);
