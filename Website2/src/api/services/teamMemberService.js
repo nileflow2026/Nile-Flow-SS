@@ -6,7 +6,7 @@ export const teamMemberService = {
       skipAuth: true,
       withCredentials: false,
     });
-    return Array.isArray(response.data?.data) ? response.data.data : [];
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   async createTeamMember(payload) {
