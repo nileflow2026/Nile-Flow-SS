@@ -20,6 +20,58 @@ const pillars = [
   },
 ]
 
+function TeamMemberCard({ member }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const initials = member.name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+  return (
+    <article className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 shadow-[var(--shadow-sm)] sm:p-5 lg:p-6">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-emerald-100">
+        {!imageFailed && member.image ? (
+          <img
+            src={member.image}
+            alt={member.name}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={() => setImageFailed(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-emerald-700 sm:text-4xl">
+            {initials}
+          </div>
+        )}
+      </div>
+      <h3 className="mt-3 break-words text-sm font-semibold leading-tight text-[var(--color-text-primary)] sm:mt-4 sm:text-lg">{member.name}</h3>
+      <p className="mt-1 break-words text-xs font-medium leading-tight text-emerald-600 sm:text-sm">{member.role}</p>
+      <p className="mt-2 line-clamp-4 break-words text-xs leading-5 text-[var(--color-text-secondary)] sm:mt-3 sm:text-sm sm:leading-7">{member.bio}</p>
+      <div className="mt-3 space-y-1 text-[11px] leading-4 text-[var(--color-text-secondary)] sm:mt-4 sm:space-y-2 sm:text-sm">
+        {member.email && <p className="break-all"><span className="font-medium text-[var(--color-text-primary)]">Email:</span> {member.email}</p>}
+        {member.phone && <p className="break-words"><span className="font-medium text-[var(--color-text-primary)]">Phone:</span> {member.phone}</p>}
+      </div>
+      {member.socials?.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2">
+        {member.socials.map((social) => (
+          <a
+            key={`${social.label}-${social.href}`}
+            href={social.href}
+            target="_blank"
+            rel="noreferrer"
+            className="max-w-full truncate rounded-full border border-[var(--color-border)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-600 hover:text-emerald-600 sm:px-3 sm:text-xs"
+          >
+            {social.label}
+          </a>
+        ))}
+      </div>}
+    </article>
+  )
+}
+
 function AboutPage() {
   const [teamMembers, setTeamMembers] = useState([])
   const [teamLoading, setTeamLoading] = useState(true)
@@ -122,31 +174,7 @@ function AboutPage() {
           <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             {teamLoading && <p className="col-span-full text-sm text-[var(--color-text-secondary)]">Loading leadership team...</p>}
             {!teamLoading && teamMembers.length === 0 && <p className="col-span-full text-sm text-[var(--color-text-secondary)]">Leadership information is currently unavailable.</p>}
-            {!teamLoading && teamMembers.map((member) => (
-              <div key={member.name} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6">
-                <img src={member.image} alt={member.name} className="h-24 w-24 rounded-full object-cover" />
-                <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">{member.name}</h3>
-                <p className="mt-1 text-sm font-medium text-emerald-600">{member.role}</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">{member.bio}</p>
-                <div className="mt-4 space-y-2 text-sm text-[var(--color-text-secondary)]">
-                  <p><span className="font-medium text-[var(--color-text-primary)]">Email:</span> {member.email}</p>
-                  <p><span className="font-medium text-[var(--color-text-primary)]">Phone:</span> {member.phone}</p>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {member.socials.map((social) => (
-                    <a
-                      key={social.label}
-                      href={social.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:border-emerald-600 hover:text-emerald-600"
-                    >
-                      {social.label}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {!teamLoading && teamMembers.map((member) => <TeamMemberCard key={member.id || member.name} member={member} />)}
           </div>
         </div>
       </section>
