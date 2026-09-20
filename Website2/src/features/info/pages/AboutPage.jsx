@@ -4,6 +4,7 @@ import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { createAboutPageSchema } from '@shared/seo/SchemaFactory'
 import { teamMemberService } from '@api/services'
+import { imageProxyUrl } from '@api/config'
 
 const pillars = [
   {
@@ -34,11 +35,9 @@ function TeamMemberCard({ member }) {
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-emerald-100">
         {!imageFailed && member.image ? (
           <img
-            src={member.image}
+            src={imageProxyUrl(member.image, 600, 75)}
             alt={member.name}
-            loading="lazy"
             decoding="async"
-            referrerPolicy="no-referrer"
             onError={() => setImageFailed(true)}
             className="h-full w-full object-cover"
           />
