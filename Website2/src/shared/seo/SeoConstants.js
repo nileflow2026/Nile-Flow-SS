@@ -28,7 +28,7 @@ export const SITE_CONFIG = {
     'African shopping platform',
     'African online marketplace',
   ],
-  defaultImage: 'https://www.nileflowafrica.com/og-image.png',
+  defaultImage: 'https://www.nileflowafrica.com/og-image.png?v=20260921',
   defaultImageType: 'image/png',
   defaultImageWidth: 1424,
   defaultImageHeight: 752,

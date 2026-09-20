@@ -81,6 +81,7 @@ export function SeoHead({
     setMetaTag('property', 'og:type', ogType)
     setMetaTag('property', 'og:url', resolvedCanonical)
     setMetaTag('property', 'og:image', resolvedOgImage)
+    setMetaTag('property', 'og:image:secure_url', resolvedOgImage)
     setMetaTag('property', 'og:image:width', String(SITE_CONFIG.defaultImageWidth))
     setMetaTag('property', 'og:image:height', String(SITE_CONFIG.defaultImageHeight))
     setMetaTag('property', 'og:image:type', SITE_CONFIG.defaultImageType)
@@ -91,6 +92,7 @@ export function SeoHead({
     setMetaTag('name', 'twitter:title', resolvedTitle)
     setMetaTag('name', 'twitter:description', resolvedDescription)
     setMetaTag('name', 'twitter:image', resolvedOgImage)
+    setMetaTag('name', 'twitter:image:alt', `${SITE_CONFIG.name} African marketplace`)
     setMetaTag('name', 'twitter:site', SITE_CONFIG.twitterHandle)
 
     // ── Link tags ───────────────────────────────────────────────
