@@ -86,7 +86,6 @@ async function createCodOrder(body, authUser, options = {}) {
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     status: ORDER_STATUS.PENDING,
     orderStatus: ORDER_STATUS.PENDING,
-    orderStatusLabel: ORDER_STATUS_LABELS[ORDER_STATUS.PENDING],
     paymentStatus: options.paymentStatus || 'succeeded',
     stockChecked: true,
     stockUpdated: false,
