@@ -149,7 +149,10 @@ async function initiate(req, res) {
         environment: env.PESAPAL_ENVIRONMENT,
       },
     });
-    const payment = await pesapalService.submitOrder(order);
+    const payment = await pesapalService.submitOrder(order, {
+      customerPhone: body.customerPhone,
+      deliveryAddress: body.deliveryAddress,
+    });
     logger.info("Pesapal order submission result", {
       meta: {
         correlationId: req.correlationId,

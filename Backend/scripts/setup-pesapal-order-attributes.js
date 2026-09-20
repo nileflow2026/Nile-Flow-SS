@@ -46,6 +46,15 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Pesapal order attribute migration failed:", error.message);
+  console.error("Pesapal order attribute migration failed:", {
+    message: error.message,
+    code: error.code,
+    cause: error.cause?.message || error.cause,
+    endpoint,
+    projectIdPresent: Boolean(projectId),
+    databaseIdPresent: Boolean(databaseId),
+    collectionIdPresent: Boolean(collectionId),
+    stack: error.stack,
+  });
   process.exitCode = 1;
 });

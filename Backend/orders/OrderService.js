@@ -27,6 +27,7 @@ const { dispatch } = require('./OrderEvents');
 const { checkStockAvailability, reduceProductStock, restoreProductStock } = require('../controllers/AdminControllers/stockController');
 const { computeCartSubtotal } = require('../utils/serverPricing');
 const { env } = require('../src/env');
+const logger = require('../utils/logger');
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -82,9 +83,6 @@ async function createCodOrder(body, authUser, options = {}) {
     items: JSON.stringify(cart),
     amount: Math.round(trustedTotal),
     currency: currency || 'KES',
-    deliveryAddress: body.deliveryAddress || '',
-    customerPhone: body.customerPhone || '',
-    phone: body.customerPhone || '',
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     status: ORDER_STATUS.PENDING,
     orderStatus: ORDER_STATUS.PENDING,
@@ -101,6 +99,23 @@ async function createCodOrder(body, authUser, options = {}) {
   try {
     createdOrder = await OrderRepository.create(orderDocument, userId);
   } catch (err) {
+    logger.error('[OrderService] Order creation failed', {
+      meta: {
+        operation: 'OrderRepository.create',
+        userId,
+        paymentMethod: orderDocument.paymentMethod,
+        paymentStatus: orderDocument.paymentStatus,
+        amount: orderDocument.amount,
+        currency: orderDocument.currency,
+        documentKeys: Object.keys(orderDocument),
+        errorName: err.name,
+        errorMessage: err.message,
+        errorCode: err.code,
+        errorType: err.type,
+        errorResponse: err.response?.data,
+        stack: err.stack,
+      },
+    });
     return { success: false, status: 500, message: 'Failed to create order' };
   }
 

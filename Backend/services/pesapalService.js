@@ -142,7 +142,7 @@ async function pesapalRequest(method, path, data) {
   }
 }
 
-async function submitOrder(order) {
+async function submitOrder(order, customerDetails = {}) {
   if (!order?.orderNumber || !order?.amount || !order?.currency) {
     throw new Error("Pesapal order is missing order number, amount, or currency");
   }
@@ -160,10 +160,10 @@ async function submitOrder(order) {
     notification_id: env.PESAPAL_NOTIFICATION_ID,
     billing_address: {
       email_address: order.customerEmail,
-      phone_number: order.customerPhone,
+      phone_number: customerDetails.customerPhone || order.customerPhone,
       country_code: "KE",
       first_name: order.username,
-      line_1: order.deliveryAddress,
+      line_1: customerDetails.deliveryAddress || order.deliveryAddress,
     },
   });
 }
