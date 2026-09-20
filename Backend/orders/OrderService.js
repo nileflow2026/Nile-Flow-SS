@@ -91,7 +91,6 @@ async function createCodOrder(body, authUser, options = {}) {
     username,
     deliveryAddress: body.deliveryAddress || '',
     customerPhone: body.customerPhone || '',
-    CustomerPhone: body.customerPhone || '',
     phone: body.customerPhone || '',
     vendor_id: vendorId,
     deliveryFee,
