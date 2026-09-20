@@ -2,6 +2,7 @@
 
 const express = require("express");
 const authenticateToken = require("../middleware/authMiddleware");
+const upload = require("../Config/multer");
 const {
   getTeamMembers,
   createTeamMember,
@@ -12,8 +13,8 @@ const {
 const router = express.Router();
 
 router.get("/", getTeamMembers);
-router.post("/", authenticateToken, createTeamMember);
-router.patch("/:teamMemberId", authenticateToken, updateTeamMember);
+router.post("/", authenticateToken, upload.single("image"), createTeamMember);
+router.patch("/:teamMemberId", authenticateToken, upload.single("image"), updateTeamMember);
 router.delete("/:teamMemberId", authenticateToken, deleteTeamMember);
 
 module.exports = router;

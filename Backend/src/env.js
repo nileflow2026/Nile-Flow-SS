@@ -30,6 +30,7 @@ const schema = Joi.object({
   // Banner Storage Bucket
   BANNER_STORAGE_BUCKET_ID: Joi.string().optional(),
   TEAM_MEMBERS_COLLECTION_ID: Joi.string().optional(),
+  TEAM_MEMBERS_STORAGE_BUCKET_ID: Joi.string().optional(),
   // Subscriptions Collection
   APPWRITE_SUBSCRIPTIONS_COLLECTION_ID: Joi.string().optional(),
   // Products Collection

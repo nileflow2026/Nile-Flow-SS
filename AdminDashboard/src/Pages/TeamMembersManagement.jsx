@@ -13,7 +13,7 @@ const emptyForm = {
   image: '',
   email: '',
   phone: '',
-  socials: '[]',
+  socials: [],
   order: 0,
   isActive: true,
 };
@@ -26,6 +26,8 @@ function TeamMembersManagement() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -47,9 +49,29 @@ function TeamMembersManagement() {
     setForm((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleSocialChange = (index, field, value) => {
+    setForm((current) => ({
+      ...current,
+      socials: current.socials.map((social, socialIndex) => (
+        socialIndex === index ? { ...social, [field]: value } : social
+      )),
+    }));
+  };
+
+  const removeSocial = (index) => setForm((current) => ({ ...current, socials: current.socials.filter((_, socialIndex) => socialIndex !== index) }));
+
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setSelectedImage(null);
+    setImagePreview('');
   };
 
   const handleSubmit = async (event) => {
@@ -59,11 +81,13 @@ function TeamMembersManagement() {
     setError('');
 
     try {
-      const payload = {
-        ...form,
-        order: Number(form.order) || 0,
-        socials: JSON.parse(form.socials || '[]'),
-      };
+      const payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (key !== 'socials') payload.append(key, typeof value === 'boolean' ? String(value) : String(value ?? ''));
+      });
+      payload.set('order', String(Number(form.order) || 0));
+      payload.append('socials', JSON.stringify(form.socials.filter((social) => social.label.trim() || social.href.trim())));
+      if (selectedImage) payload.append('image', selectedImage);
       if (editingId) {
         await updateTeamMember(editingId, payload);
         setMessage('Team member updated successfully.');
@@ -74,7 +98,7 @@ function TeamMembersManagement() {
       resetForm();
       await loadMembers();
     } catch (requestError) {
-      setError(requestError.response?.data?.message || requestError.message || 'Failed to save team member. Ensure Social links is valid JSON.');
+      setError(requestError.response?.data?.message || requestError.message || 'Failed to save team member.');
     } finally {
       setSaving(false);
     }
@@ -89,10 +113,12 @@ function TeamMembersManagement() {
       image: member.image || '',
       email: member.email || '',
       phone: member.phone || '',
-      socials: JSON.stringify(member.socials || [], null, 2),
+      socials: member.socials || [],
       order: member.order || 0,
       isActive: member.isActive !== false,
     });
+    setSelectedImage(null);
+    setImagePreview(member.image || '');
     setMessage('');
     setError('');
   };
@@ -130,7 +156,6 @@ function TeamMembersManagement() {
             {[
               ['name', 'Name', 'text'],
               ['role', 'Role', 'text'],
-              ['image', 'Image URL', 'url'],
               ['email', 'Email', 'email'],
               ['phone', 'Phone', 'tel'],
             ].map(([name, label, type]) => (
@@ -140,13 +165,27 @@ function TeamMembersManagement() {
               </label>
             ))}
             <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
+              Profile image
+              <input name="image" type="file" accept="image/*" onChange={handleImageChange} className="mt-1 w-full rounded-lg border border-[#E8D6B5] bg-white px-3 py-2 text-sm text-[#2C1810] dark:border-[#3A3A3A] dark:bg-[#202020] dark:text-[#F5E6D3]" />
+              {imagePreview && <img src={imagePreview} alt="Selected profile preview" className="mt-3 h-20 w-20 rounded-full object-cover" />}
+            </label>
+            <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
               Bio
               <textarea name="bio" value={form.bio} onChange={handleChange} rows={4} className="mt-1 w-full rounded-lg border border-[#E8D6B5] bg-white px-3 py-2 text-sm text-[#2C1810] focus:border-[#D4A017] focus:outline-none dark:border-[#3A3A3A] dark:bg-[#202020] dark:text-[#F5E6D3]" />
             </label>
-            <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
-              Social links JSON
-              <textarea name="socials" value={form.socials} onChange={handleChange} rows={4} placeholder='[{"label":"LinkedIn","href":"https://linkedin.com/..."}]' className="mt-1 w-full rounded-lg border border-[#E8D6B5] bg-white px-3 py-2 font-mono text-xs text-[#2C1810] focus:border-[#D4A017] focus:outline-none dark:border-[#3A3A3A] dark:bg-[#202020] dark:text-[#F5E6D3]" />
-            </label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">Social links</span>
+                <button type="button" onClick={addSocial} className="text-xs font-semibold text-[#D4A017]">Add link</button>
+              </div>
+              {form.socials.map((social, index) => (
+                <div key={index} className="grid gap-2 sm:grid-cols-[0.7fr_1fr_auto]">
+                  <input value={social.label} onChange={(event) => handleSocialChange(index, 'label', event.target.value)} placeholder="Label" className="rounded-lg border border-[#E8D6B5] bg-white px-3 py-2 text-sm dark:border-[#3A3A3A] dark:bg-[#202020] dark:text-[#F5E6D3]" />
+                  <input value={social.href} onChange={(event) => handleSocialChange(index, 'href', event.target.value)} placeholder="https://..." type="url" className="rounded-lg border border-[#E8D6B5] bg-white px-3 py-2 text-sm dark:border-[#3A3A3A] dark:bg-[#202020] dark:text-[#F5E6D3]" />
+                  <button type="button" onClick={() => removeSocial(index)} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600">Remove</button>
+                </div>
+              ))}
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-medium text-[#8B4513] dark:text-[#D4A017]">
                 Display order

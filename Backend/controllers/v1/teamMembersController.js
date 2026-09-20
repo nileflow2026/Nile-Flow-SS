@@ -1,11 +1,16 @@
 "use strict";
 
 const { ID, Query } = require("node-appwrite");
-const { db } = require("../../services/appwriteService");
+const { InputFile } = require("node-appwrite/file");
+const { db, storage } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
 function collectionId() {
   return env.TEAM_MEMBERS_COLLECTION_ID;
+}
+
+function storageBucketId() {
+  return env.TEAM_MEMBERS_STORAGE_BUCKET_ID || env.BANNER_STORAGE_BUCKET_ID;
 }
 
 function requireAdmin(req, res) {
@@ -56,6 +61,19 @@ function buildPayload(body, partial = false) {
   return payload;
 }
 
+async function uploadImage(file) {
+  const bucketId = storageBucketId();
+  if (!file) return null;
+  if (!bucketId) throw new Error("Team member storage bucket is not configured");
+
+  const uploaded = await storage.createFile(
+    bucketId,
+    ID.unique(),
+    InputFile.fromBuffer(file.buffer, file.originalname),
+  );
+  return `${env.APPWRITE_ENDPOINT}/storage/buckets/${bucketId}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
+}
+
 async function getTeamMembers(req, res) {
   if (!collectionId()) return res.json({ success: true, data: [] });
 
@@ -77,7 +95,10 @@ async function createTeamMember(req, res) {
   if (!collectionId()) return res.status(503).json({ success: false, message: "Team members collection is not configured" });
 
   try {
-    const doc = await db.createDocument(env.APPWRITE_DATABASE_ID, collectionId(), ID.unique(), buildPayload(req.body));
+    const payload = buildPayload(req.body);
+    const image = await uploadImage(req.file);
+    if (image) payload.image = image;
+    const doc = await db.createDocument(env.APPWRITE_DATABASE_ID, collectionId(), ID.unique(), payload);
     return res.status(201).json({ success: true, data: normalize(doc) });
   } catch (error) {
     console.error("Failed to create team member:", error.message);
@@ -90,11 +111,14 @@ async function updateTeamMember(req, res) {
   if (!collectionId()) return res.status(503).json({ success: false, message: "Team members collection is not configured" });
 
   try {
+    const payload = buildPayload(req.body, true);
+    const image = await uploadImage(req.file);
+    if (image) payload.image = image;
     const doc = await db.updateDocument(
       env.APPWRITE_DATABASE_ID,
       collectionId(),
       req.params.teamMemberId,
-      buildPayload(req.body, true),
+      payload,
     );
     return res.json({ success: true, data: normalize(doc) });
   } catch (error) {

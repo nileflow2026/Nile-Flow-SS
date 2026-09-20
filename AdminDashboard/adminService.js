@@ -39,12 +39,16 @@ export const getTeamMembers = async () => {
 };
 
 export const createTeamMember = async (payload) => {
-  const response = await axiosClient.post('/api/v1/team-members', payload);
+  const response = await axiosClient.post('/api/v1/team-members', payload, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };
 
 export const updateTeamMember = async (teamMemberId, payload) => {
-  const response = await axiosClient.patch(`/api/v1/team-members/${teamMemberId}`, payload);
+  const response = await axiosClient.patch(`/api/v1/team-members/${teamMemberId}`, payload, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return response.data;
 };
 
