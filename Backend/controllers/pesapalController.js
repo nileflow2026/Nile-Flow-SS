@@ -152,6 +152,8 @@ async function initiate(req, res) {
     const payment = await pesapalService.submitOrder(order, {
       customerPhone: body.customerPhone,
       deliveryAddress: body.deliveryAddress,
+      callbackUrl: body.callbackUrl,
+      cancellationUrl: body.cancellationUrl,
     });
     logger.info("Pesapal order submission result", {
       meta: {

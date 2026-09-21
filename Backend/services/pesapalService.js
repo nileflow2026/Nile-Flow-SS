@@ -153,6 +153,15 @@ async function submitOrder(order, customerDetails = {}) {
     throw new Error("PESAPAL_NOTIFICATION_ID is not configured");
   }
 
+  const callbackBaseUrl = customerDetails.callbackUrl || `${env.FRONTEND_URL}/payment/success`;
+  const cancellationBaseUrl = customerDetails.cancellationUrl || `${env.FRONTEND_URL}/payment/cancelled`;
+  const callbackUrl = callbackBaseUrl.includes("?")
+    ? `${callbackBaseUrl}&orderId=${encodeURIComponent(order.$id)}`
+    : `${callbackBaseUrl}?orderId=${encodeURIComponent(order.$id)}`;
+  const cancellationUrl = cancellationBaseUrl.includes("?")
+    ? `${cancellationBaseUrl}&orderId=${encodeURIComponent(order.$id)}`
+    : `${cancellationBaseUrl}?orderId=${encodeURIComponent(order.$id)}`;
+
   logger.info("Pesapal order configuration", {
     meta: {
       environment: env.PESAPAL_ENVIRONMENT,
@@ -160,8 +169,8 @@ async function submitOrder(order, customerDetails = {}) {
       notificationIdPresent: true,
       notificationIdSuffix: String(env.PESAPAL_NOTIFICATION_ID).slice(-6),
       frontendUrl: env.FRONTEND_URL,
-      callbackUrl: `${env.FRONTEND_URL}/payment/success`,
-      cancellationUrl: `${env.FRONTEND_URL}/payment/cancelled`,
+      callbackUrl,
+      cancellationUrl,
     },
   });
 
@@ -170,8 +179,8 @@ async function submitOrder(order, customerDetails = {}) {
     currency: order.currency,
     amount: Number(order.amount),
     description: `Nile Flow order ${order.orderNumber}`.slice(0, 100),
-    callback_url: `${env.FRONTEND_URL}/payment/success?orderId=${encodeURIComponent(order.$id)}`,
-    cancellation_url: `${env.FRONTEND_URL}/payment/cancelled?orderId=${encodeURIComponent(order.$id)}`,
+    callback_url: callbackUrl,
+    cancellation_url: cancellationUrl,
     notification_id: env.PESAPAL_NOTIFICATION_ID,
     billing_address: {
       email_address: order.customerEmail,

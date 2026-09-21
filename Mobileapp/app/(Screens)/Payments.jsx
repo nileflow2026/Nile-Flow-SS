@@ -5,6 +5,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useStripe } from "@stripe/stripe-react-native";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import {
   ArrowRight,
@@ -72,6 +74,7 @@ const Payments = () => {
   const [navigationTrigger, setNavigationTrigger] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [mpesaLoading, setMpesaLoading] = useState(false);
+  const [pesapalLoading, setPesapalLoading] = useState(false);
   const [paymentPolling, setPaymentPolling] = useState(false);
   // Ref to cancel M-Pesa polling when the component unmounts
   const cancelPollRef = useRef(false);
@@ -201,14 +204,22 @@ const Payments = () => {
         "Extra charges may apply",
       ],
     },
-    /* {
-      id: "mobile",
-      name: "Mobile Money",
-      icon: DollarSign,
+    {
+      id: "pesapal",
+      name: "Pesapal",
+      icon: CreditCard,
       gradient: ["#8B5CF6", "#7C3AED"],
-      description: "M-Pesa, Airtel Money, etc.",
-      features: ["Instant", "Secure", "24/7"],
-    }, */
+      description: "Cards, M-Pesa, Airtel Money, and more",
+      features: ["Instant", "Secure", "Trusted checkout"],
+    },
+    {
+      id: "mobile",
+      name: "M-Pesa",
+      icon: DollarSign,
+      gradient: ["#10B981", "#059669"],
+      description: "Pay directly with your M-Pesa number",
+      features: ["Instant", "Secure", "Popular in Kenya"],
+    },
   ];
 
   const handleCashOnDelivery = async (user, token) => {
@@ -572,6 +583,242 @@ const Payments = () => {
     poll();
   };
 
+  const handlePesapalPayment = async (user) => {
+    try {
+      if (!phoneNumber || phoneNumber.trim().length === 0) {
+        Alert.alert("Error", "Please enter your phone number before continuing.");
+        return;
+      }
+
+      const cleanPhone = phoneNumber.replace(/[^0-9+]/g, "").trim();
+      if (cleanPhone.length < 10) {
+        Alert.alert("Error", "Please enter a valid phone number for the payment.");
+        return;
+      }
+
+      setPesapalLoading(true);
+
+      const userId = user?.id || user?.$id;
+      const customerEmail = user?.email;
+      const username = user?.username || user?.email;
+      const orderCurrency = currency || "KES";
+      const pesapalReturnUrl = "nileflowapp://pesapal-return";
+
+      const payload = {
+        cart,
+        userId,
+        customerEmail,
+        username,
+        totalAmount: Number(totalAmount),
+        currency: orderCurrency,
+        paymentMethod: "Pesapal",
+        customerPhone: cleanPhone,
+        deliveryAddress: "Mobile checkout",
+        status: "Pending",
+        callbackUrl: `${pesapalReturnUrl}?status=success`,
+        cancellationUrl: `${pesapalReturnUrl}?status=cancelled`,
+      };
+
+      const apiResponse = await axiosClient.post(
+        "/api/payments/pesapal/initiate",
+        payload,
+      );
+
+      const result = apiResponse.data || {};
+      if (!result.success || !result.redirectUrl) {
+        throw new Error(result.message || "Unable to start Pesapal checkout");
+      }
+
+      Alert.alert(
+        "Pesapal Checkout",
+        "You will be redirected to the secure Pesapal checkout page for payment.",
+        [
+          {
+            text: "Continue",
+            onPress: async () => {
+              try {
+                const browserResult = await WebBrowser.openAuthSessionAsync(
+                  result.redirectUrl,
+                  pesapalReturnUrl,
+                );
+
+                if (browserResult?.type === "cancel" || browserResult?.type === "dismiss") {
+                  const cancelledOrderId = result.orderId;
+                  try {
+                    await axiosClient.post(
+                      `/api/payments/pesapal/cancel/${encodeURIComponent(cancelledOrderId)}`,
+                    );
+                  } catch (_) {
+                    // Best effort: the backend will clean up failed/cancelled payments.
+                  }
+
+                  Alert.alert(
+                    "Payment Cancelled",
+                    "Your order was not completed. You can try again from checkout.",
+                  );
+                  return;
+                }
+
+                if (browserResult?.type === "success" && browserResult?.url) {
+                  const parsed = Linking.parse(browserResult.url);
+                  const paymentStatus = parsed.queryParams?.status;
+                  const returnedOrderId =
+                    parsed.queryParams?.orderId ||
+                    parsed.queryParams?.order_id ||
+                    result.orderId;
+
+                  if (paymentStatus === "cancelled") {
+                    try {
+                      await axiosClient.post(
+                        `/api/payments/pesapal/cancel/${encodeURIComponent(returnedOrderId)}`,
+                      );
+                    } catch (_) {
+                      // Best effort only.
+                    }
+
+                    Alert.alert(
+                      "Payment Cancelled",
+                      "Your order has been cancelled and you have been returned to the app.",
+                    );
+                    return;
+                  }
+
+                  Alert.alert(
+                    "Payment Successful",
+                    "Your payment was completed and you have been returned to the app.",
+                  );
+                  await pollPesapalPaymentStatus(returnedOrderId, user);
+                  return;
+                }
+              } catch (browserError) {
+                console.error("Pesapal browser launch error:", browserError);
+              }
+
+              await pollPesapalPaymentStatus(result.orderId, user);
+            },
+          },
+          { text: "Cancel", style: "cancel" },
+        ],
+      );
+
+      return true;
+    } catch (error) {
+      console.error("=== PESAPAL PAYMENT ERROR ===", error);
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to initiate Pesapal payment";
+      Alert.alert("Pesapal Payment Error", message);
+      return false;
+    } finally {
+      setPesapalLoading(false);
+    }
+  };
+
+  const pollPesapalPaymentStatus = async (orderId, user) => {
+    setPaymentPolling(true);
+    let attempts = 0;
+    const maxAttempts = 36;
+
+    const poll = async () => {
+      try {
+        const response = await axiosClient.get(
+          `/api/payments/pesapal/status/${orderId}`,
+        );
+        const status = response.data || {};
+
+        if (status.paymentStatus === "succeeded") {
+          setPaymentPolling(false);
+
+          try {
+            await createNotification({
+              message: `🛍️ New Pesapal order #${orderId} completed successfully for KES ${Math.round(totalAmount)}.`,
+              type: "userNotification",
+              username: user?.username || user?.email,
+              userId: user?.id || user?.$id,
+              email: user?.email,
+            });
+          } catch (notificationError) {
+            console.warn("Pesapal notification error:", notificationError);
+          }
+
+          await clearCart();
+
+          Alert.alert(
+            "Payment Successful",
+            "Your Pesapal payment was completed successfully!",
+            [
+              {
+                text: "View Order",
+                onPress: () => {
+                  setNavigationTrigger({
+                    type: "pesapal",
+                    orderId,
+                    paymentMethod: "Pesapal",
+                    orderStatus: "Processing",
+                    paymentRef: `PESAPAL-${orderId}`,
+                    totalAmount,
+                    productsAmount: totalAmount,
+                    cartItems: JSON.stringify(cart),
+                    timestamp: Date.now(),
+                  });
+                },
+              },
+            ],
+          );
+          return;
+        }
+
+        if (status.paymentStatus === "failed") {
+          setPaymentPolling(false);
+          Alert.alert("Payment Failed", "Your Pesapal payment was unsuccessful. Please try again.");
+          return;
+        }
+
+        attempts += 1;
+        if (!cancelPollRef.current && attempts < maxAttempts) {
+          setTimeout(poll, 10000);
+        } else {
+          setPaymentPolling(false);
+          Alert.alert(
+            "Payment Timeout",
+            "We could not confirm payment yet. Please check your order status later.",
+            [
+              {
+                text: "Check Order Status",
+                onPress: () => {
+                  setNavigationTrigger({
+                    type: "pesapal-timeout",
+                    orderId,
+                    paymentMethod: "Pesapal",
+                    orderStatus: "Pending",
+                    paymentRef: `PESAPAL-${orderId}`,
+                    totalAmount,
+                    productsAmount: totalAmount,
+                    cartItems: JSON.stringify(cart),
+                    timestamp: Date.now(),
+                  });
+                },
+              },
+              { text: "Cancel", style: "cancel" },
+            ],
+          );
+        }
+      } catch (error) {
+        console.error("Error polling Pesapal status:", error);
+        attempts += 1;
+        if (!cancelPollRef.current && attempts < maxAttempts) {
+          setTimeout(poll, 10000);
+        } else {
+          setPaymentPolling(false);
+          Alert.alert("Error", "Unable to verify your Pesapal payment. Please contact support.");
+        }
+      }
+    };
+
+    poll();
+  };
+
   const initiateCheckout = async () => {
     if (!selectedMethod) {
       Alert.alert("Error", "Please select a payment method.");
@@ -624,6 +871,8 @@ const Payments = () => {
         await handleCashOnDelivery(user, token);
       } else if (selectedMethod === "mobile") {
         await handleMpesaPayment(user, token);
+      } else if (selectedMethod === "pesapal") {
+        await handlePesapalPayment(user);
       } else if (selectedMethod === "card") {
         const payload = {
           cart,
@@ -1006,8 +1255,8 @@ const Payments = () => {
               })}
             </View>
 
-            {/* M-Pesa Phone Number Input */}
-            {selectedMethod === "mobile" && (
+            {/* Phone Number Input */}
+            {(selectedMethod === "mobile" || selectedMethod === "pesapal") && (
               <View
                 style={{
                   backgroundColor: "#F0FDF4",
@@ -1026,7 +1275,9 @@ const Payments = () => {
                     marginBottom: 12,
                   }}
                 >
-                  Enter M-Pesa Phone Number
+                  {selectedMethod === "pesapal"
+                    ? "Enter your mobile wallet number"
+                    : "Enter M-Pesa Phone Number"}
                 </Text>
                 <TextInput
                   style={{
@@ -1055,7 +1306,9 @@ const Payments = () => {
                     lineHeight: 16,
                   }}
                 >
-                  You will receive an M-Pesa prompt on this number
+                  {selectedMethod === "pesapal"
+                    ? "This is the number Pesapal will use for the confirming wallet payment."
+                    : "You will receive an M-Pesa prompt on this number"}
                 </Text>
               </View>
             )}
@@ -1106,25 +1359,41 @@ const Payments = () => {
             <TouchableOpacity
               onPress={initiateCheckout}
               disabled={
-                loading || !selectedMethod || mpesaLoading || paymentPolling
+                loading ||
+                !selectedMethod ||
+                mpesaLoading ||
+                pesapalLoading ||
+                paymentPolling
               }
               style={{
                 backgroundColor:
-                  loading || !selectedMethod || mpesaLoading || paymentPolling
+                  loading ||
+                  !selectedMethod ||
+                  mpesaLoading ||
+                  pesapalLoading ||
+                  paymentPolling
                     ? "#9CA3AF"
                     : "#16A34A",
                 borderRadius: 16,
                 padding: 20,
                 alignItems: "center",
                 shadowColor:
-                  loading || !selectedMethod || mpesaLoading || paymentPolling
+                  loading ||
+                  !selectedMethod ||
+                  mpesaLoading ||
+                  pesapalLoading ||
+                  paymentPolling
                     ? "transparent"
                     : "#16A34A",
                 shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.3,
                 shadowRadius: 12,
                 elevation:
-                  loading || !selectedMethod || mpesaLoading || paymentPolling
+                  loading ||
+                  !selectedMethod ||
+                  mpesaLoading ||
+                  pesapalLoading ||
+                  paymentPolling
                     ? 0
                     : 8,
                 position: "relative",
@@ -1137,7 +1406,7 @@ const Payments = () => {
                   justifyContent: "center",
                 }}
               >
-                {loading || mpesaLoading || paymentPolling ? (
+                {loading || mpesaLoading || pesapalLoading || paymentPolling ? (
                   <>
                     <ActivityIndicator color="white" size="small" />
                     <Text
@@ -1164,9 +1433,11 @@ const Payments = () => {
                     >
                       {selectedMethod === "mobile"
                         ? "Send M-Pesa Prompt"
-                        : selectedMethod
-                          ? "Confirm Order"
-                          : "Select Payment Method"}
+                        : selectedMethod === "pesapal"
+                          ? "Continue to Pesapal"
+                          : selectedMethod
+                            ? "Confirm Order"
+                            : "Select Payment Method"}
                     </Text>
                     {selectedMethod && (
                       <ArrowRight
@@ -1182,6 +1453,7 @@ const Payments = () => {
               {/* Lock Badge */}
               {!loading &&
                 !mpesaLoading &&
+                !pesapalLoading &&
                 !paymentPolling &&
                 selectedMethod && (
                   <View

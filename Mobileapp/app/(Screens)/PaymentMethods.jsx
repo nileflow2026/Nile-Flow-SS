@@ -74,6 +74,18 @@ const PaymentMethods = () => {
         ),
     },
     {
+      title: "Pesapal",
+      subtitle: "Cards, M-Pesa, Airtel Money, and more",
+      icon: "payment",
+      iconColors: ["#7C3AED", "#4F46E5"],
+      onPress: () =>
+        Alert.alert(
+          "Pesapal",
+          "Pesapal checkout is available during order payment in the app.",
+          [{ text: "OK" }],
+        ),
+    },
+    {
       title: "Bank Transfer",
       subtitle: "Direct bank transfer",
       icon: "account-balance",
@@ -229,8 +241,8 @@ const PaymentMethods = () => {
           <View style={styles.noticeTextContainer}>
             <Text style={styles.noticeTitle}>Secure Payments</Text>
             <Text style={styles.noticeSubtitle}>
-              All transactions are encrypted and processed securely via Stripe
-              and M-Pesa
+              All transactions are encrypted and processed securely via Stripe,
+              Pesapal, and M-Pesa
             </Text>
           </View>
         </View>
