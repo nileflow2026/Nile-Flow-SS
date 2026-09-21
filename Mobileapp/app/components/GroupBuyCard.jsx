@@ -13,6 +13,7 @@
  */
 import { Image } from "expo-image";
 import { Text, TouchableOpacity, View } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import CountdownTimer from "./CountdownTimer";
 import ParticipantList from "./ParticipantList";
 
@@ -56,7 +57,9 @@ export default function GroupBuyCard({ group, onPress, onJoin }) {
           {/* Product image */}
           {productImage ? (
             <Image
-              source={{ uri: productImage }}
+              source={{
+                uri: imageForSize(productImage, IMAGE_SIZE.SMALL),
+              }}
               className="w-16 h-16 rounded-xl bg-gray-100"
               contentFit="cover"
               cachePolicy="memory-disk"

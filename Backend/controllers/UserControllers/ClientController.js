@@ -538,8 +538,8 @@ const getProductsForMobile = async (req, res) => {
         productName: doc.productName,
         price: doc.price,
         brand: doc.brand,
-        image: doc.image,
-        images: doc.images || [],
+        image: buildImageUrl(doc.image),
+        images: normalizeImagesToUrls(doc.images || []),
         description: doc.description,
         stock: doc.stock,
         category: doc.category,
@@ -589,21 +589,62 @@ const getProductsForMobile = async (req, res) => {
   }
 };
 /**
+ * Convert Appwrite storage URLs to public preview URLs so they can be used
+ * reliably by web/mobile clients without admin-mode params or /view restrictions.
+ */
+const normalizeAppwritePublicUrl = (url) => {
+  if (!url || typeof url !== "string") return url;
+  if (!url.includes("cloud.appwrite.io") && !url.includes("/v1/storage/")) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const params = parsed.searchParams;
+
+    [
+      "mode",
+      "impersonateuserid",
+      "impersonateUserId",
+      "impersonateuseremail",
+      "impersonateUserEmail",
+      "impersonateuserphone",
+      "impersonateUserPhone",
+    ].forEach((key) => params.delete(key));
+
+    if (!params.has("project") && parsed.hostname.includes("appwrite")) {
+      params.set("project", env.APPWRITE_PROJECT_ID || "");
+    }
+
+    params.set("mode", "public");
+
+    const pathname = parsed.pathname.replace(/\/view(?=$|[/?])/, "/preview");
+    parsed.pathname = pathname;
+    return parsed.toString();
+  } catch (_) {
+    return url;
+  }
+};
+
+/**
  * Convert an Appwrite file ID or URL to a full image URL.
- * If the input is already a full URL, return it as-is.
+ * If the input is already a full URL, normalize it to a public preview URL.
  * If it's a file ID, build the proper Appwrite storage URL.
  */
 const buildImageUrl = (imageData) => {
   if (!imageData) return null;
   if (typeof imageData === "string") {
-    // Already a URL
-    if (imageData.startsWith("http")) return imageData;
-    // Raw file ID - build the URL
-    return `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${imageData}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
+    if (imageData.startsWith("http")) {
+      return normalizeAppwritePublicUrl(imageData);
+    }
+    return normalizeAppwritePublicUrl(
+      `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${imageData}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`,
+    );
   }
   if (typeof imageData === "object" && !Array.isArray(imageData)) {
-    // Object with url/id fields
-    return imageData.url || imageData.imageUrl || buildImageUrl(imageData.id);
+    return normalizeAppwritePublicUrl(
+      imageData.url || imageData.imageUrl || buildImageUrl(imageData.id),
+    );
   }
   return null;
 };
@@ -661,11 +702,11 @@ const normalizeImagesToUrls = (images) => {
         try {
           const parsed = JSON.parse(img);
           if (parsed && typeof parsed === "object" && parsed.url)
-            return parsed.url;
+            return normalizeAppwritePublicUrl(parsed.url);
         } catch (_) {}
-        return img;
+        return normalizeAppwritePublicUrl(img);
       }
-      if (typeof img === "object") return img.url ?? null;
+      if (typeof img === "object") return normalizeAppwritePublicUrl(img.url ?? null);
       return null;
     })
     .filter(Boolean);

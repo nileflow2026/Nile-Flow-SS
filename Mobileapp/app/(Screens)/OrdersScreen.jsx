@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const OrdersScreen = () => {
   const router = useRouter();
@@ -193,9 +194,14 @@ const OrdersScreen = () => {
             items.map((item, index) => (
               <View key={index} style={styles.itemRow}>
                 <View style={styles.itemPlaceholder}>
-                  {item.productImage ? (
+                  {item.productImage || item.image || item.thumbnail ? (
                     <Image
-                      source={{ uri: item.productImage }}
+                      source={{
+                        uri: imageForSize(
+                          item.productImage || item.image || item.thumbnail,
+                          IMAGE_SIZE.SMALL,
+                        ),
+                      }}
                       style={styles.productImage}
                       contentFit="cover"
                       cachePolicy="memory-disk"

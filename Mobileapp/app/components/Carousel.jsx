@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const width = Dimensions.get("window").width;
 const Carousel = ({ products }) => {
@@ -47,7 +48,9 @@ const Carousel = ({ products }) => {
         style={{ width: width, alignItems: "center", justifyContent: "center" }}
       >
         <Image
-          source={{ uri: item.image }}
+          source={{
+            uri: imageForSize(item.image, IMAGE_SIZE.HERO),
+          }}
           style={{
             width: "90%",
             height: 160,

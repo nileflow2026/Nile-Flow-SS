@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFavorites } from "../../Context/FavoritesContext";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
 
@@ -86,7 +87,12 @@ const Favorites = () => {
                   className="bg-nile-surface rounded-lg mb-5"
                 >
                   <Image
-                    source={{ uri: item.productImage }}
+                    source={{
+                      uri: imageForSize(
+                        item.productImage || item.image || item.thumbnail,
+                        IMAGE_SIZE.SMALL,
+                      ),
+                    }}
                     className="rounded-3xl mr-3"
                     style={{ width: imageWidth, height: imageHeight }}
                     contentFit="cover"

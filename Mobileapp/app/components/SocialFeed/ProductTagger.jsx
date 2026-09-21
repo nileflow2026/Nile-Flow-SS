@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../../utils/imageOptimizer";
 
 export default function ProductTagger({
   taggedProducts,
@@ -33,7 +34,9 @@ export default function ProductTagger({
             <View key={product.id} style={styles.taggedChip}>
               {product.image && (
                 <Image
-                  source={{ uri: product.image }}
+                  source={{
+                    uri: imageForSize(product.image, IMAGE_SIZE.THUMBNAIL),
+                  }}
                   style={styles.chipImage}
                 />
               )}
@@ -84,7 +87,9 @@ export default function ProductTagger({
               >
                 {item.image ? (
                   <Image
-                    source={{ uri: item.image }}
+                    source={{
+                      uri: imageForSize(item.image, IMAGE_SIZE.THUMBNAIL),
+                    }}
                     style={styles.resultImage}
                   />
                 ) : (

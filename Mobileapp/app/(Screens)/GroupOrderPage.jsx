@@ -31,6 +31,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import { useGroupBuy } from "../../Context/GroupBuyContext";
 import CountdownTimer from "../components/CountdownTimer";
 import ParticipantList from "../components/ParticipantList";
@@ -276,7 +277,9 @@ export default function GroupOrderPage() {
             <View className="flex-row gap-4">
               {productImage ? (
                 <Image
-                  source={{ uri: productImage }}
+                  source={{
+                    uri: imageForSize(productImage, IMAGE_SIZE.SMALL),
+                  }}
                   className="w-20 h-20 rounded-xl bg-gray-200"
                   contentFit="cover"
                   cachePolicy="memory-disk"

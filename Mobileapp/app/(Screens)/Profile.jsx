@@ -42,6 +42,7 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
+import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import { useFavorites } from "../../Context/FavoritesContext";
 import {
   getCustomerOrders,
@@ -616,7 +617,12 @@ const ProfilePage = () => {
             {favorites.map((product) => (
               <View key={product.$id || product.id} style={styles.wishlistItem}>
                 <ExpoImage
-                  source={{ uri: product.image || product.thumbnail }}
+                  source={{
+                    uri: imageForSize(
+                      product.image || product.thumbnail,
+                      IMAGE_SIZE.MEDIUM,
+                    ),
+                  }}
                   style={styles.wishlistImage}
                   contentFit="cover"
                   cachePolicy="memory-disk"

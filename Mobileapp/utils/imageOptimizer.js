@@ -52,13 +52,43 @@ export function isAppwriteUrl(url) {
  * The /preview endpoint supports: ?width=N&height=N&quality=N&output=webp
  * The /view endpoint does NOT support those params.
  */
+function sanitizeAppwriteUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  if (!isAppwriteUrl(url)) return url;
+
+  try {
+    const parsed = new URL(url);
+    const params = parsed.searchParams;
+
+    // Strip admin-only/impersonation params that can break public mobile image loads.
+    [
+      "mode",
+      "impersonateuserid",
+      "impersonateUserId",
+      "impersonateuseremail",
+      "impersonateUserEmail",
+      "impersonateuserphone",
+      "impersonateUserPhone",
+    ].forEach((key) => params.delete(key));
+
+    // Public storage URLs are the safest option for app consumers.
+    // Avoid setting a blank project token here because Appwrite public URLs
+    // should either include the project param or rely on the bucket's public mode.
+    if (!params.has("mode")) {
+      params.set("mode", "public");
+    }
+
+    const normalized = parsed.toString();
+    return normalized.includes("/view") ? normalized.replace("/view", "/preview") : normalized;
+  } catch {
+    return url;
+  }
+}
+
 function ensurePreviewEndpoint(url) {
   if (!url || typeof url !== "string") return url;
-  // Only transform Appwrite URLs
   if (!isAppwriteUrl(url)) return url;
-  // Only transform /view → /preview
-  if (!url.includes("/view")) return url;
-  return url.replace("/view", "/preview");
+  return sanitizeAppwriteUrl(url).replace("/view", "/preview");
 }
 
 /**

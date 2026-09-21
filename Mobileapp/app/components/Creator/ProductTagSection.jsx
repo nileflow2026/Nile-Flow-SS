@@ -25,6 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { imageForSize, IMAGE_SIZE } from "../../../utils/imageOptimizer";
 
 export default function ProductTagSection({
   taggedProducts,
@@ -80,7 +81,12 @@ export default function ProductTagSection({
         >
           {taggedProducts.map((p) => (
             <View key={p.id} style={s.chip}>
-              {p.image && <Image source={{ uri: p.image }} style={s.chipImg} />}
+              {p.image && (
+                <Image
+                  source={{ uri: imageForSize(p.image, IMAGE_SIZE.THUMBNAIL) }}
+                  style={s.chipImg}
+                />
+              )}
               <Text style={s.chipName} numberOfLines={1}>
                 {p.name}
               </Text>
@@ -165,7 +171,9 @@ export default function ProductTagSection({
                       >
                         {item.image ? (
                           <Image
-                            source={{ uri: item.image }}
+                            source={{
+                              uri: imageForSize(item.image, IMAGE_SIZE.THUMBNAIL),
+                            }}
                             style={s.resultImg}
                           />
                         ) : (

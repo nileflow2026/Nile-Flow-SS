@@ -2,6 +2,7 @@ import moment from "moment";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { getProducts } from "../Context/GlobalProvider";
+import { imageForSize, IMAGE_SIZE } from "./imageOptimizer";
 
 export default function FlashSaleSection({ theme, themeStyles, router }) {
   const [flashProducts, setFlashProducts] = useState([]);
@@ -69,7 +70,9 @@ export default function FlashSaleSection({ theme, themeStyles, router }) {
               }}
             >
               <Image
-                source={{ uri: item.image }}
+                source={{
+                  uri: imageForSize(item.image, IMAGE_SIZE.MEDIUM),
+                }}
                 style={{ width: 100, height: 100, borderRadius: 8 }}
                 resizeMode="cover"
               />

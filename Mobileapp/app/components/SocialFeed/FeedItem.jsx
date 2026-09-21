@@ -21,13 +21,16 @@ import {
 } from "react-native";
 import { useCart } from "../../../Context/CartContext_NEW";
 import { useSocial } from "../../../Context/SocialContext";
+import { imageForSize, IMAGE_SIZE } from "../../../utils/imageOptimizer";
 import CommentsSheet from "./CommentsSheet";
 import socialShare from "./SocialShare";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const DEFAULT_AVATAR =
-  "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94";
+const DEFAULT_AVATAR = imageForSize(
+  "https://fra.cloud.appwrite.io/v1/storage/buckets/692a3b700039c02fb4bc/files/695439130011158bb8af/view?project=6926c7df002fa7831d94",
+  IMAGE_SIZE.THUMBNAIL,
+);
 
 /**
  * FeedItem - Core social commerce feed component
@@ -195,7 +198,12 @@ export default function FeedItem({
         return (
           <View style={styles.contentContainer}>
             <Image
-              source={{ uri: item.imageUrl || item.mediaUrl }}
+              source={{
+                uri: imageForSize(
+                  item.imageUrl || item.mediaUrl,
+                  IMAGE_SIZE.HERO,
+                ),
+              }}
               style={styles.media}
               contentFit="cover"
               cachePolicy="memory-disk"
@@ -215,7 +223,9 @@ export default function FeedItem({
             ]}
           >
             <Image
-              source={{ uri: item.product.image }}
+              source={{
+                uri: imageForSize(item.product.image, IMAGE_SIZE.MEDIUM),
+              }}
               style={styles.dealImage}
               contentFit="cover"
               cachePolicy="memory-disk"
