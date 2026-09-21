@@ -23,7 +23,9 @@ module.exports = () => ({
     },
     extra: {
       API_URL:
-        process.env.API_BASE_URL || "https://nile-flow-backend-5dqm.onrender.com",
+        process.env.API_URL || process.env.API_BASE_URL || "http://10.0.2.2:3000",
+      API_BASE_URL:
+        process.env.API_BASE_URL || process.env.API_URL || "http://10.0.2.2:3000",
       STRIPE_KEY: process.env.STRIPE_KEY || "",
       STRIPE_PUBLISH_KEY: process.env.STRIPE_PUBLISH_KEY || "",
       FLW_PUBLIC_KEY: process.env.FLW_PUBLIC_KEY || "",

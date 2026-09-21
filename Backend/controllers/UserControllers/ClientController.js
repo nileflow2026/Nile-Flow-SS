@@ -321,6 +321,56 @@ const clearRecentSearches = async (req, res) => {
   }
 };
 
+const listDocumentsDirect = async (databaseId, collectionId, queries = []) => {
+  const queryString = queries
+    .map((query) => `queries[]=${encodeURIComponent(query)}`)
+    .join("&");
+
+  const url =
+    `${env.APPWRITE_ENDPOINT}/databases/${databaseId}/collections/${collectionId}/documents` +
+    (queryString ? `?${queryString}` : "");
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-Appwrite-Project": env.APPWRITE_PROJECT_ID,
+      "X-Appwrite-Key": env.APPWRITE_API_KEY,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Appwrite REST listDocuments failed with ${response.status}: ${text.slice(0, 250)}`,
+    );
+  }
+
+  return response.json();
+};
+
+const getDocumentDirect = async (databaseId, collectionId, documentId) => {
+  const url = `${env.APPWRITE_ENDPOINT}/databases/${databaseId}/collections/${collectionId}/documents/${documentId}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-Appwrite-Project": env.APPWRITE_PROJECT_ID,
+      "X-Appwrite-Key": env.APPWRITE_API_KEY,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Appwrite REST getDocument failed with ${response.status}: ${text.slice(0, 250)}`,
+    );
+  }
+
+  return response.json();
+};
+
 const getProducts = async (req, res) => {
   try {
     const {
@@ -410,7 +460,7 @@ const getProducts = async (req, res) => {
     const queries = [Query.limit(pageLimit), sortQuery, ...baseFilters];
     if (offset > 0) queries.push(Query.offset(offset));
 
-    const batch = await instrumentedDb.listDocuments(
+    const batch = await listDocumentsDirect(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       queries,
@@ -506,7 +556,7 @@ const getProductsForMobile = async (req, res) => {
     }
 
     // 1️⃣ ONE SINGLE DATABASE CALL GETS EVERYTHING
-    const batch = await instrumentedDb.listDocuments(
+    const batch = await listDocumentsDirect(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_PRODUCT_COLLECTION_ID,
       queries,
@@ -1501,13 +1551,13 @@ const calculateTimeLeft = (endTime) => {
 
 const getHeroProducts = async (req, res) => {
   try {
-    const { documents: featured } = await instrumentedDb.listDocuments(
+    const { documents: featured } = await listDocumentsDirect(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_FEATURED_COLLECTION_ID,
       [Query.limit(3), Query.orderDesc("$createdAt")],
     );
 
-    const { documents: deals } = await instrumentedDb.listDocuments(
+    const { documents: deals } = await listDocumentsDirect(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_DEALS_COLLECTION_ID,
       [Query.limit(3), Query.orderDesc("$createdAt")],
@@ -1521,21 +1571,19 @@ const getHeroProducts = async (req, res) => {
         docs.map(async (doc) => {
           if (!doc.productId) return { ...doc, type };
           try {
-            const product = await instrumentedDb.getDocument(
+            const product = await getDocumentDirect(
               env.APPWRITE_DATABASE_ID,
               env.APPWRITE_PRODUCT_COLLECTION_ID,
               doc.productId,
             );
             return {
-              ...product, // full product fields (description, category, etc.)
-              ...doc, // featured/deal-specific fields (discount, tag, etc.)
-              $id: product.$id, // ensure the correct product $id wins
+              ...product,
+              ...doc,
+              $id: product.$id,
               id: product.$id,
               type,
             };
           } catch {
-            // If the product fetch fails, still return the hero doc so the
-            // slide renders — just without the enriched fields.
             return { ...doc, type };
           }
         }),
@@ -1555,7 +1603,7 @@ const getHeroProducts = async (req, res) => {
 
 const getCategories = async (req, res) => {
   try {
-    const { documents } = await instrumentedDb.listDocuments(
+    const { documents } = await listDocumentsDirect(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_CATEGORIES_COLLECTION_ID,
       [Query.limit(100), Query.orderAsc("name")],

@@ -137,6 +137,13 @@ const ProductCard = ({
 
   const productTitle =
     title || productData?.productName || productData?.name || "Product";
+  const resolvedImage =
+    image ||
+    productData?.image ||
+    productData?.productImage ||
+    productData?.images?.[0] ||
+    productData?.thumbnail ||
+    "";
 
   return (
     <TouchableOpacity
@@ -200,7 +207,7 @@ const ProductCard = ({
         <View style={styles.imageContainer}>
           <Image
             source={{
-              uri: imageForSize(image || productData.image, IMAGE_SIZE.MEDIUM),
+              uri: imageForSize(resolvedImage, IMAGE_SIZE.MEDIUM),
             }}
             placeholder={images.Nilelogo}
             placeholderContentFit="contain"

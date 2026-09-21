@@ -104,8 +104,11 @@ const schema = Joi.object({
   // Pesapal API 3.0
   PESAPAL_CONSUMER_KEY: Joi.string().optional(),
   PESAPAL_CONSUMER_SECRET: Joi.string().optional(),
-  PESAPAL_NOTIFICATION_ID: Joi.string().guid({ version: 'uuidv4' }).optional(),
-  PESAPAL_ENVIRONMENT: Joi.string().valid('sandbox', 'production').default('sandbox'),
+  PESAPAL_NOTIFICATION_ID: Joi.string()
+    .guid({ version: "uuidv4" })
+    .allow("")
+    .optional(),
+  PESAPAL_ENVIRONMENT: Joi.string().valid("sandbox", "production").default("sandbox"),
   // OpenAI API
   OPENAI_API_KEY: Joi.string().optional(),
   // Exchange Rate API (optional — free tier works without key)

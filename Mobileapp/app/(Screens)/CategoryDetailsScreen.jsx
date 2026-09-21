@@ -176,7 +176,11 @@ const CategoryDetailsScreen = () => {
           <Image
             source={{
               uri: imageForSize(
-                item.image || "https://via.placeholder.com/300",
+                item.image ||
+                  item.productImage ||
+                  item.images?.[0] ||
+                  item.thumbnail ||
+                  "https://via.placeholder.com/300",
                 IMAGE_SIZE.MEDIUM,
               ),
             }}

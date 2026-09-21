@@ -42,33 +42,24 @@ class AppwriteService {
       // Test connection with available scopes
       // console.log("🔄 Testing available scopes...");
 
-      // Test 1: User operations (should work with users.read/write)
+      // Verify the configured key works at the REST layer without triggering the buggy
+      // node-appwrite SDK permission probe that throws a false "users.read scope" error.
       try {
-        const userList = await this.users.list([], 1);
-        // console.log(`✅ users.read: OK (${userList.total} users found)`);
-      } catch (error) {
-        console.error("❌ users.read: FAILED - ", error.message);
-        throw new Error("API key missing users.read scope");
-      }
+        const healthCheck = await fetch(`${endpoint}/users`, {
+          method: "GET",
+          headers: {
+            "X-Appwrite-Project": projectId,
+            "X-Appwrite-Key": apiKey,
+            "Content-Type": "application/json",
+          },
+        });
 
-      // Test 2: Session operations (should work with sessions.write)
-      try {
-        // We can't test sessions.write without credentials, but we can verify the service
-        // console.log("✅ sessions.write: Service ready");
+        if (!healthCheck.ok) {
+          throw new Error(`Appwrite health check returned ${healthCheck.status}`);
+        }
       } catch (error) {
-        console.error("❌ sessions.write: FAILED - ", error.message);
-      }
-
-      // Test 3: Database operations
-      try {
-        const collections = await this.db.listCollections(
-          env.APPWRITE_DATABASE_ID,
-          [],
-          1
-        );
-        // console.log(`✅ databases.read: OK (${collections.total} collections)`);
-      } catch (error) {
-        console.warn("⚠️  databases.read: Limited - ", error.message);
+        console.error("❌ Appwrite connectivity check failed - ", error.message);
+        throw new Error("Appwrite key/project is not valid for this environment");
       }
 
       this.isConnected = true;
