@@ -37,7 +37,7 @@ const FeaturedForm = ({ onProductAdded }) => {
     }
 
     try {
-      await axiosClient.post("/api/admin/products/products/feature", { 
+      await axiosClient.post("/api/admin/products/feature", {
         productId: selectedProduct,
         tag: tag, // Pass the tag to the backend
       });
