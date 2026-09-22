@@ -1223,7 +1223,11 @@ const submitRating = async (req, res) => {
       reviewData,
     );
 
-    await updateProductRatingAggregate(productId, parsedRating);
+    try {
+      await updateProductRatingAggregate(productId, parsedRating);
+    } catch (aggregateError) {
+      console.error("Failed to update product rating aggregate:", aggregateError.message);
+    }
 
     console.log("Review submitted:", response);
     return res
@@ -1895,12 +1899,15 @@ const getMobileProducts = async (req, res) => {
 
 const getProducts2 = async (req, res) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, subcategoryId } = req.query;
 
     let queries = [Query.limit(100), Query.orderDesc("$createdAt")];
 
     if (category && category !== "all") {
       queries.push(Query.contains("categoryId", category));
+    }
+    if (subcategoryId) {
+      queries.push(Query.contains("subcategoryId", subcategoryId));
     }
     if (search) {
       queries.push(Query.search("productName", search));

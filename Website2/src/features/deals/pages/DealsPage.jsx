@@ -233,6 +233,7 @@ const DealsPage = () => {
     { value: 'all', label: 'All Deals', icon: '🔥' },
     { value: 'product', label: 'Product Deals', icon: '🏷️' },
     { value: 'flash', label: 'Flash Sales', icon: '⚡' },
+    { value: 'ending-soon', label: 'Ending Soon', icon: '⏱️' },
     { value: 'premium', label: 'Premium', icon: '⭐' },
   ]
 
@@ -282,7 +283,9 @@ const DealsPage = () => {
 
   const filteredProducts = products.filter((p) => {
     if (filter === 'all') return true
-    if (filter === 'flash') return flashSales.some((f) => f.productId === p.productId)
+    if (filter === 'flash') return p.isFlash || flashSales.some((f) => f.productId === p.productId)
+    if (filter === 'product') return !p.isFlash && !p.isPremium && !p.premiumDeal
+    if (filter === 'ending-soon') return p.isExpiringSoon
     if (filter === 'premium') return p.isPremium || p.premiumDeal
     return true
   })
