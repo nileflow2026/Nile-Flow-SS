@@ -22,6 +22,37 @@ import { SeoHead } from '@shared/seo/SeoHead'
 import { createProductSchema, buildCanonicalUrl } from '@shared/seo/SchemaFactory'
 import Breadcrumbs from '@shared/ui/breadcrumbs/Breadcrumbs'
 
+const COLOR_SWATCHES = {
+  black: '#111827',
+  white: '#FFFFFF',
+  red: '#EF4444',
+  blue: '#3B82F6',
+  'light blue': '#ADD8E6',
+  lightblue: '#ADD8E6',
+  green: '#22C55E',
+  yellow: '#FACC15',
+  orange: '#F97316',
+  purple: '#A855F7',
+  pink: '#EC4899',
+  brown: '#92400E',
+  gold: '#D4AF37',
+  goldbrown: '#B8860B',
+  'gold brown': '#B8860B',
+  grey: '#6B7280',
+  gray: '#6B7280',
+  silver: '#C0C0C0',
+  beige: '#D6C6A5',
+  cream: '#FFFDD0',
+  navy: '#1E3A8A',
+  maroon: '#7F1D1D',
+}
+
+function resolveColorSwatch(value) {
+  const normalized = String(value).trim().toLowerCase().replace(/\s+/g, ' ')
+  const compact = normalized.replace(/[\s_-]+/g, '')
+  return COLOR_SWATCHES[normalized] || COLOR_SWATCHES[compact] || value
+}
+
 function ProductDetailPage() {
   const { productId } = useParams()
   const { isAuthenticated, user } = useAuth()
@@ -413,7 +444,7 @@ function ProductDetailPage() {
                         >
                           <span
                             className="block h-full w-full rounded-full border border-black/10"
-                            style={{ backgroundColor: option }}
+                            style={{ backgroundColor: resolveColorSwatch(option) }}
                           />
                         </button>
                       )
