@@ -114,7 +114,7 @@ function ImageCarousel({ images = [], alt = '', fallback = FALLBACK_IMAGE }) {
               <img
                 src={getProxiedUrl(src)}
                 alt={`${alt} — image ${i + 1}`}
-                className="h-full w-full object-contain p-2 sm:object-cover sm:p-0"
+                className="h-full w-full object-contain p-2 sm:p-4"
                 loading="eager"
                 decoding="async"
                 fetchPriority={i === 0 ? 'high' : 'low'}
