@@ -6,6 +6,22 @@ const { env } = require("../src/env");
 
 // Lazy-load Sentry to avoid circular dependency issues at startup
 let _sentry;
+const SENSITIVE_KEY_PATTERN = /password|token|authorization|cookie|secret|api[_-]?key|clientsecret|privatekey|cardnumber|cvv|paymenttoken/i;
+
+function redactSensitiveData(value, key = "") {
+  if (SENSITIVE_KEY_PATTERN.test(key)) return "[REDACTED]";
+  if (Array.isArray(value)) return value.map((item) => redactSensitiveData(item));
+  if (value && typeof value === "object" && !(value instanceof Error)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        redactSensitiveData(entryValue, entryKey),
+      ]),
+    );
+  }
+  return value;
+}
+
 function getSentry() {
   if (!_sentry) {
     try {
@@ -83,25 +99,26 @@ class Logger {
 
   // Helper methods for different log levels
   info(message, meta = {}) {
-    this.logger.info(message, meta);
+    this.logger.info(message, redactSensitiveData(meta));
   }
 
   error(message, meta = {}) {
-    this.logger.error(message, meta);
+    const safeMeta = redactSensitiveData(meta);
+    this.logger.error(message, safeMeta);
     // Forward errors to Sentry so they appear in the Sentry Issues board
     const sentry = getSentry();
     if (sentry) {
       const err = meta instanceof Error ? meta : new Error(message);
-      sentry.captureException(err, { extra: meta });
+      sentry.captureException(err, { extra: safeMeta });
     }
   }
 
   warn(message, meta = {}) {
-    this.logger.warn(message, meta);
+    this.logger.warn(message, redactSensitiveData(meta));
   }
 
   debug(message, meta = {}) {
-    this.logger.debug(message, meta);
+    this.logger.debug(message, redactSensitiveData(meta));
   }
 
   // HTTP request logging

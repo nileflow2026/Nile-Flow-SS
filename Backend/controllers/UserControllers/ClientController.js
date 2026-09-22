@@ -1746,7 +1746,7 @@ const getCategoryById = async (req, res) => {
 
 const getSubcategoriesByCategoryId = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.categoryId || req.params.id;
 
     // 1. Check if category exists
     let category;

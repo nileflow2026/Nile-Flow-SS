@@ -51,7 +51,10 @@ const {
   approveProduct,
   rejectProduct,
 } = require("../controllers/AdminControllers/ProductapprovalController");
+const { adminOnly } = require("../middleware/auth");
 const router = express.Router();
+
+router.use(authenticateToken, adminOnly);
 
 router.get("/orders", authenticateToken, getOrders);
 router.get("/orders/cancelled", authenticateToken, getCancelledOrders);

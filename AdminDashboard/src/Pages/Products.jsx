@@ -112,7 +112,6 @@ export default function Products() {
         );
         const cats = response.data;
         setCategories(Array.isArray(cats) ? cats : []);
-        console.log("Raw categories data:", cats);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         toast.error("Failed to load categories");
@@ -120,39 +119,6 @@ export default function Products() {
     };
     fetchCategories();
   }, []);
-
-  // Add this useEffect to debug product data
-  useEffect(() => {
-    if (productsList.length > 0) {
-      console.log("=== FRONTEND PRODUCTS DEBUG ===");
-      productsList.forEach((product, index) => {
-        console.log(`Product ${index + 1}:`, {
-          name: product.productName,
-          id: product.$id,
-          categories: product.category,
-          categoryCount: product.category?.length || 0,
-        });
-      });
-    }
-  }, [productsList]);
-
-  // Also add this to your fetchProductsData function:
-  const fetchProductsData = async () => {
-    setLoading(true);
-    try {
-      const data = await getProducts("", "");
-      console.log("Fetched products data:", data);
-      setProductsList(data || []);
-      setError(null);
-      toast.success(`${data?.length || 0} products loaded`);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-      setError(error.message);
-      toast.error("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Fetch products
   useEffect(() => {
@@ -447,26 +413,11 @@ export default function Products() {
     return productsList.find((p) => p.$id === editingProductId);
   }, [editingProductId, productsList]);
 
-  // In your Products component, update the handleUpdateCategory function
-  // Add this debug in your handleUpdateCategory function
   const handleUpdateCategory = useCallback(async () => {
     if (!newCategoryId) {
       toast.warning("Please select a category");
       return;
     }
-
-    // Debug: Verify productToEdit
-    console.log("=== FRONTEND DEBUG ===");
-    console.log("1. productToEdit:", {
-      id: productToEdit?.$id,
-      name: productToEdit?.productName,
-      currentCategories: productToEdit?.category,
-    });
-    console.log("2. newCategoryId:", newCategoryId);
-    console.log(
-      "3. Selected category name:",
-      categories.find((c) => c.id === newCategoryId)?.name,
-    );
 
     try {
       const response = await axiosClient.put(
@@ -476,19 +427,11 @@ export default function Products() {
           categoryId: newCategoryId,
         },
       );
-
-      console.log("4. Update response:", response.data);
-
       toast.success(response.data.message || "Category added successfully!");
       setShowCategoryModal(false);
       setNewCategoryId("");
       setRefreshTrigger((prev) => !prev);
     } catch (error) {
-      console.error("5. Update error:", {
-        message: error.response?.data?.error,
-        productId: productToEdit?.$id,
-        categoryId: newCategoryId,
-      });
       toast.error(error.response?.data?.error || "Failed to update category");
     }
   }, [newCategoryId, productToEdit, categories]);

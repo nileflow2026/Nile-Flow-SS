@@ -24,6 +24,19 @@ export const categoryService = {
   },
 
   /**
+   * Fetch subcategories belonging to a category.
+   * @param {string} categoryId - Category document identifier
+   * @returns {Promise<Array>}
+   */
+  async getSubcategories(categoryId) {
+    if (!categoryId) return [];
+    const response = await httpClient.get(`${BASE}/categories/${categoryId}/subcategories`);
+    return Array.isArray(response.data?.subcategories)
+      ? response.data.subcategories
+      : [];
+  },
+
+  /**
    * Fetch products within a specific category.
    *
    * @param {string} categorySlug - Category identifier

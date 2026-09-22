@@ -123,8 +123,11 @@ const corsAllowedHeaders =
 
 function applyCorsHeaders(req, res) {
   const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
+  if (!origin) {
+    return true;
+  }
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header(
       "Access-Control-Allow-Methods",
@@ -285,6 +288,7 @@ try {
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'", "https://fra.cloud.appwrite.io"],
+            frameAncestors: ["'none'"],
           },
         },
         hsts: {
@@ -342,7 +346,7 @@ try {
 // Global CORS headers middleware - admin requests
 app.use("/api/admin", (req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && origin.includes("admin.nileflowafrica.com")) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header(

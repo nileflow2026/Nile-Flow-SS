@@ -51,55 +51,33 @@ export default function UserPage() {
         setIsLoading(true);
         setError(null);
 
-        // Debug: Check Appwrite configuration
-        console.log("=== DEBUGGING USER FETCH ===");
-        await debugAppwriteConfig();
-
-        // Validate userId parameter first
-        console.log("Validating user ID:", userId);
         const validation = await validateUserId(userId);
 
         if (!validation.exists) {
-          console.error("User validation failed:", validation.error);
-
-          // Debug: List available users to help identify the issue
-          console.log("Fetching available users for debugging...");
-          await debugListUsers();
-
           throw new Error(validation.error || "User not found");
         }
 
-        console.log(
-          "User validation successful, proceeding with full data fetch...",
-        );
         const userDoc = validation.user;
 
         // Fetch orders for the user using API endpoint
-        console.log("Fetching orders via API for user ID:", userId);
         try {
           const ordersData = await getUserOrders(userId);
-          console.log("Orders fetched via API:", ordersData.length || 0);
           setOrders(ordersData || []);
         } catch (orderError) {
-          console.warn("Failed to fetch orders:", orderError.message);
           setOrders([]);
         }
 
         // Fetch addresses for the user using API endpoint
-        console.log("Fetching addresses via API for user ID:", userId);
         try {
           const addressData = await getUserAddresses(userId);
-          console.log("Addresses fetched via API:", addressData.length || 0);
           setAddresses(addressData || []);
         } catch (addressError) {
-          console.warn("Failed to fetch addresses:", addressError.message);
           setAddresses([]);
         }
 
         // Try to fetch user preferences using API endpoint
         try {
           const userPrefs = await getUserPreferences(userId);
-          console.log("Fetched user preferences:", userPrefs);
           if (userPrefs) {
             setUser({
               ...userDoc,
@@ -111,21 +89,11 @@ export default function UserPage() {
             setUser(userDoc);
           }
         } catch (prefsErr) {
-          console.warn("User preferences not accessible:", prefsErr);
           setUser(userDoc);
         }
 
         setError(null);
-        console.log("=== USER FETCH SUCCESSFUL ===");
       } catch (err) {
-        console.error("Error fetching user data:", err);
-        console.error("Error details:", {
-          name: err.constructor.name,
-          code: err.code,
-          type: err.type,
-          message: err.message,
-        });
-
         // Set a more descriptive error message based on error type
         if (
           err.code === 404 ||

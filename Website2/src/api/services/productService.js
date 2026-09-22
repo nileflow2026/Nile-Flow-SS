@@ -33,6 +33,15 @@ export const productService = {
     };
   },
 
+  async getSubcategoryProducts(subcategoryId, options = {}) {
+    if (!subcategoryId) return [];
+    const response = await httpClient.get(`${BASE}/mobile-products`, {
+      subcategoryId,
+      limit: options.limit || 100,
+    });
+    return Array.isArray(response.data?.products) ? response.data.products : [];
+  },
+
   async getAllProducts() {
     const response = await httpClient.get(`${BASE}/fetch-products`);
     return Array.isArray(response.data?.products) ? response.data.products : [];

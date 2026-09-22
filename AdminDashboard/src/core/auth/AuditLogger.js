@@ -19,6 +19,17 @@ const MAX_BUFFER_SIZE = 200;
 // Whether we have a confirmed authenticated session.
 // When false, NO backend HTTP requests are fired — only in-memory buffering.
 let _authenticated = false;
+const SENSITIVE_KEY_PATTERN = /password|token|authorization|cookie|secret|api[_-]?key|clientsecret|privatekey|cardnumber|cvv|paymenttoken|email|phone|address/i;
+
+function sanitizeDetails(details) {
+  if (!details || typeof details !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(details).map(([key, value]) => [
+      key,
+      SENSITIVE_KEY_PATTERN.test(key) ? '[REDACTED]' : value,
+    ]),
+  );
+}
 
 /**
  * Mark the audit logger as ready to send to backend (authenticated).
@@ -52,11 +63,12 @@ export function isBackendDeliveryActive() {
  * @param {string} [level='info'] - Severity level: 'info', 'warn', 'error', 'critical'
  */
 export function log(action, details = {}, level = 'info') {
+  const safeDetails = sanitizeDetails(details);
   const entry = {
     action,
     level,
     timestamp: new Date().toISOString(),
-    details: JSON.stringify(details),
+    details: JSON.stringify(safeDetails),
     url: window.location.href,
     userAgent: navigator.userAgent,
   };
@@ -78,11 +90,6 @@ export function log(action, details = {}, level = 'info') {
     sendToBackend(entry);
   }
 
-  // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    const prefix = level === 'critical' ? '🔴' : level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '📋';
-    console.log(`${prefix} [Audit] ${action}`, details);
-  }
 }
 
 /**

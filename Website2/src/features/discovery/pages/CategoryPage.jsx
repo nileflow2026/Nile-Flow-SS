@@ -25,9 +25,13 @@ const CATEGORY_ICONS = {
 function CategoryPage() {
   const { slug: categorySlug } = useParams()
   const [products, setProducts] = useState([])
+  const [categoryProducts, setCategoryProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [subcategoryLoading, setSubcategoryLoading] = useState(false)
   const [error, setError] = useState(null)
   const [categoryInfo, setCategoryInfo] = useState(null)
+  const [subcategories, setSubcategories] = useState([])
+  const [selectedSubcategory, setSelectedSubcategory] = useState('')
 
   const categoryName = categoryInfo?.name || (categorySlug
     ? categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
@@ -44,6 +48,8 @@ function CategoryPage() {
       setLoading(true)
       setError(null)
       try {
+        setSubcategories([])
+        setSelectedSubcategory('')
         // 1. Resolve slug to category by fetching all and matching slug
         const allCategories = await categoryService.getCategories()
         const match = allCategories.find((c) => {
@@ -55,11 +61,13 @@ function CategoryPage() {
         if (match) {
           setCategoryInfo(match)
           const categoryId = match.$id || match.id
-          // 2. Fetch products by the real category ID
-          const result = await productService.getProducts({
-            category: categoryId,
-          })
+          const [result, categorySubcategories] = await Promise.all([
+            productService.getProducts({ category: categoryId }),
+            categoryService.getSubcategories(categoryId).catch(() => []),
+          ])
           setProducts(result.products)
+          setCategoryProducts(result.products)
+          setSubcategories(categorySubcategories)
         } else {
           // Fallback: search by the slug-derived name
           setCategoryInfo({ name: categoryName })
@@ -67,6 +75,7 @@ function CategoryPage() {
             search: categoryName,
           })
           setProducts(result.products)
+          setCategoryProducts(result.products)
         }
       } catch (err) {
         setError(err?.message || 'Failed to load category products.')
@@ -78,6 +87,25 @@ function CategoryPage() {
 
     loadCategoryProducts()
   }, [categorySlug])
+
+  const handleSubcategorySelect = async (subcategoryId) => {
+    setSelectedSubcategory(subcategoryId)
+    if (!subcategoryId) {
+      setProducts(categoryProducts)
+      return
+    }
+
+    setSubcategoryLoading(true)
+    try {
+      const subcategoryProducts = await productService.getSubcategoryProducts(subcategoryId)
+      setProducts(subcategoryProducts)
+    } catch (err) {
+      setProducts([])
+      setError(err?.message || 'Failed to load subcategory products.')
+    } finally {
+      setSubcategoryLoading(false)
+    }
+  }
 
   return (
     <PageShell>
@@ -107,8 +135,51 @@ function CategoryPage() {
         </p>
       </div>
 
+      {subcategories.length > 0 && (
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-7xl">
+            <p className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
+              Browse by subcategory
+            </p>
+            <div className="-mx-4 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0 sm:overflow-visible">
+              <div className="flex w-max gap-2 px-4 sm:w-auto sm:flex-wrap sm:px-0">
+                <button
+                  type="button"
+                  onClick={() => handleSubcategorySelect('')}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition cursor-pointer touch-manipulation ${
+                    !selectedSubcategory
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500 hover:text-emerald-600'
+                  }`}
+                >
+                  All
+                </button>
+                {subcategories.map((subcategory) => {
+                  const subcategoryId = subcategory.$id || subcategory.id
+                  return (
+                    <button
+                      type="button"
+                      key={subcategoryId}
+                      onClick={() => handleSubcategorySelect(subcategoryId)}
+                      disabled={subcategoryLoading}
+                      className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition cursor-pointer touch-manipulation disabled:cursor-wait disabled:opacity-60 ${
+                        selectedSubcategory === subcategoryId
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500 hover:text-emerald-600'
+                      }`}
+                    >
+                      {subcategory.name || subcategory.title}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ResponsiveSection className="py-10 sm:py-14 lg:py-16">
-        {loading ? (
+        {loading || subcategoryLoading ? (
           <Loader label={`Loading ${categoryName} products…`} />
         ) : error ? (
           <EmptyState

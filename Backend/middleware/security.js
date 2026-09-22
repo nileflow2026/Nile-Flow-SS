@@ -18,6 +18,7 @@ const securityHeaders = (app) => {
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'none'"],
+        frameAncestors: ["'none'"],
       },
     })
   );

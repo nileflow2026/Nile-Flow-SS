@@ -13,6 +13,20 @@
  */
 
 const logger = require("../utils/logger");
+const TRUSTED_CORS_ORIGINS = new Set([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://localhost:3000",
+  "https://admin.nileflowafrica.com",
+  "https://vendor.nileflowafrica.com",
+  "https://nileflowafrica.com",
+  "https://www.nileflowafrica.com",
+  "https://nile-flow-adminpanel.onrender.com",
+  "https://nile-flow-website.onrender.com",
+  "https://nile-flow-website2.onrender.com",
+]);
 
 // Known operational error codes that should NOT be treated as unexpected crashes
 const OPERATIONAL_CODES = new Set([
@@ -49,13 +63,7 @@ function errorHandler(err, req, res, next) {
 
   // Set CORS headers even on errors so browser clients see the response
   const origin = req.headers.origin;
-  if (
-    origin &&
-    (origin.includes("nileflowafrica.com") ||
-      origin.includes("admin.nileflowafrica.com") ||
-      origin.includes("vendor.nileflowafrica.com") ||
-      origin.includes("localhost"))
-  ) {
+  if (origin && TRUSTED_CORS_ORIGINS.has(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header(

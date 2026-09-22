@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../core/auth";
 import {
@@ -33,31 +33,10 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [step, setStep] = useState(1); // For multi-step login if needed
   const navigate = useNavigate();
-  const { user, signin } = useAuth();
+  const { signin } = useAuth();
 
   // Theme state (you can integrate with your theme context)
   const [theme, setTheme] = useState("light");
-
-  useEffect(() => {
-    console.log("[Login] Active user:", user);
-  }, [user]);
-
-  // Load saved credentials when component mounts
-  useEffect(() => {
-    const savedCredentials = localStorage.getItem("nileflow_remember_me");
-    if (savedCredentials) {
-      try {
-        const { email: savedEmail, rememberMe: savedRememberMe } =
-          JSON.parse(savedCredentials);
-        setEmail(savedEmail || "");
-        setRememberMe(savedRememberMe || false);
-      } catch (error) {
-        console.error("Error loading saved credentials:", error);
-        // Clear corrupted data
-        localStorage.removeItem("nileflow_remember_me");
-      }
-    }
-  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -71,21 +50,6 @@ export default function Login() {
 
     try {
       await signin(email, password);
-
-      // Handle remember me functionality
-      if (rememberMe) {
-        // Save email and remember me preference (never save password for security)
-        localStorage.setItem(
-          "nileflow_remember_me",
-          JSON.stringify({
-            email: email,
-            rememberMe: true,
-          }),
-        );
-      } else {
-        // Remove saved credentials if remember me is unchecked
-        localStorage.removeItem("nileflow_remember_me");
-      }
 
       toast.success("Welcome back! Access granted.", {
         description: "You have successfully logged into Nile Flow Africa Admin",
@@ -110,20 +74,6 @@ export default function Login() {
 
   const handleRememberMeChange = (checked) => {
     setRememberMe(checked);
-
-    if (!checked) {
-      // If unchecking remember me, remove saved credentials immediately
-      localStorage.removeItem("nileflow_remember_me");
-    } else if (email) {
-      // If checking remember me and email exists, save it
-      localStorage.setItem(
-        "nileflow_remember_me",
-        JSON.stringify({
-          email: email,
-          rememberMe: true,
-        }),
-      );
-    }
   };
 
   const toggleTheme = () => {
