@@ -37,7 +37,7 @@ const FlashSaleForm = ({ onProductAdded }) => {
     }
 
     try {
-      await axiosClient.post("/api/addproducts/products/flashsale", {
+      await axiosClient.post("/api/admin/products/flashsale", {
         productId: selectedProduct,
         discountPercentage: parseFloat(discount),
         saleDurationHours: parseFloat(saleDurationHours), // Convert to a number
