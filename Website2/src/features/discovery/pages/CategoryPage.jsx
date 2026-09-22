@@ -23,6 +23,15 @@ const CATEGORY_ICONS = {
   fashion: '👕',
 }
 
+function shuffleProducts(products) {
+  const shuffled = [...products]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 function CategoryPage() {
   const { slug: categorySlug } = useParams()
   const [products, setProducts] = useState([])
@@ -81,8 +90,9 @@ function CategoryPage() {
             productService.getProducts({ category: categoryId }),
             categoryService.getSubcategories(categoryId).catch(() => []),
           ])
-          setProducts(result.products)
-          setCategoryProducts(result.products)
+          const shuffledProducts = shuffleProducts(result.products)
+          setProducts(shuffledProducts)
+          setCategoryProducts(shuffledProducts)
           setSubcategories(categorySubcategories)
         } else {
           // Fallback: search by the slug-derived name
@@ -90,8 +100,9 @@ function CategoryPage() {
           const result = await productService.getProducts({
             search: categoryName,
           })
-          setProducts(result.products)
-          setCategoryProducts(result.products)
+          const shuffledProducts = shuffleProducts(result.products)
+          setProducts(shuffledProducts)
+          setCategoryProducts(shuffledProducts)
         }
       } catch (err) {
         setError(err?.message || 'Failed to load category products.')
@@ -115,7 +126,7 @@ function CategoryPage() {
     setSubcategoryLoading(true)
     try {
       const subcategoryProducts = await productService.getSubcategoryProducts(subcategoryId)
-      setProducts(subcategoryProducts)
+      setProducts(shuffleProducts(subcategoryProducts))
     } catch (err) {
       setProducts([])
       setError(err?.message || 'Failed to load subcategory products.')

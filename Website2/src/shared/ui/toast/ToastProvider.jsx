@@ -4,7 +4,7 @@ const ToastContext = createContext(null)
 
 function ToastViewport({ toasts, dismiss }) {
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex w-[min(92vw,24rem)] flex-col gap-3">
+    <div className="fixed right-4 top-4 z-[100] flex w-[min(92vw,24rem)] flex-col gap-3 sm:right-6 sm:top-6">
       {toasts.map((toast) => (
         <div key={toast.id} className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)]">
           <div className="flex items-start justify-between gap-3">

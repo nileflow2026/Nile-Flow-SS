@@ -1307,7 +1307,38 @@ const getFeaturedProducts = async (req, res) => {
       queries,
     );
 
-    res.status(200).json(response.documents);
+    const featuredProducts = await Promise.all(
+      response.documents.map(async (featured) => {
+        if (!featured.productId) return featured;
+
+        try {
+          const product = await getDocumentDirect(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_PRODUCT_COLLECTION_ID,
+            featured.productId,
+          );
+
+          return {
+            ...product,
+            ...featured,
+            $id: product.$id,
+            id: product.$id,
+            productId: product.$id,
+            productName: product.productName || featured.productName,
+            image: buildImageUrl(product.image || featured.image),
+            images: product.images || featured.images || [],
+            price: product.price,
+            avgRating: product.avgRating || product.averageRating || 0,
+            totalRatings: product.totalRatings || product.reviewCount || 0,
+            isFeatured: true,
+          };
+        } catch {
+          return featured;
+        }
+      }),
+    );
+
+    res.status(200).json(featuredProducts);
   } catch (error) {
     console.error("Error fetching featured products:", error);
     res.status(500).json({ error: "Failed to fetch products" });

@@ -15,6 +15,7 @@ import { useToast } from '@shared/ui/toast/ToastProvider'
 import ImageCarousel from '@shared/ui/image-carousel/ImageCarousel'
 import ReviewCard from '@shared/ui/review/ReviewCard'
 import ReviewForm from '@shared/ui/review/ReviewForm'
+import StarRating from '@shared/ui/star-rating/StarRating'
 import { reviewService } from '@api/services'
 import { usePostHog } from '@posthog/react'
 import { SeoHead } from '@shared/seo/SeoHead'
@@ -283,6 +284,13 @@ function ProductDetailPage() {
   const vendorId = product?.vendorId || product?.vendor?.$id || ''
   const vendorName = product?.vendorName || product?.brand || ''
   const storeLink = vendorId ? `/store/${vendorId}` : ''
+  const productRating = parseFloat(
+    product?.rating ?? product?.avgRating ?? product?.averageRating ?? 0,
+  ) || 0
+  const productReviewCount = parseInt(
+    product?.ratingsCount ?? product?.totalRatings ?? product?.reviewCount ?? product?.reviewsCount ?? reviews.length ?? 0,
+    10,
+  ) || reviews.length
 
   // Breadcrumb items
   const breadcrumbItems = [
@@ -317,13 +325,11 @@ function ProductDetailPage() {
         schema={productSchema}
       />
 
-      <div className="responsive-shell pt-4 sm:pt-6">
-        <Breadcrumbs items={breadcrumbItems} />
-      </div>
+      
 
       <ResponsiveSection  className="py-6 sm:py-10 lg:py-16">
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
+        <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
+          <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <ImageCarousel images={productImages} alt={name} />
             <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2">
               {inStock ? (
@@ -350,18 +356,23 @@ function ProductDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
+          <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)] sm:text-xs">
               {categoryName || 'Nile Flow'}
             </p>
-            <h1 className="mt-2 line-clamp-2 text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl" title={name}>
+            <h1 className="mt-2 line-clamp-2 break-words text-xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl" title={name}>
               {name}
             </h1>
+            <div className="mt-3">
+              <StarRating rating={productRating} count={productReviewCount} size={18} />
+            </div>
             <p className="mt-2 text-2xl font-bold text-amber-600 sm:text-3xl">{priceStr}</p>
 
             {description && (
               <div className="mt-4 max-w-prose">
-                <p className="whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base">
+                <p className={`max-w-full [overflow-wrap:anywhere] whitespace-pre-line text-sm leading-7 text-[var(--color-text-secondary)] sm:text-base ${
+                  !showFullDescription ? 'max-h-32 overflow-hidden sm:max-h-40' : ''
+                }`}>
                   {displayedDescription}
                 </p>
                 {hasLongDescription && (
@@ -381,41 +392,122 @@ function ProductDetailPage() {
                 <legend className="text-sm font-semibold capitalize text-[var(--color-text-primary)]">
                   Select {key}
                 </legend>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {options.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
-                      className={`rounded-full border px-4 py-2 text-sm transition ${
-                        selectedVariants[key] === option
-                          ? 'border-emerald-600 bg-emerald-600 text-white'
-                          : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {options.map((option) => {
+                    const isSelected = selectedVariants[key] === option
+
+                    if (key.toLowerCase() === 'color') {
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          title={option}
+                          aria-label={`Select color ${option}`}
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
+                          className={`h-9 w-9 rounded-full border-2 p-0.5 transition hover:scale-110 ${
+                            isSelected
+                              ? 'border-emerald-600 ring-2 ring-emerald-200 ring-offset-2'
+                              : 'border-[var(--color-border)]'
+                          }`}
+                        >
+                          <span
+                            className="block h-full w-full rounded-full border border-black/10"
+                            style={{ backgroundColor: option }}
+                          />
+                        </button>
+                      )
+                    }
+
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
+                        className={`rounded-full border px-4 py-2 text-sm transition ${
+                          isSelected
+                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                            : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-emerald-500'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    )
+                  })}
                 </div>
               </fieldset>
             ))}
 
             <div className="mt-6 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:gap-3">
               <PrimaryButton
-                className="w-full justify-center py-3 text-sm sm:flex-1 sm:py-3.5"
+                className={`relative w-full justify-center overflow-hidden py-3 text-sm sm:flex-1 sm:py-3.5 ${
+                  addingToCart ? '!bg-gray-300 !bg-none text-gray-700 shadow-none hover:scale-100' : ''
+                }`}
                 onClick={handleAddToCart}
                 disabled={!inStock || addingToCart}
               >
-                {addingToCart ? 'Adding…' : inStock ? `Add to cart — ${priceStr}` : 'Out of stock'}
+                {addingToCart ? (
+                  <>
+                    <span
+                      className="cart-progress-fill absolute inset-y-0 left-0 bg-emerald-600"
+                      aria-hidden="true"
+                    />
+                    <span className="relative z-10">Adding to cart…</span>
+                  </>
+                ) : inStock ? `Add to cart — ${priceStr}` : 'Out of stock'}
               </PrimaryButton>
               <Button
                 variant="outline"
-                className="w-full justify-center py-3 text-sm sm:w-auto sm:py-3.5"
+                className={`relative w-full justify-center overflow-hidden py-3 text-sm sm:w-auto sm:py-3.5 ${
+                  addingToCart ? '!border-gray-300 !bg-gray-100 !text-gray-700 hover:scale-100' : ''
+                }`}
                 onClick={handleBuyNow}
                 disabled={!inStock || addingToCart}
               >
-                Buy now
+                {addingToCart ? (
+                  <>
+                    <span
+                      className="cart-checkout-progress absolute inset-y-0 left-0 bg-amber-500"
+                      aria-hidden="true"
+                    />
+                    <span className="relative z-10">Preparing checkout…</span>
+                  </>
+                ) : 'Buy now'}
               </Button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm dark:border-emerald-900/30 dark:bg-[var(--color-surface)]">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-700" aria-hidden="true">
+                  🔒
+                </span>
+                Secure checkout with
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Accepted payment methods">
+                <img
+                  src="/paymentassets/visalogo.png"
+                  alt="Visa"
+                  className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm"
+                />
+                <img
+                  src="/paymentassets/mastercardlogo.png"
+                  alt="Mastercard"
+                  className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm"
+                />
+                <img
+                  src="/paymentassets/M-PESA.png"
+                  alt="M-Pesa"
+                  className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm"
+                />
+                <img
+                  src="/paymentassets/pesapal.png"
+                  alt="Pesapal"
+                  className="h-8 w-auto rounded-md border border-orange-100 bg-white object-contain px-2 py-1 shadow-sm"
+                />
+              </div>
+              <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                Your payment information is protected with encrypted processing.
+              </p>
             </div>
 
             {!isAuthenticated && (

@@ -1,4 +1,6 @@
 function StarRating({ rating = 0, count = 0, size = 16 }) {
+  const filledColor = '#D97706'
+  const emptyColor = '#D1D5DB'
   const numericRating = Number(rating) || 0
   const fullStars = Math.floor(numericRating)
   const fraction = numericRating - fullStars
@@ -8,11 +10,11 @@ function StarRating({ rating = 0, count = 0, size = 16 }) {
   for (let i = 0; i < 5; i++) {
     let fill
     if (i < fullStars) {
-      fill = 'var(--color-warning, #f59e0b)'
+      fill = filledColor
     } else if (i === fullStars && fraction >= 0.25) {
-      fill = fraction >= 0.75 ? 'var(--color-warning, #f59e0b)' : `url(#half-${i})`
+      fill = fraction >= 0.75 ? filledColor : `url(#half-${i})`
     } else {
-      fill = 'var(--color-border, #d1d5db)'
+      fill = emptyColor
     }
 
     stars.push(
@@ -20,8 +22,8 @@ function StarRating({ rating = 0, count = 0, size = 16 }) {
         {fill === `url(#half-${i})` && (
           <defs>
             <linearGradient id={`half-${i}`}>
-              <stop offset="50%" stopColor="var(--color-warning, #f59e0b)" />
-              <stop offset="50%" stopColor="var(--color-border, #d1d5db)" />
+              <stop offset="50%" stopColor={filledColor} />
+              <stop offset="50%" stopColor={emptyColor} />
             </linearGradient>
           </defs>
         )}

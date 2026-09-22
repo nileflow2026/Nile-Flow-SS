@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, Navigate } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
@@ -24,6 +24,13 @@ function CheckoutPage() {
     paymentMethod: 'Payment on Delivery',
   })
   const [placing, setPlacing] = useState(false)
+  const [deliveryDetailsCollapsed, setDeliveryDetailsCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (form.name.trim() && form.address.trim() && form.phone.trim() && form.paymentMethod) {
+      setDeliveryDetailsCollapsed(true)
+    }
+  }, [form.name, form.address, form.phone, form.paymentMethod])
 
   // Redirect to cart if no cart data provided
   if (!cartData || !cartData.items || cartData.items.length === 0) {
@@ -137,8 +144,29 @@ function CheckoutPage() {
   return (
     <PageShell>
       <ResponsiveSection eyebrow="Checkout" title="Complete your order" description={`Review ${items.length} item${items.length !== 1 ? 's' : ''} and place your order.`} className="py-10 sm:py-14 lg:py-16">
-        <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
-          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8">
+        <div className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
+          <div className="min-w-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">Delivery and payment</p>
+                {deliveryDetailsCollapsed && (
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                    {form.address} · {form.paymentMethod}
+                  </p>
+                )}
+              </div>
+              {deliveryDetailsCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => setDeliveryDetailsCollapsed(false)}
+                  className="shrink-0 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  Edit details
+                </button>
+              )}
+            </div>
+
+            {!deliveryDetailsCollapsed && (
             <div className="space-y-4 sm:space-y-5">
               <label className="block text-sm font-medium text-[var(--color-text-secondary)]">
                 Full name
@@ -184,23 +212,24 @@ function CheckoutPage() {
                 </label>
               </div>
             </div>
+            )}
 
             {/* Cart items review */}
             <div className="mt-6 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">Items</p>
               {items.map((item, idx) => (
-                <div key={item.id || idx} className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div key={item.id || idx} className="flex min-w-0 flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                     ) : (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-muted)] text-lg">🛍️</div>
                     )}
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">{item.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-medium text-[var(--color-text-primary)] [overflow-wrap:anywhere]">{item.name}</p>
                       <p className="text-xs text-[var(--color-text-muted)]">Qty: {item.quantity}</p>
                       {item.variantSelection && (
-                        <p className="text-xs text-emerald-700">{item.variantSelection}</p>
+                        <p className="break-words text-xs text-emerald-700 [overflow-wrap:anywhere]">{item.variantSelection}</p>
                       )}
                     </div>
                   </div>
@@ -210,12 +239,12 @@ function CheckoutPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8 xl:sticky xl:top-24">
+          <div className="min-w-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8 xl:sticky xl:top-24">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Order summary</p>
             <div className="mt-5 space-y-3 text-sm text-[var(--color-text-secondary)]">
               {items.map((item, idx) => (
-                <div key={item.id || idx} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="truncate">{item.name} × {item.quantity}</span>
+                <div key={item.id || idx} className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item.name} × {item.quantity}</span>
                   <span className="shrink-0 font-semibold text-[var(--color-text-primary)]">KSh {Math.round((item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
                 </div>
               ))}
@@ -233,10 +262,42 @@ function CheckoutPage() {
               </div>
             </div>
             <div className="mt-6 flex flex-col gap-3">
-              <PrimaryButton className="w-full justify-center" onClick={handlePlaceOrder} disabled={placing}>
-                {placing ? 'Placing order…' : 'Place order'}
+              <PrimaryButton
+                className={`relative w-full justify-center overflow-hidden ${
+                  placing ? '!bg-gray-300 !bg-none text-gray-700 shadow-none hover:scale-100' : ''
+                }`}
+                onClick={handlePlaceOrder}
+                disabled={placing}
+              >
+                {placing ? (
+                  <>
+                    <span
+                      className="cart-progress-fill absolute inset-y-0 left-0 bg-emerald-600"
+                      aria-hidden="true"
+                    />
+                    <span className="relative z-10">Placing order…</span>
+                  </>
+                ) : 'Place order'}
               </PrimaryButton>
               <button onClick={() => setIsHelpOpen(true)} className="text-sm font-semibold text-emerald-600 transition hover:text-amber-600">Need help with checkout?</button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm dark:border-emerald-900/30 dark:bg-[var(--color-surface)]">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-700" aria-hidden="true">
+                  🔒
+                </span>
+                Secure checkout with
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Accepted payment methods">
+                <img src="/paymentassets/visalogo.png" alt="Visa" className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm" />
+                <img src="/paymentassets/mastercardlogo.png" alt="Mastercard" className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm" />
+                <img src="/paymentassets/M-PESA.png" alt="M-Pesa" className="h-8 w-auto rounded-md border border-slate-100 bg-white object-contain px-2 py-1 shadow-sm" />
+                <img src="/paymentassets/pesapal.png" alt="Pesapal" className="h-8 w-auto rounded-md border border-orange-100 bg-white object-contain px-2 py-1 shadow-sm" />
+              </div>
+              <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+                Your payment information is protected with encrypted processing.
+              </p>
             </div>
           </div>
         </div>

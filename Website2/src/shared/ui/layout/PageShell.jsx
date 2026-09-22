@@ -11,8 +11,8 @@ const shopLinks = [
   { label: 'Cart', to: '/cart' },
 ]
 
-const supportLinks = [
-  { label: 'Help Center', to: '/help-center' },
+const supportLinks = [ 
+  { label: 'Help Center', to: '/help' },
   { label: 'Payment Methods', to: '/payment-methods' },
   { label: 'My Orders', to: '/orders' },
   { label: 'Track Order', to: '/orders' },

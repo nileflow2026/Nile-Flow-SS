@@ -86,6 +86,26 @@ body {
   overflow-x: hidden;
 }
 
+@keyframes cart-progress-fill {
+  0% { width: 0%; }
+  70% { width: 82%; }
+  100% { width: 94%; }
+}
+
+.cart-progress-fill {
+  animation: cart-progress-fill 1.6s ease-out infinite alternate;
+}
+
+@keyframes cart-checkout-progress {
+  0% { width: 0%; }
+  70% { width: 82%; }
+  100% { width: 94%; }
+}
+
+.cart-checkout-progress {
+  animation: cart-checkout-progress 1.6s ease-out infinite alternate;
+}
+
 * {
   box-sizing: border-box;
 }
