@@ -11,6 +11,7 @@ import Loader from '@shared/ui/loader/Loader'
 import EmptyState from '@shared/ui/empty-state/EmptyState'
 import Breadcrumbs from '@shared/ui/breadcrumbs/Breadcrumbs'
 import { productService, categoryService } from '@api/services'
+import { imageProxyUrl } from '@api/config'
 
 const CATEGORY_ICONS = {
   beverages: '☕',
@@ -36,6 +37,21 @@ function CategoryPage() {
   const categoryName = categoryInfo?.name || (categorySlug
     ? categorySlug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
     : 'Category')
+  const selectedSubcategoryName = subcategories.find(
+    (subcategory) => (subcategory.$id || subcategory.id) === selectedSubcategory,
+  )?.name || 'this subcategory'
+  const rawCategoryImage = categoryInfo?.img || categoryInfo?.image || categoryInfo?.imgUrl || categoryInfo?.imageUrl || ''
+  const categoryImage = typeof rawCategoryImage === 'object'
+    ? rawCategoryImage.url || rawCategoryImage.imageUrl || rawCategoryImage.href || ''
+    : rawCategoryImage
+  const categoryImageUrl = categoryImage && (
+    categoryImage.includes('appwrite.io') || categoryImage.includes('/v1/storage/') || categoryImage.includes('/api/image-proxy?')
+  )
+    ? imageProxyUrl(categoryImage, 1400, 78)
+    : categoryImage
+  const categoryBackgroundImage = categoryImage
+    ? `linear-gradient(rgba(6, 78, 59, 0.72), rgba(6, 78, 59, 0.64)), url("${categoryImageUrl}")`
+    : undefined
   const breadcrumbItems = [
     { label: 'Products', href: '/products' },
     { label: categoryName },
@@ -90,6 +106,7 @@ function CategoryPage() {
 
   const handleSubcategorySelect = async (subcategoryId) => {
     setSelectedSubcategory(subcategoryId)
+    setError(null)
     if (!subcategoryId) {
       setProducts(categoryProducts)
       return
@@ -122,15 +139,16 @@ function CategoryPage() {
         })}
       />
 
-      <div className="responsive-shell pt-4 sm:pt-6">
-        <Breadcrumbs items={breadcrumbItems} />
-      </div>
+      
 
-      <div className="border-y border-emerald-100/80 bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 px-4 py-7 text-center sm:px-6 sm:py-9 dark:border-emerald-900/30 dark:from-emerald-950/10 dark:to-amber-950/10">
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-3xl">
+      <div
+        className="border-y border-emerald-100/80 bg-gradient-to-br from-emerald-50/50 via-transparent to-amber-50/50 bg-cover bg-center px-4 py-12 text-center sm:px-6 sm:py-16 dark:border-emerald-900/30 dark:from-emerald-950/10 dark:to-amber-950/10"
+        style={categoryBackgroundImage ? { backgroundImage: categoryBackgroundImage } : undefined}
+      >
+        <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${categoryBackgroundImage ? 'text-white drop-shadow-md' : 'text-[var(--color-text-primary)]'}`}>
           {categoryName}
         </h1>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[var(--color-text-secondary)]">
+        <p className={`mx-auto mt-2 max-w-lg text-sm leading-6 ${categoryBackgroundImage ? 'text-white/90' : 'text-[var(--color-text-secondary)]'}`}>
           Browse products in {categoryName.toLowerCase()}
         </p>
       </div>
@@ -190,8 +208,10 @@ function CategoryPage() {
           />
         ) : products.length === 0 ? (
           <EmptyState
-            title="No products yet"
-            description={`This category is being stocked. Check back soon or browse other categories.`}
+            title={selectedSubcategory ? 'No products found' : 'No products yet'}
+            description={selectedSubcategory
+              ? `There are no products in ${selectedSubcategoryName} yet.`
+              : 'This category is being stocked. Check back soon or browse other categories.'}
             icon="📦"
             action={<Link to="/products"><PrimaryButton>Browse all products</PrimaryButton></Link>}
           />

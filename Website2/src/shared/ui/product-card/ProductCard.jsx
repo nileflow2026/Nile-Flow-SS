@@ -40,8 +40,13 @@ function ProductCard({ product, href = '#', compact = false }) {
     priceStr = 'KSh —'
   }
 
-  const rating = parseFloat(product?.rating) || parseFloat(product?.avgRating) || 0
-  const reviewCount = parseInt(product?.ratingsCount, 10) || parseInt(product?.totalRatings, 10) || parseInt(product?.reviewCount, 10) || 0
+  const rating = parseFloat(
+    product?.rating ?? product?.avgRating ?? product?.averageRating ?? 0,
+  ) || 0
+  const reviewCount = parseInt(
+    product?.ratingsCount ?? product?.totalRatings ?? product?.reviewCount ?? product?.reviewsCount ?? 0,
+    10,
+  ) || 0
   const description = product?.description || product?.subtitle || ''
   const premium = Boolean(product?.premiumEligible || product?.premium || product?.isPremium)
   const featured = Boolean(product?.featured || product?.isFeatured)

@@ -476,19 +476,39 @@ const getProducts = async (req, res) => {
 
     const totalProducts = matchedDocuments.length || batch.total;
 
-    const productsWithAttributes = matchedDocuments.map((doc) => {
+    const productsWithAttributes = await Promise.all(matchedDocuments.map(async (doc) => {
       let attributes = {};
       try {
         attributes = doc.specifications ? JSON.parse(doc.specifications) : {};
       } catch {
         attributes = {};
       }
+
+      let reviewCount = doc.totalRatings || doc.reviewCount || 0;
+      let avgRating = doc.avgRating || doc.averageRating || 0;
+      try {
+        const reviews = await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_REVIEW_COLLECTION_ID,
+          [Query.equal("productId", doc.$id), Query.select(["rating"])],
+        );
+        reviewCount = reviews.total || reviewCount;
+        avgRating = reviewCount > 0
+          ? reviews.documents.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviewCount
+          : 0;
+      } catch {
+        // Preserve stored aggregates if review lookup is unavailable.
+      }
+
       return {
         ...doc,
         productName: doc.productName || doc.name || doc.title || "Product",
         attributes,
+        avgRating: parseFloat(Number(avgRating).toFixed(1)),
+        reviewCount,
+        totalRatings: reviewCount,
       };
-    });
+    }));
 
     // --- Currency enrichment ---
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
@@ -540,7 +560,7 @@ const getProductsForMobile = async (req, res) => {
 
     // Subcategory filter
     if (subcategoryId) {
-      queries.push(Query.equal("subcategoryId", subcategoryId));
+      queries.push(Query.contains("subcategoryId", subcategoryId));
     }
 
     // Search filter
@@ -826,6 +846,28 @@ const getProductImages = async (req, res) => {
   }
 };
 
+const updateProductRatingAggregate = async (productId, rating) => {
+  const product = await instrumentedDb.getDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_PRODUCT_COLLECTION_ID,
+    productId,
+  );
+  const currentTotal = Number(product.totalRatings) || 0;
+  const currentAvg = Number(product.avgRating) || 0;
+  const newTotal = currentTotal + 1;
+  const newAvg = (currentAvg * currentTotal + rating) / newTotal;
+
+  await instrumentedDb.updateDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_PRODUCT_COLLECTION_ID,
+    productId,
+    {
+      totalRatings: newTotal,
+      avgRating: parseFloat(newAvg.toFixed(2)),
+    },
+  );
+};
+
 const submitReview = async (req, res) => {
   try {
     const { productId, reviewText, rating, image, images } = req.body;
@@ -903,34 +945,7 @@ const submitReview = async (req, res) => {
     // 3️⃣ ROLLING AGGREGATE CALCULATION (Zero N+1 impact)
     if (validatedRating !== null) {
       try {
-        // Fetch the target product to get its existing structural scores
-        const product = await instrumentedDb.getDocument(
-          env.APPWRITE_DATABASE_ID,
-          env.APPWRITE_PRODUCT_COLLECTION_ID,
-          productId,
-        );
-
-        const currentTotal = product.totalRatings || 0;
-        const currentAvg = product.avgRating || 0;
-
-        // Mathematical algorithm for rolling averages without collection scans:
-        const newTotal = currentTotal + 1;
-        const newAvg = (currentAvg * currentTotal + validatedRating) / newTotal;
-
-        // Save aggregates back to the product document
-        await instrumentedDb.updateDocument(
-          env.APPWRITE_DATABASE_ID,
-          env.APPWRITE_PRODUCT_COLLECTION_ID,
-          productId,
-          {
-            totalRatings: newTotal,
-            avgRating: parseFloat(newAvg.toFixed(2)), // High-precision float
-          },
-        );
-
-        console.log(
-          `✅ Updated aggregate scores for product ${productId}. Total: ${newTotal}, Avg: ${newAvg.toFixed(2)}`,
-        );
+        await updateProductRatingAggregate(productId, validatedRating);
       } catch (productErr) {
         console.error(
           "⚠️ Failed to update rolling aggregates on product document:",
@@ -1184,9 +1199,11 @@ const getProductReviews = async (req, res) => {
 
 const submitRating = async (req, res) => {
   try {
-    const { productId, userId, userName, reviewText, rating } = req.body;
+    const { productId, userName, reviewText, rating } = req.body;
+    const userId = req.user?.userId;
+    const parsedRating = Number.parseInt(rating, 10);
 
-    if (!productId || !userId || !rating) {
+    if (!productId || !userId || !Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
@@ -1195,7 +1212,7 @@ const submitRating = async (req, res) => {
       userId: String(userId),
       userName: userName || "Anonymous",
       reviewText: reviewText || "",
-      rating: parseInt(rating, 10),
+      rating: parsedRating,
       createdAt: new Date().toISOString(),
     };
 
@@ -1205,6 +1222,8 @@ const submitRating = async (req, res) => {
       ID.unique(),
       reviewData,
     );
+
+    await updateProductRatingAggregate(productId, parsedRating);
 
     console.log("Review submitted:", response);
     return res
