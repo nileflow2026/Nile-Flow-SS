@@ -25,19 +25,7 @@ async function getDeals(req, res) {
     let queries = [Query.orderDesc("$createdAt")];
 
     if (type === "flash") {
-      // Get flash sales from flash sales collection
-      const flashResponse = await instrumentedDb.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_FLASH_SALE_COLLECTION_ID,
-        queries
-      );
-      return res.status(200).json({
-        success: true,
-        deals: flashResponse.documents.map((doc) => ({
-          ...doc,
-          type: "flash",
-        })),
-      });
+      queries.push(Query.equal("isFlash", true));
     }
 
     if (type === "premium") {
@@ -58,7 +46,7 @@ async function getDeals(req, res) {
 
     const deals = await Promise.all(response.documents.map(async (doc) => ({
       ...doc,
-      type: doc.premiumDeal ? "premium" : "product",
+      type: doc.isFlash ? "flash" : doc.premiumDeal ? "premium" : "product",
       categoryName: await resolveCategoryName(doc.category, instrumentedDb, env),
     })));
 
