@@ -36,7 +36,7 @@ const DealsForm = ({ onProductAdded }) => {
     }
 
     try {
-      await axiosClient.post("/admin/products/deal", {
+      await axiosClient.post("/api/admin/products/deal", {
         productId: selectedProduct,
         discountPercentage: parseFloat(discount),
         tag: tag,
