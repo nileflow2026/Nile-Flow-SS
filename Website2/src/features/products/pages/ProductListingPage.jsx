@@ -12,6 +12,15 @@ import { useToast } from '@shared/ui/toast/ToastProvider'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { createCollectionPageSchema } from '@shared/seo/SchemaFactory'
 
+function shuffleItems(items) {
+  const shuffled = [...items]
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]]
+  }
+  return shuffled
+}
+
 function ProductListingPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -82,9 +91,9 @@ function ProductListingPage() {
         }
       }
 
-      const filters = [{ id: null, name: 'All' }, ...[...filterMap.values()].sort((a, b) => a.name.localeCompare(b.name))]
+      const filters = [{ id: null, name: 'All' }, ...shuffleItems([...filterMap.values()])]
 
-      setProducts(result.products)
+      setProducts(shuffleItems(result.products))
       setNextCursor(result.nextCursor)
       setCategoryFilters(filters)
       setLoading(false)
@@ -105,7 +114,7 @@ function ProductListingPage() {
     if (cursor) params.cursor = cursor
     try {
       const result = await productService.getProducts(params)
-      setProducts(result.products)
+      setProducts(shuffleItems(result.products))
       setNextCursor(result.nextCursor)
     } catch (err) {
       setError(err?.message || 'Failed to load products')
@@ -135,7 +144,7 @@ function ProductListingPage() {
     if (activeFilterId) params.category = activeFilterId
     params.cursor = nextCursor
     const result = await productService.getProducts(params)
-    setProducts((prev) => [...prev, ...result.products])
+    setProducts((prev) => [...prev, ...shuffleItems(result.products)])
     setNextCursor(result.nextCursor)
     setLoadingMore(false)
   }, [activeFilterId, nextCursor, loadingMore])

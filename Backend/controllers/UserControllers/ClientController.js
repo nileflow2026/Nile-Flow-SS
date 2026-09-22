@@ -460,19 +460,24 @@ const getProducts = async (req, res) => {
     const queries = [Query.limit(pageLimit), sortQuery, ...baseFilters];
     if (offset > 0) queries.push(Query.offset(offset));
 
-    const batch = await listDocumentsDirect(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_PRODUCT_COLLECTION_ID,
-      queries,
-    );
-
     const normalizedProductId = productId ? String(productId).trim() : "";
-    const matchedDocuments = normalizedProductId
-      ? batch.documents.filter((doc) => {
-          const documentIds = [doc.$id, doc.id, doc.productId].filter(Boolean);
-          return documentIds.some((id) => String(id) === normalizedProductId);
-        })
-      : batch.documents;
+    let batch;
+    if (normalizedProductId) {
+      const product = await getDocumentDirect(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_PRODUCT_COLLECTION_ID,
+        normalizedProductId,
+      );
+      batch = { documents: [product], total: 1 };
+    } else {
+      batch = await listDocumentsDirect(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_PRODUCT_COLLECTION_ID,
+        queries,
+      );
+    }
+
+    const matchedDocuments = batch.documents;
 
     const totalProducts = matchedDocuments.length || batch.total;
 
