@@ -709,8 +709,8 @@ const CATEGORY_CACHE_TTL = 60 * 1000; // 1 minute
  */
 const resolveCategoryName = async (categoryId) => {
   if (!categoryId) return categoryId;
-  // Return if it's already a string name (not a 24-char hex ID)
-  if (typeof categoryId === "string" && categoryId.length !== 24) return categoryId;
+  // Return only values that are already names, not Appwrite hexadecimal IDs.
+  if (typeof categoryId === "string" && !/^[a-f0-9]{20,}$/i.test(categoryId)) return categoryId;
 
   // Check cache
   const now = Date.now();
@@ -1333,7 +1333,7 @@ const getDealProducts = async (req, res) => {
         targetCurrency,
         rate,
         true, // psychological pricing on deals
-      );
+      ); 
 
       // Resolve category name from ID
       const categoryName = await resolveCategoryName(product.category);

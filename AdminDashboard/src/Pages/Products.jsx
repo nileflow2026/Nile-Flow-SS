@@ -3,10 +3,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import ProductForm from "../components/ProductForm";
 import { getProducts } from "../../adminService";
 import FeaturedForm from "../components/FeaturedForm";
-import DealsForm from "../components/DealsForm";
-import PremiumDealForm from "../components/PremiumDealForm";
 import axiosClient from "../../api";
-import FlashSaleForm from "../components/FlashsaleForm";
 import {
   Search,
   Filter,
@@ -16,7 +13,7 @@ import {
   Star,
   Flame,
   Grid,
-  List,
+  List, 
   Download,
   Eye,
   Edit,
@@ -776,39 +773,6 @@ export default function Products() {
                 <Star className="w-4 h-4" />
                 {activeForm === "featured" ? "Cancel" : "Featured"}
               </button>
-              <button
-                onClick={() => handleToggleForm("deals")}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                  activeForm === "deals"
-                    ? "bg-gradient-to-r from-[#E74C3C] to-[#C0392B] text-white"
-                    : "bg-gradient-to-r from-[#F39C12] to-[#D68910] text-white"
-                } hover:shadow-lg`}
-              >
-                <Tag className="w-4 h-4" />
-                {activeForm === "deals" ? "Cancel" : "Deals"}
-              </button>
-              <button
-                onClick={() => handleToggleForm("premiumdeal")}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                  activeForm === "premiumdeal"
-                    ? "bg-gradient-to-r from-[#E74C3C] to-[#C0392B] text-white"
-                    : "bg-gradient-to-r from-[#9B59B6] to-[#8E44AD] text-white"
-                } hover:shadow-lg`}
-              >
-                <Award className="w-4 h-4" />
-                {activeForm === "premiumdeal" ? "Cancel" : "Premium Deal"}
-              </button>
-              <button
-                onClick={() => handleToggleForm("flashsale")}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-200 ${
-                  activeForm === "flashsale"
-                    ? "bg-gradient-to-r from-[#E74C3C] to-[#C0392B] text-white"
-                    : "bg-gradient-to-r from-[#E74C3C] to-[#C0392B] text-white"
-                } hover:shadow-lg`}
-              >
-                <Flame className="w-4 h-4" />
-                {activeForm === "flashsale" ? "Cancel" : "Flash Sale"}
-              </button>
             </div>
           </div>
 
@@ -824,21 +788,6 @@ export default function Products() {
           {activeForm === "featured" && (
             <div className="mb-6">
               <FeaturedForm onProductAdded={handleProductAdded} />
-            </div>
-          )}
-          {activeForm === "deals" && (
-            <div className="mb-6">
-              <DealsForm onProductAdded={handleProductAdded} />
-            </div>
-          )}
-          {activeForm === "premiumdeal" && (
-            <div className="mb-6">
-              <PremiumDealForm onProductAdded={handleProductAdded} />
-            </div>
-          )}
-          {activeForm === "flashsale" && (
-            <div className="mb-6">
-              <FlashSaleForm onProductAdded={handleProductAdded} />
             </div>
           )}
         </div>
