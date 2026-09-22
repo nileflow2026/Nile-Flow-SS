@@ -10,6 +10,7 @@ import Alert from '@shared/ui/alert/Alert'
 import { useAuth } from '@auth/AuthContext'
 import { ProtectedRoute } from '@auth/routeGuards'
 import { orderService } from '@api/services'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 // Status colors are now managed in orderService.getStatusColor()
 // Removed hardcoded statusColors map — using the service for consistency
@@ -47,6 +48,7 @@ function OrdersPage() {
   return (
     <ProtectedRoute requireAuth>
       <PageShell>
+        <SeoHead title="My Orders" robots="noindex,nofollow" />
         <ResponsiveSection
           eyebrow="Orders"
           title="Your order history"

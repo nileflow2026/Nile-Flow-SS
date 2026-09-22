@@ -8,6 +8,7 @@ import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { httpClient } from '@api/services'
 import { usePostHog } from '@posthog/react'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 function CheckoutPage() {
   const { user } = useAuth()
@@ -143,6 +144,7 @@ function CheckoutPage() {
 
   return (
     <PageShell>
+      <SeoHead title="Checkout" robots="noindex,nofollow" />
       <ResponsiveSection eyebrow="Checkout" title="Complete your order" description={`Review ${items.length} item${items.length !== 1 ? 's' : ''} and place your order.`} className="py-10 sm:py-14 lg:py-16">
         <div className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
           <div className="min-w-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)] sm:p-6 lg:p-8">

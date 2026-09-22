@@ -1,0 +1,6 @@
+﻿"URL","Severity","Page count","Error count"
+"Your site lacks inbound links from high-quality domains. ","Moderate severity","0","1"
+"Too many pages with identical titles. ","Moderate severity","6","6"
+"Too many pages with identical meta descriptions.  ","Moderate severity","6","6"
+"There are too many pages with insufficient content.  ","Moderate severity","4","4"
+"Meta descriptions on many of your pages are too short.  ","Moderate severity","1","1"

@@ -3,7 +3,7 @@
 
 User-agent: *
 Allow: /products/
-Allow: /categories/
+Allow: /category/
 Allow: /vendors/
 Allow: /blog/
 Allow: /landing/
@@ -53,7 +53,7 @@ Sitemap: https://www.nileflowafrica.com/sitemap-images.xml
 # Google Merchant Center
 User-agent: Googlebot
 Allow: /products/
-Allow: /categories/
+Allow: /category/
 Disallow: /cart/
 Disallow: /checkout/
 Disallow: /login
@@ -72,7 +72,7 @@ Allow: /
 
 User-agent: Bingbot
 Allow: /products/
-Allow: /categories/
+Allow: /category/
 Allow: /deals/
 Allow: /premium-deals/
 Disallow: /cart/

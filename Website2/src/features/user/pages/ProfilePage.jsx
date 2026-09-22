@@ -8,6 +8,7 @@ import { addressService, notificationService, orderService } from '@api/services
 import { httpClient } from '@api/client/HttpClient'
 import { imageProxyUrl } from '@api/config'
 import { useToast } from '@shared/ui/toast/ToastProvider'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 function ProfilePage() {
   const { user, authService } = useAuth()
@@ -108,6 +109,7 @@ function ProfilePage() {
 
   return (
     <PageShell>
+      <SeoHead title="My Profile" robots="noindex,nofollow" />
       <ResponsiveSection  title="Your account" description="Manage your personal information and view account activity." className="py-10 sm:py-14 lg:py-16">
         <div className="mx-auto max-w-2xl space-y-6">
           <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-lg)] sm:p-8">

@@ -162,6 +162,7 @@ function SearchPage() {
         title="Search Products"
         description="Search across products, categories, and merchants on Nile Flow."
         keywords={['search', 'find products', 'African marketplace']}
+        robots="noindex,follow"
       />
       <ResponsiveSection
         title="Find what you need"

@@ -12,6 +12,7 @@ import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { imageProxyUrl } from '@api/config'
 import { usePostHog } from '@posthog/react'
+import { SeoHead } from '@shared/seo/SeoHead'
 
 function CartPage() {
   const { isAuthenticated, user } = useAuth()
@@ -141,6 +142,7 @@ function CartPage() {
 
   return (
     <PageShell>
+      <SeoHead title="Shopping Cart" robots="noindex,nofollow" />
       <ResponsiveSection  title="Shopping cart" description="Review your items and proceed to checkout." className="py-10 sm:py-14 lg:py-16">
         <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
           <div className="space-y-3 sm:space-y-4">

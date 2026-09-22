@@ -14,7 +14,6 @@
 // ── Static Routes ──────────────────────────────────────────────
 export const STATIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
-  { path: '/home', priority: '0.9', changefreq: 'daily' },
   { path: '/products', priority: '0.9', changefreq: 'hourly' },
   { path: '/search', priority: '0.8', changefreq: 'weekly' },
   { path: '/deals', priority: '0.7', changefreq: 'daily' },
