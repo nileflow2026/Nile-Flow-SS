@@ -81,7 +81,7 @@ function ProductCard({ product, href = '#', compact = false }) {
             setImageFailed(true)
             setImageLoaded(false)
           }}
-          className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         {(premium || featured || outOfStock) && (
