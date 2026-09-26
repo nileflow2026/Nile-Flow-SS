@@ -285,7 +285,7 @@ async function ensureSmsTarget(userId, phone) {
   const normalizedPhone = normalizePhoneValue(phone);
   if (!userId || !normalizedPhone) {
     if (phone) {
-      console.debug(`[AppwriteMessaging] Skipping SMS: invalid Kenyan phone format for user ${userId}`);
+      console.debug(`[AppwriteMessaging] Skipping SMS: phone number could not be normalized for user ${userId}`);
     }
     return null;
   }
@@ -352,18 +352,21 @@ async function ensureSmsTarget(userId, phone) {
 
 /**
  * Send an email via Appwrite Messaging.
+ *
+ * @returns {Promise<{success: boolean, reason?: string}>} — never throws; callers that need to
+ * distinguish a real send from a silent skip (e.g. NotificationDispatcher) should check `success`.
  */
 async function sendEmail({ userId, email, subject, content, isHtml = true }) {
   try {
     if (!userId || !email || !subject || !content) {
       console.debug("[AppwriteMessaging] sendEmail: missing required fields");
-      return;
+      return { success: false, reason: "missing_fields" };
     }
 
     const targetId = await ensureEmailTarget(userId, email);
     if (!targetId) {
       console.debug(`[AppwriteMessaging] Skipping email to ${userId}: no Auth target`);
-      return;
+      return { success: false, reason: "no_auth_target" };
     }
 
     await messaging.createEmail({
@@ -380,25 +383,29 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
       html: isHtml,
       scheduledAt: null,
     });
+    return { success: true };
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send email to ${userId}:`, error.message);
+    return { success: false, reason: error.message };
   }
 }
 
 /**
  * Send an SMS via Appwrite Messaging.
+ *
+ * @returns {Promise<{success: boolean, reason?: string}>} — never throws.
  */
 async function sendSms({ userId, phone, content }) {
   try {
     if (!userId || !phone || !content) {
       console.debug("[AppwriteMessaging] sendSms: missing required fields");
-      return;
+      return { success: false, reason: "missing_fields" };
     }
 
     const targetId = await ensureSmsTarget(userId, phone);
     if (!targetId) {
       console.debug(`[AppwriteMessaging] Skipping SMS to ${userId}: no Auth target`);
-      return;
+      return { success: false, reason: "no_auth_target" };
     }
 
     await messaging.createSms({
@@ -410,8 +417,10 @@ async function sendSms({ userId, phone, content }) {
       draft: false,
       scheduledAt: null,
     });
+    return { success: true };
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send SMS to ${userId}:`, error.message);
+    return { success: false, reason: error.message };
   }
 }
 
@@ -429,13 +438,13 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
   try {
     if (!userId || !title || !body) {
       console.debug("[AppwriteMessaging] sendPush: missing required fields");
-      return;
+      return { success: false, reason: "missing_fields" };
     }
 
     const resolveResult = await resolveAppwriteUserId(userId, null);
     if (!resolveResult) {
       console.debug(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Auth`);
-      return;
+      return { success: false, reason: "no_auth_target" };
     }
 
     const config = {
@@ -455,15 +464,17 @@ async function sendPush({ userId, title, body, data = {}, action = null }) {
 
     try {
       await messaging.createPush(config);
+      return { success: true };
     } catch (pushError) {
       if (pushError.message && pushError.message.includes("could not be found")) {
         console.debug(`[AppwriteMessaging] Cannot send push: user ${userId} not found in Appwrite`);
-        return;
+        return { success: false, reason: "no_auth_target" };
       }
       throw pushError;
     }
   } catch (error) {
     console.warn(`[AppwriteMessaging] Failed to send push to ${userId}:`, error.message);
+    return { success: false, reason: error.message };
   }
 }
 

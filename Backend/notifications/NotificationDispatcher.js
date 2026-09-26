@@ -21,6 +21,12 @@ const { createNotification } = require('../controllers/UserControllers/Clientnot
 const WhatsAppProvider = require('./WhatsAppProvider');
 const NotificationLogger = require('./NotificationLogger');
 const idempotencyService = require('../services/idempotency.service');
+const { env } = require('../src/env');
+
+// Idempotency dedupe only runs when a real collection is configured — otherwise every
+// check/store call fails against Appwrite and floods logs for no benefit (see
+// APPWRITE_IDEMPOTENCY_COLLECTION in .env.example).
+const IDEMPOTENCY_ENABLED = Boolean(env.APPWRITE_IDEMPOTENCY_COLLECTION);
 
 /**
  * Dispatch a notification to a single recipient via a single channel.
@@ -46,7 +52,7 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
     return { status: DELIVERY_STATUS.SKIPPED, logId: null };
   }
 
-  const dedupeKey = idempotencyKey ? `notif:${idempotencyKey}:${channel}` : null;
+  const dedupeKey = (IDEMPOTENCY_ENABLED && idempotencyKey) ? `notif:${idempotencyKey}:${channel}` : null;
   if (dedupeKey) {
     const alreadySent = await idempotencyService.check(dedupeKey);
     if (alreadySent) {
@@ -92,6 +98,14 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
       return { status: DELIVERY_STATUS.SENT, logId };
     } catch (err) {
       lastError = err;
+
+      // Permanent conditions (no Auth target, malformed content, provider not configured)
+      // are never going to succeed on retry — skip immediately instead of burning 3 attempts.
+      if (err.permanent) {
+        await NotificationLogger.update(logId, { status: DELIVERY_STATUS.SKIPPED, error: err.message });
+        return { status: DELIVERY_STATUS.SKIPPED, logId };
+      }
+
       if (attempt < RETRY.MAX_RETRIES) {
         const delay = Math.min(
           RETRY.BASE_DELAY_MS * Math.pow(RETRY.BACKOFF_FACTOR, attempt),
@@ -201,25 +215,48 @@ function buildParams(channel, userId, recipient, template, pushData) {
   }
 }
 
+// Permanent (non-retryable) delivery outcome — e.g. no Auth target, provider unconfigured.
+class SkippedDeliveryError extends Error {
+  constructor(reason) {
+    super(reason || 'Notification skipped');
+    this.permanent = true;
+  }
+}
+
+const PERMANENT_REASONS = new Set(['missing_fields', 'no_auth_target']);
+
 async function sendEmailWrapper(params) {
-  await sendEmail(params);
+  const result = await sendEmail(params);
+  if (!result.success) {
+    if (PERMANENT_REASONS.has(result.reason)) throw new SkippedDeliveryError(result.reason);
+    throw new Error(result.reason || 'Email send failed');
+  }
 }
 
 async function sendSmsWrapper(params) {
-  await sendSms(params);
+  const result = await sendSms(params);
+  if (!result.success) {
+    if (PERMANENT_REASONS.has(result.reason)) throw new SkippedDeliveryError(result.reason);
+    throw new Error(result.reason || 'SMS send failed');
+  }
 }
 
 async function sendPushWrapper(params) {
-  await sendPush(params);
-  // Also send via Expo as fallback for mobile
+  const result = await sendPush(params);
+  // Also send via Expo as fallback for mobile — independent of the Appwrite push outcome
   try {
     await sendPushNotification({ userId: params.userId, message: params.body, title: params.title, type: 'order', data: params.data });
   } catch (_) {}
+  if (!result.success) {
+    if (PERMANENT_REASONS.has(result.reason)) throw new SkippedDeliveryError(result.reason);
+    throw new Error(result.reason || 'Push send failed');
+  }
 }
 
 async function sendWhatsAppWrapper(params) {
   const result = await WhatsAppProvider.sendOrderNotification({ to: params.phone, message: params.content });
   if (!result.success) {
+    if (result.permanent) throw new SkippedDeliveryError(result.error);
     throw new Error(result.error || 'WhatsApp send failed');
   }
 }
