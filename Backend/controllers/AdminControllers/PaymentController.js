@@ -12,9 +12,7 @@ const {
 const { createNotification } = require("../UserControllers/Clientnotification");
 const { ID, Query, Permission, Role } = require("node-appwrite");
 const { addNileMilesOnPurchase } = require("./rewardController");
-const {
-  sendOrderSuccessNotifications,
-} = require("../../services/orderNotificationService");
+const NotificationService = require("../../notifications/NotificationService");
 // Import the stock helper functions
 const {
   checkStockAvailability,
@@ -140,16 +138,22 @@ async function processSuccessfulMpesaPayment(order, orderId, paymentDetails) {
       console.warn("Notification error:", notificationError.message);
     }
 
-    // 6. Send Appwrite Messaging notifications (SMS, Email, Push)
-    sendOrderSuccessNotifications({
-      orderId,
-      customerName: order.username || "Customer",
-      amount: `KES ${amount}`,
-      paymentMethod: "M-Pesa",
-      cartItems: cart,
-      customerUserId: order.userId || order.users,
-      customerEmail: order.customerEmail,
-      customerPhone: phoneNumber,
+    // 6. Notify customer, admins, and vendors (centralized NotificationService —
+    // Email + SMS + WhatsApp + Push, retried and logged, never blocks the callback)
+    NotificationService.orderCreated(
+      {
+        $id: orderId,
+        orderNumber: order.orderNumber,
+        username: order.username || "Customer",
+        customerEmail: order.customerEmail,
+        customerPhone: phoneNumber,
+        userId: order.userId || order.users,
+        amount,
+        paymentMethod: "M-Pesa",
+      },
+      cart,
+    ).catch((err) => {
+      console.warn(`[PaymentController] Notification dispatch failed for order ${orderId}:`, err.message);
     });
 
     console.log(`✅ M-Pesa payment processing completed for order ${orderId}`);
@@ -529,16 +533,22 @@ const cashonDelivery = async (req, res) => {
 
     res.status(201).json(responseData);
 
-    // Send Appwrite Messaging notifications (SMS, Email, Push)
-    sendOrderSuccessNotifications({
-      orderId,
-      customerName: username,
-      amount: `KES ${Math.round(parseFloat(trustedTotal))}`,
-      paymentMethod: "Payment on Delivery",
-      cartItems: cart,
-      customerUserId: finalUserId,
-      customerEmail,
-      customerPhone: "",
+    // Notify customer, admins, and vendors (centralized NotificationService —
+    // Email + SMS + WhatsApp + Push, retried and logged, never blocks the response)
+    NotificationService.orderCreated(
+      {
+        $id: orderId,
+        orderNumber,
+        username,
+        customerEmail,
+        customerPhone: customerPhone || "",
+        userId: finalUserId,
+        amount: Math.round(parseFloat(trustedTotal)),
+        paymentMethod: "Payment on Delivery",
+      },
+      cart,
+    ).catch((err) => {
+      console.warn(`[PaymentController] Notification dispatch failed for order ${orderId}:`, err.message);
     });
 
     console.log(`🎉 Order ${orderId} completed successfully`);

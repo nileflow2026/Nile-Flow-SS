@@ -38,6 +38,10 @@ const TEMPLATES = Object.freeze({
       </ul>
       <p>We'll notify you every step of the way.</p>`,
     sms: `NileFlow: Order ${p.orderNumber || p.orderId} received. ${formatCurrency(p.amount)} via ${p.paymentMethod}. Track it in the app.`,
+    whatsapp: `🎉 *Nile Flow* — Order ${p.orderNumber || p.orderId} received.
+Amount: ${formatCurrency(p.amount)}
+Payment: ${p.paymentMethod}
+We'll notify you every step of the way.`,
     pushTitle: '🎉 Order Received!',
     pushBody: `Your order ${p.orderNumber || ''} of ${formatCurrency(p.amount)} has been placed successfully.`,
     inApp: `Order ${p.orderNumber || p.orderId} placed successfully.`,
@@ -121,9 +125,41 @@ const TEMPLATES = Object.freeze({
         <li><strong>Items:</strong> ${p.itemCount || 0}</li>
       </ul>
       <p><a href="${p.reviewUrl || '#'}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">View Order</a></p>`,
+    sms: `NileFlow Alert: New order ${p.orderNumber || p.orderId} from ${p.customerName} — ${formatCurrency(p.amount)} via ${p.paymentMethod}.`,
+    whatsapp: `🛒 *Nile Flow — New Order*
+Order: ${p.orderNumber || p.orderId}
+Customer: ${p.customerName}
+Total: ${formatCurrency(p.amount)}
+Payment: ${p.paymentMethod}
+Items: ${p.itemCount || 0}`,
     pushTitle: '🛒 New Order Received',
     pushBody: `${p.customerName} placed an order — ${formatCurrency(p.amount)}.`,
     inApp: `New order ${p.orderNumber || ''} from ${p.customerName}.`,
+  }),
+
+  // ── Vendor Notification Template (multi-vendor safe — vendor's items only) ──
+
+  _vendorNewOrder: (p) => ({
+    emailSubject: `📦 New Order — ${truncate(p.itemsList, 60)}`,
+    emailHtml: `<h2>You Have a New Order!</h2>
+      <p>Hello <strong>${p.vendorName || 'Vendor'}</strong>,</p>
+      <p>You've received a new order containing your product(s):</p>
+      <ul>${p.itemsHtml || `<li>${p.itemsList || ''}</li>`}</ul>
+      <p><strong>Vendor subtotal:</strong> ${formatCurrency(p.vendorSubtotal)}</p>
+      <p><strong>Payment:</strong> ${p.paymentMethod || 'N/A'}</p>
+      <p>Please open your Nile Flow Vendor Dashboard to manage this order.</p>
+      <p><a href="${p.reviewUrl || '#'}" style="background:#16A34A;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;">View Order</a></p>`,
+    sms: `NileFlow: New order! Items: ${truncate(p.itemsList, 80)} — subtotal ${formatCurrency(p.vendorSubtotal)}.`,
+    whatsapp: `📦 *Nile Flow — New Order*
+Hello ${p.vendorName || 'Vendor'},
+You received:
+${p.itemsList || ''}
+Vendor subtotal: ${formatCurrency(p.vendorSubtotal)}
+Payment: ${p.paymentMethod || 'N/A'}
+Open your Vendor Dashboard to manage this order.`,
+    pushTitle: '📦 New Order Received',
+    pushBody: `You received an order — ${truncate(p.itemsList, 60)}.`,
+    inApp: `New order received: ${truncate(p.itemsList, 80)}.`,
   }),
 
   // ── Account Templates ────────────────────────────────────────────────────
@@ -182,7 +218,16 @@ function adminNewOrderTemplate(payload) {
   return TEMPLATES._adminNewOrder(payload || {});
 }
 
+/**
+ * Get the vendor new-order template (internal, not event-keyed).
+ * Payload must only contain that vendor's own items (see NotificationService.notifyVendors).
+ */
+function vendorNewOrderTemplate(payload) {
+  return TEMPLATES._vendorNewOrder(payload || {});
+}
+
 module.exports = {
   render,
   adminNewOrderTemplate,
+  vendorNewOrderTemplate,
 };

@@ -24,6 +24,7 @@
 const { ID, Messaging, Users, Databases, Query } = require("node-appwrite");
 const { client } = require("./appwriteService");
 const { env } = require("../src/env");
+const { normalizePhone } = require("../utils/phoneNormalizer");
 
 const messaging = new Messaging(client);
 const users = new Users(client);
@@ -38,14 +39,9 @@ function normalizeEmailValue(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-function normalizePhoneValue(phone) {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (!digits) return "";
-
-  let sanitized = digits;
-  if (sanitized.startsWith("0")) sanitized = `254${sanitized.slice(1)}`;
-  const normalized = `+${sanitized}`;
-  return /^\+[1-9]\d{7,14}$/.test(normalized) ? normalized : "";
+// Africa-first E.164 normalization (Kenya default, honours a country hint when supplied).
+function normalizePhoneValue(phone, countryHint) {
+  return normalizePhone(phone, countryHint);
 }
 
 // ── DB collection scan (primary auth fallback) ────────────────────

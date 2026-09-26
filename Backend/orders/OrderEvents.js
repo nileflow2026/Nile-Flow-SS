@@ -62,30 +62,6 @@ const handlers = {
   },
 
   /**
-   * Send email via Appwrite Messaging (fire-and-forget).
-   * Legacy path still works for backward compatibility.
-   */
-  email: async (event, payload) => {
-    try {
-      const { sendOrderSuccessNotifications } = require('../services/orderNotificationService');
-      if (['order.created', 'order.status_changed', 'order.cancellation_approved'].includes(event)) {
-        sendOrderSuccessNotifications({
-          orderId: payload.orderId,
-          customerName: payload.username || 'Customer',
-          amount: payload.amount ? `KES ${Math.round(payload.amount)}` : '—',
-          paymentMethod: payload.paymentMethod || 'Cash on Delivery',
-          cartItems: payload.cartItems || [],
-          customerUserId: payload.userId,
-          customerEmail: payload.email,
-          customerPhone: payload.phone || '',
-        });
-      }
-    } catch (err) {
-      console.warn(`[OrderEvents] Email notification failed for ${event}:`, err.message);
-    }
-  },
-
-  /**
    * Centralized Notification Service handler.
    * Replaces the old fragmented notification calls.
    * Dispatches customer, admin, and vendor notifications via NotificationService.

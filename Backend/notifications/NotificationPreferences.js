@@ -16,7 +16,7 @@ const { env } = require('../src/env');
 const { CHANNEL, EVENT_CHANNELS, EVENT_NOTIFICATION_TYPE } = require('./NotificationTypes');
 
 // Default: all channels always enabled
-const DEFAULT_ENABLED = { [CHANNEL.EMAIL]: true, [CHANNEL.SMS]: true, [CHANNEL.PUSH]: true, [CHANNEL.IN_APP]: true };
+const DEFAULT_ENABLED = { [CHANNEL.EMAIL]: true, [CHANNEL.SMS]: true, [CHANNEL.PUSH]: true, [CHANNEL.IN_APP]: true, [CHANNEL.WHATSAPP]: true };
 
 /**
  * Get the list of active channels for a given user and event.
@@ -65,16 +65,16 @@ async function getUserPreferences(userId) {
  * Used when seeding initial preferences.
  */
 const DEFAULT_PREFERENCES = {
-  order: { email: true, sms: true, push: true, in_app: true },
-  payment: { email: true, sms: true, push: true, in_app: true },
-  product: { email: true, sms: false, push: true, in_app: true },
-  vendor: { email: true, sms: true, push: true, in_app: true },
-  system: { email: true, sms: false, push: true, in_app: true },
-  promotion: { email: false, sms: false, push: true, in_app: true },
-  security: { email: true, sms: true, push: true, in_app: true },
-  support: { email: true, sms: false, push: true, in_app: true },
-  loyalty: { email: false, sms: false, push: true, in_app: true },
-  ai: { email: false, sms: false, push: false, in_app: true },
+  order: { email: true, sms: true, push: true, in_app: true, whatsapp: true },
+  payment: { email: true, sms: true, push: true, in_app: true, whatsapp: true },
+  product: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
+  vendor: { email: true, sms: true, push: true, in_app: true, whatsapp: true },
+  system: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
+  promotion: { email: false, sms: false, push: true, in_app: true, whatsapp: false },
+  security: { email: true, sms: true, push: true, in_app: true, whatsapp: false },
+  support: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
+  loyalty: { email: false, sms: false, push: true, in_app: true, whatsapp: false },
+  ai: { email: false, sms: false, push: false, in_app: true, whatsapp: false },
 };
 
 module.exports = { resolveChannels, getUserPreferences, DEFAULT_PREFERENCES };

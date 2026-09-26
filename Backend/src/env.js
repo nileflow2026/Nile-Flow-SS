@@ -113,6 +113,19 @@ const schema = Joi.object({
   OPENAI_API_KEY: Joi.string().optional(),
   // Exchange Rate API (optional — free tier works without key)
   EXCHANGE_RATE_API_KEY: Joi.string().optional(),
+  // WhatsApp Business Cloud API (order notifications — optional, skipped when unset)
+  WHATSAPP_API_URL: Joi.string().uri().allow("").optional(),
+  WHATSAPP_PHONE_NUMBER_ID: Joi.string().allow("").optional(),
+  WHATSAPP_ACCESS_TOKEN: Joi.string().allow("").optional(),
+  // Notification delivery-log audit trail collection
+  APPWRITE_NOTIFICATION_LOGS_COLLECTION_ID: Joi.string().optional(),
+  APPWRITE_NOTIFICATION_WEBHOOKS_COLLECTION_ID: Joi.string().optional(),
+  // Generic idempotency store (used to dedupe notifications and other retried operations)
+  APPWRITE_IDEMPOTENCY_COLLECTION: Joi.string().allow("").optional(),
+  // Admin/vendor recipient resolution for the centralized notification system
+  APPWRITE_ADMIN_COLLECTION_ID: Joi.string().optional(),
+  VENDOR_DATABASE_ID: Joi.string().optional(),
+  VENDOR_COLLECTION_ID: Joi.string().optional(),
 }).unknown();
 
 const { error, value: env } = schema.validate(process.env, {

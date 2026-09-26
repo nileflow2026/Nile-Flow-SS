@@ -18,24 +18,40 @@ const {
 } = require('../services/appwriteMessagingService');
 const { sendPushNotification } = require('../services/pushNotificationService');
 const { createNotification } = require('../controllers/UserControllers/Clientnotification');
+const WhatsAppProvider = require('./WhatsAppProvider');
 const NotificationLogger = require('./NotificationLogger');
+const idempotencyService = require('../services/idempotency.service');
 
 /**
  * Dispatch a notification to a single recipient via a single channel.
+ *
+ * Idempotency: when `idempotencyKey` is supplied, a duplicate dispatch for the
+ * same (event + recipient + channel) is skipped rather than re-sent — this
+ * protects against the same business event being processed more than once
+ * (e.g. a retried request or a re-emitted event).
  *
  * @param {object} options
  * @param {string} options.event          — Business event name
  * @param {string} options.channel        — CHANNEL.* value
  * @param {string} options.recipientId    — Appwrite user ID
  * @param {string} options.recipient      — Email / phone
- * @param {object} options.template       — Rendered template { emailSubject, emailHtml, sms, pushTitle, pushBody, inApp }
+ * @param {object} options.template       — Rendered template { emailSubject, emailHtml, sms, whatsapp, pushTitle, pushBody, inApp }
  * @param {object} [options.pushData]     — Extra push payload data
  * @param {string} [options.source]       — Source identifier for logging
+ * @param {string} [options.idempotencyKey] — Stable key identifying this business event + recipient (e.g. orderId)
  * @returns {Promise<object>} — { status, logId }
  */
-async function dispatch({ event, channel, recipientId, recipient, template, pushData = {}, source = '' }) {
+async function dispatch({ event, channel, recipientId, recipient, template, pushData = {}, source = '', idempotencyKey = null }) {
   if (channel === CHANNEL.IN_APP) {
     return { status: DELIVERY_STATUS.SKIPPED, logId: null };
+  }
+
+  const dedupeKey = idempotencyKey ? `notif:${idempotencyKey}:${channel}` : null;
+  if (dedupeKey) {
+    const alreadySent = await idempotencyService.check(dedupeKey);
+    if (alreadySent) {
+      return { status: DELIVERY_STATUS.SKIPPED, logId: null };
+    }
   }
 
   const deliveryFn = getDeliveryFn(channel);
@@ -47,7 +63,14 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
   // Build template params
   const params = buildParams(channel, recipientId, recipient, template, pushData);
   if (!params) {
-    return { status: DELIVERY_STATUS.SKIPPED, logId: null };
+    const logId = await NotificationLogger.log({
+      event, channel, recipientId, recipient,
+      status: DELIVERY_STATUS.SKIPPED,
+      error: !recipient ? 'Recipient contact detail unavailable' : 'Channel content unavailable for this event/template',
+      template: event,
+      source,
+    });
+    return { status: DELIVERY_STATUS.SKIPPED, logId };
   }
 
   // Log the attempt
@@ -65,6 +88,7 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
       await deliveryFn(params);
       // Success
       await NotificationLogger.update(logId, { status: DELIVERY_STATUS.SENT });
+      if (dedupeKey) await idempotencyService.store(dedupeKey, { status: DELIVERY_STATUS.SENT });
       return { status: DELIVERY_STATUS.SENT, logId };
     } catch (err) {
       lastError = err;
@@ -96,7 +120,7 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
 /**
  * Dispatch to ALL active channels for a recipient.
  */
-async function dispatchAll({ event, channels, recipientId, recipient, recipientPhone, template, pushData = {}, source = '' }) {
+async function dispatchAll({ event, channels, recipientId, recipient, recipientPhone, recipientWhatsapp, template, pushData = {}, source = '', idempotencyKey = null }) {
   const results = {};
   for (const channel of channels) {
     // In-app notifications use the database notification path below, not
@@ -106,13 +130,23 @@ async function dispatchAll({ event, channels, recipientId, recipient, recipientP
     let targetRecipient = recipient;
     if (channel === CHANNEL.SMS) {
       targetRecipient = recipientPhone || recipient;
-      if (!targetRecipient) continue;
+      if (!targetRecipient) {
+        await NotificationLogger.log({ event, channel, recipientId, recipient: '', status: DELIVERY_STATUS.SKIPPED, error: 'No phone number on file', template: event, source });
+        continue;
+      }
+    }
+    if (channel === CHANNEL.WHATSAPP) {
+      targetRecipient = recipientWhatsapp || recipientPhone || recipient;
+      if (!targetRecipient) {
+        await NotificationLogger.log({ event, channel, recipientId, recipient: '', status: DELIVERY_STATUS.SKIPPED, error: 'No WhatsApp-capable phone number on file', template: event, source });
+        continue;
+      }
     }
 
     results[channel] = await dispatch({
       event, channel, recipientId,
       recipient: targetRecipient,
-      template, pushData, source,
+      template, pushData, source, idempotencyKey,
     });
   }
   return results;
@@ -142,6 +176,7 @@ function getDeliveryFn(channel) {
     [CHANNEL.EMAIL]: sendEmailWrapper,
     [CHANNEL.SMS]: sendSmsWrapper,
     [CHANNEL.PUSH]: sendPushWrapper,
+    [CHANNEL.WHATSAPP]: sendWhatsAppWrapper,
   };
   return map[channel];
 }
@@ -154,6 +189,10 @@ function buildParams(channel, userId, recipient, template, pushData) {
     case CHANNEL.SMS:
       if (!template.sms) return null;
       return { userId, phone: recipient, content: template.sms };
+    case CHANNEL.WHATSAPP:
+      if (!WhatsAppProvider.isConfigured()) return null; // Not a transient failure — skip without retrying
+      if (!template.whatsapp && !template.sms) return null;
+      return { userId, phone: recipient, content: template.whatsapp || template.sms };
     case CHANNEL.PUSH:
       if (!template.pushTitle || !template.pushBody) return null;
       return { userId, title: template.pushTitle, body: template.pushBody, data: pushData };
@@ -176,6 +215,13 @@ async function sendPushWrapper(params) {
   try {
     await sendPushNotification({ userId: params.userId, message: params.body, title: params.title, type: 'order', data: params.data });
   } catch (_) {}
+}
+
+async function sendWhatsAppWrapper(params) {
+  const result = await WhatsAppProvider.sendOrderNotification({ to: params.phone, message: params.content });
+  if (!result.success) {
+    throw new Error(result.error || 'WhatsApp send failed');
+  }
 }
 
 function sleep(ms) {

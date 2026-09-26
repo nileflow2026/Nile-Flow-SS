@@ -67,6 +67,7 @@ const CHANNEL = Object.freeze({
   SMS: 'sms',
   PUSH: 'push',
   IN_APP: 'in_app',
+  WHATSAPP: 'whatsapp',
 });
 
 // ── Delivery Statuses ───────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ const DELIVERY_STATUS = Object.freeze({
 // Which channels fire for each event type.
 
 const EVENT_CHANNELS = Object.freeze({
-  [EVENT.ORDER_CREATED]: [CHANNEL.EMAIL, CHANNEL.SMS, CHANNEL.PUSH, CHANNEL.IN_APP],
+  [EVENT.ORDER_CREATED]: [CHANNEL.EMAIL, CHANNEL.SMS, CHANNEL.WHATSAPP, CHANNEL.PUSH, CHANNEL.IN_APP],
   [EVENT.ORDER_CONFIRMED]: [CHANNEL.EMAIL, CHANNEL.PUSH, CHANNEL.IN_APP],
   [EVENT.ORDER_PREPARING]: [CHANNEL.EMAIL, CHANNEL.PUSH, CHANNEL.IN_APP],
   [EVENT.ORDER_READY]: [CHANNEL.PUSH, CHANNEL.SMS, CHANNEL.IN_APP],
