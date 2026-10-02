@@ -53,21 +53,18 @@ export default function Sidebar({ setSection, current, isOpen, setIsOpen }) {
     },
   ];
 
-  // Mobile overlay background
-  if (isOpen) {
-    return (
-      <div
-        className="fixed inset-0 bg-[#2C1810]/60 backdrop-blur-sm z-40 md:hidden animate-fadeIn"
-        onClick={() => setIsOpen(false)}
-        aria-hidden="true"
-      />
-    );
-  }
-
-  // Sidebar container
+  // Mobile overlay background and sidebar container
   return (
-    <aside
-      className={`fixed md:relative z-50 flex flex-col w-64 md:w-72 h-full transform transition-all duration-300 ease-out
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-[#2C1810]/60 backdrop-blur-sm z-40 md:hidden animate-fadeIn"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed md:relative z-50 flex flex-col w-64 md:w-72 h-full transform transition-all duration-300 ease-out
         ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         bg-gradient-to-b from-[#FAF7F2] via-[#F5F0E6] to-[#FAF7F2]
         dark:from-[#1A1A1A] dark:via-[#242424] dark:to-[#1A1A1A]
@@ -202,7 +199,8 @@ export default function Sidebar({ setSection, current, isOpen, setIsOpen }) {
           </p>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 
 }

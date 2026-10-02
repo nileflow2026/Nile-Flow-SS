@@ -371,7 +371,8 @@ function ProductDetailPage() {
               {premium && <Badge variant="warning">Premium eligible</Badge>}
               {vendorName && (
                 <Badge variant="neutral" className="max-w-[180px] truncate">{vendorName}</Badge>
-              )}
+              )} 
+              {/* 
               {vendorId && storeLink && (
                 <Link
                   to={storeLink}
@@ -384,6 +385,8 @@ function ProductDetailPage() {
                   Visit Store
                 </Link>
               )}
+               */}
+              
             </div>
           </div>
 
