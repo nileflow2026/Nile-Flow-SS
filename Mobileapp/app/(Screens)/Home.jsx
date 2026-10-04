@@ -19,8 +19,9 @@ import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 import AIChat from "../components/AIChat";
 import Categories from "../components/Categories";
 import CurrencyUpdater from "../components/CurrencyUpdater";
+import DealsSpecialOffers from "../components/DealsSpecialOffers";
 import FeaturedProducts from "../components/FeaturedProducts";
-import HeroCarousel from "../components/HeroCarousel";
+import BannerCarousel from "../components/BannerCarousel";
 import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
 
@@ -460,8 +461,8 @@ const Home = () => {
           </View>
         </View>
 
-        {/* Hero Carousel */}
-        <HeroCarousel />
+        {/* Current promotional banners */}
+        <BannerCarousel />
 
         {/* Categories Section */}
         <Categories
@@ -470,7 +471,10 @@ const Home = () => {
           )}
           categoryData={categoryData}
           selectedCategory={i18n.t(selectedCategory)}
+          autoSlide
         />
+
+        <DealsSpecialOffers />
 
         {/* Featured Products Section */}
         <FeaturedProducts />
