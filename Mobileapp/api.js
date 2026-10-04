@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import axios from "axios";
 import Constants from "expo-constants";
+import * as SecureStore from "expo-secure-store";
 
 // ========================================
 // BACKEND URL CONFIGURATION
@@ -200,11 +201,11 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Attach OAuth Bearer token when present (social sign-in stores token in AsyncStorage)
+// Attach the OAuth bearer token from SecureStore when present.
 axiosClient.interceptors.request.use(
   async (config) => {
     if (!config.headers.Authorization) {
-      const oauthToken = await AsyncStorage.getItem("oauthAccessToken");
+      const oauthToken = await SecureStore.getItemAsync("oauthAccessToken");
       if (oauthToken) {
         config.headers.Authorization = `Bearer ${oauthToken}`;
       }
@@ -219,9 +220,20 @@ axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const unauthenticatedPaths = [
+      "/api/v1/customerauth/signup/customer",
+      "/api/v1/customerauth/signin/customer",
+      "/api/v1/customerauth/verify",
+      "/api/v1/customerauth/resend-code",
+      "/api/v1/customerauth/oauth/exchange",
+    ];
 
     // If error is not 401 or request already retried, reject
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (
+      error.response?.status !== 401 ||
+      originalRequest?._retry ||
+      unauthenticatedPaths.some((path) => originalRequest?.url?.startsWith(path))
+    ) {
       return Promise.reject(error);
     }
 
@@ -238,21 +250,30 @@ axiosClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      // Get deviceId from AsyncStorage if available (mobile equivalent of sessionStorage)
+      // Refresh OAuth sessions with the native token pair. Cookie sessions
+      // continue to use their httpOnly refresh cookie.
       const deviceId = await AsyncStorage.getItem("deviceId");
-
-      console.log("[Axios Interceptor] Refreshing token...");
-
-      // Refresh token is sent via httpOnly cookie automatically
+      const nativeRefreshToken =
+        await SecureStore.getItemAsync("oauthRefreshToken");
       // IMPORTANT: Use a separate axios instance to avoid interceptor loop
-      await axios.post(
-        `${API_BASE_URL}/api/customerauth/refresh`,
-        { deviceId },
+      const refreshResponse = await axios.post(
+        `${API_BASE_URL}/api/v1/customerauth/refresh`,
+        nativeRefreshToken
+          ? { deviceId, refreshToken: nativeRefreshToken }
+          : { deviceId },
         {
           withCredentials: true,
           headers: { "Content-Type": "application/json" },
         },
       );
+      if (nativeRefreshToken) {
+        const { accessToken, refreshToken } = refreshResponse.data || {};
+        if (!accessToken || !refreshToken) {
+          throw new Error("The secure session could not be rotated.");
+        }
+        await SecureStore.setItemAsync("oauthAccessToken", accessToken);
+        await SecureStore.setItemAsync("oauthRefreshToken", refreshToken);
+      }
 
       // Process queued requests with success
       processQueue(null, true);
@@ -272,11 +293,11 @@ axiosClient.interceptors.response.use(
         refreshError.response?.data || refreshError.message,
       );
 
-      // Trigger logout for mobile - clear stored data and set user state
-      try {
+      // Clear a session only when the server definitively rejects it.
+      if ([401, 403].includes(refreshError.response?.status)) {
         await AsyncStorage.multiRemove(["user", "isGuest", "deviceId"]);
-      } catch (clearError) {
-        // Silent fail — storage clear is best-effort
+        await SecureStore.deleteItemAsync("oauthAccessToken");
+        await SecureStore.deleteItemAsync("oauthRefreshToken");
       }
 
       return Promise.reject(refreshError);

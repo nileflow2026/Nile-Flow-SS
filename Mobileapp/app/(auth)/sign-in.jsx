@@ -1,13 +1,13 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
 import {
+  exchangeOAuthCode,
   getCurrentUser,
   signIn,
   useGlobalContext,
 } from "@/Context/GlobalProvider";
 import { images } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { Link, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -60,7 +60,7 @@ const SignIn = () => {
 
       // Get the OAuth URL from the backend, passing the mobile redirect_uri
       const res = await axiosClient.get(
-        `/api/customerauth/oauth/${provider}?redirect_uri=${encodeURIComponent(REDIRECT)}`,
+        `/api/v1/customerauth/oauth/${provider}?redirect_uri=${encodeURIComponent(REDIRECT)}`,
       );
       const authUrl = res.data?.authUrl;
       if (!authUrl) throw new Error("Failed to get auth URL");
@@ -72,30 +72,35 @@ const SignIn = () => {
 
       // Parse the deep link returned by the website's OAuthCallback page
       const parsed = Linking.parse(result.url);
-      const token = parsed.queryParams?.token;
-      const refreshToken = parsed.queryParams?.refreshToken;
-
-      if (!token) throw new Error("No token received from OAuth provider");
-
-      // Persist the OAuth access token so the axiosClient interceptor can use it
-      await AsyncStorage.setItem("oauthAccessToken", token);
-      if (refreshToken) {
-        await AsyncStorage.setItem("oauthRefreshToken", refreshToken);
+      const params = parsed.queryParams || {};
+      const readParam = (value) => (Array.isArray(value) ? value[0] : value);
+      if (readParam(params.error)) {
+        throw new Error("Sign in was not completed. Please try again.");
       }
 
-      // Fetch user profile (axiosClient interceptor will attach the Bearer token)
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Failed to fetch user profile");
+      const pendingId = readParam(params.pendingId);
+      if (pendingId) {
+        router.push({
+          pathname: "/(auth)/oauth-verification",
+          params: {
+            pendingId,
+            emailRequired: readParam(params.emailRequired) || "false",
+            maskedEmail: readParam(params.maskedEmail) || "",
+          },
+        });
+        return;
+      }
 
+      const exchangeCode = readParam(params.code);
+      if (!exchangeCode) {
+        throw new Error("No secure sign in code was received. Please try again.");
+      }
+
+      const user = await exchangeOAuthCode(exchangeCode);
       setUser(user);
       setIsLogged(true);
-      router.replace("/(tabs)/BottomTabs");
+      router.replace("/(auth)/pickup-address");
     } catch (err) {
-      // Clean up stored token on failure
-      await AsyncStorage.multiRemove([
-        "oauthAccessToken",
-        "oauthRefreshToken",
-      ]).catch(() => {});
       setError(err.message || `Failed to sign in with ${provider}`);
     } finally {
       setSubmitting(false);
@@ -113,12 +118,19 @@ const SignIn = () => {
 
     try {
       await signIn(form.email, form.password);
-      const result = await getCurrentUser();
+      const result = await getCurrentUser(true);
       setUser(result);
       setIsLogged(true);
 
       router.replace("/(tabs)/BottomTabs");
     } catch (error) {
+      if (error.code === "EMAIL_NOT_VERIFIED" || error.verificationRequired) {
+        router.replace(
+          `/(auth)/sign-up?step=verify&email=${encodeURIComponent(form.email)}`,
+        );
+        return;
+      }
+
       // Check if user does not exist — show clear message with link to sign up
       if (
         error.message === "user_not_found" ||

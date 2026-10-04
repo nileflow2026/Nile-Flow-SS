@@ -6,18 +6,30 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
 import GlobalProvider, {
   useGlobalContext,
-  getCurrentUser,
 } from "@/Context/GlobalProvider";
 import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
 import { ThemeProvider } from "@/Context/ThemeProvider";
 import { GroupBuyProvider } from "../Context/GroupBuyContext";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { Stack, useRouter, usePathname, useNavigation } from "expo-router";
+import {
+  Stack,
+  useRouter,
+  usePathname,
+  useNavigation,
+  useSegments,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { BackHandler, Platform } from "react-native";
+import {
+  ActivityIndicator,
+  BackHandler,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -77,12 +89,68 @@ function AppContent() {
   const router = useRouter();
   const posthog = usePostHog();
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
+  const segments = useSegments();
+  const {
+    user,
+    isLogged,
+    loading,
+    sessionError,
+    retrySessionCheck,
+    pickupAddress,
+    pickupAddressLoading,
+    pickupAddressError,
+    retryPickupAddressCheck,
+  } = useGlobalContext();
+  const firstSegment = segments[0] || "";
+  const secondSegment = segments[1] || "";
   const hasIdentified = useRef(false);
 
-  // User identity is handled by GlobalProvider at mount.
-  // Removed redundant getCurrentUser() call — GlobalProvider provides user through context.
-  // PostHog identify is handled via GlobalProvider context when available.
+  const isWelcomeRoute = pathname === "/" || firstSegment === "index";
+  const isAuthRoute = firstSegment === "(auth)";
+  const isPickupAddressRoute =
+    isAuthRoute && secondSegment === "pickup-address";
+  const isPublicScreen =
+    isAuthRoute ||
+    isWelcomeRoute ||
+    (firstSegment === "(Screens)" &&
+      ["ForgotPassword", "ResetPassword", "TermsOfService", "PrivacyPolicy"].includes(
+        secondSegment,
+      ));
+
+  useEffect(() => {
+    if (loading || sessionError) return;
+    if (!isLogged && !isPublicScreen) {
+      router.replace("/(auth)/sign-in");
+    } else if (
+      isLogged &&
+      !pickupAddressLoading &&
+      !pickupAddressError &&
+      !pickupAddress &&
+      !isPickupAddressRoute
+    ) {
+      router.replace("/(auth)/pickup-address");
+    } else if (
+      isLogged &&
+      pickupAddress &&
+      (isWelcomeRoute || isPickupAddressRoute)
+    ) {
+      router.replace("/(tabs)/BottomTabs");
+    }
+  }, [
+    firstSegment,
+    isLogged,
+    isPublicScreen,
+    isWelcomeRoute,
+    loading,
+    pathname,
+    pickupAddress,
+    pickupAddressError,
+    pickupAddressLoading,
+    router,
+    secondSegment,
+    sessionError,
+    isPickupAddressRoute,
+  ]);
 
   // Identify user in PostHog only once
   useEffect(() => {
@@ -175,6 +243,185 @@ function AppContent() {
 
   // Keep splash visible until fonts resolve
   if (!fontsLoaded && !fontError) return null;
+
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <ActivityIndicator color="#16A34A" size="large" />
+        <Text style={{ color: "#374151", marginTop: 12 }}>
+          Checking your account…
+        </Text>
+      </View>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <Text
+          style={{
+            color: "#111827",
+            fontSize: 22,
+            fontWeight: "700",
+            textAlign: "center",
+          }}
+        >
+          We could not check your session
+        </Text>
+        <Text
+          style={{
+            color: "#6B7280",
+            fontSize: 15,
+            lineHeight: 22,
+            textAlign: "center",
+            marginTop: 10,
+          }}
+        >
+          Your account is still saved on this device. Check your connection and
+          try again.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => retrySessionCheck().catch(() => {})}
+          style={{
+            marginTop: 24,
+            paddingHorizontal: 28,
+            paddingVertical: 14,
+            borderRadius: 14,
+            backgroundColor: "#16A34A",
+          }}
+        >
+          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>
+            Retry
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (isLogged && pickupAddressLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <ActivityIndicator color="#16A34A" size="large" />
+        <Text style={{ color: "#374151", marginTop: 12 }}>
+          Checking your delivery address…
+        </Text>
+      </View>
+    );
+  }
+
+  if (isLogged && pickupAddressError) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <Text
+          style={{
+            color: "#111827",
+            fontSize: 22,
+            fontWeight: "700",
+            textAlign: "center",
+          }}
+        >
+          We could not check your delivery address
+        </Text>
+        <Text
+          style={{
+            color: "#6B7280",
+            fontSize: 15,
+            lineHeight: 22,
+            textAlign: "center",
+            marginTop: 10,
+          }}
+        >
+          Your sign in is saved. Check your connection and try again.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => retryPickupAddressCheck().catch(() => {})}
+          style={{
+            marginTop: 24,
+            paddingHorizontal: 28,
+            paddingVertical: 14,
+            borderRadius: 14,
+            backgroundColor: "#16A34A",
+          }}
+        >
+          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>
+            Retry
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!isLogged && !isPublicScreen) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <ActivityIndicator color="#16A34A" size="large" />
+        <Text style={{ color: "#374151", marginTop: 12 }}>
+          Opening sign in…
+        </Text>
+      </View>
+    );
+  }
+
+  if (
+    isLogged &&
+    pickupAddress &&
+    (isWelcomeRoute || isPickupAddressRoute)
+  ) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <ActivityIndicator color="#16A34A" size="large" />
+        <Text style={{ color: "#374151", marginTop: 12 }}>
+          Opening your marketplace…
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>

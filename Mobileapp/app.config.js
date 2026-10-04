@@ -121,6 +121,7 @@ module.exports = () => ({
       ],
       "expo-video",
       "expo-web-browser",
+      "expo-secure-store",
       [
         "@sentry/react-native",
         {

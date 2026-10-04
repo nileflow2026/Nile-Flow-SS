@@ -66,7 +66,7 @@ class AuthService {
   async signUp({ email, password, username, phone }) {
     try {
       const deviceId = getDeviceId();
-      const response = await httpClient.post('/api/customerauth/signup/customer', {
+      const response = await httpClient.post('/api/v1/customerauth/signup/customer', {
         email,
         password,
         username,
@@ -74,28 +74,22 @@ class AuthService {
         deviceId,
       });
 
-      // If backend returns an access token (e.g., auto-login after signup)
-      if (response.data?.accessToken) {
-        secureTokenManager.setAccessToken(
-          response.data.accessToken,
-          response.data.expiresIn,
-        );
-      }
-      if (response.data?.user) {
-        secureTokenManager.setUserData(response.data.user);
-        sessionManager.startSession(response.data.sessionId);
-        securityLogger.loginSuccess(response.data.user.$id, { method: 'signup' });
-        this._notifyLogin(response.data.user);
-      }
-
       return {
         success: true,
         data: response.data,
-        verificationNeeded: !response.data?.user?.emailVerified,
+        verificationNeeded: response.data?.verificationRequired === true,
       };
     } catch (error) {
       const normalized = normalizeError(error);
       securityLogger.loginFailure(email, 'signup_failed', { reason: normalized.message });
+      if (error.response?.data?.verificationRequired === true) {
+        return {
+          success: true,
+          data: error.response.data,
+          verificationNeeded: true,
+          deliveryFailed: true,
+        };
+      }
       return { success: false, error: normalized.message, verificationNeeded: false };
     }
   }
@@ -109,7 +103,7 @@ class AuthService {
     try {
       const deviceId = getDeviceId();
 
-      const response = await httpClient.post('/api/customerauth/signin/customer', {
+      const response = await httpClient.post('/api/v1/customerauth/signin/customer', {
         email,
         password,
         deviceId,
@@ -144,7 +138,12 @@ class AuthService {
         reason: normalized.message,
         code: normalized.code,
       });
-      return { success: false, error: normalized.message };
+      return {
+        success: false,
+        error: normalized.message,
+        code: error.response?.data?.code,
+        verificationRequired: error.response?.data?.verificationRequired === true,
+      };
     }
   }
 
@@ -159,7 +158,7 @@ class AuthService {
 
     try {
       await httpClient.post(
-        '/api/customerauth/logoutCustomer',
+        '/api/v1/customerauth/logoutCustomer',
         {},
         { _retryCount: 0 },
       );
@@ -202,7 +201,7 @@ class AuthService {
         // (set by the backend on login). The cookie is automatically
         // sent with the request.
         const response = await httpClient.get(
-          '/api/customerauth/getCustomerProfile',
+          '/api/v1/customerauth/getCustomerProfile',
           { _: Date.now() },
           {
             headers: { 'Cache-Control': 'no-cache' },
@@ -257,7 +256,7 @@ class AuthService {
     try {
       const deviceId = getDeviceId();
       const response = await httpClient.post(
-        '/api/customerauth/refresh',
+        '/api/v1/customerauth/refresh',
         { deviceId },
         { _retryCount: 0 },
       );
@@ -280,7 +279,7 @@ class AuthService {
   async verifyEmail(email, verificationCode) {
     try {
       const deviceId = getDeviceId();
-      const response = await httpClient.post('/api/customerauth/verify', {
+      const response = await httpClient.post('/api/v1/customerauth/verify', {
         email,
         verificationCode,
         deviceId,
@@ -303,10 +302,18 @@ class AuthService {
 
   async resendVerificationCode(email) {
     try {
-      const response = await httpClient.post('/api/customerauth/resend-code', { email });
-      return { success: true, message: response.data?.message || 'Verification code sent.' };
+      const response = await httpClient.post('/api/v1/customerauth/resend-code', { email });
+      return {
+        success: true,
+        message: response.data?.message || 'Verification code sent.',
+        resendAfterSeconds: response.data?.resendAfterSeconds,
+      };
     } catch (error) {
-      return { success: false, message: normalizeError(error).message };
+      return {
+        success: false,
+        message: normalizeError(error).message,
+        resendAfterSeconds: error.response?.data?.resendAfterSeconds,
+      };
     }
   }
 
@@ -337,7 +344,7 @@ class AuthService {
 
   async getPickupAddress() {
     try {
-      const response = await httpClient.get('/api/customerauth/pickup-address', { type: 'pickup' });
+      const response = await httpClient.get('/api/v1/customerauth/pickup-address', { type: 'pickup' });
       const hasAddress = response.data
         ? (Array.isArray(response.data) ? response.data.length > 0 : true)
         : false;
@@ -352,7 +359,7 @@ class AuthService {
     try {
       const user = secureTokenManager.getUserData();
       const fullName = user?.fullName || user?.username || user?.name || '';
-      const response = await httpClient.post('/api/customerauth/pickup-address', {
+      const response = await httpClient.post('/api/v1/customerauth/pickup-address', {
         ...addressData,
         type: 'pickup',
         fullName,
@@ -367,7 +374,7 @@ class AuthService {
 
   async signInWithGoogle() {
     try {
-      const response = await httpClient.get('/api/customerauth/oauth/google');
+      const response = await httpClient.get('/api/v1/customerauth/oauth/google');
       if (response.data?.authUrl) window.location.href = response.data.authUrl;
       return { success: true };
     } catch (error) {
@@ -377,7 +384,7 @@ class AuthService {
 
   async signInWithFacebook() {
     try {
-      const response = await httpClient.get('/api/customerauth/oauth/facebook');
+      const response = await httpClient.get('/api/v1/customerauth/oauth/facebook');
       if (response.data?.authUrl) window.location.href = response.data.authUrl;
       return { success: true };
     } catch (error) {
@@ -387,7 +394,7 @@ class AuthService {
 
   async handleOAuthCallback(provider, code, state, pkceVerifier) {
     try {
-      const response = await httpClient.get(`/api/customerauth/oauth/${provider}/callback`, {
+      const response = await httpClient.get(`/api/v1/customerauth/oauth/${provider}/callback`, {
         code,
         state,
         code_verifier: pkceVerifier,

@@ -1,5 +1,7 @@
 // middleware/authMiddleware.js
 const { verifyAccessToken } = require("../utils/tokenManager");
+const { users } = require("../services/appwriteService");
+const { isCustomerEmailVerified } = require("../utils/customerAuthPolicy");
 
 // Exact-match allowed origins to prevent subdomain bypass
 const ALLOWED_ORIGINS = new Set([
@@ -49,8 +51,16 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Verify token
-    const decoded = verifyAccessToken(accessToken);
+    let decoded;
+    try {
+      decoded = verifyAccessToken(accessToken);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        code: "INVALID_SESSION",
+        error: "Invalid or expired token",
+      });
+    }
 
     // Attach user info to request
     req.user = {
@@ -58,6 +68,36 @@ const authMiddleware = async (req, res, next) => {
       role: decoded.role,
       email: decoded.email || null,
     };
+
+    if (!decoded.role || decoded.role === "customer") {
+      let user;
+      try {
+        user = await users.get(decoded.sub);
+      } catch (error) {
+        if (error.code === 404) {
+          return res.status(401).json({
+            success: false,
+            code: "INVALID_SESSION",
+            error: "Customer account is not available.",
+          });
+        }
+
+        console.error("Customer verification status lookup failed:", error.message);
+        return res.status(503).json({
+          success: false,
+          code: "CUSTOMER_STATUS_UNAVAILABLE",
+          error: "Customer status could not be checked. Please retry.",
+        });
+      }
+
+      if (!isCustomerEmailVerified(user)) {
+        return res.status(403).json({
+          success: false,
+          code: "EMAIL_NOT_VERIFIED",
+          error: "Verify your email before accessing this resource.",
+        });
+      }
+    }
 
     next();
   } catch (error) {
@@ -68,7 +108,12 @@ const authMiddleware = async (req, res, next) => {
       res.header("Access-Control-Allow-Credentials", "true");
     }
 
-    return res.status(401).json({ error: "Invalid or expired token" });
+    console.error("Authentication middleware failed:", error.message);
+    return res.status(503).json({
+      success: false,
+      code: "AUTHORIZATION_UNAVAILABLE",
+      error: "Authentication could not be checked. Please retry.",
+    });
   }
 };
 

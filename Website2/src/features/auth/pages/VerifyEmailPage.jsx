@@ -2,9 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import PageShell from '@shared/ui/layout/PageShell'
 import PrimaryButton from '@shared/ui/button/PrimaryButton'
-import Button from '@shared/ui/button/Button'
 import Alert from '@shared/ui/alert/Alert'
-import Loader from '@shared/ui/loader/Loader'
 import { useAuth } from '@auth/AuthContext'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 
@@ -15,13 +13,14 @@ function VerifyEmailPage() {
   const { push } = useToast()
 
   const email = searchParams.get('email') || ''
+  const initialResendAfter = Number(searchParams.get('resendAfterSeconds') || 0)
 
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [verified, setVerified] = useState(false)
-  const [resendCooldown, setResendCooldown] = useState(60)
+  const [resendCooldown, setResendCooldown] = useState(initialResendAfter)
 
   const inputRefs = useRef([])
 
@@ -116,9 +115,11 @@ function VerifyEmailPage() {
     setResending(false)
 
     if (result.success) {
-      setResendCooldown(60)
+      setResendCooldown(Number(result.resendAfterSeconds ?? 60))
       push({ title: 'Code resent', message: 'A new verification code has been sent to your email.' })
     } else {
+      const retrySeconds = Number(result.resendAfterSeconds || 0)
+      if (retrySeconds > 0) setResendCooldown(retrySeconds)
       setError(result.message || 'Failed to resend code.')
     }
   }

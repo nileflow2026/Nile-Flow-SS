@@ -1,4 +1,5 @@
 import bookmark from "../assets/icons/bookmark.png";
+import brandLogo from "../assets/logo.png";
 import cards from "../assets/icons/cards.png";
 import dreamo from "../assets/icons/dreamo.png";
 import empty from "../assets/icons/empty.png";
@@ -27,6 +28,7 @@ import visa from "../assets/paymentassets/visalogo.png";
 
 export default {
   play,
+  brandLogo,
   bookmark,
   home,
   plus,

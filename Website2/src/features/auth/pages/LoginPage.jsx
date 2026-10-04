@@ -55,6 +55,9 @@ function LoginPage() {
       posthog.capture('user_logged_in', { method: 'email' })
       push({ title: 'Welcome back!', message: 'Redirecting you…' })
       navigate(from, { replace: true })
+    } else if (result.code === 'EMAIL_NOT_VERIFIED' || result.verificationRequired) {
+      push({ title: 'Verify your email', message: 'Enter the code sent to your email to continue.' })
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`, { replace: true })
     } else {
       setError(
         result.error === 'RATE_LIMITED'
@@ -62,13 +65,13 @@ function LoginPage() {
           : result.error || 'Sign in failed. Please check your credentials.',
       )
     }
-  }, [form, signIn, navigate, from, push])
+  }, [form, signIn, navigate, from, push, posthog])
 
   const handleGoogleSignIn = useCallback(async () => {
     setError('')
     setOauthLoading((prev) => ({ ...prev, google: true }))
 
-    const result = await oauthBridge.signInWithGoogle({ usePopup: true })
+    const result = await oauthBridge.signInWithGoogle({ usePopup: false })
 
     if (result.success && result.user) {
       posthog.identify(result.user.$id || result.user.id, {
@@ -89,13 +92,13 @@ function LoginPage() {
     }
 
     setOauthLoading((prev) => ({ ...prev, google: false }))
-  }, [navigate, from, push])
+  }, [navigate, from, push, posthog])
 
   const handleFacebookSignIn = useCallback(async () => {
     setError('')
     setOauthLoading((prev) => ({ ...prev, facebook: true }))
 
-    const result = await oauthBridge.signInWithFacebook({ usePopup: true })
+    const result = await oauthBridge.signInWithFacebook({ usePopup: false })
 
     if (result.success && result.user) {
       push({ title: 'Welcome!', message: 'Signed in with Facebook.' })
@@ -217,10 +220,29 @@ function LoginPage() {
                   </span>
                 )}
               </Button>
-              
+              <Button
+                variant="outline"
+                className="flex-1 justify-center rounded-full border-[var(--color-border)] text-[var(--color-text-secondary)] transition-all hover:shadow-md hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50"
+                onClick={handleFacebookSignIn}
+                disabled={isAnyLoading}
+              >
+                {oauthLoading.facebook ? (
+                  'Connecting…'
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1877F2] text-sm font-bold text-white"
+                    >
+                      f
+                    </span>
+                    <span>Continue with Facebook</span>
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
- 
+
           <p className="mt-6 text-center text-sm text-[var(--color-text-secondary)]">
             Don't have an account?{' '}
             <Link to="/signup" className="font-semibold text-emerald-600 hover:text-amber-600">Create one</Link>

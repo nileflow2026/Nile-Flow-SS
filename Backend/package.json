@@ -16,6 +16,7 @@
     "seed-rewards": "node seedRewards.js",
     "debug-appwrite": "node debug-appwrite.js",
     "verify-key": "node verify-key.js",
+    "schema:customer-oauth": "node schemas/setup-customer-oauth-attributes.js",
     "debug-crash": "node debug-crash.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -115,6 +115,9 @@ class OAuthBridge {
       const state = generateCsrfToken();
       const nonce = generateCsrfToken();
       this._persistOAuthState(state, nonce);
+      try {
+        sessionStorage.setItem('nf_oauth_pending_provider', this._currentProvider);
+      } catch { /* ignore unavailable session storage */ }
 
       // Fetch the backend OAuth URL (which includes state, nonce, PKCE)
       const endpoint = `/api/customerauth/oauth/${this._currentProvider}`;
@@ -132,6 +135,9 @@ class OAuthBridge {
       }
 
       const authUrl = response.data.authUrl;
+      const issuedState = new URL(authUrl).searchParams.get('state');
+      if (!issuedState) throw new Error('OAuth state is missing from the provider URL');
+      this._persistOAuthState(issuedState, nonce);
 
       if (usePopup) {
         return await this._tryPopupFlow(authUrl);
@@ -178,7 +184,7 @@ class OAuthBridge {
         if (!event.data || event.data.type !== 'oauth:callback') return;
 
         this._cleanupPopup();
-        const { success, user, error, token, refreshToken } = event.data;
+        const { success, user, error } = event.data;
 
         if (success) {
           securityLogger.loginSuccess(user?.$id || 'unknown', {
@@ -230,8 +236,8 @@ class OAuthBridge {
   }
 
   /**
-   * Redirect flow — used as fallback when popup is blocked.
-   * The OAuthCallback page will handle the redirect back.
+   * Redirect flow lets the Backend establish its cookie session before
+   * returning the browser to the Website2 home route.
    */
   _redirectFlow(authUrl) {
     // Store the pending provider and PKCE verifier for the callback page

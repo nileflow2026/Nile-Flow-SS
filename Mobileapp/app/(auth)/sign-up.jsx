@@ -1,8 +1,7 @@
 /* eslint-disable react/no-unescaped-entities */
-/* eslint-disable no-unused-vars */
 import { images } from "@/constants";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -18,7 +17,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "../../app/components/FormField";
 import VerificationInput from "../../app/components/VerificationInput";
-import { signUp, useGlobalContext } from "../../Context/GlobalProvider";
+import {
+  getCurrentUser,
+  resendEmailVerificationCode,
+  signUp,
+  useGlobalContext,
+  verifyEmailCode,
+} from "../../Context/GlobalProvider";
 import i18n, { useLanguage } from "../../i18n";
 import CusttomButton from "../components/CusttomButton";
 
@@ -27,8 +32,18 @@ const { width } = Dimensions.get("window");
 const SignUp = () => {
   useLanguage(); // re-render when locale changes
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const initialEmail = Array.isArray(params.email)
+    ? params.email[0]
+    : params.email;
+  const startOnVerify = params.step === "verify";
+  const initialResendAfter = Number(
+    Array.isArray(params.resendAfterSeconds)
+      ? params.resendAfterSeconds[0]
+      : params.resendAfterSeconds || 0,
+  );
   const [isSubmitting, setIsubmitting] = useState(false);
-  const [step, setStep] = useState("signup"); // 'signup' or 'verify'
+  const [step, setStep] = useState(startOnVerify ? "verify" : "signup");
   const [verificationCode, setVerificationCode] = useState([
     "",
     "",
@@ -37,8 +52,12 @@ const SignUp = () => {
     "",
     "",
   ]);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [canResend, setCanResend] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(
+    startOnVerify ? initialResendAfter : 60,
+  );
+  const [canResend, setCanResend] = useState(
+    startOnVerify && initialResendAfter <= 0,
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { setUser, setIsLogged, setIsGuest } = useGlobalContext();
@@ -47,7 +66,7 @@ const SignUp = () => {
 
   const [form, setForm] = useState({
     username: "",
-    email: "",
+    email: initialEmail || "",
     password: "",
     phone: "",
   });
@@ -117,15 +136,26 @@ const SignUp = () => {
         form.password,
         form.username,
         form.phone,
-        { setUser, setIsLogged, setIsGuest },
       );
-      if (result) {
-        showToast("Verification code sent to your email!", "success");
+      if (result?.verificationRequired) {
+        showToast(
+          result.message || "Check your email for the verification code.",
+          "success",
+        );
         setStep("verify");
-        setTimeLeft(60);
-        setCanResend(false);
+        const waitSeconds = Number(result.resendAfterSeconds ?? 60);
+        setTimeLeft(waitSeconds);
+        setCanResend(waitSeconds <= 0);
+      } else {
+        throw new Error("The account still needs to verify its email.");
       }
     } catch (error) {
+      if (error.verificationRequired) {
+        setStep("verify");
+        const waitSeconds = Number(error.resendAfterSeconds ?? 60);
+        setTimeLeft(waitSeconds);
+        setCanResend(waitSeconds <= 0);
+      }
       showToast(error.message || "Something went wrong", "error");
     } finally {
       setIsubmitting(false);
@@ -143,8 +173,14 @@ const SignUp = () => {
     setIsubmitting(true);
 
     try {
-      // Here you would implement actual verification logic
-      // For now, we'll simulate success
+      await verifyEmailCode(form.email, fullCode);
+      const verifiedUser = await getCurrentUser(true);
+      if (!verifiedUser) {
+        throw new Error("Your email was verified, but the session could not be restored. Please sign in.");
+      }
+      setUser(verifiedUser);
+      setIsLogged(true);
+      setIsGuest(false);
       showToast("Account verified successfully!", "success");
       router.replace("/(tabs)/BottomTabs");
     } catch (error) {
@@ -159,12 +195,21 @@ const SignUp = () => {
 
   const handleResendCode = async () => {
     try {
-      // Implement resend logic here
+      const result = await resendEmailVerificationCode(form.email);
       showToast("New verification code sent!", "success");
-      setTimeLeft(60);
-      setCanResend(false);
+      const waitSeconds = Number(result.resendAfterSeconds ?? 60);
+      setTimeLeft(waitSeconds);
+      setCanResend(waitSeconds <= 0);
     } catch (error) {
-      showToast("Failed to resend code. Please try again.", "error");
+      const waitSeconds = Number(error.resendAfterSeconds || 0);
+      if (waitSeconds > 0) {
+        setTimeLeft(waitSeconds);
+        setCanResend(false);
+      }
+      showToast(
+        error.message || "Failed to resend code. Please try again.",
+        "error",
+      );
     }
   };
 

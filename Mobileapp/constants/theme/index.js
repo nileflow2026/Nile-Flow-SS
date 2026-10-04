@@ -5,7 +5,7 @@
  *   import { colors, gradients, typography } from "@/constants/theme";
  */
 
-export { default as colors, green, gold, neutral } from "./colors";
+export { default as colors, green, gold, red, neutral } from "./colors";
 export {
   default as gradients,
   greenGradient,
@@ -23,3 +23,4 @@ export {
   fontSize,
   lineHeight,
 } from "./typography";
+export { spacing, radius } from "./metrics";

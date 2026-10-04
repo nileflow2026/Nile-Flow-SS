@@ -36,17 +36,18 @@ Spec [0002](../../specs/Mobileapp/0002-mobile-checkout-address-confirmation.md)
 
 New and returning customers use verified sessions, and Mobileapp customers save a pickup address before marketplace access. Website2 follows the shared verification rules while keeping its cookie session behavior.
 **Done when:** Mobileapp customers can sign in or create an account, verify email when required, restore valid sessions, save a pickup address, and enter protected screens only after Backend authorization; Google and Facebook use a secure one time exchange; Website2 retains cookie sessions and honors verification.
+Code in `Backend/`, `Mobileapp/`, and `Website2/`.
 - [x] Design it (spec): `/architect Mobileapp customer onboarding authentication`
 - [ ] Build it: `/develop Mobileapp customer onboarding authentication`
-  - [ ] Enforce email verification in versioned and legacy Backend auth routes, then wire Mobileapp signup, verification, session restore, and route guards (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-17, AC-18).
-  - [ ] Gate marketplace access on the authenticated customer's saved pickup address, with owner checked writes and retry states (AC-10, AC-11).
-  - [ ] Add provider identity links, verified OAuth email handling, one time Redis state and exchange, SecureStore token rotation, and safe logout (AC-12, AC-13, AC-14, AC-15, AC-19).
-  - [ ] Align Website2 signup and sign in with pending verification and existing cookie sessions (AC-16).
+  - [x] Enforce email verification in versioned and legacy Backend auth routes, then wire Mobileapp signup, verification, session restore, and route guards (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-17, AC-18).
+  - [x] Gate marketplace access on the authenticated customer's saved pickup address, with owner checked writes and retry states (AC-10, AC-11).
+  - [x] Add provider identity links, verified OAuth email handling, one time Redis state and exchange, SecureStore token rotation, and safe logout (AC-12, AC-13, AC-14, AC-15, AC-19).
+  - [x] Align Website2 signup and sign in with pending verification and existing cookie sessions (AC-16).
   - [ ] Verify production Redis readiness and run onboarding and compatibility scenarios across Mobileapp, Backend, and Website2 (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18, AC-19).
 - [ ] Verify it: `/check verify Mobileapp customer onboarding authentication`
 - [ ] Test it: `/test Mobileapp customer onboarding authentication`
 
-Spec [0003](../../specs/Mobileapp/0003-mobile-onboarding-authentication.md)
+Spec [0003](../../specs/Mobileapp/0003-mobile-onboarding-authentication/index.md)
 
 ## Deferred
 

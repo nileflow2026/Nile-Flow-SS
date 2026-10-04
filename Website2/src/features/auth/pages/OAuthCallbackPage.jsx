@@ -22,7 +22,6 @@ import PrimaryButton from '@shared/ui/button/PrimaryButton'
 import Loader from '@shared/ui/loader/Loader'
 import Alert from '@shared/ui/alert/Alert'
 import { oauthBridge } from '@auth/oauthBridge'
-import { useAuth } from '@auth/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePostHog } from '@posthog/react'
 
@@ -53,7 +52,6 @@ function reducer(state, action) {
 function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { signIn } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
   const processedRef = useRef(false);
   const posthog = usePostHog();
@@ -83,7 +81,11 @@ function OAuthCallbackPage() {
 
     const code = searchParams.get('code');
     const stateParam = searchParams.get('state');
-    const provider = searchParams.get('provider') || 'google';
+    let storedProvider = ''
+    try {
+      storedProvider = sessionStorage.getItem('nf_oauth_pending_provider') || ''
+    } catch { /* ignore unavailable session storage */ }
+    const provider = searchParams.get('provider') || storedProvider || 'google';
 
     if (!code) {
       // No code and no error — might be a direct navigation to this page
@@ -120,7 +122,7 @@ function OAuthCallbackPage() {
         error: result.error || `${provider} sign-in failed. Please try again.`,
       });
     }
-  }, [searchParams, navigate, signIn]);
+  }, [searchParams, navigate, posthog]);
 
   useEffect(() => {
     processCallback();

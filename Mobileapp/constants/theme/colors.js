@@ -36,6 +36,12 @@ export const gold = {
   900: "#78350F",
 };
 
+export const red = {
+  50: "#FEF2F2",
+  200: "#FECACA",
+  700: "#B91C1C",
+};
+
 export const neutral = {
   white: "#FFFFFF",
   surface: "#F9FAFB",
@@ -46,5 +52,5 @@ export const neutral = {
 };
 
 /** Flat map for easy destructuring */
-const colors = { green, gold, neutral };
+const colors = { green, gold, red, neutral };
 export default colors;

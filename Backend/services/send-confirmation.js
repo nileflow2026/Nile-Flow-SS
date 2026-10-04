@@ -1,4 +1,5 @@
 const { Resend } = require("resend");
+const crypto = require("crypto");
 const { env } = require("../src/env");
 const { db, users } = require("./appwriteService");
 const { Query, ID } = require("node-appwrite");
@@ -708,6 +709,18 @@ const sendVerificationEmail = async ({
   customerName,
   verificationCode,
 }) => {
+  const safeCustomerName = String(customerName || "there").replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character],
+  );
+
   try {
     await sendBrandedEmail(resend, {
       from: "Nile Flow <no-reply@nileflowafrica.com>", // Your verified Resend domain
@@ -716,7 +729,7 @@ const sendVerificationEmail = async ({
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f7f7f7;">
           <div style="max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="color: #333;">Hello ${customerName},</h2>
+            <h2 style="color: #333;">Hello ${safeCustomerName},</h2>
             <p style="font-size: 16px; color: #555;">Thank you for signing up with Nile Flow! Please use the following code to verify your account:</p>
             <div style="text-align: center; margin: 30px 0;">
               <span style="font-size: 28px; font-weight: bold; color: #1c1c1c; background-color: #f0f0f0; padding: 15px 25px; border-radius: 6px; letter-spacing: 2px;">
@@ -729,9 +742,8 @@ const sendVerificationEmail = async ({
         </div>
       `,
     });
-    console.log(`Verification email sent to ${customerEmail}`);
-  } catch (err) {
-    console.error("Failed to send verification email:", err);
+  } catch {
+    console.error("Failed to send customer verification email.");
     throw new Error("Failed to send verification email.");
   }
 };
@@ -1320,7 +1332,6 @@ const storeVerificationCode = async (email, code) => {
         documentId,
         { code, createdAt: new Date().toISOString() },
       );
-      console.log("Updated existing verification code for:", email);
     } else {
       // If no document exists, create a new one
       await db.createDocument(
@@ -1333,43 +1344,42 @@ const storeVerificationCode = async (email, code) => {
           createdAt: new Date().toISOString(),
         },
       );
-      console.log("Stored new verification code for:", email);
     }
   } catch (error) {
-    console.error("Error storing verification code:", error);
     throw new Error("Failed to store verification code.");
+  }
+};
+
+const getVerificationCodeRecord = async (email) => {
+  try {
+    const response = await db.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_VERIFICATION_COLLECTION_ID,
+      [Query.equal("email", email), Query.limit(1)],
+    );
+    return response.documents[0] || null;
+  } catch (error) {
+    throw new Error("Failed to retrieve verification record.");
   }
 };
 
 // Assumes you have a `db` instance from Appwrite
 const getStoredVerificationCode = async (email) => {
   try {
-    const response = await db.listDocuments(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_VERIFICATION_COLLECTION_ID,
-      [Query.equal("email", email)],
-    );
+    const verificationDoc = await getVerificationCodeRecord(email);
+    if (!verificationDoc) return null;
 
-    if (response.documents.length === 0) {
-      return null; // No code found
-    }
-
-    const verificationDoc = response.documents[0];
     const createdAt = new Date(verificationDoc.createdAt);
-    const now = new Date();
-    const differenceInMinutes = (now - createdAt) / (1000 * 60);
+    const ageInMs = Date.now() - createdAt.getTime();
 
-    // Check if the code is older than, for example, 15 minutes
-    if (differenceInMinutes > 15) {
-      // Code has expired, delete it and return null
+    if (!Number.isFinite(createdAt.getTime()) || ageInMs >= 15 * 60 * 1000) {
       await deleteVerificationCode(email);
       return null;
     }
 
     return verificationDoc.code;
   } catch (error) {
-    console.error("Error getting stored verification code:", error);
-    return null;
+    throw new Error("Failed to retrieve verification code.");
   }
 };
 
@@ -1391,7 +1401,7 @@ const deleteVerificationCode = async (email) => {
       console.log("Deleted used verification code for:", email);
     }
   } catch (error) {
-    console.error("Error deleting verification code:", error);
+    throw new Error("Failed to consume verification code.");
   }
 };
 
@@ -1406,8 +1416,12 @@ const markUserAsVerified = async (email) => {
 
     const userId = userList.users[0].$id;
 
-    // Step 2: Update the user's preferences to mark as verified
-    await users.updatePrefs(userId, { isVerified: true });
+    // Preserve account preferences while setting the canonical verification flag.
+    const currentUser = await users.get(userId);
+    await users.updatePrefs(userId, {
+      ...(currentUser.prefs || {}),
+      isVerified: true,
+    });
     console.log(`User ${userId} marked as verified.`);
 
     // Step 3: Find and update the user's profile document as well
@@ -1417,18 +1431,17 @@ const markUserAsVerified = async (email) => {
       [Query.equal("email", email)],
     );
 
-    if (profileList.documents.length > 0) {
-      const profileId = profileList.documents[0].$id;
-      await db.updateDocument(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_USER_COLLECTION_ID,
-        profileId,
-        { isVerified: true },
-      );
-      console.log(`User profile for ${email} updated as verified.`);
+    if (profileList.documents.length === 0) {
+      throw new Error("Customer profile not found.");
     }
+
+    await db.updateDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      profileList.documents[0].$id,
+      { isVerified: true },
+    );
   } catch (error) {
-    console.error("Error marking user as verified:", error);
     throw new Error("Failed to update user verification status.");
   }
 };
@@ -1436,6 +1449,7 @@ const markUserAsVerified = async (email) => {
 // POST /api/customerauth/resend-code
 const resendVerificationCode = async (req, res) => {
   const { email } = req.body;
+  let resendAfterSeconds = 0;
 
   if (!email) {
     return res
@@ -1460,15 +1474,32 @@ const resendVerificationCode = async (req, res) => {
     const user = userList.users[0];
     const userPrefs = await users.getPrefs(user.$id);
 
-    if (!user.prefs || userPrefs.isVerified) {
+    if (userPrefs.isVerified === true) {
       return res
         .status(400)
         .json({ error: "This account is already verified. Please log in." });
     }
 
-    // Step 2: Generate a new code and store it in the database, overwriting the old one.
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const record = await getVerificationCodeRecord(email);
+    if (record) {
+      const ageInMs = Date.now() - new Date(record.createdAt).getTime();
+      const resendAfterSeconds = Math.max(
+        0,
+        Math.ceil((60 * 1000 - ageInMs) / 1000),
+      );
+      if (resendAfterSeconds > 0) {
+        return res.status(429).json({
+          success: false,
+          code: "RESEND_TOO_SOON",
+          message: "Please wait before requesting another verification code.",
+          resendAfterSeconds,
+        });
+      }
+    }
+
+    const newCode = crypto.randomInt(100000, 1000000).toString();
     await storeVerificationCode(email, newCode);
+    resendAfterSeconds = 60;
 
     // Step 3: Send the new code via Resend.
     await sendVerificationEmail({
@@ -1478,13 +1509,21 @@ const resendVerificationCode = async (req, res) => {
     });
 
     return res.status(200).json({
+      success: true,
       message: "A new verification code has been sent to your email.",
+      expiresInSeconds: 15 * 60,
+      resendAfterSeconds: 60,
     });
   } catch (error) {
-    console.error("Resend code error:", error);
+    console.error("Resend code error:", error.message);
     return res
-      .status(500)
-      .json({ error: "Failed to resend the code. Please try again." });
+      .status(503)
+      .json({
+        success: false,
+        code: "VERIFICATION_RESEND_FAILED",
+        error: "Failed to resend the code. Please try again.",
+        resendAfterSeconds,
+      });
   }
 };
 
@@ -1810,6 +1849,9 @@ module.exports = {
   sendWelcomeEmail,
   verifyCustomer,
   storeVerificationCode,
+  getVerificationCodeRecord,
+  getStoredVerificationCode,
+  deleteVerificationCode,
   markUserAsVerified,
   resendVerificationCode,
   verifyCustomerMobile,

@@ -746,7 +746,16 @@ safeMount("/api/ai", require("../routes/aiChatRoutes"), "AI Chat");
 safeMount("/api/audit-logs", userRoutes, "Audit Logs");
 safeMount("/api/users", userRoutes, "Users");
 safeMount("/api/settings", settingRoutes, "Settings");
-safeMount("/api/customerauth", ClientRoute, "Customer Auth");
+safeMount(
+  "/api/customerauth",
+  [authLimiter, ClientRoute].filter(Boolean),
+  "Customer Auth",
+);
+safeMount(
+  "/api/v1/customerauth",
+  [authLimiter, ClientRoute].filter(Boolean),
+  "Versioned Customer Auth",
+);
 safeMount("/api/customerprofile", ClientRouter, "Customer Profile");
 safeMount("/api/update-currencies", ClientRouter, "Update Currencies");
 safeMount("/api/payments", PaymentRouter, "Payments");

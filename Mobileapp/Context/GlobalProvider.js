@@ -2,6 +2,7 @@
 /* eslint-disable no-unused-vars */
 import axiosClient from "@/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import React, {
   createContext,
   useCallback,
@@ -20,6 +21,13 @@ const GlobalContext = createContext({
   user: null,
   setUser: () => {},
   loading: true,
+  sessionError: false,
+  retrySessionCheck: async () => {},
+  pickupAddress: null,
+  pickupAddressLoading: true,
+  pickupAddressError: false,
+  retryPickupAddressCheck: async () => {},
+  savePickupAddress: async () => {},
   isGuest: false,
   setIsGuest: () => {},
   startGuestSessionFlow: () => Promise.resolve(),
@@ -49,6 +57,37 @@ export const invalidateUserCache = () => {
   _userCachePromise = null;
 };
 
+const getOrCreateDeviceId = async () => {
+  let deviceId = await AsyncStorage.getItem("deviceId");
+  if (!deviceId) {
+    deviceId = Math.random().toString(36).substr(2, 16);
+    await AsyncStorage.setItem("deviceId", deviceId);
+  }
+  return deviceId;
+};
+
+const migrateLegacyOAuthTokens = async () => {
+  const legacyTokens = await AsyncStorage.multiGet([
+    "oauthAccessToken",
+    "oauthRefreshToken",
+  ]);
+  const accessToken = legacyTokens[0][1];
+  const refreshToken = legacyTokens[1][1];
+
+  if (accessToken) {
+    await SecureStore.setItemAsync("oauthAccessToken", accessToken);
+  }
+  if (refreshToken) {
+    await SecureStore.setItemAsync("oauthRefreshToken", refreshToken);
+  }
+  if (accessToken || refreshToken) {
+    await AsyncStorage.multiRemove([
+      "oauthAccessToken",
+      "oauthRefreshToken",
+    ]);
+  }
+};
+
 export const getCurrentUser = async (forceRefresh = false) => {
   if (!forceRefresh) {
     const cached = getCachedUser();
@@ -64,13 +103,11 @@ export const getCurrentUser = async (forceRefresh = false) => {
     return _userCachePromise;
   }
 
-  console.log(
-    "🌐 [getCurrentUser] Fetching from /api/customerauth/getCustomerProfile",
-  );
+  console.log("Checking the current customer session.");
   _userCachePromise = (async () => {
     try {
       const response = await axiosClient.get(
-        "/api/customerauth/getCustomerProfile",
+        "/api/v1/customerauth/getCustomerProfile",
       );
 
       const user = response.data?.user || response.data;
@@ -98,11 +135,12 @@ export const getCurrentUser = async (forceRefresh = false) => {
       setCachedUser(sanitizedUser);
       return sanitizedUser;
     } catch (error) {
-      console.log(
-        "❌ [getCurrentUser] Error:",
+      if ([401, 403].includes(error.response?.status)) return null;
+      console.error(
+        "Customer session check failed:",
         error.response?.data?.error || error.message,
       );
-      return null;
+      throw error;
     } finally {
       _userCachePromise = null;
     }
@@ -115,22 +153,12 @@ export const signUp = async (
   password,
   username,
   phone,
-  { setUser, setIsLogged, setIsGuest },
 ) => {
-  // Note: If you want to include phone number in signup, add it to parameters and req.body
   try {
-    /* console.log("Signing up user:", { email, username, phone }); */
+    const deviceId = await getOrCreateDeviceId();
 
-    // Generate deviceId for mobile tracking
-    let deviceId = await AsyncStorage.getItem("deviceId");
-    if (!deviceId) {
-      deviceId = Math.random().toString(36).substr(2, 16);
-      await AsyncStorage.setItem("deviceId", deviceId);
-    }
-
-    // Backend signup API call
     const response = await axiosClient.post(
-      "/api/customerauth/signup/customer",
+      "/api/v1/customerauth/signup/customer",
       {
         email,
         password,
@@ -140,53 +168,109 @@ export const signUp = async (
       },
     );
 
-    // Backend response structure: { message, user: { id, email, username, role, avatar }, profile }
-    // Note: tokens are set as HTTP cookies, not in response body
-    const { user, profile } = response.data;
-
-    // Store user data securely
-    await AsyncStorage.setItem("user", JSON.stringify(user)); // Store the user object
-
-    // Clear guest session if applicable
-    const isGuest = await AsyncStorage.getItem("isGuest");
-    if (isGuest === "true") {
-      await AsyncStorage.removeItem("isGuest");
-      console.log("✅ Guest session cleared after signup");
-    }
-
-    // Update local state directly with data from signup response
-    setUser(user);
-    setIsLogged(true);
-    setIsGuest(false);
-
-    // Return relevant data
-    return { user, profile };
+    return response.data;
   } catch (error) {
     console.error(
       "Signup error:",
       error.response?.data?.error || error.message || error,
     );
     // Rethrow a simplified error message for the UI
-    throw new Error(
+    const authError = new Error(
       error.response?.data?.error || "Signup failed. Please try again.",
     );
+    authError.code = error.response?.data?.code;
+    authError.verificationRequired =
+      error.response?.data?.verificationRequired === true;
+    authError.resendAfterSeconds = error.response?.data?.resendAfterSeconds;
+    throw authError;
   }
+};
+
+export const verifyEmailCode = async (email, verificationCode) => {
+  try {
+    const deviceId = await getOrCreateDeviceId();
+    const response = await axiosClient.post("/api/v1/customerauth/verify", {
+      email,
+      verificationCode,
+      deviceId,
+    });
+    invalidateUserCache();
+    return response.data;
+  } catch (error) {
+    const authError = new Error(
+      error.response?.data?.error ||
+        "Verification could not be completed. Please try again.",
+    );
+    authError.code = error.response?.data?.code;
+    throw authError;
+  }
+};
+
+export const resendEmailVerificationCode = async (email) => {
+  try {
+    const response = await axiosClient.post(
+      "/api/v1/customerauth/resend-code",
+      { email },
+    );
+    return response.data;
+  } catch (error) {
+    const authError = new Error(
+      error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Could not resend the verification code.",
+    );
+    authError.code = error.response?.data?.code;
+    authError.resendAfterSeconds = error.response?.data?.resendAfterSeconds;
+    throw authError;
+  }
+};
+
+export const getPickupAddress = async () => {
+  try {
+    const response = await axiosClient.get(
+      "/api/v1/customerauth/pickup-address",
+    );
+    return response.data?.address || null;
+  } catch (error) {
+    if (error.response?.status === 404) return null;
+    throw error;
+  }
+};
+
+export const saveCustomerPickupAddress = async (address) => {
+  const response = await axiosClient.post(
+    "/api/v1/customerauth/pickup-address",
+    address,
+  );
+  return response.data?.address || address;
+};
+
+export const exchangeOAuthCode = async (code) => {
+  const deviceId = await getOrCreateDeviceId();
+  const response = await axiosClient.post(
+    "/api/v1/customerauth/oauth/exchange",
+    { code, deviceId },
+  );
+  const { accessToken, refreshToken, user } = response.data || {};
+  if (!accessToken || !refreshToken || !user) {
+    throw new Error("Secure sign in returned an incomplete session.");
+  }
+
+  await SecureStore.setItemAsync("oauthAccessToken", accessToken);
+  await SecureStore.setItemAsync("oauthRefreshToken", refreshToken);
+  await AsyncStorage.setItem("user", JSON.stringify(user));
+  await AsyncStorage.removeItem("isGuest");
+  invalidateUserCache();
+  return user;
 };
 
 export const signIn = async (email, password) => {
   try {
-    /*  console.log("Attempting to sign in user:", email); */
-
-    // Generate deviceId for mobile tracking
-    let deviceId = await AsyncStorage.getItem("deviceId");
-    if (!deviceId) {
-      deviceId = Math.random().toString(36).substr(2, 16);
-      await AsyncStorage.setItem("deviceId", deviceId);
-    }
+    const deviceId = await getOrCreateDeviceId();
 
     // Send login credentials to your backend API
     const response = await axiosClient.post(
-      "/api/customerauth/signin/customer",
+      "/api/v1/customerauth/signin/customer",
       {
         email,
         password,
@@ -212,10 +296,14 @@ export const signIn = async (email, password) => {
       error.response?.data || error.message || error,
     );
     // Re-throw a specific error message from the backend or a generic one
-    throw new Error(
+    const authError = new Error(
       error.response?.data?.error ||
         "Signin failed. Please check your credentials.",
     );
+    authError.code = error.response?.data?.code;
+    authError.verificationRequired =
+      error.response?.data?.verificationRequired === true;
+    throw authError;
   }
 };
 
@@ -233,9 +321,11 @@ const unregisterPushToken = async () => {
 export const signOut = async () => {
   try {
     await unregisterPushToken();
-    // Use the backend logout endpoint to clear httpOnly cookies
-    await axiosClient.post("/api/customerauth/logout/customer");
-    // Clear all locally-stored auth data including OAuth tokens
+    const refreshToken = await SecureStore.getItemAsync("oauthRefreshToken");
+    await axiosClient.post(
+      "/api/v1/customerauth/logoutCustomer",
+      refreshToken ? { refreshToken } : {},
+    );
     await AsyncStorage.multiRemove([
       "user",
       "isGuest",
@@ -243,16 +333,11 @@ export const signOut = async () => {
       "oauthAccessToken",
       "oauthRefreshToken",
     ]);
+    await SecureStore.deleteItemAsync("oauthAccessToken");
+    await SecureStore.deleteItemAsync("oauthRefreshToken");
+    invalidateUserCache();
   } catch (error) {
-    // Still clear local state even if backend call fails
-    await AsyncStorage.multiRemove([
-      "user",
-      "isGuest",
-      "deviceId",
-      "oauthAccessToken",
-      "oauthRefreshToken",
-    ]).catch(() => {});
-    throw new Error("Sign-out failed. Please try again.");
+    throw new Error("Sign-out failed. Your session is still active. Please retry.");
   }
 };
 
@@ -721,7 +806,11 @@ const GlobalProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLogged, setIsLogged] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [pickupAddress, setPickupAddress] = useState(null);
+  const [pickupAddressLoading, setPickupAddressLoading] = useState(true);
+  const [pickupAddressError, setPickupAddressError] = useState(false);
 
   useEffect(() => {
     const checkGuestStatus = async () => {
@@ -735,10 +824,47 @@ const GlobalProvider = ({ children }) => {
     checkGuestStatus();
   }, []);
 
+  const retryPickupAddressCheck = async () => {
+    setPickupAddressLoading(true);
+    setPickupAddressError(false);
+    try {
+      const address = await getPickupAddress();
+      setPickupAddress(address);
+      return address;
+    } catch (error) {
+      console.error(
+        "Pickup address check failed:",
+        error.response?.data?.error || error.message,
+      );
+      setPickupAddressError(true);
+      throw error;
+    } finally {
+      setPickupAddressLoading(false);
+    }
+  };
+
+  const savePickupAddress = async (address) => {
+    const savedAddress = await saveCustomerPickupAddress(address);
+    setPickupAddress(savedAddress);
+    setPickupAddressError(false);
+    return savedAddress;
+  };
+
+  useEffect(() => {
+    if (!isLogged) {
+      setPickupAddress(null);
+      setPickupAddressLoading(true);
+      setPickupAddressError(false);
+      return;
+    }
+    retryPickupAddressCheck().catch(() => {});
+  }, [isLogged, user?.id]);
+
   useEffect(() => {
     const fetchUser = async () => {
       console.log("🔄 [GlobalProvider] Starting fetchUser");
       try {
+        await migrateLegacyOAuthTokens();
         const currentUser = await getCurrentUser();
         console.log(
           "✅ [GlobalProvider] getCurrentUser returned:",
@@ -746,6 +872,7 @@ const GlobalProvider = ({ children }) => {
         );
 
         if (currentUser) {
+          setSessionError(false);
           setIsLogged(true);
 
           // Handle any user object key renaming if needed here
@@ -758,13 +885,18 @@ const GlobalProvider = ({ children }) => {
 
           setIsGuest(false); // User is logged in, not guest
         } else {
+          setSessionError(false);
           setIsLogged(false);
           setUser(null);
         }
       } catch (error) {
         console.error("❌ [GlobalProvider] fetchUser error:", error.message);
-        setIsLogged(false);
-        setUser(null);
+        const storedUser = await AsyncStorage.getItem("user")
+          .then((value) => (value ? JSON.parse(value) : null))
+          .catch(() => null);
+        setIsLogged(Boolean(storedUser));
+        setUser(storedUser);
+        setSessionError(true);
       } finally {
         console.log("✅ [GlobalProvider] Setting loading = false");
         setLoading(false);
@@ -773,6 +905,25 @@ const GlobalProvider = ({ children }) => {
 
     fetchUser();
   }, []);
+
+  const retrySessionCheck = async () => {
+    setLoading(true);
+    setSessionError(false);
+    try {
+      await migrateLegacyOAuthTokens();
+      const currentUser = await getCurrentUser(true);
+      setUser(currentUser);
+      setIsLogged(Boolean(currentUser));
+      setIsGuest(false);
+      return currentUser;
+    } catch (error) {
+      console.error("Customer session retry failed:", error.message);
+      setSessionError(true);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // A new function to check for an existing session
   const checkActiveAppwriteSession = async () => {
@@ -874,31 +1025,28 @@ const GlobalProvider = ({ children }) => {
   const handleLogout = async () => {
     try {
       await unregisterPushToken();
-      // Call backend logout endpoint to clear cookies
-      await axiosClient.post("/api/customerauth/logout/customer");
+      const refreshToken = await SecureStore.getItemAsync("oauthRefreshToken");
+      await axiosClient.post(
+        "/api/v1/customerauth/logoutCustomer",
+        refreshToken ? { refreshToken } : {},
+      );
 
       // Clear local storage
       await AsyncStorage.removeItem("user");
       await AsyncStorage.removeItem("isGuest");
+      await AsyncStorage.multiRemove(["oauthAccessToken", "oauthRefreshToken"]);
+      await SecureStore.deleteItemAsync("oauthAccessToken");
+      await SecureStore.deleteItemAsync("oauthRefreshToken");
 
       setIsLogged(false);
       setUser(null);
       setIsGuest(false);
+      setPickupAddress(null);
 
       console.log("User logged out successfully.");
     } catch (error) {
       console.error("Error logging out:", error);
-
-      // Even if logout fails, clear local state
-      try {
-        await AsyncStorage.removeItem("user");
-        await AsyncStorage.removeItem("isGuest");
-        setIsLogged(false);
-        setUser(null);
-        setIsGuest(false);
-      } catch (clearError) {
-        console.error("Error clearing local storage:", clearError);
-      }
+      throw new Error("Sign out failed. Your session is still active. Please retry.");
     }
   };
 
@@ -909,12 +1057,29 @@ const GlobalProvider = ({ children }) => {
       user,
       setUser,
       loading,
+      sessionError,
+      retrySessionCheck,
+      pickupAddress,
+      pickupAddressLoading,
+      pickupAddressError,
+      retryPickupAddressCheck,
+      savePickupAddress,
       isGuest,
       setIsGuest,
       startGuestSessionFlow,
       handleLogout,
     }),
-    [isLogged, user, loading, isGuest],
+    [
+      isLogged,
+      user,
+      loading,
+      sessionError,
+      retrySessionCheck,
+      isGuest,
+      pickupAddress,
+      pickupAddressLoading,
+      pickupAddressError,
+    ],
   );
 
   return (

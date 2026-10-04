@@ -59,8 +59,17 @@ function SignupPage() {
       }
       posthog.capture('user_signed_up', { method: 'email' })
       if (result.verificationNeeded) {
-        push({ title: 'Almost there!', message: 'Check your email to verify your account.' })
-        navigate(`/verify-email?email=${encodeURIComponent(form.email)}`, { replace: true })
+        push({
+          title: result.deliveryFailed ? 'Email delivery delayed' : 'Almost there!',
+          message: result.deliveryFailed
+            ? 'Your account is saved. Open email verification and try sending the code again.'
+            : 'Check your email to verify your account.',
+        })
+        const resendAfterSeconds = Number(result.data?.resendAfterSeconds || 0)
+        navigate(
+          `/verify-email?email=${encodeURIComponent(form.email)}&resendAfterSeconds=${resendAfterSeconds}`,
+          { replace: true },
+        )
       } else {
         push({ title: 'Account created', message: 'Welcome to Nile Flow!' })
         navigate('/home', { replace: true })
