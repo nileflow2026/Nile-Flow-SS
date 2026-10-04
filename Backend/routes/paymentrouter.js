@@ -1,5 +1,11 @@
 const express = require("express");
 const router = express.Router();
+
+router.get(
+  "/checkout-attempt/:checkoutAttemptId",
+  authenticateToken,
+  getCheckoutAttempt,
+);
 const authenticateToken = require("../middleware/authMiddleware");
 const paymentSecurity = require("../middleware/paymentSecurity");
 const {
@@ -28,6 +34,9 @@ const {
   cancelCodOrder,
   stripeMobilePaymentSheet,
 } = require("../controllers/AdminControllers/PaymentController");
+const {
+  getCheckoutAttempt,
+} = require("../controllers/checkoutAttemptController");
 const pesapalController = require("../controllers/pesapalController");
 
 const {

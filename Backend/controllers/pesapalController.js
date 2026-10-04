@@ -3,6 +3,14 @@ const OrderRepository = require("../orders/OrderRepository");
 const { env } = require("../src/env");
 const pesapalService = require("../services/pesapalService");
 const logger = require("../utils/logger");
+const { createHash } = require("node:crypto");
+const {
+  CHECKOUT_RECOVERY_STATES,
+  CheckoutRequestError,
+  checkoutSuccessResponse,
+  getRecoveryState,
+  prepareMobileCheckout,
+} = require("../services/mobileCheckoutService");
 
 function errorDetails(error) {
   return {
@@ -81,10 +89,160 @@ async function updateOrder(orderId, updates, phase) {
   }
 }
 
-async function initiate(req, res) {
-  const startedAt = Date.now();
-  logger.info("Pesapal initiation started", { meta: requestSummary(req) });
+function hashId(value) {
+  return value
+    ? createHash("sha256").update(String(value)).digest("hex").slice(0, 16)
+    : undefined;
+}
 
+async function initiateVersioned(req, res) {
+  const userId = req.user?.userId || req.user?.$id || req.user?.id;
+  const checkoutAttemptId = req.body?.checkoutAttemptId;
+  let orderId;
+  let paymentStatus = "unknown";
+  let phase = "checkout validation";
+
+  try {
+    const checkout = await prepareMobileCheckout(req.body, req.user);
+    if (!checkout.versioned) {
+      return res.status(400).json({
+        success: false,
+        message: "A confirmed checkout address is required.",
+      });
+    }
+
+    let order = checkout.existingOrder;
+    if (order) {
+      orderId = order.$id;
+      paymentStatus = order.paymentStatus || "unknown";
+      if (
+        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
+        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN ||
+        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
+        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED
+      ) {
+        return res.status(200).json(checkoutSuccessResponse(order));
+      }
+    } else {
+      phase = "order creation";
+      const body = {
+        ...req.body,
+        userId: checkout.userId,
+        paymentMethod: "Pesapal",
+        deliveryAddress: checkout.deliverySnapshot.deliveryAddress,
+        customerPhone: checkout.deliverySnapshot.customerPhone,
+      };
+      const created = await OrderService.createCodOrder(body, req.user, {
+        paymentMethod: "Pesapal",
+        paymentStatus: "unknown",
+        checkoutAttemptId: checkout.checkoutAttemptId,
+        orderFields: checkout.orderFields,
+      });
+
+      if (!created.success) {
+        return res.status(created.status || 400).json(created);
+      }
+      orderId = created.orderId;
+      order = await OrderRepository.findById(orderId);
+      if (!order) throw new Error("Created Pesapal order could not be reloaded");
+
+      if (created.alreadyExisting) {
+        const recoveryState = getRecoveryState(order);
+        if (
+          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
+          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN ||
+          recoveryState === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
+          recoveryState === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED
+        ) {
+          return res.status(200).json(checkoutSuccessResponse(order));
+        }
+      }
+    }
+
+    phase = "provider initiation";
+    await OrderRepository.update(orderId, {
+      paymentMethod: "Pesapal",
+      paymentStatus: "unknown",
+      orderStatus: "Pending Payment",
+      status: "Pending",
+      updatedAt: new Date().toISOString(),
+    });
+    order = await OrderRepository.findById(orderId);
+    if (!order) throw new Error("Pesapal order could not be reloaded");
+
+    const payment = await pesapalService.submitOrder(order, {
+      customerPhone: req.body.customerPhone,
+      deliveryAddress: order.deliveryAddress,
+      callbackUrl: req.body.callbackUrl,
+      cancellationUrl: req.body.cancellationUrl,
+    });
+
+    await updateOrder(
+      orderId,
+      {
+        pesapalTrackingId: payment.order_tracking_id,
+        pesapalMerchantReference:
+          payment.merchant_reference || order.orderNumber,
+        paymentStatus: "pending",
+        updatedAt: new Date().toISOString(),
+      },
+      "versioned Pesapal reference",
+    );
+    paymentStatus = "pending";
+
+    return res.status(201).json({
+      success: true,
+      orderId,
+      orderNumber: order.orderNumber,
+      redirectUrl: payment.redirect_url,
+      paymentStatus,
+      recoveryState: CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING,
+    });
+  } catch (error) {
+    if (orderId && paymentStatus !== "failed") {
+      await updateOrder(
+        orderId,
+        {
+          paymentStatus: "unknown",
+          orderStatus: "Pending Payment",
+          updatedAt: new Date().toISOString(),
+        },
+        "versioned Pesapal unknown state",
+      );
+      paymentStatus = "unknown";
+    }
+
+    logger.error("Versioned Pesapal initiation failed", {
+      meta: {
+        operation: "mobile_pesapal_checkout",
+        phase,
+        errorCategory: String(
+          error?.code || error?.type || error?.name || "unknown_error",
+        ),
+        userIdHash: hashId(userId),
+        checkoutAttemptIdHash: hashId(checkoutAttemptId),
+        paymentStatus,
+      },
+    });
+
+    const status = error instanceof CheckoutRequestError ? error.status : 502;
+    return res.status(status).json({
+      success: false,
+      orderId,
+      code: error.code || "PESAPAL_INITIATION_FAILED",
+      recoveryState:
+        orderId && paymentStatus === "unknown"
+          ? CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+          : undefined,
+      message:
+        error instanceof CheckoutRequestError
+          ? error.message
+          : "Unable to confirm Pesapal initiation. Check payment status before retrying.",
+    });
+  }
+}
+
+async function initiate(req, res) {
   if (!configured()) {
     logger.error("Pesapal initiation blocked: missing configuration", {
       meta: {
@@ -95,8 +253,24 @@ async function initiate(req, res) {
         environment: env.PESAPAL_ENVIRONMENT,
       },
     });
-    return res.status(503).json({ success: false, message: "Pesapal is not configured" });
+    return res.status(503).json({
+      success: false,
+      code: "PESAPAL_NOT_CONFIGURED",
+      message: "Pesapal is not configured.",
+    });
   }
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      "addressConfirmationVersion",
+    )
+  ) {
+    return initiateVersioned(req, res);
+  }
+
+  const startedAt = Date.now();
+  logger.info("Pesapal initiation started", { meta: requestSummary(req) });
 
   let created;
   let phase = "request validation";

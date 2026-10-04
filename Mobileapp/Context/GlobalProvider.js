@@ -219,8 +219,20 @@ export const signIn = async (email, password) => {
   }
 };
 
+const unregisterPushToken = async () => {
+  try {
+    await axiosClient.delete("/api/customernotifications/register-token");
+  } catch (error) {
+    console.warn(
+      "Could not unregister the push token during sign out:",
+      error.response?.data?.error || error.message,
+    );
+  }
+};
+
 export const signOut = async () => {
   try {
+    await unregisterPushToken();
     // Use the backend logout endpoint to clear httpOnly cookies
     await axiosClient.post("/api/customerauth/logout/customer");
     // Clear all locally-stored auth data including OAuth tokens
@@ -388,8 +400,7 @@ export const getCustomerNotification = async () => {
       method: error.config?.method,
     });
 
-    // Return empty array instead of throwing error to prevent crashes
-    return [];
+    throw error;
   }
 };
 
@@ -862,6 +873,7 @@ const GlobalProvider = ({ children }) => {
 
   const handleLogout = async () => {
     try {
+      await unregisterPushToken();
       // Call backend logout endpoint to clear cookies
       await axiosClient.post("/api/customerauth/logout/customer");
 

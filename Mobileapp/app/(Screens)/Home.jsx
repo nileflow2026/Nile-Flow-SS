@@ -403,12 +403,12 @@ const Home = () => {
     return <HomeErrorFallback onRetry={handleRetry} />;
   }
 
-  console.log(
+/*   console.log(
     "✅ Home: Rendering main content (isLoading=%s, userLoading=%s, dataReady=%s)",
     isLoading,
     userLoading,
     dataReady,
-  );
+  ); */
 
   return (
     <View

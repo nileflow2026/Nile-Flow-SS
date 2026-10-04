@@ -1,212 +1,210 @@
+import { useEffect, useRef, useState } from "react";
+import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
-import { useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
-import axiosClient from "../api";
+import axiosClient from "@/api";
 
-export const MUTE_SOUND_KEY = "nileflow_notifications_muted";
-
-// Check if running in Expo Go (where push notifications are not supported)
+const NOTIFICATION_SOUND_MUTED_KEY = "notificationSoundMuted";
 const isExpoGo = Constants.appOwnership === "expo";
+const isSupportedPlatform = Platform.OS !== "web" && !isExpoGo;
 
-// Only import expo-notifications if NOT in Expo Go
 let Notifications = null;
 let Device = null;
 
-if (!isExpoGo) {
-  Notifications = require("expo-notifications");
-  Device = require("expo-device");
+if (isSupportedPlatform) {
+  try {
+    Notifications = require("expo-notifications");
+    Device = require("expo-device");
+    Notifications.setNotificationHandler({
+      handleNotification: async () => {
+        let isMuted = false;
+        try {
+          isMuted =
+            (await AsyncStorage.getItem(NOTIFICATION_SOUND_MUTED_KEY)) ===
+            "true";
+        } catch (error) {
+          console.warn(
+            "[Push] Could not read notification sound preference:",
+            error.message,
+          );
+        }
+
+        return {
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: !isMuted,
+          shouldSetBadge: true,
+        };
+      },
+    });
+  } catch (error) {
+    console.error("[Push] Could not load notification modules:", error.message);
+  }
 }
 
-// Configure how notifications appear when the app is in the foreground (only if available)
-if (Notifications) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => {
-      const muted = await AsyncStorage.getItem(MUTE_SOUND_KEY);
-      const shouldPlaySound = muted !== "true";
-      return {
-        shouldShowAlert: true,
-        shouldPlaySound,
-        shouldSetBadge: true,
-      };
-    },
+const getProjectId = () =>
+  Constants.expoConfig?.extra?.eas?.projectId ||
+  Constants.easConfig?.projectId;
+
+const registerPushTokenWithBackend = async (pushToken) => {
+  await axiosClient.post("/api/customernotifications/register-token", {
+    pushToken,
   });
-}
+};
 
-/**
- * Apply mute/unmute setting immediately:
- * - Persists preference to AsyncStorage
- * - Updates Android notification channels (sound on/off)
- */
-export async function applyMuteSetting(muted) {
-  if (!Notifications) {
-    console.log("[Notifications] Mute setting not available in Expo Go");
-    return;
-  }
+const configureNotificationChannels = async (isMuted) => {
+  if (Platform.OS !== "android" || !Notifications) return;
 
-  await AsyncStorage.setItem(MUTE_SOUND_KEY, muted ? "true" : "false");
-
-  if (Platform.OS === "android") {
-    const sound = muted ? null : "default";
-    const importance = muted
-      ? Notifications.AndroidImportance.LOW
-      : Notifications.AndroidImportance.MAX;
-
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "NileFlow Notifications",
-      importance,
-      vibrationPattern: muted ? null : [0, 250, 250, 250],
-      lightColor: "#F59E0B",
+  const sound = isMuted ? null : "default";
+  await Promise.all([
+    Notifications.setNotificationChannelAsync("default", {
+      name: "General",
+      importance: Notifications.AndroidImportance.DEFAULT,
       sound,
-      enableLights: !muted,
-      enableVibrate: !muted,
-      showBadge: true,
-    });
-    await Notifications.setNotificationChannelAsync("orders", {
+    }),
+    Notifications.setNotificationChannelAsync("orders", {
       name: "Order Updates",
-      importance,
-      vibrationPattern: muted ? null : [0, 250, 250, 250],
-      lightColor: "#10B981",
+      importance: Notifications.AndroidImportance.HIGH,
       sound,
-      enableLights: !muted,
-      enableVibrate: !muted,
-      showBadge: true,
-    });
-    await Notifications.setNotificationChannelAsync("promotions", {
-      name: "Promotions & Deals",
-      importance: muted
-        ? Notifications.AndroidImportance.LOW
-        : Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: muted ? null : [0, 250],
-      lightColor: "#F59E0B",
+    }),
+    Notifications.setNotificationChannelAsync("promotions", {
+      name: "Promotions",
+      importance: Notifications.AndroidImportance.DEFAULT,
       sound,
-      showBadge: true,
-    });
-  }
-}
+    }),
+  ]);
+};
 
-const PROJECT_ID = "ca39cda3-b6fc-4a8a-a0ed-9d8a280862a4";
+export const applyMuteSetting = async (isMuted) => {
+  await AsyncStorage.setItem(
+    NOTIFICATION_SOUND_MUTED_KEY,
+    isMuted ? "true" : "false",
+  );
+  await configureNotificationChannels(isMuted);
+};
 
-async function registerForPushNotificationsAsync() {
-  if (!Notifications) {
-    console.log(
-      "[PushNotifications] Not available in Expo Go. Use a development build instead.",
-    );
-    return null;
-  }
-
-  if (!Device.isDevice) {
-    console.warn(
-      "[PushNotifications] Push notifications require a physical device.",
-    );
-    return null;
-  }
-
-  // Expo Go doesn't support push notifications in SDK 53+
-  // This hook requires a development build or production build
-  if (__DEV__) {
-    console.info(
-      "[PushNotifications] Push notifications available in development/production builds, not Expo Go.",
-    );
-  }
-
-  // Set up Android notification channels (respecting persisted mute preference)
-  const muted = (await AsyncStorage.getItem(MUTE_SOUND_KEY)) === "true";
-  await applyMuteSetting(muted);
-
-  // Check existing permissions
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== "granted") {
-    console.warn(
-      "[PushNotifications] Permission denied for push notifications.",
-    );
-    return null;
-  }
-
-  // Get the Expo push token - wrapped in try/catch for Expo Go compatibility
-  const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? PROJECT_ID;
-
-  try {
-    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    return tokenData.data;
-  } catch (error) {
-    // In Expo Go, this will fail - not an actual error
-    if (error?.message?.includes("Push notifications")) {
-      console.warn(
-        "[PushNotifications] Push notifications not available in Expo Go. Use a development or production build.",
-      );
-      return null;
-    }
-    console.error("[PushNotifications] Failed to get push token:", error);
-    return null;
-  }
-}
-
-async function savePushTokenToBackend(token) {
-  try {
-    await axiosClient.post("/api/customernotifications/register-token", {
-      pushToken: token,
-    });
-    console.log("[PushNotifications] Token saved to backend.");
-  } catch (error) {
-    console.warn(
-      "[PushNotifications] Could not save token to backend:",
-      error?.message,
-    );
-  }
-}
-
-/**
- * Hook that registers for push notifications, saves the token to the backend,
- * and provides listeners for received / tapped notifications.
- *
- * Returns { expoPushToken, notification }
- */
-export function usePushNotifications(
+export const usePushNotifications = (
+  userId,
   onNotificationReceived,
   onNotificationResponse,
-) {
+) => {
   const [expoPushToken, setExpoPushToken] = useState(null);
-  const [notification, setNotification] = useState(null);
-
-  const notificationListener = useRef();
-  const responseListener = useRef();
+  const lastResponseId = useRef(null);
 
   useEffect(() => {
-    // Register and save token
-    registerForPushNotificationsAsync().then((token) => {
-      if (token) {
-        setExpoPushToken(token);
-        savePushTokenToBackend(token);
+    setExpoPushToken(null);
+
+    if (!Notifications) {
+      if (isExpoGo) {
+        console.info(
+          "[Push] Remote notifications need an EAS development or production build.",
+        );
       }
+      return undefined;
+    }
+
+    let isMounted = true;
+    let registeredToken = null;
+    let isRegistering = false;
+
+    const handleResponse = (response) => {
+      const responseId = response?.notification?.request?.identifier;
+      if (!response || !responseId || lastResponseId.current === responseId) {
+        return;
+      }
+
+      lastResponseId.current = responseId;
+      onNotificationResponse?.(response);
+      Notifications.clearLastNotificationResponseAsync().catch((error) => {
+        console.warn(
+          "[Push] Could not clear handled notification response:",
+          error.message,
+        );
+      });
+    };
+
+    const registerDevice = async () => {
+      if (!userId || !Device?.isDevice || isRegistering) return;
+
+      isRegistering = true;
+      try {
+        const isMuted =
+          (await AsyncStorage.getItem(NOTIFICATION_SOUND_MUTED_KEY)) ===
+          "true";
+        await configureNotificationChannels(isMuted);
+
+        const permission = await Notifications.getPermissionsAsync();
+        let finalStatus = permission.status;
+
+        if (finalStatus !== "granted") {
+          const requestedPermission =
+            await Notifications.requestPermissionsAsync();
+          finalStatus = requestedPermission.status;
+        }
+
+        if (!isMounted || finalStatus !== "granted") return;
+
+        const projectId = getProjectId();
+        if (!projectId) {
+          throw new Error("The Expo EAS project ID is not configured.");
+        }
+
+        const tokenResponse = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+        const token = tokenResponse.data;
+        if (!isMounted || !token || token === registeredToken) return;
+
+        await registerPushTokenWithBackend(token);
+        if (!isMounted) return;
+
+        registeredToken = token;
+        setExpoPushToken(token);
+      } catch (error) {
+        console.warn(
+          "[Push] Device registration failed. It will retry when the app becomes active:",
+          error.response?.data?.message || error.message,
+        );
+      } finally {
+        isRegistering = false;
+      }
+    };
+
+    const receivedSubscription =
+      Notifications.addNotificationReceivedListener((notification) => {
+        onNotificationReceived?.(notification);
+      });
+    const responseSubscription =
+      Notifications.addNotificationResponseReceivedListener(handleResponse);
+    const tokenSubscription = Notifications.addPushTokenListener(() => {
+      if (userId) registerDevice();
     });
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (state) => {
+        if (state === "active") registerDevice();
+      },
+    );
 
-    // Listener: notification received while app is foregrounded
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((incomingNotification) => {
-        setNotification(incomingNotification);
-        onNotificationReceived?.(incomingNotification);
+    Notifications.getLastNotificationResponseAsync()
+      .then(handleResponse)
+      .catch((error) => {
+        console.warn(
+          "[Push] Could not read the launch notification:",
+          error.message,
+        );
       });
 
-    // Listener: user tapped a notification
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        onNotificationResponse?.(response);
-      });
+    registerDevice();
 
     return () => {
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
+      isMounted = false;
+      receivedSubscription.remove();
+      responseSubscription.remove();
+      tokenSubscription.remove();
+      appStateSubscription.remove();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId, onNotificationReceived, onNotificationResponse]);
 
-  return { expoPushToken, notification };
-}
+  return { expoPushToken };
+};

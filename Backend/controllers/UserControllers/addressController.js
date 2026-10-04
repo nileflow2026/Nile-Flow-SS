@@ -1,11 +1,26 @@
 const AddressService = require("../../services/AddressService");
+const { createHash } = require("node:crypto");
 
 // addressesController.js
+function addressLog(operation, error, userId, addressId) {
+  const errorCategory =
+    error?.type || error?.code || error?.name || "unknown_error";
+
+  console.error("Address request failed", {
+    operation,
+    errorCategory: String(errorCategory),
+    userIdHash: userId
+      ? createHash("sha256").update(String(userId)).digest("hex").slice(0, 16)
+      : undefined,
+    addressIdHash: addressId
+      ? createHash("sha256").update(String(addressId)).digest("hex").slice(0, 16)
+      : undefined,
+  });
+}
+
 exports.getAddresses = async (req, res) => {
   try {
-    // The middleware ensures req.user is already available
-    const userId = req.user.userId;
-    console.log("Extracted User ID:", userId);
+    const userId = req.user?.userId || req.user?.$id;
     if (!userId) {
       return res
         .status(401)
@@ -14,7 +29,7 @@ exports.getAddresses = async (req, res) => {
     const addresses = await AddressService.getAddresses(userId);
     return res.status(200).json(addresses);
   } catch (error) {
-    console.error("Controller Error (getAddresses):", error);
+    addressLog("list", error, req.user?.userId || req.user?.$id);
     return res.status(500).json({ error: "Failed to fetch addresses." });
   }
 };
@@ -24,7 +39,7 @@ exports.getAddressesMobile = async (req, res) => {
     // userId is typically extracted from the authenticated user's session or token
     // For this example, we'll assume it's available in the request object (req.user.id)
     // You can also pass it as a URL parameter: const { userId } = req.params;
-    const userId = req.user.$id;
+    const userId = req.user?.userId || req.user?.$id;
 
     if (!userId) {
       return res
@@ -35,7 +50,7 @@ exports.getAddressesMobile = async (req, res) => {
     const addresses = await AddressService.getAddresses(userId);
     return res.status(200).json(addresses);
   } catch (error) {
-    console.error("Controller Error (getAddresses):", error);
+    addressLog("list", error, req.user?.userId || req.user?.$id);
     return res.status(500).json({ error: "Failed to fetch addresses." });
   }
 };
@@ -43,8 +58,8 @@ exports.getAddressesMobile = async (req, res) => {
 // Controller to add a new address
 exports.addAddress = async (req, res) => {
   try {
-    const userId = req.user?.userId;
-    const { ...newAddressData } = req.body;
+    const userId = req.user?.userId || req.user?.$id;
+    const newAddressData = req.body;
 
     if (!userId) {
       return res
@@ -69,7 +84,7 @@ exports.addAddress = async (req, res) => {
       return res.status(500).json({ error: "Failed to add address." });
     }
   } catch (error) {
-    console.error("Controller Error (addAddress):", error);
+    addressLog("create", error, req.user?.userId || req.user?.$id);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
@@ -77,7 +92,7 @@ exports.addAddress = async (req, res) => {
 // Controller to update an existing address
 exports.updateAddress = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId || req.user?.$id;
     const { addressId } = req.params; // Get addressId from URL parameters
     const updatedData = req.body;
 
@@ -91,6 +106,7 @@ exports.updateAddress = async (req, res) => {
     }
 
     const updatedAddress = await AddressService.updateAddress(
+      userId,
       addressId,
       updatedData
     );
@@ -103,7 +119,12 @@ exports.updateAddress = async (req, res) => {
         .json({ error: "Address not found or failed to update." });
     }
   } catch (error) {
-    console.error("Controller Error (updateAddress):", error);
+    addressLog(
+      "update",
+      error,
+      req.user?.userId || req.user?.$id,
+      req.params?.addressId,
+    );
     return res.status(500).json({ error: "Internal server error." });
   }
 };
@@ -111,7 +132,7 @@ exports.updateAddress = async (req, res) => {
 // Controller to delete an address
 exports.deleteAddress = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId || req.user?.$id;
     const { addressId } = req.params;
 
     if (!userId) {
@@ -123,7 +144,7 @@ exports.deleteAddress = async (req, res) => {
       return res.status(400).json({ error: "Address ID is missing." });
     }
 
-    const isDeleted = await AddressService.deleteAddress(addressId);
+    const isDeleted = await AddressService.deleteAddress(userId, addressId);
 
     if (isDeleted) {
       return res.status(204).send(); // 204 No Content for successful deletion
@@ -133,7 +154,12 @@ exports.deleteAddress = async (req, res) => {
         .json({ error: "Address not found or failed to delete." });
     }
   } catch (error) {
-    console.error("Controller Error (deleteAddress):", error);
+    addressLog(
+      "delete",
+      error,
+      req.user?.userId || req.user?.$id,
+      req.params?.addressId,
+    );
     return res.status(500).json({ error: "Internal server error." });
   }
 };

@@ -1,5 +1,6 @@
 // routes/cartRoutes.js
 const express = require("express");
+const authenticateToken = require("../middleware/authMiddleware");
 const { applyPremiumBenefits } = require("../middleware/premiumMiddleware");
 const { currencyMiddleware } = require("../middleware/currencyMiddleware");
 const {
@@ -15,7 +16,13 @@ const {
 const router = express.Router();
 
 // Apply premium middleware only to POST/PUT requests that have cart data
-router.post("/add", applyPremiumBenefits, addToCart);
+router.post(
+  "/add",
+  authenticateToken,
+  currencyMiddleware,
+  applyPremiumBenefits,
+  addToCart,
+);
 router.post("/validate-stock", applyPremiumBenefits, validateCartStock);
 router.get("/fetch/:userId", currencyMiddleware, fetchCart);
 router.get("/load/:userId", currencyMiddleware, loadCart);

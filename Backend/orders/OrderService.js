@@ -25,9 +25,17 @@ const OrderRepository = require('./OrderRepository');
 const { generateOrderNumber } = require('./OrderNumberGenerator');
 const { dispatch } = require('./OrderEvents');
 const { checkStockAvailability, reduceProductStock, restoreProductStock } = require('../controllers/AdminControllers/stockController');
-const { computeCartSubtotal } = require('../utils/serverPricing');
+const {
+  computeCartSubtotal,
+  getTrustedCartItems,
+} = require('../utils/serverPricing');
 const { env } = require('../src/env');
 const logger = require('../utils/logger');
+const {
+  findOrderByAttempt,
+  getRecoveryState,
+  sameOrderContents,
+} = require('../services/mobileCheckoutService');
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -48,16 +56,73 @@ async function createCodOrder(body, authUser, options = {}) {
   const { userId, customerEmail, username, cart, currency } = validation.sanitized;
 
   // 2. ZERO TRUST: Recalculate total from DB prices
-  const { subtotal: serverTotal, errors: priceErrors } = await computeCartSubtotal(cart);
-  let trustedTotal;
-  if (serverTotal !== null && priceErrors.length === 0) {
-    trustedTotal = serverTotal;
-  } else {
-    trustedTotal = cart.reduce((t, i) => t + Number(i.price) * Number(i.quantity), 0);
+  const {
+    subtotal: serverTotal,
+    verifiedItems,
+    errors: priceErrors,
+    dealErrors,
+  } = await computeCartSubtotal(cart, {
+    userId: authUser?.userId || authUser?.$id,
+  });
+  if (dealErrors.length > 0) {
+    return {
+      success: false,
+      status: 409,
+      message: dealErrors[0].message,
+      code: dealErrors[0].code,
+      errors: dealErrors,
+    };
   }
+  if (priceErrors.length > 0) {
+    return {
+      success: false,
+      status: 400,
+      message: 'Could not verify prices for every cart item.',
+      code: 'CART_PRICE_VERIFICATION_FAILED',
+    };
+  }
+  const trustedCart = getTrustedCartItems(verifiedItems);
+
+  const trustedTotal = serverTotal;
 
   if (!trustedTotal || trustedTotal <= 0) {
     return { success: false, status: 400, message: 'Invalid order total' };
+  }
+
+  if (options.checkoutAttemptId) {
+    const existingOrder = await findOrderByAttempt(options.checkoutAttemptId);
+    if (existingOrder) {
+      if (existingOrder.userId !== (authUser?.userId || authUser?.$id)) {
+        return {
+          success: false,
+          status: 404,
+          code: 'CHECKOUT_ATTEMPT_NOT_FOUND',
+          message: 'Checkout attempt not found.',
+        };
+      }
+
+      if (
+        existingOrder.deliveryAddressId !== options.orderFields?.deliveryAddressId ||
+        !sameOrderContents(cart, existingOrder.items)
+      ) {
+        return {
+          success: false,
+          status: 409,
+          code: 'CHECKOUT_ATTEMPT_CONFLICT',
+          message: 'This checkout attempt is already bound to different order details.',
+        };
+      }
+
+      return {
+        success: true,
+        status: 200,
+        alreadyExisting: true,
+        orderId: existingOrder.$id,
+        orderNumber: existingOrder.orderNumber,
+        paymentStatus: existingOrder.paymentStatus,
+        recoveryState: getRecoveryState(existingOrder),
+      };
+    }
   }
 
   // Keep the server total aligned with the checkout pricing rule. Delivery is
@@ -95,13 +160,14 @@ async function createCodOrder(body, authUser, options = {}) {
     vendor_id: vendorId,
     deliveryFee: String(deliveryFee),
     orderMonth: String(new Date().toISOString().slice(0, 7)),
-    items: JSON.stringify(cart),
+    items: JSON.stringify(trustedCart),
     amount: trustedOrderTotal,
     currency: currency || 'KES',
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
     status: ORDER_STATUS.PENDING,
     orderStatus: ORDER_STATUS.PENDING,
     paymentStatus: options.paymentStatus || 'succeeded',
+    ...(options.orderFields || {}),
     stockChecked: true,
     stockUpdated: false,
     createdAt: new Date().toISOString(),
@@ -113,6 +179,43 @@ async function createCodOrder(body, authUser, options = {}) {
   try {
     createdOrder = await OrderRepository.create(orderDocument, userId);
   } catch (err) {
+    if (options.checkoutAttemptId) {
+      const existingOrder = await findOrderByAttempt(options.checkoutAttemptId);
+      if (existingOrder) {
+        if (
+          existingOrder.userId === userId &&
+          existingOrder.deliveryAddressId === options.orderFields?.deliveryAddressId &&
+          sameOrderContents(cart, existingOrder.items)
+        ) {
+          return {
+            success: true,
+            status: 200,
+            alreadyExisting: true,
+            orderId: existingOrder.$id,
+            orderNumber: existingOrder.orderNumber,
+            paymentStatus: existingOrder.paymentStatus,
+            recoveryState: getRecoveryState(existingOrder),
+          };
+        }
+
+        return {
+          success: false,
+          status: 409,
+          code: 'CHECKOUT_ATTEMPT_CONFLICT',
+          message: 'This checkout attempt is already bound to different order details.',
+        };
+      }
+
+      logger.error('[OrderService] Mobile checkout order creation failed', {
+        meta: {
+          operation: 'OrderRepository.create',
+          errorName: err.name,
+          errorCode: err.code,
+        },
+      });
+      return { success: false, status: 500, message: 'Failed to create order' };
+    }
+
     logger.error('[OrderService] Order creation failed', {
       meta: {
         operation: 'OrderRepository.create',

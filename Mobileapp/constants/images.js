@@ -20,6 +20,10 @@ import search from "../assets/icons/search.png";
 import upload from "../assets/icons/upload.png";
 import image from "../assets/images/image.png";
 import Nilelogo from "../assets/images/newlogo.png";
+import mastercard from "../assets/paymentassets/mastercardlogo.png";
+import mpesa from "../assets/paymentassets/M-PESA.png";
+import pesapal from "../assets/paymentassets/pesapal.png";
+import visa from "../assets/paymentassets/visalogo.png";
 
 export default {
   play,
@@ -44,4 +48,8 @@ export default {
   image,
   New,
   Nilelogo,
+  visa,
+  mastercard,
+  mpesa,
+  pesapal,
 };

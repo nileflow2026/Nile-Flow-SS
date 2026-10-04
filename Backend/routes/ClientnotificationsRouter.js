@@ -11,6 +11,7 @@ const {
   createNotification,
   markAllNotificationsAsRead,
   registerPushToken,
+  unregisterPushToken,
 } = require("../controllers/UserControllers/Clientnotification");
 
 // Protected route
@@ -25,6 +26,7 @@ router.post("/mark-read", authenticateToken, markAllNotificationsAsRead);
 
 // Register Expo push token so backend can send targeted push notifications
 router.post("/register-token", authenticateToken, registerPushToken);
+router.delete("/register-token", authenticateToken, unregisterPushToken);
 
 /* router.get('/admin', authenticateToken, fetchAdminNotifications);
 router.post('/clear',  authenticateToken, clearAllNotifications);

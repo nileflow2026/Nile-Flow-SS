@@ -2,20 +2,57 @@
 
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   BackHandler,
   Dimensions,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useGlobalContext } from "../../Context/GlobalProvider";
 import { useCart } from "../../Context/CartContext_NEW";
+import AddressService from "../../utils/AddressService";
 import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
 const { width } = Dimensions.get("window");
+
+const getSelectedVariantLabels = (variantSelection) => {
+  let selections = variantSelection;
+  if (typeof selections === "string") {
+    try {
+      selections = JSON.parse(selections);
+    } catch (error) {
+      console.warn("Could not parse cart item variants:", error);
+      return [];
+    }
+  }
+
+  if (
+    !selections ||
+    typeof selections !== "object" ||
+    Array.isArray(selections)
+  ) {
+    return [];
+  }
+
+  return Object.entries(selections)
+    .filter(
+      ([key, value]) =>
+        ["color", "size"].includes(key.toLowerCase()) &&
+        (typeof value === "string" || typeof value === "number"),
+    )
+    .map(([key, value]) => ({
+      label: key.charAt(0).toUpperCase() + key.slice(1),
+      value: String(value),
+    }));
+};
 
 const CartSkeleton = () => (
   <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -318,9 +355,44 @@ const CartSkeleton = () => (
   </View>
 );
 
+const buildEmptyAddressForm = (currentUser = null) => ({
+  fullName: currentUser?.username || currentUser?.name || "",
+  phone: "",
+  address: "",
+  city: "",
+  state: "",
+  zipCode: "",
+  country: "",
+});
+
+const formatAddressSummary = (address) => {
+  if (!address) return "";
+
+  const parts = [
+    address.fullName || address.name || "",
+    address.address || "",
+    [address.city, address.state, address.zipCode, address.country]
+      .filter(Boolean)
+      .join(", "),
+  ].filter(Boolean);
+
+  return parts.join(", ");
+};
+
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, fetchCartItems } = useCart();
+  const { cart, removeFromCart, updateQuantity, fetchCartItems, setCheckoutAddress } =
+    useCart();
+  const { user } = useGlobalContext();
   const [isLoadingCart, setIsLoadingCart] = useState(true);
+  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressError, setAddressError] = useState("");
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [newAddressForm, setNewAddressForm] = useState(
+    buildEmptyAddressForm(user),
+  );
 
   const router = useRouter();
   useEffect(() => {
@@ -339,25 +411,35 @@ const Cart = () => {
     return () => subscription.remove();
   }, [router]);
 
-  // Mirror cart into a ref so useFocusEffect can read the current length
-  // without adding `cart` to its deps (which would re-run the effect on
-  // every cart state change while the tab is focused).
-  const cartRef = useRef(cart);
-  cartRef.current = cart;
-
-  // Track whether the initial cart fetch has completed
-  const initialFetchDone = useRef(false);
-
   useFocusEffect(
     useCallback(() => {
-      if (cartRef.current.length === 0 && !initialFetchDone.current) {
-        initialFetchDone.current = true;
-        fetchCartItems().finally(() => setIsLoadingCart(false));
-      } else if (cartRef.current.length > 0) {
-        setIsLoadingCart(false);
-      }
+      fetchCartItems().finally(() => setIsLoadingCart(false));
     }, [fetchCartItems]),
   );
+
+  useEffect(() => {
+    setNewAddressForm(buildEmptyAddressForm(user));
+  }, [user]);
+
+  const fetchSavedAddresses = useCallback(async () => {
+    try {
+      const addresses = await AddressService.getAddresses();
+      setSavedAddresses(addresses || []);
+
+      if (addresses && addresses.length > 0) {
+        setSelectedAddressId(addresses[0].$id || addresses[0].id || "");
+        setShowAddressForm(false);
+      } else {
+        setSelectedAddressId("");
+        setShowAddressForm(true);
+      }
+    } catch (error) {
+      console.error("Error loading saved addresses:", error);
+      setSavedAddresses([]);
+      setSelectedAddressId("");
+      setShowAddressForm(true);
+    }
+  }, []);
 
   // Resolve price from either enriched object or plain number.
   // Prefer convertedPrice (already in the user's local currency, e.g. SSP)
@@ -427,14 +509,108 @@ const Cart = () => {
   const formattedShipping = fmt(shipping);
   const formattedTax = fmt(tax);
   const formattedTotal = fmt(total);
+  const hasUnavailableDeals = cart.some((item) => item.dealUnavailable);
 
   // ── Show skeleton while initial cart is loading ──
   if (isLoadingCart && cart.length === 0) {
     return <CartSkeleton />;
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
+    if (!user?.id && !user?.$id) {
+      router.push("/(auth)/Login");
+      return;
+    }
+
+    setAddressError("");
+    setAddressModalVisible(true);
+    setIsLoadingAddresses(true);
+
+    try {
+      await fetchSavedAddresses();
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const handleConfirmSavedAddress = () => {
+    const chosen = savedAddresses.find(
+      (address) =>
+        (address.$id || address.id) === selectedAddressId ||
+        savedAddresses.length === 1,
+    );
+
+    if (!chosen) {
+      setAddressError("Select a saved delivery address before continuing.");
+      return;
+    }
+
+    const phoneDigits = String(chosen.phone || "").replace(/\D/g, "");
+    if (!chosen.fullName || !chosen.address || !chosen.phone || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      setAddressError("This selected address is incomplete. Please complete it before checkout.");
+      return;
+    }
+
+    setCheckoutAddress(chosen);
+    setAddressModalVisible(false);
     router.push("/(Screens)/Payments");
+  };
+
+  const handleSubmitAddress = async () => {
+    const fullName = (newAddressForm.fullName || "").trim();
+    const phone = (newAddressForm.phone || "").trim();
+    const address = (newAddressForm.address || "").trim();
+    const city = (newAddressForm.city || "").trim();
+    const state = (newAddressForm.state || "").trim();
+    const zipCode = (newAddressForm.zipCode || "").trim();
+    const country = (newAddressForm.country || "").trim();
+    const digits = phone.replace(/\D/g, "");
+
+    if (!fullName || !address || !phone) {
+      setAddressError("Recipient name, street address, and phone are required.");
+      return;
+    }
+
+    if (digits.length < 7 || digits.length > 15) {
+      setAddressError("Please enter a valid phone number with 7 to 15 digits.");
+      return;
+    }
+
+    const payload = {
+      fullName,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      country,
+      userId: user?.id || user?.$id,
+    };
+
+    try {
+      const savedAddress = await AddressService.addAddress(payload);
+      if (!savedAddress) {
+        setAddressError("We could not save this address. Please try again.");
+        return;
+      }
+
+      const normalisedAddress = {
+        ...savedAddress,
+        fullName: savedAddress.fullName || fullName,
+        phone: savedAddress.phone || phone,
+        address: savedAddress.address || address,
+      };
+
+      setSavedAddresses((prev) => [normalisedAddress, ...prev]);
+      setSelectedAddressId(normalisedAddress.$id || normalisedAddress.id || "");
+      setCheckoutAddress(normalisedAddress);
+      setAddressModalVisible(false);
+      setNewAddressForm(buildEmptyAddressForm(user));
+      router.push("/(Screens)/Payments");
+    } catch (error) {
+      console.error("Failed to save delivery address:", error);
+      setAddressError("We could not save the new address. Please try again.");
+    }
   };
 
   const handleQuantityChange = (itemId, newQuantity) => {
@@ -457,7 +633,7 @@ const Cart = () => {
           numberOfLines={2}
           ellipsizeMode="tail"
         >
-          Review your premium African products before checkout
+          Review your  products before checkout
         </Text>
 
         {/* Cart Summary */}
@@ -525,100 +701,126 @@ const Cart = () => {
           </View>
         ) : (
           <View style={styles.cartItemsContainer}>
-            {cart.map((item) => (
-              <View
-                key={item.id || item.$id || item.productId}
-                style={styles.cartItemBox}
-              >
-                <View style={styles.cartItemRow}>
-                  <Image
-                    source={{
-                      uri: imageForSize(
-                        item.productImage ||
-                          item.image ||
-                          "https://placehold.co/100x100",
-                        IMAGE_SIZE.SMALL,
-                      ),
-                    }}
-                    style={styles.cartItemImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    transition={200}
-                    recyclingKey={`cart-${item.id || item.$id}`}
-                  />
-                  <View style={styles.cartItemInfo}>
-                    <Text
-                      style={styles.cartItemName}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {item.productName}
-                    </Text>
-                    <Text style={styles.cartItemPrice}>
-                      {displayPrice(item.price)}
-                    </Text>
-                    <Text style={styles.cartItemQuantity}>
-                      {item.quantity} × {displayPrice(item.price)}
+            {cart.map((item, index) => {
+              const selectedVariants = getSelectedVariantLabels(
+                item.variantSelection,
+              );
+              return (
+                <View
+                  key={item.id || item.$id || `${item.productId}-${index}`}
+                  style={styles.cartItemBox}
+                >
+                  <View style={styles.cartItemRow}>
+                    <Image
+                      source={{
+                        uri: imageForSize(
+                          item.productImage ||
+                            item.image ||
+                            "https://placehold.co/100x100",
+                          IMAGE_SIZE.SMALL,
+                        ),
+                      }}
+                      style={styles.cartItemImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                      recyclingKey={`cart-${item.id || item.$id}`}
+                    />
+                    <View style={styles.cartItemInfo}>
+                      <Text
+                        style={styles.cartItemName}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        {item.productName}
+                      </Text>
+                      {selectedVariants.length > 0 && (
+                        <Text style={styles.cartItemVariants}>
+                          {selectedVariants
+                            .map(({ label, value }) => `${label}: ${value}`)
+                            .join("  ·  ")}
+                        </Text>
+                      )}
+                      {item.dealId ? (
+                        <Text
+                          style={[
+                            styles.dealApplied,
+                            item.dealUnavailable && styles.dealUnavailable,
+                          ]}
+                        >
+                          {item.dealUnavailable
+                            ? "DEAL UNAVAILABLE"
+                            : "DEAL PRICE APPLIED"}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.cartItemPrice}>
+                        {displayPrice(item.price)}
+                      </Text>
+                      <Text style={styles.cartItemQuantity}>
+                        {item.quantity} × {displayPrice(item.price)}
+                      </Text>
+                    </View>
+                    <View style={styles.cartItemActions}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleQuantityChange(
+                            item.id || item.$id || item.productId,
+                            (item.quantity || 1) - 1,
+                          )
+                        }
+                        style={[
+                          styles.quantityButton,
+                          item.quantity <= 1 && styles.quantityButtonDisabled,
+                        ]}
+                        disabled={item.quantity <= 1}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Decrease quantity of ${item.productName}`}
+                        accessibilityState={{ disabled: item.quantity <= 1 }}
+                      >
+                        <Text style={styles.quantityButtonText}>-</Text>
+                      </TouchableOpacity>
+                      <Text
+                        style={styles.cartItemQuantityValue}
+                        accessibilityLabel={`Quantity: ${item.quantity || 1}`}
+                      >
+                        {item.quantity || 1}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleQuantityChange(
+                            item.id || item.$id || item.productId,
+                            (item.quantity || 1) + 1,
+                          )
+                        }
+                        style={styles.quantityButton}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Increase quantity of ${item.productName}`}
+                      >
+                        <Text style={styles.quantityButtonText}>+</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          removeFromCart(
+                            item.id || item.$id || item.productId,
+                          )
+                        }
+                        style={styles.removeButton}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${item.productName} from cart`}
+                      >
+                        <Text style={styles.removeButtonText}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.cartItemTotalBox}>
+                    <Text style={styles.cartItemTotalLabel}>Total:</Text>
+                    <Text style={styles.cartItemTotalValue}>
+                      {fmt(resolvePrice(item.price) * (item.quantity || 1))}
                     </Text>
                   </View>
-                  <View style={styles.cartItemActions}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        handleQuantityChange(
-                          item.id || item.$id || item.productId,
-                          (item.quantity || 1) - 1,
-                        )
-                      }
-                      style={[
-                        styles.quantityButton,
-                        item.quantity <= 1 && styles.quantityButtonDisabled,
-                      ]}
-                      disabled={item.quantity <= 1}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Decrease quantity of ${item.productName}`}
-                      accessibilityState={{ disabled: item.quantity <= 1 }}
-                    >
-                      <Text style={styles.quantityButtonText}>-</Text>
-                    </TouchableOpacity>
-                    <Text
-                      style={styles.cartItemQuantityValue}
-                      accessibilityLabel={`Quantity: ${item.quantity || 1}`}
-                    >
-                      {item.quantity || 1}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        handleQuantityChange(
-                          item.id || item.$id || item.productId,
-                          (item.quantity || 1) + 1,
-                        )
-                      }
-                      style={styles.quantityButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Increase quantity of ${item.productName}`}
-                    >
-                      <Text style={styles.quantityButtonText}>+</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() =>
-                        removeFromCart(item.id || item.$id || item.productId)
-                      }
-                      style={styles.removeButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove ${item.productName} from cart`}
-                    >
-                      <Text style={styles.removeButtonText}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
-                <View style={styles.cartItemTotalBox}>
-                  <Text style={styles.cartItemTotalLabel}>Total:</Text>
-                  <Text style={styles.cartItemTotalValue}>
-                    {fmt(resolvePrice(item.price) * (item.quantity || 1))}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -626,6 +828,43 @@ const Cart = () => {
         {cart.length > 0 && (
           <View style={styles.orderSummaryBox}>
             <Text style={styles.orderSummaryTitle}>Order Summary</Text>
+            <View style={styles.orderSummaryItems}>
+              {cart.map((item, index) => {
+                const selectedVariants = getSelectedVariantLabels(
+                  item.variantSelection,
+                );
+                return (
+                  <View
+                    key={item.id || item.$id || `${item.productId}-${index}`}
+                    style={styles.orderSummaryItemRow}
+                  >
+                    <View style={styles.orderSummaryItemInfo}>
+                      <Text
+                        style={styles.orderSummaryItemName}
+                        numberOfLines={2}
+                      >
+                        {item.productName}
+                      </Text>
+                      {selectedVariants.length > 0 && (
+                        <Text style={styles.orderSummaryItemVariants}>
+                          {selectedVariants
+                            .map(({ label, value }) => `${label}: ${value}`)
+                            .join("  ·  ")}
+                        </Text>
+                      )}
+                      <Text style={styles.orderSummaryItemQuantity}>
+                        {item.quantity || 1} × {displayPrice(item.price)}
+                      </Text>
+                    </View>
+                    <Text style={styles.orderSummaryItemTotal}>
+                      {fmt(
+                        resolvePrice(item.price) * (item.quantity || 1),
+                      )}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
             <View style={styles.orderSummaryRow}>
               <Text style={styles.orderSummaryLabel}>Subtotal</Text>
               <Text style={styles.orderSummaryValue}>{formattedSubtotal}</Text>
@@ -646,17 +885,196 @@ const Cart = () => {
                 {/* {formattedTotal} */} {formattedSubtotal}
               </Text>
             </View>
+            {hasUnavailableDeals ? (
+              <Text style={styles.unavailableDealMessage}>
+                Remove unavailable deals before checkout, or return to deals to
+                choose a current offer.
+              </Text>
+            ) : null}
             <TouchableOpacity
-              style={styles.checkoutButton}
+              style={[
+                styles.checkoutButton,
+                hasUnavailableDeals && styles.checkoutButtonDisabled,
+              ]}
               onPress={handleCheckout}
+              disabled={hasUnavailableDeals}
               accessibilityRole="button"
               accessibilityLabel="Proceed to checkout"
+              accessibilityState={{ disabled: hasUnavailableDeals }}
             >
-              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+              <Text style={styles.checkoutButtonText}>
+                {hasUnavailableDeals
+                  ? "Checkout unavailable"
+                  : "Proceed to Checkout"}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+
+      <Modal
+        visible={addressModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddressModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.addressModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.addressModalTitle}>Delivery address</Text>
+              <TouchableOpacity onPress={() => setAddressModalVisible(false)}>
+                <Text style={styles.closeModalText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingAddresses ? (
+              <View style={styles.modalLoadingState}>
+                <ActivityIndicator color="#16A34A" size="small" />
+                <Text style={styles.loadingText}>Loading your saved addresses...</Text>
+              </View>
+            ) : !showAddressForm && savedAddresses.length > 0 ? (
+              <View style={styles.addressListContainer}>
+                <Text style={styles.sectionLabel}>Choose a saved address</Text>
+                {savedAddresses.map((address) => {
+                  const id = address.$id || address.id;
+                  const isSelected = selectedAddressId === id;
+
+                  return (
+                    <TouchableOpacity
+                      key={id}
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedAddressId(id)}
+                      style={[
+                        styles.addressChoice,
+                        isSelected && styles.addressChoiceSelected,
+                      ]}
+                    >
+                      <Text style={styles.addressChoiceTitle}>
+                        {address.fullName || address.name || "Recipient"}
+                      </Text>
+                      <Text style={styles.addressChoiceDetail}>{address.address}</Text>
+                      <Text style={styles.addressChoiceMeta}>
+                        {[address.city, address.state, address.zipCode, address.country]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </Text>
+                      <Text style={styles.addressChoiceMeta}>{address.phone}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowAddressForm(true);
+                    setAddressError("");
+                  }}
+                  style={styles.secondaryLinkButton}
+                >
+                  <Text style={styles.secondaryLinkText}>Add a new address</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.addressFormContainer}>
+                <Text style={styles.sectionLabel}>Add delivery details</Text>
+                <TextInput
+                  placeholder="Recipient name"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.fullName}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, fullName: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="Street address *"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.address}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, address: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="Phone *"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.phone}
+                  keyboardType="phone-pad"
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, phone: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="City"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.city}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, city: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="State / Region"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.state}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, state: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="Postal code"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.zipCode}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, zipCode: value }))
+                  }
+                  style={styles.addressField}
+                />
+                <TextInput
+                  placeholder="Country"
+                  placeholderTextColor="#6B7280"
+                  value={newAddressForm.country}
+                  onChangeText={(value) =>
+                    setNewAddressForm((prev) => ({ ...prev, country: value }))
+                  }
+                  style={styles.addressField}
+                />
+
+                {savedAddresses.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowAddressForm(false);
+                      setAddressError("");
+                    }}
+                    style={styles.secondaryLinkButton}
+                  >
+                    <Text style={styles.secondaryLinkText}>Use a saved address</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {addressError ? <Text style={styles.addressErrorText}>{addressError}</Text> : null}
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                onPress={() => setAddressModalVisible(false)}
+                style={styles.modalCancelButton}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={showAddressForm ? handleSubmitAddress : handleConfirmSavedAddress}
+                style={styles.modalConfirmButton}
+              >
+                <Text style={styles.modalConfirmText}>Continue to payment</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -784,10 +1202,40 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingRight: 4,
   },
+  cartItemVariants: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginBottom: 4,
+  },
   cartItemPrice: {
     fontSize: 16,
     color: "#D97706",
     fontFamily: "Poppins-Bold",
+  },
+  dealApplied: {
+    alignSelf: "flex-start",
+    marginTop: 3,
+    marginBottom: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    overflow: "hidden",
+    borderRadius: 8,
+    backgroundColor: "#F0FDF4",
+    color: "#166534",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  dealUnavailable: {
+    backgroundColor: "#FEF2F2",
+    color: "#B91C1C",
+  },
+  unavailableDealMessage: {
+    marginTop: 12,
+    color: "#B91C1C",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
   },
   cartItemQuantity: {
     fontSize: 13,
@@ -872,6 +1320,43 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 8,
   },
+  orderSummaryItems: {
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  orderSummaryItemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  orderSummaryItemInfo: {
+    flex: 1,
+  },
+  orderSummaryItemName: {
+    color: "#111827",
+    fontSize: 13,
+    fontFamily: "Poppins-Bold",
+  },
+  orderSummaryItemVariants: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  orderSummaryItemQuantity: {
+    color: "#6B7280",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  orderSummaryItemTotal: {
+    color: "#111827",
+    fontSize: 13,
+    fontFamily: "Poppins-Bold",
+  },
   orderSummaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -909,6 +1394,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
   },
+  checkoutButtonDisabled: {
+    backgroundColor: "#9CA3AF",
+  },
   checkoutButtonText: {
     color: "#FFFFFF",
     fontFamily: "Poppins-Bold",
@@ -916,6 +1404,142 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     width: "100%",
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  addressModalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    borderColor: "#E5E7EB",
+    borderWidth: 1,
+  },
+  modalHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  addressModalTitle: {
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
+    fontSize: 22,
+  },
+  closeModalText: {
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  sectionLabel: {
+    color: "#374151",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  addressListContainer: {
+    gap: 12,
+  },
+  addressChoice: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    borderColor: "#E5E7EB",
+    borderWidth: 1,
+    padding: 14,
+  },
+  addressChoiceSelected: {
+    borderColor: "#16A34A",
+    backgroundColor: "#F0FDF4",
+  },
+  addressChoiceTitle: {
+    color: "#111827",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  addressChoiceDetail: {
+    color: "#374151",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  addressChoiceMeta: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  secondaryLinkButton: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  secondaryLinkText: {
+    color: "#16A34A",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  addressFormContainer: {
+    gap: 8,
+  },
+  addressField: {
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    color: "#111827",
+    fontSize: 14,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontFamily: "Poppins-Regular",
+  },
+  modalActionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 18,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    color: "#374151",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: "#16A34A",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  modalConfirmText: {
+    color: "#FFFFFF",
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 14,
+  },
+  addressErrorText: {
+    color: "#DC2626",
+    fontFamily: "Poppins-Regular",
+    fontSize: 12,
+    marginTop: 10,
+  },
+  modalLoadingState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    gap: 10,
+  },
+  loadingText: {
+    color: "#374151",
+    fontFamily: "Poppins-Regular",
+    fontSize: 13,
   },
 });
 

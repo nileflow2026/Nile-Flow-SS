@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   Alert,
+  Animated,
   Dimensions,
   Platform,
   ScrollView,
@@ -19,8 +20,8 @@ import {
   View,
 } from "react-native";
 import axiosClient from "../../api";
+import images from "../../constants/images";
 import { useCart } from "../../Context/CartContext_NEW";
-import { useFavorites } from "../../Context/FavoritesContext";
 import { useGroupBuy } from "../../Context/GroupBuyContext";
 import {
   fetchReviews,
@@ -41,6 +42,53 @@ import * as Sharing from "expo-sharing";
 import GroupBuyStarter from "../components/GroupBuyStarter"; */
 
 const { width } = Dimensions.get("window");
+
+const COLOR_SWATCHES = {
+  black: "#111827",
+  white: "#FFFFFF",
+  red: "#EF4444",
+  blue: "#3B82F6",
+  green: "#22C55E",
+  yellow: "#FACC15",
+  orange: "#F97316",
+  purple: "#A855F7",
+  pink: "#EC4899",
+  brown: "#92400E",
+  gold: "#D4AF37",
+  goldbrown: "#B8860B",
+  "gold brown": "#B8860B",
+  grey: "#6B7280",
+  gray: "#6B7280",
+  silver: "#C0C0C0",
+  beige: "#D6C6A5",
+  cream: "#FFFDD0",
+  "light blue": "#ADD8E6",
+  lightblue: "#ADD8E6",
+  navy: "#1E3A8A",
+  maroon: "#7F1D1D",
+};
+
+const getColorSwatch = (value) => {
+  const normalized = String(value).trim().toLowerCase();
+  const compact = normalized.replace(/[\s_-]+/g, "");
+  if (/^#(?:[\da-f]{3}|[\da-f]{6})$/i.test(normalized)) return normalized;
+  return COLOR_SWATCHES[normalized] || COLOR_SWATCHES[compact] || "#D1D5DB";
+};
+
+const parseProductAttributes = (value) => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+};
 
 // Premium StarRating Component
 const StarRating = ({
@@ -92,7 +140,6 @@ const ProductDetails = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isRatingModalVisible, setIsRatingModalVisible] = useState(false);
   const { addToCart } = useCart();
-  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites();
   const [showAllReviews, setShowAllReviews] = useState(false);
   const initialReviewCount = 2;
   // Memoize displayedReviews to avoid recalculation on every render
@@ -107,12 +154,12 @@ const ProductDetails = () => {
     useGlobalContext(); /* console.log("User in ProductDetails:", user); // Log user object for debugging */
 
   // Debug: Log navigation params
-  useEffect(() => {
+ /*  useEffect(() => {
     console.log("=== ProductDetails Params ===");
     console.log("Full params:", params);
     console.log("item param:", item);
     console.log("item type:", typeof item);
-  }, [item, params]);
+  }, [item, params]); */
   const [ratings, setRatings] = useState({});
   const [selectedRating, setSelectedRating] = useState(null);
   const [isSignUpModalVisible, setIsSignUpModalVisible] = useState(false);
@@ -124,6 +171,9 @@ const ProductDetails = () => {
   const [activeImage, setActiveImage] = useState(null);
   const [fetchedImages, setFetchedImages] = useState(null); // null = not yet fetched
   const [selectedVariants, setSelectedVariants] = useState({});
+  const [fetchedProduct, setFetchedProduct] = useState(null);
+  const [purchaseAction, setPurchaseAction] = useState(null);
+  const purchaseProgress = useRef(new Animated.Value(0)).current;
   const imageScrollRef = useRef(null);
 
   let product = item;
@@ -144,25 +194,43 @@ const ProductDetails = () => {
     product = null;
   }
 
-  const productAttributes = typeof product?.specifications === "string"
-    ? (() => {
-        try { return JSON.parse(product.specifications); } catch { return {}; }
-      })()
-    : (product?.attributes || {});
+  if (
+    fetchedProduct &&
+    String(fetchedProduct.$id || fetchedProduct.id) ===
+      String(product?.$id || product?.id)
+  ) {
+    product = fetchedProduct;
+  }
+
+  const attributes = parseProductAttributes(product?.attributes);
+  const productAttributes =
+    Object.keys(attributes).length > 0
+      ? attributes
+      : parseProductAttributes(product?.specifications);
   const variantOptions = Object.entries(productAttributes)
-    .filter(([key, value]) => ["color", "size"].includes(key) && value)
-    .reduce((options, [key, value]) => ({
-      ...options,
-      [key]: String(value).split(",").map((option) => option.trim()).filter(Boolean),
-    }), {});
+    .filter(([key, value]) => ["color", "size"].includes(key.toLowerCase()) && value)
+    .reduce((options, [key, value]) => {
+      const values = Array.isArray(value) ? value : String(value).split(",");
+      const normalizedValues = values
+        .map((option) => String(option).trim())
+        .filter(Boolean);
+      if (normalizedValues.length > 0) options[key] = normalizedValues;
+      return options;
+    }, {});
+  const colorVariant = Object.entries(variantOptions).find(
+    ([key]) => key.toLowerCase() === "color",
+  );
+  const sizeVariant = Object.entries(variantOptions).find(
+    ([key]) => key.toLowerCase() === "size",
+  );
 
   // Log final product state for debugging
-  useEffect(() => {
+  /* useEffect(() => {
     console.log("=== Product State ===");
     console.log("product:", product);
     console.log("product?.$id:", product?.$id);
     console.log("product?.productName:", product?.productName);
-  }, [product]);
+  }, [product]); */
 
   // Numeric base price (KES) — handles both plain number and enriched price object
   const numericPrice = useMemo(() => {
@@ -341,7 +409,7 @@ const ProductDetails = () => {
   // Fetch full product details from API when product ID changes
   // This ensures we have all fields (price, details, brand, stock, etc.)
   useEffect(() => {
-    const pid = product?.$id;
+    const pid = product?.$id || product?.id;
     if (!pid) return;
 
     let cancelled = false;
@@ -349,17 +417,25 @@ const ProductDetails = () => {
       try {
         console.log(`📥 Fetching full product details for $id: ${pid}`);
         const response = await axiosClient.get(
-          `/api/customerprofile/product/${pid}`,
+          "/api/customerprofile/fetch-product",
+          { params: { productId: pid } },
         );
 
         if (cancelled) return;
 
-        if (response.data?.product) {
+        const fullProduct = response.data?.products?.[0];
+        if (
+          fullProduct &&
+          String(fullProduct.$id || fullProduct.id) === String(pid)
+        ) {
+          setFetchedProduct(fullProduct);
           console.log("✅ Full product data loaded");
+        } else {
+          console.warn(`⚠️ No full product details returned for $id: ${pid}`);
         }
       } catch (error) {
         console.warn("⚠️ Could not fetch full product details:", error.message);
-        // Non-fatal - use what we have from navigation params
+        // Non-fatal because navigation already provides a product summary.
       }
     };
 
@@ -367,19 +443,150 @@ const ProductDetails = () => {
     return () => {
       cancelled = true;
     };
-  }, [product?.$id]);
+  }, [product?.$id, product?.id]);
 
-  const handletogglefavorite = useCallback(() => {
-    if (!product?.$id) {
+  const handleShareProduct = useCallback(async () => {
+    try {
+      const imageUrl = product?.imageUrl || product?.image;
+      const productName = product?.productName || product?.name || "Product";
+      const productDesc = product?.description || product?.details || "";
+      const fallbackStoreUrl =
+        "https://play.google.com/store/apps/details?id=com.nileflowafrica&pcampaignid=web_share";
+      const appLinkUrl = product?.url || fallbackStoreUrl;
+      const completeCaption = `${productName}\n\n${productDesc}\n\nCheck it out here: ${appLinkUrl}`;
+
+      if (imageUrl) {
+        const cleanFileExtension =
+          imageUrl.split(".").pop()?.split("?")[0] || "jpg";
+        const sanitizedSystemTitle = productName
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .substring(0, 20);
+        const storageDestinationUri = `${FileSystem.cacheDirectory}${sanitizedSystemTitle}.${cleanFileExtension}`;
+        const fileAssetResult = await FileSystem.downloadAsync(
+          imageUrl,
+          storageDestinationUri,
+        );
+
+        if (Platform.OS === "ios") {
+          await Share.share({
+            message: completeCaption,
+            url: fileAssetResult.uri,
+          });
+        } else {
+          await Sharing.shareAsync(fileAssetResult.uri, {
+            dialogTitle: completeCaption,
+            mimeType: `image/${cleanFileExtension}`,
+          });
+        }
+      } else {
+        await Share.share({ message: completeCaption });
+      }
+    } catch (error) {
+      console.error("Error sharing product:", error?.message || error);
+      Alert.alert("Unable to share", "Please try sharing this product again.");
+    }
+  }, [product]);
+
+  useEffect(() => {
+    if (!purchaseAction) {
+      purchaseProgress.stopAnimation();
+      purchaseProgress.setValue(0);
+      return undefined;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(purchaseProgress, {
+          toValue: 0.82,
+          duration: 1120,
+          useNativeDriver: false,
+        }),
+        Animated.timing(purchaseProgress, {
+          toValue: 0.94,
+          duration: 480,
+          useNativeDriver: false,
+        }),
+        Animated.timing(purchaseProgress, {
+          toValue: 0,
+          duration: 1600,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    animation.start();
+
+    return () => animation.stop();
+  }, [purchaseAction, purchaseProgress]);
+
+  const handleAddProductToCart = useCallback(async () => {
+    if (!user) {
+      Alert.alert("Login Required", "Please log in to add items to your cart.");
+      return;
+    }
+    if (!product?.$id && !product?.id) {
       Alert.alert("Error", "Product information is not available.");
       return;
     }
-    if (isFavorite(product.$id)) {
-      removeFromFavorites(product.$id);
-    } else {
-      addToFavorites(product);
+
+    const missingVariant = Object.keys(variantOptions).find(
+      (key) => !selectedVariants[key],
+    );
+    if (missingVariant) {
+      Alert.alert(
+        "Select an option",
+        `Please select a ${missingVariant} before adding this product.`,
+      );
+      return;
     }
-  }, [product, isFavorite, removeFromFavorites, addToFavorites]);
+
+    setPurchaseAction("adding");
+    try {
+      await addToCart(product, user.id, user.userName, selectedVariants);
+    } catch (error) {
+      console.error("Error adding product to cart:", error);
+      Alert.alert("Unable to add to cart", "Please try again.");
+    } finally {
+      setPurchaseAction(null);
+    }
+  }, [user, product, variantOptions, selectedVariants, addToCart]);
+
+  const handleBuyNow = useCallback(async () => {
+    if (!user) {
+      Alert.alert("Login Required", "Please log in to purchase this product.");
+      return;
+    }
+    if (!product?.$id && !product?.id) {
+      Alert.alert("Error", "Product information is not available.");
+      return;
+    }
+
+    const missingVariant = Object.keys(variantOptions).find(
+      (key) => !selectedVariants[key],
+    );
+    if (missingVariant) {
+      Alert.alert(
+        "Select an option",
+        `Please select a ${missingVariant} before purchasing this product.`,
+      );
+      return;
+    }
+
+    setPurchaseAction("buying");
+    try {
+      const added = await addToCart(
+        product,
+        user.id,
+        user.userName,
+        selectedVariants,
+      );
+      if (added) router.push("/(Screens)/Cart");
+    } catch (error) {
+      console.error("Error preparing product purchase:", error);
+      Alert.alert("Unable to buy now", "Please try again.");
+    } finally {
+      setPurchaseAction(null);
+    }
+  }, [user, product, variantOptions, selectedVariants, addToCart, router]);
 
   const handleImageNavigation = useCallback(
     (direction) => {
@@ -403,6 +610,18 @@ const ProductDetails = () => {
       });
     },
     [currentImageIndex, allImages],
+  );
+
+  const handleThumbnailPress = useCallback(
+    (index) => {
+      setCurrentImageIndex(index);
+      setActiveImage(allImages[index]);
+      imageScrollRef.current?.scrollTo({
+        x: index * (width - 32),
+        animated: true,
+      });
+    },
+    [allImages],
   );
 
   const handleRatingSubmit = useCallback(
@@ -704,7 +923,7 @@ const ProductDetails = () => {
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Product Details</Text>
-          <Text style={styles.headerSubtitle}> Premium African Products</Text>
+
         </View>
       </View>
 
@@ -783,9 +1002,11 @@ const ProductDetails = () => {
               )}
             </ScrollView>
 
-            {/* Wishlist Button */}
+            {/* Share Button */}
             <TouchableOpacity
-              onPress={handletogglefavorite}
+              onPress={handleShareProduct}
+              accessibilityRole="button"
+              accessibilityLabel="Share product"
               style={{
                 position: "absolute",
                 top: 16,
@@ -793,26 +1014,13 @@ const ProductDetails = () => {
                 zIndex: 10,
                 width: 40,
                 height: 40,
-                backgroundColor:
-                  product?.$id && isFavorite(product.$id)
-                    ? "#dc2626"
-                    : "rgba(0,0,0,0.8)",
+                backgroundColor: "rgba(0,0,0,0.8)",
                 borderRadius: 20,
                 justifyContent: "center",
                 alignItems: "center",
               }}
             >
-              <MaterialIcons
-                name={
-                  product?.$id && isFavorite(product.$id)
-                    ? "favorite"
-                    : "favorite-border"
-                }
-                size={22}
-                color={
-                  product?.$id && isFavorite(product.$id) ? "#fff" : "#D97706"
-                }
-              />
+              <MaterialIcons name="share" size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
             {/* Dot indicators — only shown when there are multiple images */}
@@ -847,63 +1055,51 @@ const ProductDetails = () => {
               </View>
             )}
           </View>
-          <CustomAlertReview
-            isVisible={isSignUpModalVisible}
-            onClose={closeSignUpModal}
-            onSignUp={navigateToSignUp}
-          />
-          {/* Premium Product Info */}
-          <View style={{ padding: 16, marginTop: 16 }}>
-            <View
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                alignSelf: "flex-start",
-                marginBottom: 16,
-                backgroundColor: "#FEF3C7",
+          {allImages.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: 10,
+                paddingHorizontal: 16,
+                paddingVertical: 2,
               }}
+              style={{ marginTop: 12 }}
             >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-              >
-                <MaterialIcons name="stars" size={16} color="#D97706" />
-                <Text
-                  style={{ color: "#D97706", fontSize: 12, fontWeight: "bold" }}
-                >
-                  Premium Collection
-                </Text>
-              </View>
-            </View>
-
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "bold",
-                color: "#111827",
-                marginBottom: 12,
-              }}
-            >
-              {product?.productName || product?.name || "Product"}
-            </Text>
-
-            {/* Rating */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 16,
-              }}
-            >
-              <StarRating rating={averageRating} size="lg" />
-              <Text style={{ color: "#374151" }}>
-                {averageRating.toFixed(1)} ({reviews.length} reviews)
-              </Text>
-            </View>
-
-            {/* Vendor / Brand Info */}
-            {(product?.vendorName || product?.brand) && (
+              {allImages.map((img, index) => {
+                const isSelected = index === currentImageIndex;
+                return (
+                  <TouchableOpacity
+                    key={`${img}-${index}`}
+                    onPress={() => handleThumbnailPress(index)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select image ${index + 1}`}
+                    accessibilityState={{ selected: isSelected }}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 10,
+                      borderWidth: 2,
+                      borderColor: isSelected ? "#D97706" : "#E5E7EB",
+                      overflow: "hidden",
+                      opacity: isSelected ? 1 : 0.72,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: imageForSize(img, IMAGE_SIZE.SMALL) }}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      recyclingKey={`pd-thumb-${img}`}
+                      accessible={false}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+         <View style={{ padding: 16,  }}>
+  {(product?.vendorName || product?.brand) && (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
                 {product?.brand && (
                   <View
@@ -953,19 +1149,41 @@ const ProductDetails = () => {
               </View>
             )}
 
-            {/* Description */}
+          </View>
+
+          <CustomAlertReview
+            isVisible={isSignUpModalVisible}
+            onClose={closeSignUpModal}
+            onSignUp={navigateToSignUp}
+          />
+          {/*Product Info */}
+          <View style={{ padding: 16,  }}>
+
             <Text
               style={{
-                color: "#374151",
-                fontSize: 16,
-                lineHeight: 24,
+                fontSize: 28,
+                fontWeight: "bold",
+                color: "#111827",
+                marginBottom: 12,
+              }}
+            >
+              {product?.productName || product?.name || "Product"}
+            </Text>
+
+            {/* Rating */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
                 marginBottom: 16,
               }}
             >
-              {product?.details ||
-                product?.description ||
-                "Premium product with quality craftsmanship"}
-            </Text>
+              <StarRating rating={averageRating} size="lg" />
+              <Text style={{ color: "#374151" }}>
+                {averageRating.toFixed(1)} ({reviews.length} reviews)
+              </Text>
+            </View>
 
             {/* Price Section */}
             <View
@@ -1036,144 +1254,229 @@ const ProductDetails = () => {
               )}
             </View>
 
-            {/* Quantity Selector */}
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  color: "#D97706",
-                  fontSize: 16,
-                  fontWeight: "600",
-                  marginBottom: 8,
-                }}
-              >
-                Quantity
-              </Text>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 16 }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    backgroundColor: "#F3F4F6",
-                    borderWidth: 1,
-                    borderColor: "#E5E7EB",
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                    style={{ paddingHorizontal: 16, paddingVertical: 12 }}
-                  >
-                    <Text
-                      style={{
-                        color: "#D97706",
-                        fontSize: 18,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      -
-                    </Text>
-                  </TouchableOpacity>
-                  <Text
-                    style={{
-                      paddingHorizontal: 20,
-                      paddingVertical: 12,
-                      color: "#111827",
-                      fontSize: 16,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {quantity}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setQuantity(quantity + 1)}
-                    style={{ paddingHorizontal: 16, paddingVertical: 12 }}
-                  >
-                    <Text
-                      style={{
-                        color: "#D97706",
-                        fontSize: 18,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      +
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <Text style={{ color: "#6B7280", fontSize: 14 }}>
-                  {product?.stock || "Limited"} items available
-                </Text>
-              </View>
-            </View>
-
-            {/* Features Grid */}
-            <View
+            {/* Description */}
+            <Text
               style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
+                color: "#374151",
+                fontSize: 16,
+                lineHeight: 24,
                 marginBottom: 16,
               }}
             >
-              {[
-                {
-                  icon: "local-shipping",
-                  text: "Free Shipping",
-                  color: "#2563EB",
-                },
-                { icon: "verified", text: "Authentic", color: "#16A34A" },
-                { icon: "refresh", text: "30 Days Return", color: "#D97706" },
-                { icon: "security", text: "Secure Payment", color: "#7C3AED" },
-              ].map((feature, index) => (
+              {product?.details ||
+                product?.description ||
+                "Premium product with quality craftsmanship"}
+            </Text>
+
+            {/* Available Product Colors */}
+            <View style={{ padding: 16 }}>
+              <View
+                style={{
+                  padding: 20,
+                  borderRadius: 20,
+                  marginBottom: 16,
+                  backgroundColor: "#F0FDF4",
+                  borderWidth: 1,
+                  borderColor: "#BBF7D0",
+                }}
+              >
                 <View
-                  key={index}
                   style={{
-                    flex: 1,
-                    minWidth: "45%",
-                    padding: 12,
-                    borderRadius: 12,
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 8,
-                    backgroundColor: "#F9FAFB",
-                    borderWidth: 1,
-                    borderColor: "#E5E7EB",
+                    marginBottom: 12,
                   }}
                 >
-                  <MaterialIcons
-                    name={feature.icon}
-                    size={20}
-                    color={feature.color}
-                  />
-                  <View>
-                    <Text
+                  <MaterialIcons name="palette" size={24} color="#16A34A" />
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "bold",
+                      color: "#14532D",
+                    }}
+                  >
+                    Available Options
+                  </Text>
+                </View>
+                {colorVariant ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: 10,
+                    }}
+                  >
+                    {colorVariant[1].map((color) => {
+                      const isSelected =
+                        selectedVariants[colorVariant[0]] === color;
+                      return (
+                        <TouchableOpacity
+                          key={color}
+                          onPress={() =>
+                            setSelectedVariants((current) => ({
+                              ...current,
+                              [colorVariant[0]]: color,
+                            }))
+                          }
+                          accessibilityRole="radio"
+                          accessibilityLabel={`Select color ${color}`}
+                          accessibilityState={{ checked: isSelected }}
+                          style={{
+                            minHeight: 44,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 22,
+                            borderWidth: 1,
+                            borderColor: isSelected ? "#16A34A" : "#E5E7EB",
+                            backgroundColor: isSelected ? "#F0FDF4" : "#FFFFFF",
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: getColorSwatch(color),
+                              borderWidth: 1,
+                              borderColor: "#D1D5DB",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {isSelected && (
+                              <MaterialIcons
+                                name="check"
+                                size={15}
+                                color={
+                                  ["white", "yellow", "cream", "beige"].includes(
+                                    color.toLowerCase(),
+                                  )
+                                    ? "#111827"
+                                    : "#FFFFFF"
+                                }
+                              />
+                            )}
+                          </View>
+                          <Text
+                            style={{
+                              color: "#374151",
+                              fontSize: 14,
+                              fontWeight: isSelected ? "600" : "400",
+                            }}
+                          >
+                            {color}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <Text
+                    style={{ color: "#6B7280", fontSize: 14, lineHeight: 20 }}
+                  >
+                    No color options are listed for this product.
+                  </Text>
+                )}
+                <View
+                  style={{
+                    marginTop: 16,
+                    paddingTop: 16,
+                    borderTopWidth: 1,
+                    borderTopColor: "#BBF7D0",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#14532D",
+                      fontSize: 16,
+                      fontWeight: "600",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Available Sizes
+                  </Text>
+                  {sizeVariant ? (
+                    <View
                       style={{
-                        color: feature.color,
-                        fontSize: 12,
-                        fontWeight: "bold",
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: 10,
                       }}
                     >
-                      {feature.text.split(" ")[0]}
+                      {sizeVariant[1].map((size) => {
+                        const isSelected =
+                          selectedVariants[sizeVariant[0]] === size;
+                        return (
+                          <TouchableOpacity
+                            key={size}
+                            onPress={() =>
+                              setSelectedVariants((current) => ({
+                                ...current,
+                                [sizeVariant[0]]: size,
+                              }))
+                            }
+                            accessibilityRole="radio"
+                            accessibilityLabel={`Select size ${size}`}
+                            accessibilityState={{ checked: isSelected }}
+                            style={{
+                              minWidth: 48,
+                              minHeight: 44,
+                              paddingHorizontal: 14,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: 12,
+                              borderWidth: 1,
+                              borderColor: isSelected ? "#16A34A" : "#E5E7EB",
+                              backgroundColor: isSelected
+                                ? "#16A34A"
+                                : "#FFFFFF",
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: isSelected ? "#FFFFFF" : "#374151",
+                                fontSize: 14,
+                                fontWeight: isSelected ? "600" : "500",
+                              }}
+                            >
+                              {size}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text
+                      style={{
+                        color: "#6B7280",
+                        fontSize: 14,
+                        lineHeight: 20,
+                      }}
+                    >
+                      No size options are listed for this product.
                     </Text>
-                    <Text style={{ color: `${feature.color}80`, fontSize: 10 }}>
-                      {feature.text.split(" ").slice(1).join(" ")}
-                    </Text>
-                  </View>
+                  )}
                 </View>
-              ))}
+              </View>
             </View>
-          </View>
-          {/* Modern Description Section */}
-          <View style={{ padding: 16, marginTop: 16 }}>
+
             <View
               style={{
-                padding: 20,
+                padding: 16,
                 borderRadius: 20,
                 marginBottom: 16,
-                backgroundColor: "#F9FAFB",
+                backgroundColor: "#FFFFFF",
                 borderWidth: 1,
-                borderColor: "#E5E7EB",
+                borderColor: "#BBF7D0",
+                shadowColor: "#000000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.08,
+                shadowRadius: 3,
+                elevation: 2,
               }}
             >
               <View
@@ -1181,22 +1484,95 @@ const ProductDetails = () => {
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  marginBottom: 12,
                 }}
               >
-                <MaterialIcons name="description" size={24} color="#16A34A" />
-                <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#14532D" }}
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#DCFCE7",
+                  }}
+                  accessible={false}
                 >
-                  Description
+                  <MaterialIcons name="lock" size={16} color="#15803D" />
+                </View>
+                <Text
+                  style={{
+                    color: "#111827",
+                    fontSize: 14,
+                    fontWeight: "600",
+                  }}
+                >
+                  Secure checkout with
                 </Text>
               </View>
-              <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
-                {product?.details ||
-                  "Premium African product with authentic craftsmanship and superior quality."}
+
+              <View
+                accessibilityLabel="Accepted payment methods"
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                {[
+                  { source: images.visa, label: "Visa" },
+                  { source: images.mastercard, label: "Mastercard" },
+                  { source: images.mpesa, label: "M Pesa" },
+                  { source: images.pesapal, label: "Pesapal" },
+                ].map((paymentMethod) => (
+                  <View
+                    key={paymentMethod.label}
+                    style={{
+                      height: 36,
+                      minWidth: 56,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor:
+                        paymentMethod.label === "Pesapal"
+                          ? "#FFEDD5"
+                          : "#F1F5F9",
+                      backgroundColor: "#FFFFFF",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      shadowColor: "#000000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}
+                  >
+                    <Image
+                      source={paymentMethod.source}
+                      style={{ width: 72, height: 26 }}
+                      contentFit="contain"
+                      accessible
+                      accessibilityLabel={paymentMethod.label}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <Text
+                style={{
+                  color: "#6B7280",
+                  fontSize: 12,
+                  marginTop: 12,
+                  lineHeight: 18,
+                }}
+              >
+                Your payment information is protected with encrypted processing.
               </Text>
             </View>
           </View>
+
           {/* Modern Reviews Section */}
           <View style={{ padding: 16, marginTop: 16 }}>
             <View
@@ -1297,81 +1673,6 @@ const ProductDetails = () => {
               />
             </View>
           </View>
-          {Object.entries(variantOptions).length > 0 && (
-            <View style={{ padding: 16 }}>
-              <View
-                style={{
-                  padding: 20,
-                  borderRadius: 20,
-                  marginBottom: 16,
-                  backgroundColor: "#FFFFFF",
-                  borderWidth: 1,
-                  borderColor: "#E5E7EB",
-                }}
-              >
-                {Object.entries(variantOptions).map(([key, options]) => (
-                  <View key={key} style={{ marginBottom: 16 }}>
-                    <Text style={{ color: "#111827", fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
-                      Select {key}
-                    </Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {options.map((option) => (
-                        <TouchableOpacity
-                          key={option}
-                          onPress={() => setSelectedVariants((current) => ({ ...current, [key]: option }))}
-                          style={{
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
-                            borderRadius: 20,
-                            borderWidth: 1,
-                            borderColor: selectedVariants[key] === option ? "#16A34A" : "#E5E7EB",
-                            backgroundColor: selectedVariants[key] === option ? "#16A34A" : "#F9FAFB",
-                          }}
-                        >
-                          <Text style={{ color: selectedVariants[key] === option ? "#FFFFFF" : "#374151" }}>
-                            {option}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-          {/* Modern Specifications Section */}
-          <View style={{ padding: 16 }}>
-            <View
-              style={{
-                padding: 20,
-                borderRadius: 20,
-                marginBottom: 16,
-                backgroundColor: "#F0FDF4",
-                borderWidth: 1,
-                borderColor: "#BBF7D0",
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <MaterialIcons name="build" size={24} color="#16A34A" />
-                <Text
-                  style={{ fontSize: 20, fontWeight: "bold", color: "#14532D" }}
-                >
-                  Specifications
-                </Text>
-              </View>
-              <Text style={{ color: "#374151", fontSize: 16, lineHeight: 24 }}>
-                {product?.specifications ||
-                  "Premium quality materials and craftsmanship. Authentic African design with modern functionality."}
-              </Text>
-            </View>
-          </View>
           {/* Modern Rating Section */}
           <View style={{ padding: 16 }}>
             <View
@@ -1439,7 +1740,7 @@ const ProductDetails = () => {
         </View>
       </ScrollView>
 
-      {/* Premium Action Buttons */}
+      {/* Action Buttons */}
       <View
         style={{
           position: "absolute",
@@ -1451,114 +1752,127 @@ const ProductDetails = () => {
         }}
       >
         <TouchableOpacity
-          onPress={() => {
-            if (!user) {
-              Alert.alert(
-                "Login Required",
-                "Please log in to add items to your cart.",
-              );
-              return;
-            }
-            if (product?.$id) {
-              const missingVariant = Object.keys(variantOptions).find(
-                (key) => !selectedVariants[key],
-              );
-              if (missingVariant) {
-                Alert.alert("Select an option", `Please select a ${missingVariant} before adding this product.`);
-                return;
-              }
-              addToCart(product, user.id, user.userName, selectedVariants);
-            } else {
-              Alert.alert("Error", "Product information is not available.");
-            }
+          onPress={handleAddProductToCart}
+          disabled={Boolean(purchaseAction)}
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: Boolean(purchaseAction),
+            busy: Boolean(purchaseAction),
           }}
-          style={{ flex: 1 }}
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            borderRadius: 12,
+            backgroundColor: purchaseAction ? "#D1D5DB" : "#16A34A",
+          }}
         >
+          {(purchaseAction === "adding" || purchaseAction === "buying") && (
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: purchaseProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "94%"],
+                }),
+                backgroundColor: "#16A34A",
+              }}
+            />
+          )}
           <View
             style={{
               paddingVertical: 16,
-              borderRadius: 12,
               flexDirection: "row",
               justifyContent: "center",
               alignItems: "center",
               gap: 8,
-              backgroundColor: "#16A34A",
             }}
           >
-            <MaterialIcons name="shopping-bag" size={20} color="#fff" />
-            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-              Let it Flow
+            <MaterialIcons
+              name="shopping-bag"
+              size={20}
+              color="#FFFFFF"
+            />
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              {purchaseAction ? "Adding to cart..." : "Add To Cart"}
             </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={async () => {
-            try {
-              const imageUrl = product?.imageUrl || product?.image;
-              const productName =
-                product?.productName || product?.name || "Product";
-              const productDesc =
-                product?.description || product?.details || "";
-              const fallbackStoreUrl = "https://play.google.com/store/apps/details?id=com.nileflowafrica&pcampaignid=web_share";
-
-              const appLinkUrl = product?.url || fallbackStoreUrl;
-              const completeCaption = `${productName}\n\n${productDesc}\n\nCheck it out here: ${appLinkUrl}`;
-
-              if (imageUrl) {
-                // 1. Get the image file extension and sanitize the title for a safe filename
-                const cleanFileExtension =
-                  imageUrl.split(".").pop()?.split("?")[0] || "jpg";
-                const sanitizedSystemTitle = productName
-                  .replace(/[^a-zA-Z0-9]/g, "_")
-                  .substring(0, 20);
-
-                // 2. Download the image locally to the device cache as a temporary file
-                const storageDestinationUri = `${FileSystem.cacheDirectory}${sanitizedSystemTitle}.${cleanFileExtension}`;
-                const fileAssetResult = await FileSystem.downloadAsync(
-                  imageUrl,
-                  storageDestinationUri,
-                );
-
-                // 3. Share the downloaded image asset using the simplest native methods available
-                if (Platform.OS === "ios") {
-                  // iOS native share sheet handles the file URI and text message perfectly together
-                  await Share.share({
-                    message: completeCaption,
-                    url: fileAssetResult.uri, // This forces the actual image to show up
-                  });
-                } else {
-                  // Android shares the file via expo-sharing, using the title text as the bubble caption
-                  await Sharing.shareAsync(fileAssetResult.uri, {
-                    dialogTitle: completeCaption, // Becomes the shared caption in WhatsApp/Telegram
-                    mimeType: `image/${cleanFileExtension}`,
-                  });
-                }
-              } else {
-                // Fallback simple share if there is no image at all
-                await Share.share({
-                  message: completeCaption,
-                });
-              }
-            } catch (error) {
-              console.log("Error sharing product:", error?.message || error);
-            }
+          onPress={handleBuyNow}
+          disabled={Boolean(purchaseAction)}
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: Boolean(purchaseAction),
+            busy: purchaseAction === "buying",
           }}
           style={{
-            paddingVertical: 16,
-            paddingHorizontal: 20,
-            borderWidth: 2,
-            borderColor: "#16A34A",
+            flex: 1,
+            overflow: "hidden",
             borderRadius: 12,
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 8,
+            paddingVertical: 16,
+            backgroundColor: purchaseAction ? "#F3F4F6" : "#15803D",
           }}
         >
-          <MaterialIcons name="share" size={20} color="#16A34A" />
-          <Text style={{ color: "#16A34A", fontSize: 16, fontWeight: "bold" }}>
-            Share
-          </Text>
+          {purchaseAction === "buying" && (
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: purchaseProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "94%"],
+                }),
+                backgroundColor: "#D97706",
+              }}
+            />
+          )}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <MaterialIcons
+              name="flash-on"
+              size={20}
+              color={
+                purchaseAction === "buying"
+                  ? "#FFFFFF"
+                  : purchaseAction
+                    ? "#374151"
+                    : "#FFFFFF"
+              }
+            />
+            <Text
+              style={{
+                color:
+                  purchaseAction === "buying"
+                    ? "#FFFFFF"
+                    : purchaseAction
+                      ? "#374151"
+                      : "#FFFFFF",
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              {purchaseAction === "buying" ? "Preparing checkout..." : "Buy Now"}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>

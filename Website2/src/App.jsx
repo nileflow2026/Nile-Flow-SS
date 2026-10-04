@@ -4,7 +4,7 @@ import WhatsappChat from '@features/chat/WhatsappChat'
 function App() {
   return (
     <div>
-      <WhatsappChat />
+      {/* <WhatsappChat /> */}
       <AppProviders />
     </div>
   )

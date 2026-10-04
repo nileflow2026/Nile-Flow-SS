@@ -27,14 +27,15 @@ Use a development build instead of Expo Go.]
 
 **Solution:**
 
-- Wrapped `registerForPushNotificationsAsync()` in try-catch block
-- Added informational logging for Expo Go limitation
-- Added helpful error message suggesting development/production builds
-- Function gracefully returns `null` if tokens can't be fetched in Expo Go
+The notification provider now starts push setup for a signed in user on a physical device. The app requests permission, reads the EAS project ID from app configuration, registers the Expo token with the authenticated backend, and retries registration when the app becomes active. Notification taps open the in app notifications screen, including when a notification launched the app.
+
+Expo Go and web skip remote push setup. Use an EAS development or production build with valid FCM or APNs credentials to test device delivery. On sign out, the app asks the backend to remove that user's saved token. The backend also removes tokens that Expo reports as no longer registered.
+
+Before testing registration against a new Appwrite user collection, run `node notifications/setup-push-token-attribute.js` from the Backend folder. The script creates the optional `pushToken` field and waits until Appwrite is ready to accept writes.
 
 **Files Modified:**
 
-- [hooks/usePushNotifications.js](../hooks/usePushNotifications.js#L73-L110)
+The push setup lives in [hooks/usePushNotifications.js](../hooks/usePushNotifications.js). [Context/NotificationContext.js](../Context/NotificationContext.js) connects it to the signed in user and app navigation. The backend registration and removal endpoints live in [routes/ClientnotificationsRouter.js](../../Backend/routes/ClientnotificationsRouter.js).
 
 ---
 

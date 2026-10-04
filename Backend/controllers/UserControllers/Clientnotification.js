@@ -203,38 +203,16 @@ const fetchCustomerNotification = async (req, res) => {
         .json({ error: "Unauthorized: No user information found." });
     }
 
-    let userId = req.user.userId; // Now safely extract
-    console.log("Raw userId:", userId);
-
-    if (!userId) {
+    const userId = req.user.userId;
+    if (typeof userId !== "string" || !userId) {
       return res.status(400).json({ error: "Invalid token: Missing user ID." });
     }
 
-    // Validate and sanitize userId for Appwrite UID requirements
-    if (typeof userId !== "string") {
-      userId = String(userId);
-    }
-
-    // Remove invalid characters and ensure it meets Appwrite UID requirements
-    userId = userId
-      .replace(/[^a-zA-Z0-9_]/g, "") // Keep only valid characters
-      .replace(/^_+/, "") // Remove leading underscores
-      .substring(0, 36); // Limit to 36 characters
-
-    if (!userId || userId.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "Invalid user ID format after sanitization." });
-    }
-
-    console.log("Sanitized userId:", userId);
-
     const result = await instrumentedDb.listDocuments(
-      process.env.APPWRITE_DATABASE_ID,
-      process.env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [Query.equal("userId", userId), Query.orderDesc("$createdAt")],
     );
-    /*  console.log('Fetched admin notifications:', result.documents); */
     res.status(200).json({ result: result.documents });
   } catch (err) {
     console.error("Failed to fetch customer notifications:", err.message);
@@ -321,10 +299,31 @@ const registerPushToken = async (req, res) => {
   }
 };
 
+const unregisterPushToken = async (req, res) => {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    await instrumentedDb.updateDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      req.user.userId,
+      { pushToken: null },
+    );
+
+    return res.status(200).json({ message: "Push token removed successfully" });
+  } catch (error) {
+    console.error("Failed to remove push token:", error.message);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   createNotification,
   fetchCustomerNotification,
   createNotificationInternal,
   markAllNotificationsAsRead,
   registerPushToken,
+  unregisterPushToken,
 };

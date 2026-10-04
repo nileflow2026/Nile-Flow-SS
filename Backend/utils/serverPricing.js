@@ -1,8 +1,13 @@
 // utils/serverPricing.js
 // ZERO TRUST: Server-side price computation - never trust client-sent prices
-const { db } = require("../services/appwriteService");
+const {
+  db,
+  instrumentedDb,
+  getCachedUser,
+} = require("../services/appwriteService");
 const { env } = require("../src/env");
 const logger = require("./logger");
+const { evaluateDeal, getDealFailure } = require("./dealPricingRules");
 
 /**
  * Fetch the authoritative price for a single product from the database.
@@ -36,62 +41,163 @@ async function getProductPrice(productId) {
   }
 }
 
+async function getDealPrice(dealId, productId, userId) {
+  if (!env.APPWRITE_DEALS_COLLECTION_ID) {
+    throw new Error("Deal collection is not configured.");
+  }
+
+  let deal;
+  try {
+    deal = await instrumentedDb.getDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_DEALS_COLLECTION_ID,
+      dealId,
+    );
+  } catch (error) {
+    if (error.code === 404 || error.code === "not_found") {
+      return { valid: false, reason: "NOT_FOUND" };
+    }
+    throw error;
+  }
+
+  const pricing = evaluateDeal(deal, productId);
+  if (!pricing.valid) return pricing;
+
+  if (pricing.requiresPremium) {
+    if (!userId) return { valid: false, reason: "PREMIUM_REQUIRED" };
+
+    const user = await getCachedUser(userId);
+    const expiresAt = user.prefs?.subscriptionExpiresAt;
+    const hasActivePremium =
+      user.prefs?.isPremium === true &&
+      (!expiresAt || new Date(expiresAt).getTime() > Date.now());
+    if (!hasActivePremium) {
+      return { valid: false, reason: "PREMIUM_REQUIRED" };
+    }
+  }
+
+  return {
+    ...pricing,
+    valid: true,
+    dealId: deal.$id,
+    productName: deal.productName,
+  };
+}
+
+function getSubmittedCartPrice(item) {
+  const value =
+    item.price && typeof item.price === "object"
+      ? (item.price.basePrice ?? item.price.raw ?? item.price.convertedPrice)
+      : item.price;
+  const price = Number(value);
+  return Number.isFinite(price) ? price : NaN;
+}
+
 /**
- * Given a cart array (with productId + quantity), fetch all prices from the DB
- * and compute the authoritative subtotal. Returns null for any product
- * that cannot be found (indicating a tampered or stale cart).
+ * Given a cart array, resolve all prices from trusted product and deal records.
  *
  * @param {Array<{productId: string, quantity: number}>} cartItems
  * @returns {Promise<{subtotal: number, verifiedItems: Array, errors: Array}>}
  */
-async function computeCartSubtotal(cartItems) {
-  if (!env.APPWRITE_PRODUCT_COLLECTION_ID) {
-    return {
-      subtotal: null,
-      verifiedItems: [],
-      errors: [
-        "Product collection not configured - price verification unavailable",
-      ],
-    };
-  }
-
+async function computeCartSubtotal(cartItems, { userId } = {}) {
   const verifiedItems = [];
   const errors = [];
+  const dealErrors = [];
   let subtotal = 0;
 
   for (const item of cartItems) {
     const productId = item.productId;
-    const quantity = parseInt(item.quantity || 1, 10);
+    const quantity = Number(item.quantity || 1);
+    const clientPrice = getSubmittedCartPrice(item);
 
     if (!productId) {
       errors.push("Cart item missing productId");
       continue;
     }
 
-    if (quantity < 1 || quantity > 1000) {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
       errors.push(`Invalid quantity ${quantity} for product ${productId}`);
       continue;
     }
 
-    const productData = await getProductPrice(productId);
-
-    if (!productData) {
-      errors.push(`Product not found: ${productId}`);
-      continue;
+    const dealId = item.dealId;
+    let trustedPrice;
+    let productName;
+    let originalPrice = null;
+    if (dealId) {
+      const deal = await getDealPrice(dealId, productId, userId);
+      if (!deal.valid) {
+        const failure = getDealFailure(deal.reason);
+        dealErrors.push({
+          productId,
+          dealId,
+          code: failure.code,
+          message: failure.message,
+        });
+        errors.push(failure.message);
+        continue;
+      }
+      if (
+        !Number.isFinite(clientPrice) ||
+        Math.abs(clientPrice - deal.price) > 0.01
+      ) {
+        const failure = getDealFailure("PRICE_CHANGED");
+        dealErrors.push({
+          productId,
+          dealId,
+          code: failure.code,
+          message: failure.message,
+        });
+        errors.push(failure.message);
+        continue;
+      }
+      trustedPrice = deal.price;
+      productName = deal.productName || item.productName;
+      originalPrice = deal.originalPrice;
+    } else {
+      const productData = await getProductPrice(productId);
+      if (
+        !productData ||
+        !Number.isFinite(productData.price) ||
+        productData.price < 0
+      ) {
+        errors.push(`Product not found: ${productId}`);
+        continue;
+      }
+      trustedPrice = productData.price;
+      productName = productData.productName;
     }
 
-    const lineTotal = productData.price * quantity;
+    const lineTotal = trustedPrice * quantity;
     subtotal += lineTotal;
 
     verifiedItems.push({
       productId,
-      productName: productData.productName,
-      dbPrice: productData.price,
-      clientPrice: parseFloat(item.price || 0),
+      productName,
+      dbPrice: trustedPrice,
+      price: trustedPrice,
+      clientPrice,
       quantity,
       lineTotal,
+      dealId: dealId || null,
+      originalPrice,
+      cartItem: {
+        ...item,
+        productId,
+        productName,
+        price: trustedPrice,
+        quantity,
+        ...(dealId
+          ? {
+              dealId,
+              isDeal: true,
+              originalPrice,
+            }
+          : {}),
+      },
       priceMismatch:
-        Math.abs(productData.price - parseFloat(item.price || 0)) > 0.01,
+        Number.isFinite(clientPrice) &&
+        Math.abs(trustedPrice - clientPrice) > 0.01,
     });
   }
 
@@ -114,7 +220,12 @@ async function computeCartSubtotal(cartItems) {
     subtotal: Math.round(subtotal * 100) / 100,
     verifiedItems,
     errors,
+    dealErrors,
   };
+}
+
+function getTrustedCartItems(verifiedItems) {
+  return verifiedItems.map((item) => item.cartItem);
 }
 
 /**
@@ -192,7 +303,9 @@ function getSubscriptionPlanPrice(planId = "premium_monthly") {
 
 module.exports = {
   getProductPrice,
+  getDealPrice,
   computeCartSubtotal,
+  getTrustedCartItems,
   getExchangeRate,
   convertKshToUsd,
   getSubscriptionPlanPrice,

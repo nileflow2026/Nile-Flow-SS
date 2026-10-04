@@ -1,155 +1,190 @@
 const { ID, Query, Permission, Role } = require("node-appwrite");
-const { avatars, users, db, account } = require("../src/appwrite");
+const { db } = require("../src/appwrite");
 const { env } = require("../src/env");
+
+const ADDRESS_PAGE_SIZE = 100;
+const ADDRESS_FIELDS = [
+  "fullName",
+  "phone",
+  "address",
+  "city",
+  "state",
+  "zipCode",
+  "country",
+];
+
+function resolveAddressOwner(address) {
+  const currentOwner =
+    typeof address.user === "string" ? address.user.trim() : "";
+  const legacyOwner =
+    typeof address.userId === "string" ? address.userId.trim() : "";
+
+  if (currentOwner && legacyOwner && currentOwner !== legacyOwner) {
+    return null;
+  }
+
+  return currentOwner || legacyOwner || null;
+}
+
+async function listAllOwnedBy(field, userId) {
+  const documents = [];
+  let offset = 0;
+
+  while (true) {
+    const response = await db.listDocuments(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADDRESS_COLLECTION_ID,
+      [
+        Query.equal(field, userId),
+        Query.limit(ADDRESS_PAGE_SIZE),
+        Query.offset(offset),
+      ],
+    );
+
+    documents.push(...response.documents);
+    if (documents.length >= response.total || response.documents.length === 0) {
+      return documents;
+    }
+
+    offset += response.documents.length;
+  }
+}
+
+function getAllowedFields(source) {
+  return Object.fromEntries(
+    ADDRESS_FIELDS.filter((field) =>
+      Object.prototype.hasOwnProperty.call(source, field),
+    ).map((field) => [field, source[field]]),
+  );
+}
+
+async function getAddressDocument(addressId) {
+  try {
+    return await db.getDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADDRESS_COLLECTION_ID,
+      addressId,
+    );
+  } catch (error) {
+    if (error.code === 404 || error.type === "document_not_found") {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 const AddressService = {
-  // Get all addresses for a specific user
   getAddresses: async (userId) => {
     if (!userId) {
-      console.error("Error fetching addresses: User ID is missing.");
-      return [];
+      throw new Error("An authenticated user is required to list addresses.");
     }
 
-    try {
-      try {
-        const response = await db.listDocuments(
-          env.APPWRITE_DATABASE_ID,
-          env.APPWRITE_ADDRESS_COLLECTION_ID,
-          [Query.equal("user", userId)],
-        );
-        if (response.documents.length > 0) return response.documents;
-      } catch (primaryError) {
-        console.warn("Primary address lookup skipped:", primaryError.message);
+    const [currentAddresses, legacyAddresses] = await Promise.all([
+      listAllOwnedBy("user", userId),
+      listAllOwnedBy("userId", userId),
+    ]);
+    const uniqueAddresses = new Map();
+
+    for (const address of [...currentAddresses, ...legacyAddresses]) {
+      if (resolveAddressOwner(address) === userId) {
+        uniqueAddresses.set(address.$id, address);
       }
-
-      // Older address records may use userId instead of user.
-      const legacyResponse = await db.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ADDRESS_COLLECTION_ID,
-        [Query.equal("userId", userId)],
-      );
-      return legacyResponse.documents;
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-      throw new Error("Failed to fetch addresses.");
     }
+
+    return [...uniqueAddresses.values()];
   },
 
-  // Get customer addresses filtered by type (admin function)
+  getOwnedAddress: async (addressId, userId) => {
+    if (!addressId || !userId) return null;
+    const address = await getAddressDocument(addressId);
+
+    return address && resolveAddressOwner(address) === userId
+      ? address
+      : null;
+  },
+
   getCustomerAddressByType: async (customerId, addressType = "delivery") => {
     if (!customerId) {
-      console.error(
-        "Error fetching customer addresses: Customer ID is missing."
-      );
-      return [];
+      throw new Error("A customer ID is required to list addresses.");
     }
 
-    try {
-      // Get all addresses for the customer
-      const allAddressesResponse = await db.listDocuments(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ADDRESS_COLLECTION_ID,
-        [Query.equal("user", customerId)]
+    const addresses = await listAllOwnedBy("user", customerId);
+    let filteredAddresses = addresses;
+
+    if (addressType && addresses.some((address) => address.type !== undefined)) {
+      const actualType = addressType === "delivery" ? "pickup" : addressType;
+      filteredAddresses = addresses.filter(
+        (address) => address.type === actualType,
       );
-
-      let filteredAddresses = allAddressesResponse.documents;
-
-      // Filter by type if addresses have type field
-      if (addressType && allAddressesResponse.documents.length > 0) {
-        // Check if any address has a type field
-        const hasTypeField = allAddressesResponse.documents.some(
-          (addr) => addr.type !== undefined
-        );
-
-        if (hasTypeField) {
-          // Handle semantic mapping: frontend requests "delivery" but customer addresses are stored as "pickup"
-          let actualTypeToSearch = addressType;
-          if (addressType === "delivery") {
-            actualTypeToSearch = "pickup"; // Map delivery requests to pickup type in database
-          }
-
-          filteredAddresses = allAddressesResponse.documents.filter(
-            (addr) => addr.type === actualTypeToSearch
-          );
-        }
-      }
-
-      console.log(
-        `Fetched ${addressType} addresses for customer ${customerId}: ${filteredAddresses.length} found`
-      );
-
-      return filteredAddresses;
-    } catch (error) {
-      console.error("Error fetching customer addresses:", error);
-      throw new Error("Failed to fetch customer addresses.");
     }
+
+    return filteredAddresses;
   },
 
-  // Add a new address
   addAddress: async (userId, newAddress) => {
-    try {
-      const payload = {
-        user: userId,
-        type: "delivery",
-        fullName: newAddress.fullName || "",
-        phone: newAddress.phone,
-        address: newAddress.address,
-        city: newAddress.city,
-        state: newAddress.state || "",
-        zipCode: newAddress.zipCode || "",
-        country: newAddress.country || "Kenya",
-      };
-
-      const permissions = [
-        Permission.read(Role.any()), // Allow public read access (optional, adjust as needed)
-        Permission.write(Role.user(userId)), // Allow the specific user to write
-        Permission.update(Role.user(userId)),
-        Permission.delete(Role.user(userId)),
-      ];
-
-      const response = await db.createDocument(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ADDRESS_COLLECTION_ID,
-        ID.unique(),
-        payload,
-        permissions
-      );
-
-      return response;
-    } catch (error) {
-      console.error("Error adding address:", error);
-      throw new Error("Failed to add address.");
+    if (!userId || !newAddress || typeof newAddress !== "object") {
+      throw new Error("Valid address details and an owner are required.");
     }
+
+    const payload = {
+      user: userId,
+      type: "delivery",
+      ...getAllowedFields(newAddress),
+      fullName: newAddress.fullName || "",
+      phone: newAddress.phone,
+      address: newAddress.address,
+      city: newAddress.city || "",
+      state: newAddress.state || "",
+      zipCode: newAddress.zipCode || "",
+      country: Object.prototype.hasOwnProperty.call(newAddress, "country")
+        ? newAddress.country
+        : "Kenya",
+    };
+    const permissions = [
+      Permission.read(Role.user(userId)),
+      Permission.write(Role.user(userId)),
+      Permission.update(Role.user(userId)),
+      Permission.delete(Role.user(userId)),
+    ];
+
+    return db.createDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADDRESS_COLLECTION_ID,
+      ID.unique(),
+      payload,
+      permissions,
+    );
   },
 
-  // Update an existing address
-  updateAddress: async (addressId, updatedData) => {
-    try {
-      const response = await databases.updateDocument(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ADDRESS_COLLECTION_ID,
-        addressId,
-        updatedData
-      );
-      return response;
-    } catch (error) {
-      console.error("Error updating address:", error);
-      throw new Error("Failed to update address.");
-    }
+  updateAddress: async (userId, addressId, updatedData) => {
+    const currentAddress = await AddressService.getOwnedAddress(
+      addressId,
+      userId,
+    );
+    if (!currentAddress) return null;
+
+    return db.updateDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADDRESS_COLLECTION_ID,
+      addressId,
+      getAllowedFields(updatedData),
+    );
   },
 
-  // Delete an address
-  deleteAddress: async (addressId) => {
-    try {
-      await db.deleteDocument(
-        env.APPWRITE_DATABASE_ID,
-        env.APPWRITE_ADDRESS_COLLECTION_ID,
-        addressId
-      );
-      return true;
-    } catch (error) {
-      console.error("Error deleting address:", error);
-      throw new Error("Failed to delete address.");
-    }
+  deleteAddress: async (userId, addressId) => {
+    const currentAddress = await AddressService.getOwnedAddress(
+      addressId,
+      userId,
+    );
+    if (!currentAddress) return false;
+
+    await db.deleteDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADDRESS_COLLECTION_ID,
+      addressId,
+    );
+    return true;
   },
 };
 

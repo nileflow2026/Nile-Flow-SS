@@ -23,6 +23,18 @@ import { usePostHog } from "posthog-react-native";
 
 const MemoizedProductCard = React.memo(ProductCard);
 
+const shuffleProducts = (items) => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+  return shuffled;
+};
+
 const ExploreSkeleton = () => (
   <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
     {/* Fixed Header skeleton */}
@@ -279,10 +291,11 @@ const Explore = () => {
             `/api/customerprofile/fetch-product-mobile`,
             { params },
           );
-          console.log(
+
+          /* console.log(
             "✅ Received fetch-product-mobile response:",
             response.data,
-          );
+          ); */
 
           if (response.data.success) {
             freshProducts = response.data.products || [];
@@ -301,12 +314,14 @@ const Explore = () => {
             : response.data?.products || [];
         }
 
-        console.log(
+        freshProducts = shuffleProducts(freshProducts);
+
+        /* onsole.log(
           "✅ Fetched",
           freshProducts.length,
           "products for category:",
           categoryId,
-        );
+        ); */
 
         // Lock in the currency the server used — more reliable than client geo-IP.
         // This sets the x-currency header for all subsequent requests (cart, etc.)
@@ -510,12 +525,12 @@ const Explore = () => {
 
   // ── Show skeleton while initial data is loading ──
   if (loading && !dataReady && !forceShowContent) {
-    console.log(
+    /* console.log(
       "🎭 Explore: Showing skeleton (loading=%s, dataReady=%s, forceShowContent=%s)",
       loading,
       dataReady,
       forceShowContent,
-    );
+    ); */
     return <ExploreSkeleton />;
   }
 
@@ -524,12 +539,12 @@ const Explore = () => {
     return <NetworkErrorFallback onRetry={handleRetry} />;
   }
 
-  console.log(
+  /* console.log(
     "✅ Explore: Rendering main content (products=%d, loading=%s, forceShowContent=%s)",
     products.length,
     loading,
     forceShowContent,
-  );
+  ); */
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>

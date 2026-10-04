@@ -4,6 +4,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
+import { Image } from "expo-image";
 import { useStripe } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
@@ -11,7 +13,6 @@ import { useRouter } from "expo-router";
 import {
   ArrowRight,
   CheckCircle,
-  CreditCard,
   DollarSign,
   Gem,
   Lock,
@@ -38,6 +39,7 @@ import {
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axiosClient from "../../api";
+import images from "../../constants/images";
 import { useCart } from "../../Context/CartContext_NEW";
 import {
   createNotification,
@@ -45,10 +47,45 @@ import {
 } from "../../Context/GlobalProvider";
 
 const { width } = Dimensions.get("window");
+
+const getCheckoutRequestMetadata = async (userId, checkoutAddress) => {
+  const deliveryAddressId = checkoutAddress?.$id || checkoutAddress?.id;
+  if (!userId || !deliveryAddressId) {
+    throw new Error("Confirm a delivery address before starting checkout.");
+  }
+
+  const storageKey = `checkoutAttemptId:${userId}`;
+  try {
+    let checkoutAttemptId = await AsyncStorage.getItem(storageKey);
+    if (!checkoutAttemptId) {
+      checkoutAttemptId = Crypto.randomUUID();
+      await AsyncStorage.setItem(storageKey, checkoutAttemptId);
+    }
+
+    return {
+      addressConfirmationVersion: 1,
+      deliveryAddressId,
+      checkoutAttemptId,
+    };
+  } catch (error) {
+    console.error("Could not prepare the checkout attempt:", error);
+    throw new Error("Checkout could not be prepared. Please try again.");
+  }
+};
+
+const clearCheckoutAttempt = async (userId) => {
+  if (!userId) return;
+  try {
+    await AsyncStorage.removeItem(`checkoutAttemptId:${userId}`);
+  } catch (error) {
+    console.error("Could not clear the completed checkout attempt:", error);
+  }
+};
+
 const Payments = () => {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, checkoutAddress } = useCart();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [orderId, setOrderId] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -80,6 +117,7 @@ const Payments = () => {
   const cancelPollRef = useRef(false);
   // Ref to track if we've already processed the current navigation trigger
   const navigationProcessedRef = useRef(false);
+  const paymentStartRef = useRef(false);
 
   // Cancel any in-progress M-Pesa polling on unmount to prevent memory leaks
   useEffect(() => {
@@ -207,22 +245,22 @@ const Payments = () => {
     {
       id: "pesapal",
       name: "Pesapal",
-      icon: CreditCard,
+      image: images.pesapal,
       gradient: ["#8B5CF6", "#7C3AED"],
       description: "Cards, M-Pesa, Airtel Money, and more",
       features: ["Instant", "Secure", "Trusted checkout"],
     },
-    {
+    /* {
       id: "mobile",
       name: "M-Pesa",
       icon: DollarSign,
       gradient: ["#10B981", "#059669"],
       description: "Pay directly with your M-Pesa number",
       features: ["Instant", "Secure", "Popular in Kenya"],
-    },
+    }, */
   ];
 
-  const handleCashOnDelivery = async (user, token) => {
+  const handleCashOnDelivery = async (user, token, checkoutMetadata) => {
     const now = new Date();
     const deliveryDate = new Date(now);
     deliveryDate.setDate(now.getDate() + 3);
@@ -287,18 +325,15 @@ const Payments = () => {
         totalAmount: parseFloat(totalAmount).toFixed(2),
         currency: orderCurrency,
         status: "Pending", // Set a status for POD orders
+        ...checkoutMetadata,
       };
 
-      console.log("=== SENDING POD PAYLOAD ===");
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log("Submitting cash on delivery checkout");
 
       const apiResponse = await axiosClient.post(
         "/api/payments/cash-on-delivery", // Ensure you have a dedicated backend endpoint for creating orders
         payload,
       );
-
-      console.log("=== POD API RESPONSE ===");
-      console.log("Response:", JSON.stringify(apiResponse.data, null, 2));
 
       const result = apiResponse.data;
       if (!result.success) {
@@ -342,6 +377,8 @@ const Payments = () => {
         "✅ Order completed successfully! Email already sent by backend.",
       );
 
+      await clearCheckoutAttempt(userId);
+
       // Clear cart after successful payment
       console.log("🛒 Clearing cart after successful payment...");
       await clearCart();
@@ -379,7 +416,7 @@ const Payments = () => {
     }
   };
 
-  const handleMpesaPayment = async (user, token) => {
+  const handleMpesaPayment = async (user, token, checkoutMetadata) => {
     try {
       // Validate phone number
       if (!phoneNumber || phoneNumber.trim().length === 0) {
@@ -402,7 +439,6 @@ const Payments = () => {
       const orderCurrency = currency || "KES";
 
       console.log("=== M-PESA PAYMENT INITIATION ===");
-      console.log("Phone Number:", phoneNumber);
       console.log("Amount:", totalAmount);
       console.log("Currency:", orderCurrency);
 
@@ -416,18 +452,15 @@ const Payments = () => {
         customerEmail,
         username,
         currency: orderCurrency,
+        ...checkoutMetadata,
       };
 
-      console.log("=== SENDING M-PESA PAYLOAD ===");
-      console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log("Submitting M-Pesa checkout");
 
       const apiResponse = await axiosClient.post(
         "/api/payments/mpesa/initiate",
         payload,
       );
-
-      console.log("=== M-PESA API RESPONSE ===");
-      console.log("Response:", JSON.stringify(apiResponse.data, null, 2));
 
       const result = apiResponse.data;
       if (!result.success) {
@@ -495,6 +528,8 @@ const Payments = () => {
           } catch (e) {
             console.warn("Notification error:", e);
           }
+
+          await clearCheckoutAttempt(user?.id || user?.$id);
 
           // Clear cart
           await clearCart();
@@ -583,7 +618,7 @@ const Payments = () => {
     poll();
   };
 
-  const handlePesapalPayment = async (user) => {
+  const handlePesapalPayment = async (user, checkoutMetadata) => {
     try {
       if (!phoneNumber || phoneNumber.trim().length === 0) {
         Alert.alert("Error", "Please enter your phone number before continuing.");
@@ -613,10 +648,10 @@ const Payments = () => {
         currency: orderCurrency,
         paymentMethod: "Pesapal",
         customerPhone: cleanPhone,
-        deliveryAddress: "Mobile checkout",
         status: "Pending",
         callbackUrl: `${pesapalReturnUrl}?status=success`,
         cancellationUrl: `${pesapalReturnUrl}?status=cancelled`,
+        ...checkoutMetadata,
       };
 
       const apiResponse = await axiosClient.post(
@@ -703,7 +738,11 @@ const Payments = () => {
 
       return true;
     } catch (error) {
-      console.error("=== PESAPAL PAYMENT ERROR ===", error);
+      console.error("Pesapal checkout request failed", {
+        status: error.response?.status,
+        code: error.response?.data?.code,
+        message: error.response?.data?.message || error.message,
+      });
       const message =
         error.response?.data?.message ||
         error.message ||
@@ -741,6 +780,8 @@ const Payments = () => {
           } catch (notificationError) {
             console.warn("Pesapal notification error:", notificationError);
           }
+
+          await clearCheckoutAttempt(user?.id || user?.$id);
 
           await clearCart();
 
@@ -820,6 +861,8 @@ const Payments = () => {
   };
 
   const initiateCheckout = async () => {
+    if (paymentStartRef.current) return;
+
     if (!selectedMethod) {
       Alert.alert("Error", "Please select a payment method.");
       return;
@@ -830,6 +873,7 @@ const Payments = () => {
       return;
     }
 
+    paymentStartRef.current = true;
     setLoading(true);
 
     try {
@@ -847,14 +891,10 @@ const Payments = () => {
       const customerEmail = user?.email;
       const username = user?.username || user?.email;
 
-      console.log("=== CHECKOUT VALIDATION ===");
-      console.log("User object:", JSON.stringify(user, null, 2));
-      console.log("User ID:", userId);
-      console.log("Customer Email:", customerEmail);
-      console.log("Username:", username);
-      console.log("Selected Payment Method:", selectedMethod);
-      console.log("Cart Items:", cart);
-      console.log("Total Amount to be sent:", totalAmount);
+      const checkoutMetadata = await getCheckoutRequestMetadata(
+        userId,
+        checkoutAddress,
+      );
 
       // Estimated delivery date (3 business days from now)
       const deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
@@ -868,11 +908,11 @@ const Payments = () => {
 
       // --- Dispatch to the appropriate payment handler ---
       if (selectedMethod === "pod") {
-        await handleCashOnDelivery(user, token);
+        await handleCashOnDelivery(user, token, checkoutMetadata);
       } else if (selectedMethod === "mobile") {
-        await handleMpesaPayment(user, token);
+        await handleMpesaPayment(user, token, checkoutMetadata);
       } else if (selectedMethod === "pesapal") {
-        await handlePesapalPayment(user);
+        await handlePesapalPayment(user, checkoutMetadata);
       } else if (selectedMethod === "card") {
         const payload = {
           cart,
@@ -882,9 +922,10 @@ const Payments = () => {
           paymentMethod: selectedMethod,
           totalAmount: parseFloat(totalAmount).toFixed(2),
           currency: currency || "KES",
+          ...checkoutMetadata,
         };
 
-        console.log("Payload being sent to backend:", payload);
+        console.log("Submitting card checkout");
 
         const apiResponse = await axiosClient.post(
           "/api/payments/stripe-mobile-paymentsheet",
@@ -892,9 +933,6 @@ const Payments = () => {
         );
 
         const result = apiResponse.data;
-
-        console.log("=== STRIPE MOBILE API RESPONSE ===");
-        console.log("Response:", JSON.stringify(result, null, 2));
 
         if (!result.client_secret || !result.orderId) {
           throw new Error("Invalid payment response from server");
@@ -938,6 +976,8 @@ const Payments = () => {
         console.log("✅ Payment completed successfully");
         console.log("✅ Payment completed successfully");
 
+        await clearCheckoutAttempt(userId);
+
         // Create notification after successful payment
         console.log("=== CREATING POST-PAYMENT NOTIFICATION ===");
         try {
@@ -977,6 +1017,7 @@ const Payments = () => {
       console.error("Checkout Error:", error);
       Alert.alert("Error", error.message || "Something went wrong.");
     } finally {
+      paymentStartRef.current = false;
       setLoading(false);
     }
   };
@@ -1181,10 +1222,19 @@ const Payments = () => {
                           marginRight: 16,
                         }}
                       >
-                        <Icon
-                          size={28}
-                          color={isSelected ? "#16A34A" : "#6B7280"}
-                        />
+                        {method.image ? (
+                          <Image
+                            source={method.image}
+                            resizeMode="contain"
+                            style={{ width: 40, height: 40 }}
+                            accessibilityLabel="Pesapal"
+                          />
+                        ) : (
+                          <Icon
+                            size={28}
+                            color={isSelected ? "#16A34A" : "#6B7280"}
+                          />
+                        )}
                       </View>
                       <View style={{ flex: 1 }}>
                         <View
@@ -1313,46 +1363,113 @@ const Payments = () => {
               </View>
             )}
 
-            {/* Security Info */}
+            {/* Secure checkout and accepted payment methods */}
             <View
               style={{
-                backgroundColor: "#F0FDF4",
-                borderRadius: 16,
+                padding: 16,
+                borderRadius: 20,
+                marginBottom: 16,
+                backgroundColor: "#FFFFFF",
                 borderWidth: 1,
                 borderColor: "#BBF7D0",
-                padding: 20,
-                marginBottom: 24,
+                shadowColor: "#000000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.08,
+                shadowRadius: 3,
+                elevation: 2,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <Shield
-                  size={20}
-                  color="#16A34A"
-                  style={{ marginTop: 2, marginRight: 12 }}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      color: "#14532D",
-                      fontSize: 14,
-                      fontFamily: "Poppins-SemiBold",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Your Payment is Secure
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#374151",
-                      fontSize: 14,
-                      lineHeight: 20,
-                    }}
-                  >
-                    All transactions are encrypted and secured with 256-bit SSL.
-                    We never store your card details.
-                  </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#DCFCE7",
+                  }}
+                  accessible={false}
+                >
+                  <MaterialIcons name="lock" size={16} color="#15803D" />
                 </View>
+                <Text
+                  style={{
+                    color: "#111827",
+                    fontSize: 14,
+                    fontWeight: "600",
+                  }}
+                >
+                  Secure checkout with
+                </Text>
               </View>
+
+              <View
+                accessibilityLabel="Accepted payment methods"
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                {[
+                  { source: images.visa, label: "Visa" },
+                  { source: images.mastercard, label: "Mastercard" },
+                  { source: images.mpesa, label: "M Pesa" },
+                  { source: images.pesapal, label: "Pesapal" },
+                ].map((paymentMethod) => (
+                  <View
+                    key={paymentMethod.label}
+                    style={{
+                      height: 36,
+                      minWidth: 56,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor:
+                        paymentMethod.label === "Pesapal"
+                          ? "#FFEDD5"
+                          : "#F1F5F9",
+                      backgroundColor: "#FFFFFF",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      shadowColor: "#000000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}
+                  >
+                    <Image
+                      source={paymentMethod.source}
+                      style={{ width: 72, height: 26 }}
+                      contentFit="contain"
+                      accessible
+                      accessibilityLabel={paymentMethod.label}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <Text
+                style={{
+                  color: "#6B7280",
+                  fontSize: 12,
+                  marginTop: 12,
+                  lineHeight: 18,
+                }}
+              >
+                Your payment information is protected with encrypted processing.
+              </Text>
             </View>
 
             {/* Confirm Order Button */}

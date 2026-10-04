@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   ActivityIndicator,
@@ -26,7 +26,7 @@ import {
 import { min } from "moment";
 
 const NotificationsSkeleton = () => (
-  <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+  <SafeAreaView style={{ flex: 1,  backgroundColor: "#FFFFFF" }}>
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Controls bar skeleton */}
       <View
@@ -179,12 +179,13 @@ export default function MyNotificationsScreen() {
   const [notifications, setNotifications] = useState([]);
   const { setNotificationCount } = useNotification();
   const { user } = useGlobalContext();
+  const userId = user?.id || user?.userId || user?.$id;
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all, unread, important, promotions
   const [hasError, setHasError] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [muteSound, setMuteSound] = useState(false);
+  const notificationRequestId = useRef(0);
 
   // Load persisted mute preference on mount
   useEffect(() => {
@@ -201,7 +202,7 @@ export default function MyNotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       const markAllAsRead = async () => {
-        if (!user) return;
+        if (!userId) return;
 
         try {
           await axiosClient.post("/api/customernotifications/mark-read");
@@ -214,36 +215,53 @@ export default function MyNotificationsScreen() {
         }
       };
       markAllAsRead();
-    }, [user, setNotificationCount]),
+    }, [userId, setNotificationCount]),
   );
 
   // Refresh notifications list every time the screen comes into focus
   // This is the SINGLE source of truth for notification fetching.
   // The mount useEffect below has been removed to prevent double-fetch storms.
+  const loadNotifications = useCallback(async () => {
+    const requestId = ++notificationRequestId.current;
+    setNotifications([]);
+    setNotificationCount(0);
+    setHasError(false);
+
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await getCustomerNotification();
+      if (notificationRequestId.current !== requestId) return;
+
+      const ownedNotifications = data.filter(
+        (notification) => notification.userId === userId,
+      );
+      setNotifications(ownedNotifications);
+      setNotificationCount(ownedNotifications.length);
+    } catch {
+      if (notificationRequestId.current !== requestId) return;
+      setHasError(true);
+      setNotifications([]);
+    } finally {
+      if (notificationRequestId.current === requestId) setLoading(false);
+    }
+  }, [userId, setNotificationCount]);
+
   useFocusEffect(
     useCallback(() => {
-      if (!user) {
-        setLoading(false);
-        setNotifications([]);
-        return;
-      }
-      getCustomerNotification()
-        .then((data) => {
-          setNotifications(data);
-          setNotificationCount(data.length);
-        })
-        .catch(() => {
-          setHasError(true);
-          setNotifications([]);
-        })
-        .finally(() => setLoading(false));
-    }, [user, setNotificationCount]),
+      loadNotifications();
+      return () => {
+        notificationRequestId.current += 1;
+      };
+    }, [loadNotifications]),
   );
 
   const handleRetry = () => {
-    setHasError(false);
-    setLoading(true);
-    setRetryKey((k) => k + 1);
+    loadNotifications();
   };
 
   // Helper functions
@@ -359,7 +377,7 @@ export default function MyNotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
+    <SafeAreaView style={[styles.container, ]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}

@@ -49,15 +49,15 @@ const paymentSecurity = {
 
       // Server-side cart validation - fetch real prices from product DB
       if (cart && Array.isArray(cart) && cart.length > 0) {
-        const { subtotal, verifiedItems, errors } =
-          await computeCartSubtotal(cart);
+        const { subtotal, verifiedItems, errors, dealErrors } =
+          await computeCartSubtotal(cart, { userId: req.user?.userId });
 
-        if (errors.length > 0 && subtotal === null) {
-          // Product collection not configured - log and allow (graceful degradation)
-          logger.warn(
-            "Price verification unavailable - product collection not configured",
-          );
-          return next();
+        if (dealErrors.length > 0) {
+          return res.status(409).json({
+            error: dealErrors[0].message,
+            code: dealErrors[0].code,
+            dealErrors,
+          });
         }
 
         if (errors.length > 0) {

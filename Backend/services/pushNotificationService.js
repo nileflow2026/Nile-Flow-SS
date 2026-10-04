@@ -55,7 +55,7 @@ async function getUserPushToken(userId) {
     );
     return userDoc?.pushToken || null;
   } catch (error) {
-    // User document not found or field missing — silently ignore
+    console.warn("[Push] Could not read the user's push token:", error.message);
     return null;
   }
 }
@@ -110,18 +110,17 @@ async function sendPushNotification({
     });
 
     const result = await response.json();
+    if (!response.ok) {
+      throw new Error(`Expo Push API returned HTTP ${response.status}`);
+    }
 
-    if (result?.data?.status === "error") {
-      console.warn(
-        `[Push] Delivery error for user ${userId}:`,
-        result.data.message,
-      );
-      // If token is no longer valid, clear it from the user document
-      if (
-        result.data.details?.error === "DeviceNotRegistered" ||
-        result.data.message?.includes("DeviceNotRegistered")
-      ) {
-        await clearInvalidToken(userId);
+    const tickets = Array.isArray(result?.data) ? result.data : [result?.data];
+    for (const ticket of tickets) {
+      if (ticket?.status !== "error") continue;
+      console.warn("[Push] Expo reported a delivery error:", ticket.message);
+
+      if (ticket.details?.error === "DeviceNotRegistered") {
+        await clearInvalidToken(userId, pushToken);
       }
     }
   } catch (error) {
@@ -139,24 +138,28 @@ async function sendPushNotification({
 async function sendPushNotificationBatch(notifications) {
   if (!notifications?.length) return;
 
-  const payloads = await Promise.all(
+  const deliveries = await Promise.all(
     notifications.map(async ({ userId, message, type, title, data = {} }) => {
       const pushToken = await getUserPushToken(userId);
       if (!pushToken) return null;
       return {
-        to: pushToken,
-        title: title || getTitleForType(type),
-        body: message,
-        sound: "default",
-        badge: 1,
-        data: { type, ...data },
-        channelId: resolveChannelId(type),
+        userId,
+        pushToken,
+        payload: {
+          to: pushToken,
+          title: title || getTitleForType(type),
+          body: message,
+          sound: "default",
+          badge: 1,
+          data: { type, ...data },
+          channelId: resolveChannelId(type),
+        },
       };
     }),
   );
 
-  const validPayloads = payloads.filter(Boolean);
-  if (!validPayloads.length) return;
+  const validDeliveries = deliveries.filter(Boolean);
+  if (!validDeliveries.length) return;
 
   try {
     const response = await fetch(EXPO_PUSH_API, {
@@ -166,11 +169,28 @@ async function sendPushNotificationBatch(notifications) {
         "Accept-Encoding": "gzip, deflate",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(validPayloads),
+      body: JSON.stringify(validDeliveries.map(({ payload }) => payload)),
     });
 
     const result = await response.json();
-    console.log(`[Push] Batch sent ${validPayloads.length} notifications.`);
+    if (!response.ok) {
+      throw new Error(`Expo Push API returned HTTP ${response.status}`);
+    }
+
+    const tickets = Array.isArray(result?.data) ? result.data : [];
+    for (const [index, ticket] of tickets.entries()) {
+      if (ticket?.status !== "error") continue;
+      console.warn("[Push] Expo reported a batch delivery error:", ticket.message);
+
+      if (ticket.details?.error === "DeviceNotRegistered") {
+        const delivery = validDeliveries[index];
+        if (delivery) {
+          await clearInvalidToken(delivery.userId, delivery.pushToken);
+        }
+      }
+    }
+
+    console.log(`[Push] Batch submitted ${validDeliveries.length} notifications.`);
     return result;
   } catch (error) {
     console.warn("[Push] Batch send failed:", error.message);
@@ -201,15 +221,20 @@ function resolveChannelId(type) {
   return "default";
 }
 
-async function clearInvalidToken(userId) {
+async function clearInvalidToken(userId, invalidToken) {
   try {
+    const currentToken = await getUserPushToken(userId);
+    if (currentToken !== invalidToken) return;
+
     await db.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
       { pushToken: null },
     );
-  } catch (_) {}
+  } catch (error) {
+    console.warn("[Push] Could not remove an invalid push token:", error.message);
+  }
 }
 
 module.exports = {

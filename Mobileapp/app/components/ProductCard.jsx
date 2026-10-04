@@ -354,7 +354,7 @@ const ProductCard = ({
                 ]}
               />
               <Ionicons name="bag-handle" size={14} color="#FFF" />
-              <Text style={styles.cartButtonText}>Let It Flow</Text>
+              <Text style={styles.cartButtonText}>Add To Cart</Text>
             </Animated.View>
           </TouchableOpacity>
         </View>

@@ -30,6 +30,7 @@ export const CartProvider = ({ children }) => {
   const [loadingCart, setLoadingCart] = useState(false);
   const [userId, setUserId] = useState(null);
   const [wishlist, setWishlist] = useState([]);
+  const [checkoutAddress, setCheckoutAddress] = useState(null);
 
   useEffect(() => {
     loadCartFromStorage();
@@ -96,7 +97,13 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const addToCart = async (product, userId, userName, variantSelection = {}) => {
+  const addToCart = async (
+    product,
+    userId,
+    providedUserName,
+    variantSelection = {},
+    dealId = null,
+  ) => {
     try {
       // Lock in the currency from the product's own enriched price IMMEDIATELY.
       // This ensures that even if a stale in-flight fetchCartItems response
@@ -124,7 +131,7 @@ export const CartProvider = ({ children }) => {
           visibilityTime: 3000,
           autoHide: true,
         });
-        return;
+        return false;
       }
 
       // Validate product ID
@@ -137,7 +144,7 @@ export const CartProvider = ({ children }) => {
           visibilityTime: 3000,
           autoHide: true,
         });
-        return;
+        return false;
       }
 
       const userName = await fetchUserName();
@@ -150,26 +157,29 @@ export const CartProvider = ({ children }) => {
         image: product.image,
         userName,
         variantSelection,
+        dealId,
       });
 
       const data = res.data;
       if (data.success) {
-        // OPTIMISTIC UPDATE: The product already has an enriched price object
-        // (e.g. { currency: "SSP", displayValue: "SSP 28,592", raw: 800 })
-        // set by the backend when Explore/ProductDetails fetched it.
-        // Use it directly so the Cart shows the correct currency immediately
-        // without waiting for a round-trip backend re-fetch.
-        const enrichedPrice =
-          product.price && typeof product.price === "object"
-            ? product.price
-            : data.item.price;
+        // Use the server enriched price so a deal never displays its submitted price.
+        const enrichedPrice = data.item.price;
 
         setCart((prev) => {
-          // If item already exists (duplicate add), don't add again
-          const alreadyIn = prev.some(
-            (i) => i.productId === productId || i.$id === data.item.$id,
+          const existingIndex = prev.findIndex(
+            (i) =>
+              i.$id === data.item.$id ||
+              (i.productId === productId &&
+                i.dealId === (dealId || null) &&
+                i.variantSelection === data.item.variantSelection),
           );
-          if (alreadyIn) return prev;
+          if (existingIndex >= 0) {
+            return prev.map((item, index) =>
+              index === existingIndex
+                ? { ...data.item, price: enrichedPrice }
+                : item,
+            );
+          }
           return [...prev, { ...data.item, price: enrichedPrice }];
         });
 
@@ -179,9 +189,7 @@ export const CartProvider = ({ children }) => {
           visibilityTime: 2000,
           autoHide: true,
         });
-        // No background fetchCartItems here — the optimistic update already shows
-        // the correct enriched price. Cart.jsx's useFocusEffect will sync when
-        // the user navigates to the Cart tab.
+        return true;
       } else {
         Toast.show({
           type: "error",
@@ -189,15 +197,20 @@ export const CartProvider = ({ children }) => {
           visibilityTime: 3000,
           autoHide: true,
         });
+        return false;
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
       Toast.show({
         type: "error",
-        text1: "Error adding to cart",
+        text1:
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Error adding to cart",
         visibilityTime: 3000,
         autoHide: true,
       });
+      return false;
     }
   };
 
@@ -285,10 +298,10 @@ export const CartProvider = ({ children }) => {
         return;
       }
 
-      // Use productId for backend call (backend expects productId, not document ID)
-      const productIdToUpdate = cartItem.productId;
+      const cartIdentifier =
+        cartItem.$id || cartItem.id || cartItem.productId;
 
-      const res = await axiosClient.put(`/cart/update/${productIdToUpdate}`, {
+      const res = await axiosClient.put(`/cart/update/${cartIdentifier}`, {
         quantity: newQuantity,
         userId: id,
       });
@@ -387,6 +400,7 @@ export const CartProvider = ({ children }) => {
 
       // 1. Clear frontend state
       setCart([]);
+      setCheckoutAddress(null);
 
       // 2. Clear AsyncStorage
       await AsyncStorage.removeItem(`@cart_items_${id}`);
@@ -430,8 +444,10 @@ export const CartProvider = ({ children }) => {
       fetchCartItems,
       validateCartStock,
       wishlist,
+      checkoutAddress,
+      setCheckoutAddress,
     }),
-    [cart, wishlist],
+    [cart, wishlist, checkoutAddress],
   );
 
   return (

@@ -1391,7 +1391,7 @@ const getDealProducts = async (req, res) => {
         { ...product, price: basePrice },
         targetCurrency,
         rate,
-        true, // psychological pricing on deals
+        false,
       ); 
 
       // Resolve category name from ID
@@ -1457,7 +1457,7 @@ const getFlashSales = async (req, res) => {
         { ...deal, price: basePrice },
         targetCurrency,
         rate,
-        true,
+        false,
       );
       return {
         ...converted,

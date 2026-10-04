@@ -2,11 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,37 +23,82 @@ import {
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
 
-const FeaturedProducts = () => {
+const FeaturedProducts = ({ fullScreen = false }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const hasProducts = useRef(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchFeaturedProducts();
-  }, []);
-
-  const fetchFeaturedProducts = async () => {
+  const fetchFeaturedProducts = useCallback(async (isRefresh = false) => {
     setError(false);
-    setLoading(true);
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
-      console.log("📦 Fetching featured products...");
       const response = await axiosClient.get(
         "/api/customerprofile/featured-products",
       );
-      /* console.log("✅ Featured products received:", response.data); */
       const items = Array.isArray(response.data)
         ? response.data.filter(Boolean)
         : [];
+      hasProducts.current = items.length > 0;
       setProducts(items);
-      /*      console.log("✅ Featured products set:", items.length, "items"); */
     } catch (err) {
       console.error("❌ Failed to fetch featured products:", err.message);
-      setError(true);
+      if (!hasProducts.current) setError(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchFeaturedProducts();
+  }, [fetchFeaturedProducts]);
+
+  const handleBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/BottomTabs");
   };
+
+  const screenHeader = (
+    <View style={styles.screenHeader}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        onPress={handleBack}
+        activeOpacity={0.75}
+        style={styles.backButton}
+      >
+        <View style={styles.backIconWrap}>
+          <Ionicons name="arrow-back" size={18} color="#14532D" />
+        </View>
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+      <View style={styles.pageHero}>
+        <View style={styles.pageHeroTop}>
+          <View style={styles.pageHeroIcon}>
+            <Ionicons name="trophy" size={22} color="#16A34A" />
+          </View>
+          {!loading && !error && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>
+                {products.length} {products.length === 1 ? "ITEM" : "ITEMS"}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.pageEyebrow}>CURATED FOR YOU</Text>
+        <Text accessibilityRole="header" style={styles.pageTitle}>
+          Featured Products
+        </Text>
+        <Text style={styles.pageSubtitle}>
+          Explore standout finds selected from trusted Nile Flow sellers.
+        </Text>
+      </View>
+    </View>
+  );
 
   const renderProduct = ({ item, index }) => {
     if (!item) {
@@ -162,6 +208,23 @@ const FeaturedProducts = () => {
   };
 
   if (loading) {
+    if (fullScreen) {
+      return (
+        <View style={styles.screenContainer}>
+          {screenHeader}
+          <View style={styles.screenState}>
+            <ActivityIndicator size="large" color="#16A34A" />
+            <Text style={styles.screenStateTitle}>
+              Finding featured products
+            </Text>
+            <Text style={styles.screenStateDescription}>
+              Loading trusted picks for you.
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
@@ -176,6 +239,37 @@ const FeaturedProducts = () => {
   }
 
   if (error) {
+    if (fullScreen) {
+      return (
+        <View style={styles.screenContainer}>
+          {screenHeader}
+          <View style={styles.screenState}>
+            <View style={styles.stateIcon}>
+              <Ionicons
+                name="cloud-offline-outline"
+                size={30}
+                color="#B91C1C"
+              />
+            </View>
+            <Text style={styles.screenStateTitle}>
+              Featured products are unavailable
+            </Text>
+            <Text style={styles.screenStateDescription}>
+              Check your connection and try loading the collection again.
+            </Text>
+            <TouchableOpacity
+              onPress={fetchFeaturedProducts}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading featured products"
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryText}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Could not load featured products</Text>
@@ -198,9 +292,43 @@ const FeaturedProducts = () => {
   }
 
   if (products.length === 0) {
-    console.log(
-      "📦 FeaturedProducts: No products, but still rendering section header",
-    );
+    if (fullScreen) {
+      return (
+        <FlatList
+          data={products}
+          renderItem={renderProduct}
+          keyExtractor={(item, index) =>
+            item?.$id || item?.id || index.toString()
+          }
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.screenListContainer}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={screenHeader}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="trophy-outline" size={26} color="#16A34A" />
+              </View>
+              <Text style={styles.emptyTitle}>
+                No featured products yet
+              </Text>
+              <Text style={styles.emptyDescription}>
+                Check back soon for new picks from Nile Flow sellers.
+              </Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchFeaturedProducts(true)}
+              tintColor="#16A34A"
+            />
+          }
+        />
+      );
+    }
+
     return (
       <View style={styles.container}>
         {/* Header */}
@@ -230,7 +358,7 @@ const FeaturedProducts = () => {
           <Text style={styles.headerTitle}>Featured Products</Text>
         </View>
         <TouchableOpacity
-          onPress={() => router.push("/(Screens)/Explore")}
+          onPress={() => router.push("/(Screens)/FeaturedProducts")}
           accessibilityRole="button"
           accessibilityLabel="See all products"
         >
@@ -243,18 +371,40 @@ const FeaturedProducts = () => {
 
       {/* Products Grid */}
       <FlatList
-        data={products.slice(0, 6)} // Show first 6 products
+        data={fullScreen ? products : products.slice(0, 4)}
         renderItem={renderProduct}
         keyExtractor={(item, index) =>
           item?.$id || item?.id || index.toString()
         }
         numColumns={2}
         columnWrapperStyle={styles.row}
-        scrollEnabled={false}
-        contentContainerStyle={styles.listContainer}
+        scrollEnabled={fullScreen}
+        contentContainerStyle={
+          fullScreen ? styles.screenListContainer : styles.listContainer
+        }
         initialNumToRender={4}
         maxToRenderPerBatch={4}
         removeClippedSubviews={true}
+        ListHeaderComponent={fullScreen ? screenHeader : null}
+        ListEmptyComponent={
+          fullScreen ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No featured products yet</Text>
+              <Text style={styles.emptyDescription}>
+                Check back soon for new picks from Nile Flow sellers.
+              </Text>
+            </View>
+          ) : null
+        }
+        refreshControl={
+          fullScreen ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchFeaturedProducts(true)}
+              tintColor="#16A34A"
+            />
+          ) : undefined
+        }
       />
     </View>
   );
@@ -263,6 +413,167 @@ const FeaturedProducts = () => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
+  },
+  screenContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  screenHeader: {
+    paddingBottom: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  backButton: {
+    minHeight: 44,
+    alignSelf: "flex-start",
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingRight: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 9,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    borderRadius: 24,
+    backgroundColor: "#F0FDF4",
+  },
+  backIconWrap: {
+    width: 34,
+    height: 34,
+    marginLeft: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 17,
+    backgroundColor: "#DCFCE7",
+  },
+  backButtonText: {
+    color: "#14532D",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pageHero: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    borderRadius: 22,
+    backgroundColor: "#F0FDF4",
+  },
+  pageHeroTop: {
+    marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pageHeroIcon: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 15,
+    backgroundColor: "#DCFCE7",
+  },
+  countBadge: {
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+  },
+  countBadgeText: {
+    color: "#166534",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  pageEyebrow: {
+    color: "#15803D",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  pageTitle: {
+    marginTop: 4,
+    color: "#14532D",
+    fontFamily: "Poppins-Bold",
+    fontSize: 25,
+    lineHeight: 33,
+  },
+  pageSubtitle: {
+    marginTop: 6,
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  screenListContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 30,
+    backgroundColor: "#FFFFFF",
+  },
+  screenState: {
+    flex: 1,
+    paddingHorizontal: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  screenStateTitle: {
+    marginTop: 14,
+    color: "#111827",
+    fontFamily: "Poppins-Bold",
+    fontSize: 18,
+    textAlign: "center",
+  },
+  screenStateDescription: {
+    marginTop: 7,
+    color: "#6B7280",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  retryButton: {
+    minHeight: 46,
+    marginTop: 18,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: "#16A34A",
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  emptyState: {
+    marginTop: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 34,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 18,
+    backgroundColor: "#F9FAFB",
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 26,
+    backgroundColor: "#DCFCE7",
+  },
+  emptyTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  emptyDescription: {
+    marginTop: 6,
+    color: "#6B7280",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",

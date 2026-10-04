@@ -28,9 +28,20 @@ const {
 const { commissionService } = require("../../services/commissionService");
 const {
   computeCartSubtotal,
+  getTrustedCartItems,
   convertKshToUsd,
 } = require("../../utils/serverPricing");
 const { generateOrderNumber } = require("../../orders/OrderNumberGenerator");
+const OrderService = require("../../orders/OrderService");
+const {
+  CHECKOUT_RECOVERY_STATES,
+  CheckoutRequestError,
+  checkoutSuccessResponse,
+  findOrderByAttempt,
+  getRecoveryState,
+  prepareMobileCheckout,
+  sameOrderContents,
+} = require("../../services/mobileCheckoutService");
 
 // Global cache for processed callbacks (in production, use Redis)
 const processedCallbacks = new Map();
@@ -245,7 +256,126 @@ async function archiveCancelledOrder(order, reason, failureType) {
   }
 }
 
+function checkoutIdHash(value) {
+  return value
+    ? crypto.createHash("sha256").update(String(value)).digest("hex").slice(0, 16)
+    : undefined;
+}
+
+async function handleMobileCashOnDelivery(req, res) {
+  const requestUserId = req.user?.userId || req.user?.$id || req.user?.id;
+
+  try {
+    const checkout = await prepareMobileCheckout(req.body, req.user);
+    if (!checkout.versioned) {
+      return res.status(400).json({
+        success: false,
+        message: "A confirmed checkout address is required.",
+      });
+    }
+
+    if (checkout.existingOrder) {
+      const order = checkout.existingOrder;
+      const state = checkout.recoveryState;
+
+      if (
+        state === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
+        state === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+      ) {
+        return res.status(409).json({
+          success: false,
+          orderId: order.$id,
+          recoveryState: state,
+          message: "The existing payment outcome must be checked before changing payment method.",
+        });
+      }
+
+      if (state === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
+        state === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED) {
+        return res.status(200).json(checkoutSuccessResponse(order));
+      }
+
+      const updatedOrder = await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_ORDERS_COLLECTION,
+        order.$id,
+        {
+          paymentMethod: "Payment on Delivery",
+          paymentStatus: "succeeded",
+          orderStatus: "Ordered",
+          status: "Pending",
+          updatedAt: new Date().toISOString(),
+        },
+      );
+
+      return res.status(200).json(checkoutSuccessResponse(updatedOrder));
+    }
+
+    const body = {
+      ...req.body,
+      userId: checkout.userId,
+      deliveryAddress: checkout.deliverySnapshot.deliveryAddress,
+      customerPhone: checkout.deliverySnapshot.customerPhone,
+    };
+    const result = await OrderService.createCodOrder(body, req.user, {
+      paymentMethod: "Payment on Delivery",
+      paymentStatus: "succeeded",
+      checkoutAttemptId: checkout.checkoutAttemptId,
+      orderFields: checkout.orderFields,
+    });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json(result);
+    }
+
+    const order =
+      result.alreadyExisting
+        ? await instrumentedDb.getDocument(
+            env.APPWRITE_DATABASE_ID,
+            env.APPWRITE_ORDERS_COLLECTION,
+            result.orderId,
+          )
+        : null;
+
+    return res.status(result.status || 201).json({
+      ...result,
+      recoveryState: order
+        ? getRecoveryState(order)
+        : CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED,
+    });
+  } catch (error) {
+    const status = error instanceof CheckoutRequestError ? error.status : 500;
+    console.error("Mobile COD checkout failed", {
+      operation: "mobile_cod_checkout",
+      errorCategory: String(
+        error?.code || error?.type || error?.name || "unknown_error",
+      ),
+      userIdHash: checkoutIdHash(requestUserId),
+      checkoutAttemptIdHash: checkoutIdHash(req.body?.checkoutAttemptId),
+      paymentStatus: undefined,
+    });
+
+    return res.status(status).json({
+      success: false,
+      code: error.code || "CHECKOUT_FAILED",
+      message:
+        error instanceof CheckoutRequestError
+          ? error.message
+          : "Unable to place this order right now.",
+    });
+  }
+}
+
 const cashonDelivery = async (req, res) => {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      "addressConfirmationVersion",
+    )
+  ) {
+    return handleMobileCashOnDelivery(req, res);
+  }
+
   let orderId; // Declare orderId at function scope
 
   try {
@@ -288,23 +418,31 @@ const cashonDelivery = async (req, res) => {
       subtotal: serverSubtotal,
       verifiedItems,
       errors: priceErrors,
-    } = await computeCartSubtotal(cart);
+      dealErrors,
+    } = await computeCartSubtotal(cart, { userId: userIdValue });
 
-    let trustedTotal;
-    if (serverSubtotal !== null && priceErrors.length === 0) {
-      trustedTotal = serverSubtotal;
-      if (
-        totalAmount &&
-        Math.abs(serverSubtotal - parseFloat(totalAmount)) > 1
-      ) {
-        console.warn(
-          `COD price mismatch: client sent ${totalAmount}, server computed ${serverSubtotal}`,
-        );
-      }
-    } else {
-      // Fallback if product collection unavailable - use client amount but log warning
-      trustedTotal = parseFloat(totalAmount);
-      console.warn("Product collection unavailable for COD price verification");
+    if (dealErrors.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: dealErrors[0].message,
+        code: dealErrors[0].code,
+        dealErrors,
+      });
+    }
+    const trustedCart = getTrustedCartItems(verifiedItems);
+
+    if (priceErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not verify prices for every cart item.",
+        code: "CART_PRICE_VERIFICATION_FAILED",
+      });
+    }
+    const trustedTotal = serverSubtotal;
+    if (totalAmount && Math.abs(serverSubtotal - parseFloat(totalAmount)) > 1) {
+      console.warn(
+        `COD price mismatch: client sent ${totalAmount}, server computed ${serverSubtotal}`,
+      );
     }
 
     if (!trustedTotal || trustedTotal <= 0) {
@@ -345,7 +483,7 @@ const cashonDelivery = async (req, res) => {
       deliveryAddress: deliveryAddress || "",
       customerPhone: customerPhone || "",
       phone: customerPhone || "",
-      items: JSON.stringify(cart),
+      items: JSON.stringify(trustedCart),
       amount: Math.round(parseFloat(trustedTotal)), // ZERO TRUST: server-computed total
       currency: Array.isArray(currency) ? currency[0] : currency,
       paymentMethod: paymentMethod || "Cash on Delivery",
@@ -633,18 +771,27 @@ const stripewebpayment = async (req, res) => {
       subtotal: serverTotal,
       verifiedItems: verifiedCartItems,
       errors: priceErrors,
-    } = await computeCartSubtotal(cart);
+      dealErrors,
+    } = await computeCartSubtotal(cart, { userId: userIdValue });
 
-    let totalAmount;
-    if (serverTotal !== null && priceErrors.length === 0) {
-      totalAmount = serverTotal;
-    } else {
-      // Fallback if product collection unavailable
-      totalAmount = cart.reduce((t, i) => t + i.price * i.quantity, 0);
-      console.warn(
-        "Product collection unavailable for Stripe price verification",
-      );
+    if (dealErrors.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: dealErrors[0].message,
+        code: dealErrors[0].code,
+        dealErrors,
+      });
     }
+    const trustedCart = getTrustedCartItems(verifiedCartItems);
+
+    if (priceErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not verify prices for every cart item.",
+        code: "CART_PRICE_VERIFICATION_FAILED",
+      });
+    }
+    const totalAmount = serverTotal;
 
     // Create order document for database (before stripe session)
     const orderDocument = {
@@ -652,7 +799,7 @@ const stripewebpayment = async (req, res) => {
       userId: userIdValue,
       customerEmail,
       username,
-      items: JSON.stringify(cart),
+      items: JSON.stringify(trustedCart),
       amount: totalAmount, // ⭐⭐⭐ CHANGE THIS: Store in dollars ⭐⭐⭐
       currency: "usd",
       paymentMethod: "Card",
@@ -684,15 +831,9 @@ const stripewebpayment = async (req, res) => {
 
     // 4. CREATE STRIPE CHECKOUT SESSION
     // ZERO TRUST: Build line items from DB-verified prices when available
-    const priceMap = {};
-    if (verifiedCartItems && verifiedCartItems.length > 0) {
-      verifiedCartItems.forEach((v) => {
-        priceMap[v.productId] = v.dbPrice;
-      });
-    }
-
-    const lineItems = cart.map((item) => {
-      const unitPrice = priceMap[item.productId] || Number(item.price);
+    const lineItems = cart.map((item, index) => {
+      const unitPrice =
+        verifiedCartItems[index]?.dbPrice ?? Number(item.price);
       return {
         price_data: {
           currency: "usd",
@@ -874,22 +1015,30 @@ const stripeMobilePaymentSheet = async (req, res) => {
     const createdAt = new Date().toISOString();
 
     // ZERO TRUST: Calculate amount from DB prices, not client cart
-    const { subtotal: serverTotal, errors: priceErrors } =
-      await computeCartSubtotal(cart);
-
-    let totalAmountKES;
-    if (serverTotal !== null && priceErrors.length === 0) {
-      totalAmountKES = serverTotal;
-    } else {
-      // Fallback if product collection unavailable
-      totalAmountKES = cart.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      );
-      console.warn(
-        "Product collection unavailable for mobile Stripe price verification",
-      );
+    const {
+      subtotal: serverTotal,
+      verifiedItems,
+      errors: priceErrors,
+      dealErrors,
+    } = await computeCartSubtotal(cart, { userId: req.user?.userId || userId });
+    if (dealErrors.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: dealErrors[0].message,
+        code: dealErrors[0].code,
+        dealErrors,
+      });
     }
+    const trustedCart = getTrustedCartItems(verifiedItems);
+
+    if (priceErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not verify prices for every cart item.",
+        code: "CART_PRICE_VERIFICATION_FAILED",
+      });
+    }
+    const totalAmountKES = serverTotal;
 
     console.log(`Total amount calculated: ${totalAmountKES} KES`);
 
@@ -928,7 +1077,7 @@ const stripeMobilePaymentSheet = async (req, res) => {
     // 2. CREATE ORDER
     const orderData = {
       orderId,
-      products: cart,
+      products: trustedCart,
       customerEmail,
       username,
       userId: userId,
@@ -979,7 +1128,7 @@ const stripeMobilePaymentSheet = async (req, res) => {
       // Send email confirmation
       try {
         await Emailconfirmation({
-          cart,
+          cart: trustedCart,
           customerEmail,
           customerName: username,
           orderId,
@@ -1174,21 +1323,29 @@ const PayPalCreateOrder = async (req, res) => {
     }
 
     // ZERO TRUST: Recompute total from DB prices
-    const { subtotal: serverTotal, errors: priceErrors } =
-      await computeCartSubtotal(cart);
+    const {
+      subtotal: serverTotal,
+      errors: priceErrors,
+      dealErrors,
+    } = await computeCartSubtotal(cart, { userId: req.user?.userId || userId });
+    if (dealErrors.length > 0) {
+      return res.status(409).json({
+        error: dealErrors[0].message,
+        code: dealErrors[0].code,
+        dealErrors,
+      });
+    }
 
-    let trustedTotal;
-    if (serverTotal !== null && priceErrors.length === 0) {
-      trustedTotal = serverTotal;
-      if (totalAmount && Math.abs(serverTotal - parseFloat(totalAmount)) > 1) {
-        console.warn(
-          `PayPal price mismatch: client sent ${totalAmount}, server computed ${serverTotal}`,
-        );
-      }
-    } else {
-      trustedTotal = parseFloat(totalAmount);
+    if (priceErrors.length > 0) {
+      return res.status(400).json({
+        error: "Could not verify prices for every cart item.",
+        code: "CART_PRICE_VERIFICATION_FAILED",
+      });
+    }
+    const trustedTotal = serverTotal;
+    if (totalAmount && Math.abs(serverTotal - parseFloat(totalAmount)) > 1) {
       console.warn(
-        "Product collection unavailable for PayPal price verification",
+        `PayPal price mismatch: client sent ${totalAmount}, server computed ${serverTotal}`,
       );
     }
 
@@ -1325,7 +1482,329 @@ async function getMpesaAccessToken() {
 /**
  * Initiate M-Pesa STK Push (Lipa na M-Pesa Online)
  */
+async function handleVersionedMpesaPayment(req, res) {
+  const userId = req.user?.userId || req.user?.$id || req.user?.id;
+  const checkoutAttemptId = req.body?.checkoutAttemptId;
+  let orderId;
+  let paymentStatus = "unknown";
+
+  try {
+    const checkout = await prepareMobileCheckout(req.body, req.user);
+    if (!checkout.versioned) {
+      return res.status(400).json({
+        success: false,
+        message: "A confirmed checkout address is required.",
+      });
+    }
+
+    let trustedCart;
+    let trustedAmount;
+    let order;
+
+    if (checkout.existingOrder) {
+      order = checkout.existingOrder;
+      orderId = order.$id;
+      paymentStatus = order.paymentStatus || "unknown";
+
+      if (
+        checkout.recoveryState ===
+          CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
+        checkout.recoveryState ===
+          CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN ||
+        checkout.recoveryState ===
+          CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
+        checkout.recoveryState ===
+          CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED
+      ) {
+        return res.status(200).json(checkoutSuccessResponse(order));
+      }
+
+      trustedCart = JSON.parse(order.items);
+      trustedAmount = Number(order.amount);
+    } else {
+      const { subtotal, verifiedItems, errors, dealErrors } =
+        await computeCartSubtotal(req.body.cart, { userId: checkout.userId });
+
+      if (dealErrors.length > 0) {
+        return res.status(409).json({
+          success: false,
+          code: dealErrors[0].code,
+          message: dealErrors[0].message,
+        });
+      }
+      if (errors.length > 0 || !Number.isFinite(subtotal) || subtotal <= 0) {
+        return res.status(400).json({
+          success: false,
+          code: "CART_PRICE_VERIFICATION_FAILED",
+          message: "Could not verify the amount for every cart item.",
+        });
+      }
+
+      trustedCart = getTrustedCartItems(verifiedItems);
+      trustedAmount = subtotal;
+      const stockCheck = await checkStockAvailability(req.body.cart);
+      if (!stockCheck.isAvailable) {
+        return res.status(400).json({
+          success: false,
+          message: "Some items are out of stock.",
+          unavailableItems: stockCheck.unavailableItems,
+        });
+      }
+    }
+
+    const phoneNumber = String(req.body.phoneNumber || "").trim();
+    const phoneDigits = phoneNumber.replace(/\D/g, "");
+    if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+      throw new CheckoutRequestError(
+        400,
+        "INVALID_PAYMENT_PHONE",
+        "Enter a valid M Pesa phone number.",
+      );
+    }
+
+    let formattedPhone = phoneDigits;
+    if (formattedPhone.startsWith("0")) {
+      formattedPhone = `254${formattedPhone.slice(1)}`;
+    } else if (!formattedPhone.startsWith("254")) {
+      formattedPhone = `254${formattedPhone}`;
+    }
+
+    const accessToken = await getMpesaAccessToken();
+    if (!order) {
+      orderId = ID.unique();
+      const now = new Date().toISOString();
+      const orderDocument = {
+        userId: checkout.userId,
+        customerEmail: req.body.customerEmail,
+        username: req.body.username,
+        items: JSON.stringify(trustedCart),
+        amount: Math.round(trustedAmount),
+        currency: req.body.currency || "KES",
+        paymentMethod: "M-Pesa",
+        status: "Pending",
+        orderStatus: "Pending Payment",
+        paymentStatus: "pending",
+        mpesaPhone: formattedPhone,
+        stockChecked: true,
+        stockUpdated: false,
+        createdAt: now,
+        updatedAt: now,
+        ...checkout.orderFields,
+      };
+
+      try {
+        order = await instrumentedDb.createDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_ORDERS_COLLECTION,
+          orderId,
+          orderDocument,
+          [
+            Permission.read(Role.user(checkout.userId)),
+            Permission.update(Role.user(checkout.userId)),
+          ],
+        );
+      } catch (error) {
+        const existingOrder = await findOrderByAttempt(
+          checkout.checkoutAttemptId,
+        );
+        if (!existingOrder) throw error;
+        if (
+          existingOrder.userId !== checkout.userId ||
+          existingOrder.deliveryAddressId !==
+            checkout.deliverySnapshot.deliveryAddressId ||
+          !sameOrderContents(req.body.cart, existingOrder.items)
+        ) {
+          throw new CheckoutRequestError(
+            409,
+            "CHECKOUT_ATTEMPT_CONFLICT",
+            "This checkout attempt is already bound to different order details.",
+          );
+        }
+        return res
+          .status(200)
+          .json(checkoutSuccessResponse(existingOrder));
+      }
+      paymentStatus = order.paymentStatus;
+    } else {
+      order = await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_ORDERS_COLLECTION,
+        order.$id,
+        {
+          paymentMethod: "M-Pesa",
+          paymentStatus: "pending",
+          orderStatus: "Pending Payment",
+          status: "Pending",
+          mpesaPhone: formattedPhone,
+          updatedAt: new Date().toISOString(),
+        },
+      );
+      paymentStatus = "pending";
+    }
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, "")
+      .slice(0, 14);
+    const shortCode = env.MPESA_SHORTCODE;
+    const password = Buffer.from(
+      `${shortCode}${env.MPESA_PASSKEY}${timestamp}`,
+    ).toString("base64");
+    const stkUrl =
+      env.MPESA_ENVIRONMENT === "production"
+        ? "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        : "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+    const stkPayload = {
+      BusinessShortCode: shortCode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerPayBillOnline",
+      Amount: Math.round(trustedAmount),
+      PartyA: formattedPhone,
+      PartyB: shortCode,
+      PhoneNumber: formattedPhone,
+      CallBackURL:
+        env.MPESA_CALLBACK_URL ||
+        `${env.BACKEND_URL}/api/payments/mpesa/callback`,
+      AccountReference: req.body.accountReference || orderId,
+      TransactionDesc:
+        req.body.transactionDesc || `Payment for order ${orderId}`,
+    };
+
+    const stkResponse = await fetch(stkUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(stkPayload),
+    });
+    const responseText = await stkResponse.text();
+    let stkData;
+
+    try {
+      stkData = JSON.parse(responseText);
+    } catch {
+      await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_ORDERS_COLLECTION,
+        orderId,
+        {
+          paymentStatus: "unknown",
+          updatedAt: new Date().toISOString(),
+        },
+      );
+      paymentStatus = "unknown";
+      return res.status(502).json({
+        success: false,
+        orderId,
+        recoveryState: CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN,
+        message: "The payment outcome could not be confirmed. Check its status before retrying.",
+      });
+    }
+
+    if (stkData.ResponseCode === "0") {
+      const updatedOrder = await instrumentedDb.updateDocument(
+        env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_ORDERS_COLLECTION,
+        orderId,
+        {
+          mpesaCheckoutRequestID: stkData.CheckoutRequestID,
+          mpesaMerchantRequestID: stkData.MerchantRequestID,
+          paymentStatus: "pending",
+          updatedAt: new Date().toISOString(),
+        },
+      );
+      paymentStatus = "pending";
+
+      return res.status(200).json({
+        ...checkoutSuccessResponse(updatedOrder),
+        checkoutRequestId: stkData.CheckoutRequestID,
+        merchantRequestId: stkData.MerchantRequestID,
+      });
+    }
+
+    const failedOrder = await instrumentedDb.updateDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ORDERS_COLLECTION,
+      orderId,
+      {
+        orderStatus: "Failed",
+        paymentStatus: "failed",
+        failureReason: stkData.ResponseDescription || "STK Push failed",
+        updatedAt: new Date().toISOString(),
+      },
+    );
+    paymentStatus = "failed";
+
+    return res.status(400).json({
+      ...checkoutSuccessResponse(failedOrder),
+      success: false,
+      message: stkData.ResponseDescription || "Failed to initiate M Pesa payment.",
+    });
+  } catch (error) {
+    if (orderId && paymentStatus === "pending") {
+      try {
+        await instrumentedDb.updateDocument(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_ORDERS_COLLECTION,
+          orderId,
+          {
+            paymentStatus: "unknown",
+            updatedAt: new Date().toISOString(),
+          },
+        );
+        paymentStatus = "unknown";
+      } catch (updateError) {
+        console.error("M Pesa unknown state persistence failed", {
+          operation: "mobile_mpesa_status_update",
+          errorCategory: String(
+            updateError?.code || updateError?.name || "unknown_error",
+          ),
+          userIdHash: checkoutIdHash(userId),
+          checkoutAttemptIdHash: checkoutIdHash(checkoutAttemptId),
+          paymentStatus,
+        });
+      }
+    }
+
+    console.error("Mobile M Pesa checkout failed", {
+      operation: "mobile_mpesa_checkout",
+      errorCategory: String(
+        error?.code || error?.type || error?.name || "unknown_error",
+      ),
+      userIdHash: checkoutIdHash(userId),
+      checkoutAttemptIdHash: checkoutIdHash(checkoutAttemptId),
+      paymentStatus,
+    });
+    const status = error instanceof CheckoutRequestError ? error.status : 502;
+
+    return res.status(status).json({
+      success: false,
+      orderId,
+      code: error.code || "MPESA_INITIATION_FAILED",
+      recoveryState:
+        orderId && paymentStatus === "unknown"
+          ? CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+          : undefined,
+      message:
+        error instanceof CheckoutRequestError
+          ? error.message
+          : "Unable to confirm M Pesa payment initiation. Check payment status before retrying.",
+    });
+  }
+}
+
 const initiateMpesaPayment = async (req, res) => {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      "addressConfirmationVersion",
+    )
+  ) {
+    return handleVersionedMpesaPayment(req, res);
+  }
+
   try {
     console.log("=== M-PESA STK PUSH REQUEST ===");
     const {
@@ -1374,19 +1853,34 @@ const initiateMpesaPayment = async (req, res) => {
 
     // ZERO TRUST: Recompute amount from DB prices if cart is provided
     let trustedAmount = parseFloat(amount);
+    let trustedCart = cart || [];
     if (cart && Array.isArray(cart) && cart.length > 0) {
-      const { subtotal: serverTotal, errors: priceErrors } =
-        await computeCartSubtotal(cart);
-      if (serverTotal !== null && priceErrors.length === 0) {
-        trustedAmount = serverTotal;
-        if (Math.abs(serverTotal - parseFloat(amount)) > 1) {
-          console.warn(
-            `M-Pesa price mismatch: client sent ${amount}, server computed ${serverTotal}`,
-          );
-        }
-      } else {
+      const {
+        subtotal: serverTotal,
+        verifiedItems,
+        errors: priceErrors,
+        dealErrors,
+      } = await computeCartSubtotal(cart, { userId: req.user?.userId || userIdValue });
+      if (dealErrors.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: dealErrors[0].message,
+          code: dealErrors[0].code,
+          dealErrors,
+        });
+      }
+      trustedCart = getTrustedCartItems(verifiedItems);
+      if (priceErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Could not verify prices for every cart item.",
+          code: "CART_PRICE_VERIFICATION_FAILED",
+        });
+      }
+      trustedAmount = serverTotal;
+      if (Math.abs(serverTotal - parseFloat(amount)) > 1) {
         console.warn(
-          "Product collection unavailable for M-Pesa price verification",
+          `M-Pesa price mismatch: client sent ${amount}, server computed ${serverTotal}`,
         );
       }
     }
@@ -1420,7 +1914,7 @@ const initiateMpesaPayment = async (req, res) => {
       userId: userIdValue,
       customerEmail,
       username,
-      items: JSON.stringify(cart || []),
+      items: JSON.stringify(trustedCart),
       amount: Math.round(trustedAmount), // ZERO TRUST: server-computed amount
       currency: currency || "KES",
       paymentMethod: "M-Pesa",

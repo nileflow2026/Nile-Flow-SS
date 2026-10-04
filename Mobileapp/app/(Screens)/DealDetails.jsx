@@ -4,12 +4,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useCart } from "../../Context/CartContext_NEW";
+import { fetchUserId } from "../../Context/GlobalProvider";
 import { dealsService } from "../../utils/dealsService";
 import { imageForSize, IMAGE_SIZE } from "../../utils/imageOptimizer";
 
@@ -20,6 +23,7 @@ const formatAmount = (amount, currency) =>
 
 const DealDetails = () => {
   const router = useRouter();
+  const { addToCart } = useCart();
   const params = useLocalSearchParams();
   const routeId = Array.isArray(params.dealId)
     ? params.dealId[0]
@@ -29,6 +33,9 @@ const DealDetails = () => {
   const [error, setError] = useState("");
   const [retryKey, setRetryKey] = useState(0);
   const [now, setNow] = useState(0);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState({});
 
   const loadDeal = useCallback(async () => {
     setLoading(true);
@@ -43,6 +50,8 @@ const DealDetails = () => {
       );
       if (!found) throw new Error("This deal is no longer available.");
       setDeal(found);
+      setAddedToCart(false);
+      setSelectedVariants({});
     } catch (loadError) {
       console.error("Failed to load deal details:", loadError);
       setError(loadError.message || "Could not load this deal.");
@@ -105,6 +114,21 @@ const DealDetails = () => {
   }
 
   const name = deal.productName || deal.name || "Special offer";
+  const dealAttributes = typeof deal.specifications === "string"
+    ? (() => {
+        try {
+          return JSON.parse(deal.specifications);
+        } catch {
+          return {};
+        }
+      })()
+    : deal.attributes || {};
+  const variantOptions = Object.entries(dealAttributes)
+    .filter(([key, value]) => ["color", "size"].includes(key) && value)
+    .reduce((options, [key, value]) => ({
+      ...options,
+      [key]: String(value).split(",").map((option) => option.trim()).filter(Boolean),
+    }), {});
   const currency =
     deal.originalPrice?.currency || deal.price?.currency || "KES";
   const dealPrice = deal.dealPrice ?? deal.price;
@@ -121,6 +145,59 @@ const DealDetails = () => {
     : remainingSeconds <= 0
       ? "Deal ended"
       : `${Math.floor(remainingSeconds / 3600)}h ${Math.floor((remainingSeconds % 3600) / 60)}m ${remainingSeconds % 60}s`;
+  const dealDocumentId = deal.$id || deal.id || routeId;
+  const canPurchaseDeal =
+    Boolean(dealDocumentId && deal.productId) &&
+    remainingSeconds !== null &&
+    remainingSeconds > 0;
+
+  const handleAddDealToCart = async () => {
+    setAddingToCart(true);
+    try {
+      const userId = await fetchUserId();
+      if (!userId) {
+        Alert.alert(
+          "Sign in required",
+          "Sign in to add this deal to your cart.",
+        );
+        return;
+      }
+
+      const missingVariant = Object.keys(variantOptions).find(
+        (key) => !selectedVariants[key],
+      );
+      if (missingVariant) {
+        Alert.alert(
+          "Select an option",
+          `Please select a ${missingVariant} before adding this deal.`,
+        );
+        return;
+      }
+
+      const added = await addToCart(
+        {
+          $id: deal.productId,
+          productName: name,
+          image,
+          price: {
+            currency,
+            convertedPrice: Number(dealPrice),
+            raw: Number(dealPrice),
+          },
+        },
+        userId,
+        null,
+        selectedVariants,
+        dealDocumentId,
+      );
+      if (added) setAddedToCart(true);
+    } catch (addError) {
+      console.error("Failed to add deal to cart:", addError);
+      Alert.alert("Unable to add deal", "Please try again.");
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -229,6 +306,79 @@ const DealDetails = () => {
           </View>
         ) : null}
 
+        {Object.entries(variantOptions).map(([key, options]) => (
+          <View key={key} style={styles.variantGroup}>
+            <Text style={styles.variantTitle}>Select {key}</Text>
+            <View style={styles.variantOptions}>
+              {options.map((option) => {
+                const selected = selectedVariants[key] === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      setSelectedVariants((current) => ({
+                        ...current,
+                        [key]: option,
+                      }));
+                      setAddedToCart(false);
+                    }}
+                    style={[
+                      styles.variantOption,
+                      selected && styles.variantOptionSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.variantOptionText,
+                        selected && styles.variantOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+
+        <View style={styles.purchaseActions}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: !canPurchaseDeal || addingToCart || addedToCart,
+              busy: addingToCart,
+            }}
+            disabled={!canPurchaseDeal || addingToCart || addedToCart}
+            onPress={handleAddDealToCart}
+            style={[
+              styles.purchaseButton,
+              (!canPurchaseDeal || addedToCart) && styles.purchaseButtonDisabled,
+            ]}
+          >
+            {addingToCart ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.purchaseButtonText}>
+                {addedToCart
+                  ? "Added to cart"
+                  : canPurchaseDeal
+                    ? "Add deal to cart"
+                    : "Deal no longer available"}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => router.push("/(Screens)/Cart")}
+            style={styles.viewCartButton}
+          >
+            <Text style={styles.viewCartButtonText}>View cart</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.notice}>
           <Ionicons
             name="information-circle-outline"
@@ -236,8 +386,8 @@ const DealDetails = () => {
             color="#92400E"
           />
           <Text style={styles.noticeText}>
-            Deal purchases are not available in the app yet. You can review the
-            current offer here.
+            The deal price is verified again when you place your order. If the
+            offer ends first, checkout will ask you to refresh your deals.
           </Text>
         </View>
       </View>
@@ -371,6 +521,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  purchaseActions: {
+    marginTop: 18,
+    rowGap: 9,
+  },
+  purchaseButton: {
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: "#16A34A",
+  },
+  purchaseButtonDisabled: {
+    backgroundColor: "#9CA3AF",
+  },
+  purchaseButtonText: {
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Bold",
+    fontSize: 15,
+  },
+  viewCartButton: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: "#F0FDF4",
+  },
+  viewCartButtonText: {
+    color: "#14532D",
+    fontSize: 14,
+    fontWeight: "700",
+  },
   countdownCard: {
     minHeight: 68,
     marginTop: 14,
@@ -413,6 +594,44 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontSize: 14,
     lineHeight: 22,
+  },
+  variantGroup: {
+    marginTop: 20,
+  },
+  variantTitle: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "700",
+    textTransform: "capitalize",
+    marginBottom: 10,
+  },
+  variantOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  variantOption: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F9FAFB",
+  },
+  variantOptionSelected: {
+    borderColor: "#16A34A",
+    backgroundColor: "#F0FDF4",
+  },
+  variantOptionText: {
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  variantOptionTextSelected: {
+    color: "#14532D",
   },
   notice: {
     marginTop: 18,

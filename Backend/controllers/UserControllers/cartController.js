@@ -10,12 +10,88 @@ const { env } = require("../../src/env");
 const {
   checkStockAvailability,
 } = require("../AdminControllers/stockController");
-const { getProductPrice } = require("../../utils/serverPricing");
+const {
+  getProductPrice,
+  getDealPrice,
+} = require("../../utils/serverPricing");
+const { getDealFailure } = require("../../utils/dealPricingRules");
 const {
   enrichProductsWithCurrency,
   validateCurrencyCode,
 } = require("../../utils/currencyConverter");
 const { getAllRates } = require("../../services/exchangeRateService");
+
+const DEAL_ID_KEY = "__nileFlowDealId";
+
+const parseVariantSelection = (value) => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const getStoredDealId = (variantSelection) =>
+  parseVariantSelection(variantSelection)[DEAL_ID_KEY] || null;
+
+const getClientVariantSelection = (variantSelection) => {
+  const selection = { ...parseVariantSelection(variantSelection) };
+  delete selection[DEAL_ID_KEY];
+  return JSON.stringify(selection);
+};
+
+const serializeVariantSelection = (variantSelection, dealId) => {
+  const selection =
+    variantSelection &&
+    typeof variantSelection === "object" &&
+    !Array.isArray(variantSelection)
+      ? { ...variantSelection }
+      : {};
+  delete selection[DEAL_ID_KEY];
+  return JSON.stringify({
+    ...selection,
+    ...(dealId ? { [DEAL_ID_KEY]: dealId } : {}),
+  });
+};
+
+const enrichCartItem = async (item, req) => {
+  const targetCurrency = validateCurrencyCode(req.currency) || "KES";
+  const rates = await getAllRates();
+  const rate = rates[targetCurrency] ?? 1;
+  return enrichProductsWithCurrency([item], targetCurrency, rate)[0];
+};
+
+const hydrateDealPrices = (items, userId) =>
+  Promise.all(
+    items.map(async (item) => {
+      const dealId = getStoredDealId(item.variantSelection);
+      const baseItem = {
+        ...item,
+        dealId,
+        variantSelection: getClientVariantSelection(item.variantSelection),
+      };
+      if (!dealId) return baseItem;
+
+      const deal = await getDealPrice(dealId, item.productId, userId);
+      if (!deal.valid) {
+        return { ...baseItem, dealUnavailable: true };
+      }
+      return {
+        ...baseItem,
+        price: deal.price,
+        dealPrice: deal.price,
+        originalPrice: deal.originalPrice,
+        dealUnavailable: false,
+      };
+    }),
+  );
 
 const validateCartStock = async (req, res) => {
   try {
@@ -47,21 +123,58 @@ const addToCart = async (req, res) => {
   try {
     // Use authenticated userId from middleware, not from request body
     const userId = req.user?.userId || req.body.userId;
-    const { productId, productName, image, userName, variantSelection } = req.body;
+    const {
+      productId,
+      productName,
+      image,
+      userName,
+      variantSelection,
+      dealId: requestedDealId,
+    } = req.body;
+    const dealId = requestedDealId ? String(requestedDealId) : null;
 
     if (!userId || !productId) {
       return res.status(400).json({ error: "Missing userId or productId" });
     }
+    if (
+      requestedDealId != null &&
+      (typeof requestedDealId !== "string" || !requestedDealId.trim())
+    ) {
+      return res.status(400).json({ error: "Invalid dealId" });
+    }
+    if (req.user?.userId && req.user.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to update this cart" });
+    }
 
     // ZERO TRUST: Fetch authoritative price from product DB, never trust client
     const productData = await getProductPrice(productId);
-    if (!productData) {
+    if (!productData || !Number.isFinite(productData.price)) {
       return res.status(404).json({ error: "Product not found" });
     }
-    const trustedPrice = productData.price;
+    let trustedPrice = productData.price;
+    let trustedProductName = productData.productName || productName;
+
+    if (dealId) {
+      const deal = await getDealPrice(dealId, productId, userId);
+      if (!deal.valid) {
+        const failure = getDealFailure(deal.reason);
+        const status = failure.code === "PREMIUM_REQUIRED" ? 403 : 409;
+        return res.status(status).json({
+          success: false,
+          error: failure.message,
+          code: failure.code,
+        });
+      }
+      trustedPrice = deal.price;
+      trustedProductName = deal.productName || trustedProductName;
+    }
 
     const normalizedVariantSelection = variantSelection || {};
     const variantKey = JSON.stringify(normalizedVariantSelection);
+    const storedVariantKey = serializeVariantSelection(
+      normalizedVariantSelection,
+      dealId,
+    );
 
     // A product can have multiple cart lines when the selected variants differ.
     const existing = await instrumentedDb.listDocuments(
@@ -74,15 +187,28 @@ const addToCart = async (req, res) => {
     );
 
     const existingVariant = existing.documents.find((document) => {
-      const storedVariant = document.variantSelection || "{}";
-      return storedVariant === variantKey;
+      return (
+        getClientVariantSelection(document.variantSelection) === variantKey &&
+        getStoredDealId(document.variantSelection) === dealId
+      );
     });
 
     if (existingVariant) {
+      const item = await enrichCartItem(
+        {
+          ...existingVariant,
+          dealId,
+          price: trustedPrice,
+          variantSelection: getClientVariantSelection(
+            existingVariant.variantSelection,
+          ),
+        },
+        req,
+      );
       return res.status(200).json({
         success: true,
         message: "Already in cart",
-        item: existingVariant,
+        item,
       });
     }
 
@@ -94,20 +220,28 @@ const addToCart = async (req, res) => {
         userId,
         productId,
         userName,
-        productName: productData.productName || productName,
+        productName: trustedProductName,
         productImage: image ? encodeURI(image.trim()) : null,
-        price: Math.round(Number(trustedPrice)),
+        price: Number(trustedPrice),
         quantity: 1,
-        variantSelection: variantKey,
+        variantSelection: storedVariantKey,
         createdAt: new Date().toISOString(),
       },
     );
 
+    const item = await enrichCartItem(
+      {
+        ...newItem,
+        dealId,
+        variantSelection: variantKey,
+      },
+      req,
+    );
     res.status(201).json({
       success: true,
       item: {
-        $id: newItem.$id, // ✅ ensure frontend always gets document id
-        ...newItem,
+        ...item,
+        $id: newItem.$id,
       },
     });
   } catch (err) {
@@ -135,8 +269,9 @@ const fetchCart = async (req, res) => {
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
     const rates = await getAllRates();
     const rate = rates[targetCurrency] ?? 1;
+    const cartItems = await hydrateDealPrices(response.documents, userId);
     const enriched = enrichProductsWithCurrency(
-      response.documents,
+      cartItems,
       targetCurrency,
       rate,
     );
@@ -257,17 +392,22 @@ const loadCart = async (req, res) => {
     );
 
     // Map into frontend-ready format
-    const cartItems = response.documents.map((doc) => ({
+    const hydratedItems = await hydrateDealPrices(response.documents, userId);
+    const cartItems = hydratedItems.map((doc) => ({
       id: doc.$id,
       userId: doc.userId,
       productId: String(doc.productId),
       productName: doc.productName,
       productImage: doc.productImage,
-      variantSelection: doc.variantSelection || "",
+      variantSelection: getClientVariantSelection(doc.variantSelection),
+      dealId: getStoredDealId(doc.variantSelection),
       date: new Date(doc.createdAt).toDateString(),
       quantity: doc.quantity,
       name: doc.name,
       price: doc.price ?? 0,
+      dealPrice: doc.dealPrice,
+      originalPrice: doc.originalPrice,
+      dealUnavailable: doc.dealUnavailable,
     }));
 
     const targetCurrency = validateCurrencyCode(req.currency) || "KES";
