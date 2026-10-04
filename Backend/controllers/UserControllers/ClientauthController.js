@@ -23,6 +23,10 @@ const {
 const { isCustomerEmailVerified } = require("../../utils/customerAuthPolicy");
 const { maskEmailAddress } = require("../../utils/maskEmailAddress");
 const {
+  getCookieDomain,
+  setCustomerSessionCookies,
+} = require("../../utils/customerSessionCookies");
+const {
   addNileMilesOnReferral,
 } = require("../../controllers/AdminControllers/rewardController");
 const {
@@ -57,106 +61,6 @@ const log = {
   warn: (...args) => console.warn("[customer-auth]", ...args),
   error: (...args) => console.error("[customer-auth]", ...args),
 };
-
-/**
- * Get appropriate cookie domain based on request origin
- */
-function getCookieDomain(req) {
-  const origin = req.get("origin") || req.get("referer");
-  const host = req.headers.host;
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
-
-  console.log("[Cookie Domain Debug]", {
-    origin,
-    host,
-    protocol,
-    isSecure: protocol === "https",
-  });
-
-  // Check if backend and frontend are on different domains (cross-origin)
-  const isCrossOrigin =
-    origin &&
-    host &&
-    !origin.includes(host) &&
-    !host.includes(origin.replace("https://", "").replace("http://", ""));
-
-  if (isCrossOrigin) {
-    console.log("[Cookie] Cross-origin detected - no domain restriction");
-    return {
-      domain: undefined, // No domain restriction for cross-origin
-      secure: protocol === "https",
-      sameSite: "none", // Required for cross-origin cookies
-    };
-  }
-
-  function setCustomerSessionCookies(req, res, accessToken, refreshToken) {
-    const cookieConfig = getCookieDomain(req);
-    const cookieOptions = {
-      httpOnly: true,
-      secure: cookieConfig.secure,
-      sameSite: cookieConfig.sameSite,
-      path: "/",
-    };
-
-    if (cookieConfig.domain) {
-      cookieOptions.domain = cookieConfig.domain;
-    }
-
-    res.cookie("accessToken", accessToken, {
-      ...cookieOptions,
-      maxAge: 15 * 60 * 1000,
-    });
-    res.cookie("refreshToken", refreshToken, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-  }
-
-  // Development - no domain restriction
-  if (
-    !origin ||
-    origin.includes("localhost") ||
-    origin.includes("127.0.0.1") ||
-    (host && host.includes("localhost"))
-  ) {
-    console.log("[Cookie] Using localhost - no domain restriction");
-    return { domain: undefined, secure: false, sameSite: "lax" };
-  }
-
-  // Same-origin production domains
-  if (
-    (origin && origin.includes("nileflowafrica.com")) ||
-    (host && host.includes("nileflowafrica.com"))
-  ) {
-    console.log("[Cookie] Using nileflowafrica.com domain (same-origin)");
-    return {
-      domain: ".nileflowafrica.com",
-      secure: protocol === "https",
-      sameSite: "lax",
-    };
-  }
-
-  // nileflow.co.ke domain
-  if (
-    (origin && origin.includes("nileflow.co.ke")) ||
-    (host && host.includes("nileflow.co.ke"))
-  ) {
-    console.log("[Cookie] Using nileflow.co.ke domain (same-origin)");
-    return {
-      domain: ".nileflow.co.ke",
-      secure: protocol === "https",
-      sameSite: "lax",
-    };
-  }
-
-  // Default - no domain restriction
-  console.log("[Cookie] Using default - no domain restriction");
-  return {
-    domain: undefined,
-    secure: protocol === "https",
-    sameSite: "lax",
-  };
-}
 
 /**
  * Persist refresh token (store hashed token only) into Appwrite refresh_tokens collection.

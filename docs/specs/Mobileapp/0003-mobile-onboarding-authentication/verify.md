@@ -36,7 +36,7 @@ _Steps derived from spec 0003 acceptance criteria. `/check verify` runs these; `
 
 ## Commands
 
-- [ ] From `Backend`, run `node --test tests/customerAuthPolicy.test.js tests/oauthHandoffStore.test.js tests/maskEmailAddress.test.js`. Expect the verification policy, Redis handoff, and email masking tests to pass. AC-9, AC-13, AC-14.
+- [ ] From `Backend`, run `node --test tests/customerAuthPolicy.test.js tests/oauthHandoffStore.test.js tests/maskEmailAddress.test.js tests/customerSessionCookies.test.js`. Expect the verification policy, Redis handoff, email masking, and session cookie tests to pass. AC-9, AC-13, AC-14.
 - [ ] From `Mobileapp`, run `npx eslint Context/GlobalProvider.js api.js 'app/(auth)/sign-in.jsx' 'app/(auth)/sign-up.jsx' 'app/(auth)/oauth-verification.jsx' 'app/(auth)/pickup-address.jsx' app/_layout.jsx app/index.jsx constants/images.js constants/theme/colors.js constants/theme/index.js constants/theme/metrics.js`, then run `npx expo export --platform android`. Expect no lint errors and a successful Android bundle. The existing axios import warning may remain. AC-1 to AC-15, AC-19.
 - [ ] From `Website2`, run `npx eslint src/auth/authService.js src/auth/oauthBridge.js src/features/auth/pages/LoginPage.jsx src/features/auth/pages/OAuthCallbackPage.jsx src/features/auth/pages/SignupPage.jsx src/features/auth/pages/VerifyEmailPage.jsx`, then run `npm run build`. Expect no lint errors and a successful production build. AC-16.
 - [ ] In an approved test environment, confirm the Appwrite provider identity attributes and unique indexes exist, and confirm production OAuth uses a ready shared Redis service before enabling app handoffs. Do not run the schema setup against production without environment approval. AC-14, AC-15.
