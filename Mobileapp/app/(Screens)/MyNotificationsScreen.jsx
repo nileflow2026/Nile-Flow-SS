@@ -3,7 +3,6 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -23,52 +22,54 @@ import {
   applyMuteSetting,
   MUTE_SOUND_KEY,
 } from "../../hooks/usePushNotifications";
-import { min } from "moment";
 
 const NotificationsSkeleton = () => (
-  <SafeAreaView style={{ flex: 1,  backgroundColor: "#FFFFFF" }}>
+  <SafeAreaView
+    edges={["top"]}
+    style={{ flex: 1, backgroundColor: "#FFFFFF" }}
+  >
     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       {/* Controls bar skeleton */}
       <View
         style={{
-          marginHorizontal: 16,
-          marginVertical: 16,
-          padding: 24,
-          borderRadius: 24,
+          marginHorizontal: 12,
+          marginVertical: 12,
+          padding: 12,
+          borderRadius: 14,
           borderWidth: 1,
           borderColor: "#E5E7EB",
           backgroundColor: "#F9FAFB",
         }}
       >
         {/* Filter buttons row */}
-        <View style={{ flexDirection: "row", gap: 12, marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           {[90, 80, 100].map((w, i) => (
             <View
               key={i}
               style={{
                 width: w,
-                height: 42,
-                borderRadius: 12,
+                height: 32,
+                borderRadius: 8,
                 backgroundColor: "#E5E7EB",
               }}
             />
           ))}
         </View>
         {/* Action buttons row */}
-        <View style={{ flexDirection: "row", gap: 16 }}>
+        <View style={{ flexDirection: "row", gap: 8 }}>
           <View
             style={{
               flex: 1,
-              height: 44,
-              borderRadius: 12,
+              height: 38,
+              borderRadius: 9,
               backgroundColor: "#E5E7EB",
             }}
           />
           <View
             style={{
               flex: 1,
-              height: 44,
-              borderRadius: 12,
+              height: 38,
+              borderRadius: 9,
               backgroundColor: "#E5E7EB",
             }}
           />
@@ -76,26 +77,26 @@ const NotificationsSkeleton = () => (
       </View>
 
       {/* Notification card skeletons — 3 items */}
-      <View style={{ paddingHorizontal: 16, gap: 16 }}>
+      <View style={{ paddingHorizontal: 12, gap: 10 }}>
         {[0, 1, 2].map((idx) => (
           <View
             key={idx}
             style={{
-              borderRadius: 16,
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: "#E5E7EB",
               backgroundColor: "#FFFFFF",
-              padding: 16,
+              padding: 10,
               flexDirection: "row",
-              gap: 16,
+              gap: 10,
             }}
           >
             {/* Icon placeholder */}
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
+                width: 36,
+                height: 36,
+                borderRadius: 9,
                 backgroundColor: "#E5E7EB",
               }}
             />
@@ -106,21 +107,21 @@ const NotificationsSkeleton = () => (
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
                 <View
                   style={{
                     width: "55%",
-                    height: 15,
+                    height: 13,
                     borderRadius: 4,
                     backgroundColor: "#E5E7EB",
                   }}
                 />
                 <View
                   style={{
-                    width: 80,
-                    height: 12,
+                    width: 72,
+                    height: 10,
                     borderRadius: 4,
                     backgroundColor: "#E5E7EB",
                   }}
@@ -130,27 +131,27 @@ const NotificationsSkeleton = () => (
               <View
                 style={{
                   width: "75%",
-                  height: 13,
+                  height: 10,
                   borderRadius: 4,
                   backgroundColor: "#E5E7EB",
-                  marginBottom: 10,
+                  marginBottom: 8,
                 }}
               />
               {/* Action buttons row */}
-              <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <View
                   style={{
                     width: 100,
-                    height: 30,
-                    borderRadius: 8,
+                    height: 24,
+                    borderRadius: 7,
                     backgroundColor: "#E5E7EB",
                   }}
                 />
                 <View
                   style={{
                     width: 70,
-                    height: 30,
-                    borderRadius: 8,
+                    height: 24,
+                    borderRadius: 7,
                     backgroundColor: "#E5E7EB",
                   }}
                 />
@@ -164,8 +165,8 @@ const NotificationsSkeleton = () => (
                 borderRadius: 5,
                 backgroundColor: "#E5E7EB",
                 position: "absolute",
-                top: 16,
-                right: 16,
+                top: 12,
+                right: 12,
               }}
             />
           </View>
@@ -358,15 +359,6 @@ export default function MyNotificationsScreen() {
     return "notifications";
   };
 
-  const getNotificationColor = (type, priority) => {
-    if (priority === "high") return ["#dc2626", "#991b1b"];
-    if (type === "order" || type === "userNotification")
-      return ["#d97706", "#92400e"];
-    if (type === "promotion") return ["#ca8a04", "#a16207"];
-    if (type === "message") return ["#2563eb", "#1d4ed8"];
-    return ["#059669", "#047857"];
-  };
-
   // ── Show skeleton while initial data is loading ──
   if (loading) {
     return <NotificationsSkeleton />;
@@ -377,9 +369,10 @@ export default function MyNotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, ]}>
+    <SafeAreaView edges={["top"]} style={styles.container}>
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Controls Bar */}
@@ -411,7 +404,7 @@ export default function MyNotificationsScreen() {
             >
               <MaterialIcons
                 name="visibility"
-                size={16}
+                size={14}
                 color={filter === "unread" ? "#ffffff" : "#6B7280"}
                 style={styles.filterIcon}
               />
@@ -434,7 +427,7 @@ export default function MyNotificationsScreen() {
             >
               <MaterialIcons
                 name="stars"
-                size={16}
+                size={14}
                 color={filter === "important" ? "#ffffff" : "#6B7280"}
                 style={styles.filterIcon}
               />
@@ -454,7 +447,7 @@ export default function MyNotificationsScreen() {
               onPress={() => setShowSettings(!showSettings)}
               style={styles.settingsButton}
             >
-              <MaterialIcons name="settings" size={20} color="#16A34A" />
+              <MaterialIcons name="settings" size={18} color="#16A34A" />
               <Text style={styles.settingsButtonText}>Settings</Text>
             </TouchableOpacity>
 
@@ -462,7 +455,7 @@ export default function MyNotificationsScreen() {
               onPress={handleMarkAllAsRead}
               style={styles.markAllButton}
             >
-              <MaterialIcons name="done-all" size={20} color="#ffffff" />
+              <MaterialIcons name="done-all" size={18} color="#ffffff" />
               <Text style={styles.markAllButtonText}>Mark All Read</Text>
             </TouchableOpacity>
           </View>
@@ -485,7 +478,7 @@ export default function MyNotificationsScreen() {
                     >
                       <MaterialIcons
                         name={muteSound ? "volume-off" : "volume-up"}
-                        size={20}
+                        size={18}
                         color={muteSound ? "#ef4444" : "#10b981"}
                       />
                     </TouchableOpacity>
@@ -543,7 +536,7 @@ export default function MyNotificationsScreen() {
                           notification.type,
                           notification.priority,
                         )}
-                        size={24}
+                        size={20}
                         color={notification.read ? "#6B7280" : "#ffffff"}
                       />
                     </View>
@@ -564,7 +557,7 @@ export default function MyNotificationsScreen() {
                         <View style={styles.messageTimestamp}>
                           <MaterialIcons
                             name="access-time"
-                            size={12}
+                            size={11}
                             color="#9ca3af"
                           />
                           <Text style={styles.timestampText}>
@@ -600,7 +593,7 @@ export default function MyNotificationsScreen() {
                           >
                             <MaterialIcons
                               name="done"
-                              size={16}
+                              size={14}
                               color="#ffffff"
                             />
                             <Text style={styles.markReadButtonText}>
@@ -617,7 +610,7 @@ export default function MyNotificationsScreen() {
                         >
                           <MaterialIcons
                             name="delete"
-                            size={16}
+                            size={14}
                             color="#fca5a5"
                           />
                           <Text style={styles.deleteButtonText}>Delete</Text>
@@ -642,7 +635,7 @@ export default function MyNotificationsScreen() {
                 <View style={styles.emptyIcon}>
                   <MaterialIcons
                     name="notifications"
-                    size={48}
+                    size={32}
                     color="#16A34A"
                   />
                 </View>
@@ -721,16 +714,18 @@ export default function MyNotificationsScreen() {
 const styles = {
   container: {
     flex: 1,
-    marginBottom: 50,
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 16,
+  },
   controlsBar: {
-    marginHorizontal: 16,
-    marginVertical: 16,
-    padding: 24,
-    borderRadius: 24,
+    marginHorizontal: 12,
+    marginVertical: 10,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#F9FAFB",
@@ -738,13 +733,14 @@ const styles = {
   filterButtons: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 24,
+    gap: 7,
+    marginBottom: 12,
   },
   filterButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    minHeight: 38,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#FFFFFF",
@@ -764,11 +760,11 @@ const styles = {
     borderColor: "#DC2626",
   },
   filterIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   filterButtonText: {
     color: "#374151",
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: "Poppins-Medium",
   },
   activeFilterButtonText: {
@@ -778,50 +774,54 @@ const styles = {
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 16,
+    gap: 8,
   },
   settingsButton: {
     flex: 1,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#F0FDF4",
-    borderRadius: 12,
+    borderRadius: 9,
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
   settingsButtonText: {
     color: "#16A34A",
     fontFamily: "Poppins-SemiBold",
-    marginLeft: 8,
+    marginLeft: 6,
+    fontSize: 12,
   },
   markAllButton: {
     flex: 1,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 8,
     backgroundColor: "#16A34A",
-    borderRadius: 12,
+    borderRadius: 9,
   },
   markAllButtonText: {
     color: "#ffffff",
     fontFamily: "Poppins-Bold",
-    marginLeft: 8,
+    marginLeft: 6,
+    fontSize: 12,
   },
   settingsPanel: {
-    marginTop: 24,
-    paddingTop: 24,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },
   settingsGrid: {
-    gap: 16,
+    gap: 10,
   },
   settingCard: {
-    padding: 16,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#FFFFFF",
@@ -830,16 +830,16 @@ const styles = {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 10,
   },
   settingTitle: {
     color: "#14532D",
     fontFamily: "Poppins-Bold",
-    fontSize: 16,
+    fontSize: 14,
   },
   soundToggle: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -852,7 +852,7 @@ const styles = {
   },
   settingDescription: {
     color: "#374151",
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
   },
   clearButton: {
@@ -860,24 +860,24 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     backgroundColor: "#FEF2F2",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#FECACA",
-    marginTop: 12,
+    marginTop: 8,
   },
   clearButtonText: {
     color: "#DC2626",
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 6,
+    fontSize: 12,
     fontFamily: "Poppins-Regular",
   },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 128,
+    paddingVertical: 64,
   },
   loadingSpinner: {
     position: "relative",
@@ -888,7 +888,7 @@ const styles = {
     position: "absolute",
   },
   loadingTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: "#14532D",
     marginTop: 32,
@@ -899,13 +899,13 @@ const styles = {
     fontFamily: "Poppins-Regular",
   },
   notificationsContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   notificationsList: {
-    gap: 16,
+    gap: 10,
   },
   notificationCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -917,14 +917,14 @@ const styles = {
   },
   notificationContent: {
     flexDirection: "row",
-    padding: 16,
-    gap: 16,
+    padding: 10,
+    gap: 8,
     position: "relative",
   },
   notificationIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-start",
@@ -944,10 +944,10 @@ const styles = {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: "Poppins-Bold",
     flex: 1,
     marginRight: 8,
@@ -965,25 +965,25 @@ const styles = {
   },
   timestampText: {
     color: "#6B7280",
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Poppins-Regular",
   },
   messageDescription: {
     color: "#6B7280",
-    fontSize: 13,
-    marginBottom: 10,
-    lineHeight: 20,
+    fontSize: 12,
+    marginBottom: 8,
+    lineHeight: 17,
     fontFamily: "Poppins-Regular",
   },
   newBadge: {
     backgroundColor: "#DCFCE7",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: "#BBF7D0",
     alignSelf: "flex-start",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   newBadgeText: {
     color: "#16A34A",
@@ -992,27 +992,29 @@ const styles = {
   },
   notificationActions: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   markReadButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    minHeight: 38,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     backgroundColor: "#16A34A",
     borderRadius: 8,
   },
   markReadButtonText: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: "Poppins-SemiBold",
     marginLeft: 6,
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    minHeight: 38,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     backgroundColor: "#FEF2F2",
     borderRadius: 8,
     borderWidth: 1,
@@ -1020,17 +1022,17 @@ const styles = {
   },
   deleteButtonText: {
     color: "#DC2626",
-    fontSize: 13,
+    fontSize: 11,
     marginLeft: 6,
     fontFamily: "Poppins-Regular",
   },
   statusIndicator: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   readStatusIndicator: {
     backgroundColor: "#D1D5DB",
@@ -1040,40 +1042,41 @@ const styles = {
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 80,
+    paddingVertical: 48,
   },
   emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: "#BBF7D0",
     backgroundColor: "#F0FDF4",
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: "#111827",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   emptyDescription: {
     color: "#6B7280",
     textAlign: "center",
     maxWidth: 320,
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 16,
+    lineHeight: 19,
     fontFamily: "Poppins-Regular",
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    minHeight: 40,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     backgroundColor: "#16A34A",
-    borderRadius: 12,
+    borderRadius: 10,
   },
   viewAllButtonText: {
     color: "#ffffff",
@@ -1088,8 +1091,8 @@ const styles = {
   modalContent: {
     width: "90%",
     maxWidth: 400,
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#FFFFFF",
@@ -1098,23 +1101,23 @@ const styles = {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Poppins-Bold",
     color: "#14532D",
   },
   modalCloseButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F3F4F6",
   },
   modalBody: {
-    gap: 20,
+    gap: 14,
   },
   modalSettingItem: {
     flexDirection: "row",
@@ -1127,9 +1130,9 @@ const styles = {
   },
   modalSettingTitle: {
     color: "#111827",
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Poppins-SemiBold",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   modalSettingDescription: {
     color: "#6B7280",
@@ -1137,8 +1140,8 @@ const styles = {
     fontFamily: "Poppins-Regular",
   },
   modalToggle: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",

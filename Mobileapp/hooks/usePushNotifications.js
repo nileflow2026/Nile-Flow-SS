@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import axiosClient from "@/api";
 
-const NOTIFICATION_SOUND_MUTED_KEY = "notificationSoundMuted";
+export const MUTE_SOUND_KEY = "notificationSoundMuted";
 const isExpoGo = Constants.appOwnership === "expo";
 const isSupportedPlatform = Platform.OS !== "web" && !isExpoGo;
 
@@ -20,8 +20,7 @@ if (isSupportedPlatform) {
         let isMuted = false;
         try {
           isMuted =
-            (await AsyncStorage.getItem(NOTIFICATION_SOUND_MUTED_KEY)) ===
-            "true";
+            (await AsyncStorage.getItem(MUTE_SOUND_KEY)) === "true";
         } catch (error) {
           console.warn(
             "[Push] Could not read notification sound preference:",
@@ -77,7 +76,7 @@ const configureNotificationChannels = async (isMuted) => {
 
 export const applyMuteSetting = async (isMuted) => {
   await AsyncStorage.setItem(
-    NOTIFICATION_SOUND_MUTED_KEY,
+    MUTE_SOUND_KEY,
     isMuted ? "true" : "false",
   );
   await configureNotificationChannels(isMuted);
@@ -129,8 +128,7 @@ export const usePushNotifications = (
       isRegistering = true;
       try {
         const isMuted =
-          (await AsyncStorage.getItem(NOTIFICATION_SOUND_MUTED_KEY)) ===
-          "true";
+          (await AsyncStorage.getItem(MUTE_SOUND_KEY)) === "true";
         await configureNotificationChannels(isMuted);
 
         const permission = await Notifications.getPermissionsAsync();

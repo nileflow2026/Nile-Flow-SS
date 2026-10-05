@@ -1,6 +1,9 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
 import { Gift, RefreshCw, Target, Users } from "lucide-react-native";
 import { useState } from "react";
+import { Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -9,8 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+const { width } = Dimensions.get("window");
 
-const API_BASE = "http://localhost:5000/api/gamification";
+const API_BASE = "https://nile-flow-backend-5dqm.onrender.com/api/gamification";
 // ⚠️ Change to your server’s URL (e.g., https://nilemart-backend.com/api/gamification)
 
 export default function GamificationHub({ userId = "123" }) {
@@ -69,9 +73,18 @@ export default function GamificationHub({ userId = "123" }) {
 
   return (
     <ScrollView className="flex-1 p-4 bg-nile-white">
-      <Text className="text-2xl font-pbold mb-4 text-nile-green-900">
-        🎮 Gamification Hub
-      </Text>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#16A34A" />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}> 🎮 Gamification Hub</Text>
+          
+        </View>
+      </View>
 
       {loading && <ActivityIndicator size="large" color="#16A34A" />}
 
@@ -172,3 +185,35 @@ export default function GamificationHub({ userId = "123" }) {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: width < 350 ? 18 : 20,
+    fontFamily: "Poppins-Bold",
+    color: "#14532D",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+    fontFamily: "Poppins-Regular",
+  },
+})

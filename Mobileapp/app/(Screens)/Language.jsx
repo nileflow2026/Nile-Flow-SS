@@ -175,7 +175,7 @@ const Language = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
+        <TouchableOpacity 
           onPress={() => router.back()}
           style={styles.backButton}
         >

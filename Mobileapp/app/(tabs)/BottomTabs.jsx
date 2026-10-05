@@ -183,14 +183,10 @@ const BottomTabs = () => {
     return (
       <View
         style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
           height: totalTabBarHeight,
           paddingTop: 4,
           paddingBottom: bottomInset,
-          backgroundColor: "transparent",
+          backgroundColor: "#FFFFFF",
         }}
       >
         <BlurView
@@ -245,27 +241,8 @@ const BottomTabs = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View style={{ flex: 1, paddingBottom: totalTabBarHeight }}>
-        {/* Render only the active tab — prevents layout collapse from absolute positioning */}
-        {TABS.map((tab, index) => {
-          const TabComponent = tab.Component;
-          if (index === 0) {
-            console.log(
-              `🔄 BottomTabs: Tab 0 (Home) - isFocused=${isFocused}, activeTab=${activeTab}`,
-            );
-          }
-          return (
-            <View
-              key={tab.id}
-              style={{
-                flex: 1,
-                display: activeTab === index ? "flex" : "none",
-              }}
-            >
-              {activeTab === index && isFocused && <TabComponent />}
-            </View>
-          );
-        })}
+      <View style={{ flex: 1 }}>
+        {isFocused && <ActiveComponent />}
       </View>
       {renderTabBar()}
     </View>

@@ -1,11 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-router.get(
-  "/checkout-attempt/:checkoutAttemptId",
-  authenticateToken,
-  getCheckoutAttempt,
-);
 const authenticateToken = require("../middleware/authMiddleware");
 const paymentSecurity = require("../middleware/paymentSecurity");
 const {
@@ -42,6 +37,12 @@ const pesapalController = require("../controllers/pesapalController");
 const {
   validateMpesaCallbackSource,
 } = require("../middleware/mpesaCallbackAuth");
+
+router.get(
+  "/checkout-attempt/:checkoutAttemptId",
+  authenticateToken,
+  getCheckoutAttempt,
+);
 
 // Apply premium benefits middleware to payment routes with security
 router.post(

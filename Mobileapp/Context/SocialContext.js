@@ -41,8 +41,8 @@ export const SocialProvider = ({ children }) => {
     try {
       // Try to fetch from backend first
       const res = await axiosClient.get("/api/nilemiles/nilemiles/status");
-      if (res.data && typeof res.data.totalMiles === "number") {
-        const backendMiles = res.data.totalMiles || 0;
+      const backendMiles = res.data?.currentMiles ?? res.data?.totalMiles;
+      if (typeof backendMiles === "number" && Number.isFinite(backendMiles)) {
         const level = calculateLevel(backendMiles);
         setNileMiles(backendMiles);
         setUserLevel(level);

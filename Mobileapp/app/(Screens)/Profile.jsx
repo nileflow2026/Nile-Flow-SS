@@ -75,7 +75,6 @@ const ProfilePage = () => {
     tier: "Bronze",
   });
   const [nileMilesLoading, setNileMilesLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
   const posthog = usePostHog();
 
@@ -352,23 +351,6 @@ const ProfilePage = () => {
         : "Nile Flow Hub, Nairobi, Kenya",
   };
 
-  const TabButton = ({ title, isActive, onPress, icon: Icon }) => (
-    <TouchableOpacity onPress={onPress} style={styles.tabContainer}>
-      <View
-        style={[
-          styles.tabButton,
-          isActive && styles.activeTab,
-          { backgroundColor: isActive ? "#16A34A" : "#F3F4F6" },
-        ]}
-      >
-        {Icon && <Icon size={16} color={isActive ? "white" : "#6B7280"} />}
-        <Text style={[styles.tabText, isActive && styles.activeTabText]}>
-          {title}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   const renderOverviewTab = () => (
     <View style={styles.tabContent}>
       {/* Nile Miles Card */}
@@ -476,7 +458,7 @@ const ProfilePage = () => {
             </View>
             <View>
               <Text style={styles.cardTitle}>Order History</Text>
-              <Text style={styles.cardSubtitle}>Recent premium orders</Text>
+              <Text style={styles.cardSubtitle}>Your latest purchases</Text>
             </View>
           </View>
           <Text style={styles.orderCount}>
@@ -1273,7 +1255,7 @@ const ProfilePage = () => {
         <View style={styles.quickActionsContainer}>
           <TouchableOpacity
             style={styles.quickActionItem}
-            onPress={() => setActiveTab("wishlist")}
+            onPress={() => router.push("/(Screens)/Favorites")}
           >
             <View style={styles.quickActionLeft}>
               <View
@@ -1284,6 +1266,21 @@ const ProfilePage = () => {
               <Text style={styles.quickActionText}>Wishlist</Text>
             </View>
             <ChevronRight size={20} color="#D97706" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionItem}
+            onPress={() => router.push("/(Screens)/OrdersScreen")}
+          >
+            <View style={styles.quickActionLeft}>
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: "#7C3AED" }]}
+              >
+                <Package size={20} color="white" />
+              </View>
+              <Text style={styles.quickActionText}>Order history</Text>
+            </View>
+            <ChevronRight size={20} color="#7C3AED" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1318,7 +1315,7 @@ const ProfilePage = () => {
 
           <TouchableOpacity
             style={styles.quickActionItem}
-            onPress={() => router.push("/AccountSettings")}
+            onPress={() => router.push("/(Screens)/Settings")}
           >
             <View style={styles.quickActionLeft}>
               <View
@@ -1326,7 +1323,7 @@ const ProfilePage = () => {
               >
                 <Settings size={20} color="white" />
               </View>
-              <Text style={styles.quickActionText}>Account Settings</Text>
+              <Text style={styles.quickActionText}>Settings</Text>
             </View>
             <ChevronRight size={20} color="#A855F7" />
           </TouchableOpacity>
@@ -1341,7 +1338,7 @@ const ProfilePage = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView edges={["top"]} style={styles.container}>
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -1351,6 +1348,16 @@ const ProfilePage = () => {
         >
           {/* Hero Section */}
           <View style={styles.heroSection}>
+            {isLogged && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Open profile settings"
+                onPress={() => router.push("/(Screens)/Settings")}
+                style={styles.heroSettingsButton}
+              >
+                <Settings size={20} color="#14532D" />
+              </TouchableOpacity>
+            )}
             <View style={styles.profileHeader}>
               <View style={styles.profileImageContainer}>
                 <View
@@ -1392,16 +1399,7 @@ const ProfilePage = () => {
               <View style={styles.profileInfo}>
                 <View style={styles.nameContainer}>
                   <Text style={styles.userName}>{demoUser.name}</Text>
-                  {isLogged ? (
-                    <View
-                      style={[
-                        styles.premiumBadge,
-                        { backgroundColor: "#16A34A" },
-                      ]}
-                    >
-                      <Text style={styles.premiumText}>PREMIUM</Text>
-                    </View>
-                  ) : (
+                  {!isLogged && (
                     <TouchableOpacity onPress={() => router.push("/sign-in")}>
                       <View
                         style={[
@@ -1445,100 +1443,9 @@ const ProfilePage = () => {
             </View>
           </View>
 
-          {/* Tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabsContainer}
-            contentContainerStyle={styles.tabsContent}
-          >
-            <TabButton
-              title="overview"
-              isActive={activeTab === "overview"}
-              onPress={() => setActiveTab("overview")}
-            />
-            <TabButton
-              title="orders"
-              isActive={activeTab === "orders"}
-              onPress={() => setActiveTab("orders")}
-            />
-            {/* <TabButton
-              title="miles"
-              isActive={activeTab === "miles"}
-              onPress={() => setActiveTab("miles")}
-            />
-            <TabButton
-              title="premium"
-              isActive={activeTab === "premium"}
-              onPress={() => setActiveTab("premium")}
-              icon={Crown}
-            /> */}
-            <TabButton
-              title="settings"
-              isActive={activeTab === "settings"}
-              onPress={() => setActiveTab("settings")}
-            />
-            <TabButton
-              title="wishlist"
-              isActive={activeTab === "wishlist"}
-              onPress={() => setActiveTab("wishlist")}
-            />
-          </ScrollView>
-
-          {/* Main Content */}
           <View style={styles.mainContent}>
-            {activeTab === "overview" ? (
-              // Show two-column layout for overview
-              <>
-                <View style={styles.leftColumn}>{renderOverviewTab()}</View>
-                {renderProfileInfo()}
-              </>
-            ) : (
-              // Show full-width layout for other tabs
-              <View style={styles.fullWidthColumn}>
-                {activeTab === "wishlist" && renderWishlistTab()}
-                {activeTab === "orders" && renderOrdersTab()}
-                {/* {activeTab === "miles" && renderMilesTab()} */}
-                {activeTab === "premium" &&
-                  (isPremium ? (
-                    <PremiumMonthlySummary />
-                  ) : (
-                    <View style={styles.card}>
-                      <View style={styles.cardHeader}>
-                        <View style={styles.cardHeaderLeft}>
-                          <View
-                            style={[
-                              styles.iconContainer,
-                              { backgroundColor: "#EAB308" },
-                            ]}
-                          >
-                            <Crown size={24} color="white" />
-                          </View>
-                          <View>
-                            <Text style={styles.cardTitle}>
-                              Premium Required
-                            </Text>
-                            <Text style={styles.cardSubtitle}>
-                              Upgrade to access premium features
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                      <Text
-                        style={{
-                          color: "#9CA3AF",
-                          textAlign: "center",
-                          marginTop: 16,
-                        }}
-                      >
-                        Subscribe to Premium to view your monthly savings
-                        summary and exclusive insights.
-                      </Text>
-                    </View>
-                  ))}
-                {activeTab === "settings" && renderSettingsTab()}
-              </View>
-            )}
+            <View style={styles.leftColumn}>{renderOverviewTab()}</View>
+            {renderProfileInfo()}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -1560,16 +1467,28 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   heroSection: {
-    paddingTop: 32,
-    paddingBottom: 48,
+    paddingTop: 16,
+    paddingBottom: 24,
     paddingHorizontal: 16,
     backgroundColor: "#F0FDF4",
+  },
+  heroSettingsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-end",
+    marginBottom: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
   profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
-    gap: 24,
+    marginBottom: 20,
+    gap: 16,
   },
   profileImageContainer: {
     position: "relative",
@@ -1581,22 +1500,22 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   profileImage: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     borderWidth: 4,
     borderColor: "#FFFFFF",
   },
   cameraButton: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
-    borderRadius: 20,
+    bottom: 4,
+    right: 4,
+    borderRadius: 16,
     overflow: "hidden",
   },
   cameraGradient: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1611,7 +1530,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#111827",
   },
@@ -1626,7 +1545,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   userEmail: {
-    fontSize: 18,
+    fontSize: 15,
     color: "#374151",
     marginBottom: 4,
   },
@@ -1636,58 +1555,26 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    gap: 16,
+    gap: 8,
   },
   statItem: {
     flex: 1,
-    padding: 16,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: "bold",
     color: "#D97706",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6B7280",
-  },
-  tabsContainer: {
-    marginBottom: 32,
-  },
-  tabsContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  tabContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  tabButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    gap: 8,
-  },
-  activeTab: {
-    borderColor: "#16A34A",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#9CA3AF",
-    textTransform: "capitalize",
-  },
-  activeTabText: {
-    color: "#FFFFFF",
   },
   mainContent: {
     paddingHorizontal: 16,
