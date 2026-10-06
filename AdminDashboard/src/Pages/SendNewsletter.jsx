@@ -288,9 +288,12 @@ export default function SendNewsletter({ setSection }) {
 
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">Message *</label>
-                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5}
-                    className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent resize-none"
-                    placeholder="Write your broadcast message here..." />
+                  <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10}
+                    className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent resize-y leading-7 tracking-normal"
+                    placeholder={"Hello there,\n\nWrite your message here. Use a blank line between paragraphs.\n\nBest,\nThe Nile Flow Team"} />
+                  <p className="mt-2 text-xs leading-relaxed text-[#8B4513]/70 dark:text-[#D4A017]/70">
+                    Use a blank line between paragraphs. Paragraphs and line breaks will be preserved in the email.
+                  </p>
                 </div>
 
                 <div className="mb-6">
@@ -422,7 +425,13 @@ export default function SendNewsletter({ setSection }) {
                     <div><div className="font-bold text-[#2C1810] dark:text-[#F5E6D3] text-sm">Nile Flow Africa</div><div className="text-xs text-gray-500">to all recipients</div></div>
                   </div>
                   <div className="text-base font-bold text-[#2C1810] dark:text-[#F5E6D3] mb-2">{subject}</div>
-                  {message && <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{message.length > 200 ? message.substring(0, 200) + "..." : message}</p>}
+                  {message && (
+                    <div className="max-h-80 space-y-3 overflow-y-auto break-words text-sm leading-6 text-gray-600 dark:text-gray-300">
+                      {message.split(/\r?\n\s*\r?\n/).map((paragraph, index) => paragraph.trim() && (
+                        <p key={index} className="whitespace-pre-wrap">{paragraph.trim()}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="mt-3 text-center text-xs text-[#8B4513]/70">Sending to ~{selectedAudienceCount.toLocaleString()} recipients</div>
               </div>

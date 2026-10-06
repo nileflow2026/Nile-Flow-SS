@@ -53,6 +53,46 @@ test("replaces newsletter template footers with the shared footer", () => {
   assert.match(html, /href="https:\/\/example\.com\/unsubscribe\?email=customer%40example\.com"/);
 });
 
+test("renders newsletter messages as escaped paragraphs with preserved line breaks", () => {
+  const emailTemplates = require("./nileFlowEmailTemplates");
+  const html = emailTemplates.newsletter({
+    subject: "Updates",
+    message: "First & <message>\ncontinued\n\nSecond paragraph.",
+    recipientName: "Customer",
+  });
+
+  assert.match(
+    html,
+    /<p class="paragraph">First &amp; &lt;message&gt;<br \/>continued<\/p>/,
+  );
+  assert.match(html, /<p class="paragraph">Second paragraph\.<\/p>/);
+  assert.doesNotMatch(html, /<message>/);
+});
+
+test("preserves paragraphs for every broadcast email template", () => {
+  const emailTemplates = require("./nileFlowEmailTemplates");
+  const templates = [
+    emailTemplates.newsletter,
+    emailTemplates.appUpdate,
+    emailTemplates.survey,
+    emailTemplates.promotion,
+    emailTemplates.generic,
+  ];
+
+  for (const render of templates) {
+    const html = render({
+      subject: "Updates",
+      message: "First paragraph.\n\nSecond paragraph.",
+      features: [],
+      surveyLink: "https://example.com/survey",
+      recipientName: "Customer",
+    });
+
+    assert.match(html, /<p class="paragraph">First paragraph\.<\/p>/);
+    assert.match(html, /<p class="paragraph">Second paragraph\.<\/p>/);
+  }
+});
+
 test("sends the normalized HTML through the shared sender", async () => {
   let sentOptions;
   const resend = {

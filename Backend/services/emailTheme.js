@@ -15,7 +15,7 @@ const EMAIL_THEME_CSS = `
 
 const EMAIL_FOOTER_HTML = `
   <footer style="background:#14532d;color:#d1fae5;padding:28px 24px;text-align:center;font-family:Arial,sans-serif;border-top:3px solid #d97706;">
-    <div style="font-size:18px;font-weight:800;letter-spacing:1px;color:#ffffff;">NILE FLOW</div>
+    <div style="font-size:18px;font-weight:800;letter-spacing:1px;color:#ffffff;">NILE FLOW AFRICA</div>
     <div style="margin-top:6px;font-size:12px;color:#bbf7d0;">Trusted African commerce</div>
     <div style="margin:18px 0 12px;">
       <a href="https://www.facebook.com/profile.php?id=61580711948973" style="color:#ffffff;text-decoration:none;margin:0 8px;">Facebook</a>
@@ -27,7 +27,7 @@ const EMAIL_FOOTER_HTML = `
     </div>
     <div style="font-size:12px;color:#d1fae5;">Nairobi, Kenya | <a href="mailto:support@nileflowafrica.com" style="color:#fef3c7;text-decoration:none;">support@nileflowafrica.com</a></div>
     <!-- EMAIL_UNSUBSCRIBE_LINK -->
-    <div style="margin-top:12px;font-size:11px;color:#a7f3d0;">© ${new Date().getFullYear()} Nile Flow. All rights reserved.</div>
+    <div style="margin-top:12px;font-size:11px;color:#a7f3d0;">© ${new Date().getFullYear()} Nile Flow AFRICA. All rights reserved.</div>
   </footer>
 `;
 

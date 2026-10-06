@@ -351,6 +351,22 @@ function shell({ bodyContent, subject = '' }) {
 
 // ── Template Builders ──────────────────────────────────────────────────────
 
+function formatMessage(message) {
+  return String(message ?? '')
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean)
+    .map(paragraph => `<p class="paragraph">${paragraph
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/\n/g, '<br />')}</p>`)
+    .join('\n');
+}
+
 /**
  * General Newsletter / Update
  */
@@ -358,7 +374,7 @@ function newsletter({ subject, message, ctaText, ctaLink, recipientName = 'there
   const body = `
     <div class="greeting">Hello ${recipientName} 👋</div>
 
-    <p class="paragraph">${message}</p>
+    ${formatMessage(message)}
 
     ${ctaText && ctaLink ? `
     <div style="text-align:center;margin:32px 0;">
@@ -390,7 +406,7 @@ function appUpdate({ subject, message, features, ctaText, ctaLink, recipientName
   const body = `
     <div class="greeting">Hello ${recipientName} 🚀</div>
 
-    <p class="paragraph">${message}</p>
+    ${formatMessage(message)}
 
     ${features && features.length ? `
     <div style="text-align:center;margin-bottom:16px;">
@@ -427,7 +443,7 @@ function survey({ subject, message, surveyLink, recipientName = 'there' }) {
   const body = `
     <div class="greeting">Hello ${recipientName} 💬</div>
 
-    <p class="paragraph">${message}</p>
+    ${formatMessage(message)}
 
     <div class="highlight-box" style="text-align:center;">
       <h3>📝 Your Feedback Matters</h3>
@@ -452,7 +468,7 @@ function promotion({ subject, message, bannerUrl, ctaText, ctaLink, recipientNam
   const body = `
     <div class="greeting">Hello ${recipientName} 🎉</div>
 
-    <p class="paragraph">${message}</p>
+    ${formatMessage(message)}
 
     ${bannerUrl ? `
     <div style="text-align:center;margin:24px 0;">
@@ -481,7 +497,7 @@ function generic({ subject, message, recipientName = 'there' }) {
   const body = `
     <div class="greeting">Hello ${recipientName}</div>
 
-    <p class="paragraph">${message}</p>
+    ${formatMessage(message)}
 
     <div class="divider"></div>
 

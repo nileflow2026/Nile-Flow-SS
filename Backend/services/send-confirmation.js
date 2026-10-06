@@ -1071,7 +1071,7 @@ const sendWelcomeEmail = async ({ customerEmail, customerName }) => {
                     
                     <!-- CTA Button -->
                     <div style="text-align: center;">
-                        <a href="https://nileflowafrica.com/shop" class="cta-button">
+                        <a href="https://www.nileflowafrica.com/shop" class="cta-button">
                             🛍️ Start Shopping Now
                         </a>
                     </div>
@@ -1105,10 +1105,10 @@ const sendWelcomeEmail = async ({ customerEmail, customerName }) => {
                 <!-- Footer -->
                 <div class="footer">
                     <div class="footer-links">
-                        <a href="https://nileflowafrica.com" class="footer-link">Visit Our Store</a>
-                        <a href="https://nileflowafrica.com/home" class="footer-link">Browse Categories</a>
-                        <a href="https://nileflowafrica.com/about-us" class="footer-link">Our Story</a>
-                        <a href="https://nileflowafrica.com/contact" class="footer-link">Contact Us</a>
+                        <a href="https://www.nileflowafrica.com" class="footer-link">Visit Our Store</a>
+                        <a href="https://www.nileflowafrica.com/home" class="footer-link">Browse Categories</a>
+                        <a href="https://www.nileflowafrica.com/about-us" class="footer-link">Our Story</a>
+                        <a href="https://www.nileflowafrica.com/contact" class="footer-link">Contact Us</a>
                     </div>
                     
                     <div class="copyright">
