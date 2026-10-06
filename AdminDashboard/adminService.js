@@ -391,6 +391,26 @@ export const sendBroadcast = async (broadcastData) => {
   }
 };
 
+export const uploadNewsletterBanner = async (imageFile) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  try {
+    const response = await axiosClient.post(
+      '/api/admin/newsletter/upload-banner',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    const imageUrl = response.data?.imageUrl;
+    if (!imageUrl) {
+      throw new Error('The uploaded banner did not return an image URL.');
+    }
+    return imageUrl;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const getBroadcastAudienceStats = async () => {
   try {
     const response = await axiosClient.get('/api/admin/newsletter/broadcast-stats');

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { sendBroadcast, getBroadcastAudienceStats, listSubscribers, removeSubscriber, exportSubscribersCSV } from "../../adminService";
+import { sendBroadcast, uploadNewsletterBanner, getBroadcastAudienceStats, listSubscribers, removeSubscriber, exportSubscribersCSV } from "../../adminService";
 import {
   Send, Mail, Users, TrendingUp, Target, Eye, FileText, BarChart,
   RefreshCw, CheckCircle, AlertCircle, Hash, ArrowRight, Sparkles,
@@ -43,6 +43,10 @@ export default function SendNewsletter({ setSection }) {
   const [showSubscribersModal, setShowSubscribersModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedBannerFile, setSelectedBannerFile] = useState(null);
+  const [localBannerPreview, setLocalBannerPreview] = useState("");
+  const [readingBanner, setReadingBanner] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [subscribers, setSubscribers] = useState([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [subsSearch, setSubsSearch] = useState("");
@@ -146,17 +150,62 @@ export default function SendNewsletter({ setSection }) {
     finally { setSubsLoading(false); }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error("File too large (max 2MB)"); return; }
+    e.target.value = "";
+    setSelectedBannerFile(null);
+    setLocalBannerPreview("");
+    if (!["image/png", "image/jpeg", "image/gif"].includes(file.type)) {
+      toast.error("Choose a PNG, JPG, or GIF image");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File too large (max 2MB)");
+      return;
+    }
+
     const reader = new FileReader();
+    setReadingBanner(true);
     reader.onload = (ev) => {
-      setBannerUrl(ev.target?.result);
-      setShowUploadModal(false);
-      toast.success("Image loaded (paste URL or upload)");
+      setReadingBanner(false);
+      if (typeof ev.target?.result !== "string") {
+        toast.error("Could not preview this image");
+        return;
+      }
+      setSelectedBannerFile(file);
+      setLocalBannerPreview(ev.target.result);
+    };
+    reader.onerror = () => {
+      setReadingBanner(false);
+      toast.error("Could not read this image");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSetBanner = async () => {
+    if (!selectedBannerFile) {
+      setShowUploadModal(false);
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const uploadedImageUrl = await uploadNewsletterBanner(selectedBannerFile);
+      setBannerUrl(uploadedImageUrl);
+      setSelectedBannerFile(null);
+      setLocalBannerPreview("");
+      setShowUploadModal(false);
+      toast.success("Banner image uploaded");
+    } catch (error) {
+      toast.error(
+        typeof error === "string"
+          ? error
+          : error.message || error.error || "Failed to upload banner image",
+      );
+    } finally {
+      setUploadingBanner(false);
+    }
   };
 
   const selectedAudienceCount = getTotalForAudience(targetAudience);
@@ -294,6 +343,9 @@ export default function SendNewsletter({ setSection }) {
                         <Image className="w-5 h-5" />
                       </button>
                     </div>
+                    {bannerUrl && (
+                      <img src={bannerUrl} alt="Selected promotion banner" className="w-full max-h-40 rounded-xl object-cover border border-[#E8D6B5] dark:border-[#3A3A3A]" />
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">CTA Text</label>
@@ -528,23 +580,30 @@ export default function SendNewsletter({ setSection }) {
               <button onClick={() => setShowUploadModal(false)} className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A]"><X className="w-5 h-5 text-[#8B4513] dark:text-[#D4A017]" /></button>
             </div>
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-[#E8D6B5] dark:border-[#3A3A3A] rounded-xl p-8 text-center hover:bg-[#E8D6B5]/10 dark:hover:bg-[#3A3A3A]/50 transition-colors cursor-pointer" onClick={() => document.getElementById("banner-upload-input")?.click()}>
+              <label htmlFor="banner-upload-input" className="block border-2 border-dashed border-[#E8D6B5] dark:border-[#3A3A3A] rounded-xl p-8 text-center hover:bg-[#E8D6B5]/10 dark:hover:bg-[#3A3A3A]/50 transition-colors cursor-pointer">
                 <Image className="w-12 h-12 text-[#8B4513] dark:text-[#D4A017] mx-auto mb-3" />
                 <p className="text-sm font-medium text-[#2C1810] dark:text-[#F5E6D3]">Click to upload an image</p>
-                <p className="text-xs text-[#8B4513]/70 mt-1">PNG, JPG or GIF (max 2MB)</p>
-                <input id="banner-upload-input" type="file" accept="image/png,image/jpeg,image/gif" className="hidden" onChange={handleImageUpload} />
-              </div>
+                <p className="text-xs text-[#8B4513]/70 mt-1">PNG, JPG or GIF, max 2MB</p>
+                <input id="banner-upload-input" type="file" accept="image/png,image/jpeg,image/gif" className="sr-only" onChange={handleImageUpload} />
+              </label>
               <div className="relative">
-                <input type="url" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 text-sm" placeholder="Or paste image URL..." />
+                <input type="url" value={bannerUrl} onChange={(e) => { setBannerUrl(e.target.value); setSelectedBannerFile(null); setLocalBannerPreview(""); }} className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 text-sm" placeholder="Or paste image URL..." />
               </div>
-              {bannerUrl && (
+              {localBannerPreview && (
+                <div className="rounded-xl overflow-hidden border border-[#E8D6B5] dark:border-[#3A3A3A]">
+                  <img src={localBannerPreview} alt="Selected banner preview" className="w-full h-32 object-cover" />
+                </div>
+              )}
+              {!localBannerPreview && bannerUrl && (
                 <div className="rounded-xl overflow-hidden border border-[#E8D6B5] dark:border-[#3A3A3A]">
                   <img src={bannerUrl} alt="Banner preview" className="w-full h-32 object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                 </div>
               )}
               <div className="flex gap-3">
-                <button onClick={() => { setShowUploadModal(false); toast.success("Banner image set"); }} className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] text-white font-semibold">Done</button>
-                <button onClick={() => { setBannerUrl(""); setShowUploadModal(false); }} className="px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017]">Cancel</button>
+                <button type="button" onClick={handleSetBanner} disabled={uploadingBanner || readingBanner} className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] text-white font-semibold disabled:opacity-60">
+                  {readingBanner ? "Reading image..." : uploadingBanner ? "Uploading..." : selectedBannerFile ? "Upload and use image" : "Done"}
+                </button>
+                <button type="button" onClick={() => { setBannerUrl(""); setSelectedBannerFile(null); setLocalBannerPreview(""); setShowUploadModal(false); }} disabled={uploadingBanner || readingBanner} className="px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] disabled:opacity-60">Cancel</button>
               </div>
             </div>
           </div>

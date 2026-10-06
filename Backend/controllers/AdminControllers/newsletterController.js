@@ -1,13 +1,57 @@
 const { ID, Query } = require("node-appwrite");
+const { InputFile } = require("node-appwrite/file");
 const {
   instrumentedDb,
   getCachedUser,
+  storage,
 } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
 const renderNewsletter = require("../emails/newsletterRenderer");
+
+const uploadNewsletterBanner = async (req, res) => {
+  const bucketId = env.APPWRITE_PROMOTION_BUCKET;
+  if (!bucketId) {
+    return res.status(503).json({
+      success: false,
+      message: "Newsletter image storage is not configured.",
+    });
+  }
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "An image file is required." });
+  }
+
+  try {
+    const extensionByMimeType = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/gif": "gif",
+    };
+    const extension = extensionByMimeType[req.file.mimetype];
+    if (!extension) {
+      return res.status(400).json({
+        success: false,
+        message: "Only PNG, JPG, and GIF images are supported.",
+      });
+    }
+
+    const uploaded = await storage.createFile(
+      bucketId,
+      ID.unique(),
+      InputFile.fromBuffer(req.file.buffer, `newsletter-banner.${extension}`),
+    );
+    const imageUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${bucketId}/files/${uploaded.$id}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`;
+    return res.status(201).json({ success: true, imageUrl });
+  } catch (error) {
+    console.error("Failed to upload newsletter banner:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload newsletter banner.",
+    });
+  }
+};
 
 const newsletter = async (req, res) => {
   try {
@@ -1758,6 +1802,7 @@ module.exports = {
   getCampaignTypes,
   processScheduledCampaigns,
   triggerScheduledCampaigns,
+  uploadNewsletterBanner,
   sendBroadcast,
   getBroadcastAudienceStats,
 };
