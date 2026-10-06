@@ -384,7 +384,7 @@ export const getUserPreferences = async (userId) => {
 
 export const sendBroadcast = async (broadcastData) => {
   try {
-    const response = await axiosClient.post('/api/admin/newsletter/broadcast', broadcastData);
+    const response = await axiosClient.post('/api/admin/newsletter/send-broadcast', broadcastData);
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;
@@ -393,8 +393,8 @@ export const sendBroadcast = async (broadcastData) => {
 
 export const getBroadcastAudienceStats = async () => {
   try {
-    const response = await axiosClient.get('/api/admin/newsletter/audience-stats');
-    return response.data?.stats || {};
+    const response = await axiosClient.get('/api/admin/newsletter/broadcast-stats');
+    return response.data?.data || {};
   } catch (error) {
     console.error('Error fetching audience stats:', error);
     return {};
