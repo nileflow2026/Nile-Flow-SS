@@ -400,7 +400,7 @@ export const getBroadcastAudienceStats = async () => {
     return {};
   }
 };
-
+ 
 export const listSubscribers = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/newsletter/subscribers', { params: filters });
