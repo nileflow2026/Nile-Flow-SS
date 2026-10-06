@@ -125,7 +125,7 @@ module.exports = () => ({
       [
         "@sentry/react-native",
         {
-          organization: "nile-flow-holidings",
+          organization: "nile-flow-africa",
           project: "nileflowapp",
         },
       ],
