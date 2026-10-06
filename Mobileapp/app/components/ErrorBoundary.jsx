@@ -1,5 +1,4 @@
 import React from "react";
-import * as Sentry from "@sentry/react-native";
 import { Text, TouchableOpacity, View } from "react-native";
 
 class ErrorBoundary extends React.Component {
@@ -13,7 +12,6 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    Sentry.captureException(error, { extra: errorInfo });
     if (__DEV__) {
       console.error("ErrorBoundary caught:", error, errorInfo);
     }

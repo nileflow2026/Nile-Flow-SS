@@ -208,6 +208,13 @@ export default function SendNewsletter({ setSection }) {
     }
   };
 
+  const closeUploadModal = () => {
+    if (uploadingBanner || readingBanner) return;
+    setSelectedBannerFile(null);
+    setLocalBannerPreview("");
+    setShowUploadModal(false);
+  };
+
   const selectedAudienceCount = getTotalForAudience(targetAudience);
 
   return (
@@ -334,13 +341,13 @@ export default function SendNewsletter({ setSection }) {
 
                 {campaignType === "promotion" && (
                   <div className="mb-6 space-y-4 p-4 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white/50 dark:bg-[#2A2A2A]/50">
-                    <div className="flex items-end gap-3">
-                      <div className="flex-1">
-                        <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">Banner Image</label>
-                        <input type="url" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent" placeholder="https://example.com/banner.jpg" />
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017]">Banner Image</p>
+                        <p className="mt-1 text-xs text-[#8B4513]/70 dark:text-[#D4A017]/70">Choose an image from your device.</p>
                       </div>
-                      <button type="button" onClick={() => setShowUploadModal(true)} className="px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#8B4513] dark:text-[#D4A017] hover:bg-white/80 dark:hover:bg-[#2A2A2A]/80 transition-colors">
-                        <Image className="w-5 h-5" />
+                      <button type="button" onClick={() => setShowUploadModal(true)} className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#8B4513] dark:text-[#D4A017] hover:bg-white/80 dark:hover:bg-[#2A2A2A]/80 transition-colors">
+                        <Image className="w-5 h-5" /> {bannerUrl ? "Change image" : "Choose image"}
                       </button>
                     </div>
                     {bannerUrl && (
@@ -573,11 +580,11 @@ export default function SendNewsletter({ setSection }) {
 
       {/* ── Upload Media Modal ──────────────────────────── */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowUploadModal(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeUploadModal}>
           <div className="bg-gradient-to-br from-[#FAF7F2] to-white dark:from-[#1A1A1A] dark:to-[#2A2A2A] rounded-2xl border border-[#E8D6B5]/30 dark:border-[#3A3A3A] w-full max-w-md p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-[#2C1810] dark:text-[#F5E6D3]">Upload Banner Image</h3>
-              <button onClick={() => setShowUploadModal(false)} className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A]"><X className="w-5 h-5 text-[#8B4513] dark:text-[#D4A017]" /></button>
+              <button type="button" onClick={closeUploadModal} disabled={uploadingBanner || readingBanner} className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] disabled:opacity-60"><X className="w-5 h-5 text-[#8B4513] dark:text-[#D4A017]" /></button>
             </div>
             <div className="space-y-4">
               <label htmlFor="banner-upload-input" className="block border-2 border-dashed border-[#E8D6B5] dark:border-[#3A3A3A] rounded-xl p-8 text-center hover:bg-[#E8D6B5]/10 dark:hover:bg-[#3A3A3A]/50 transition-colors cursor-pointer">
@@ -586,24 +593,16 @@ export default function SendNewsletter({ setSection }) {
                 <p className="text-xs text-[#8B4513]/70 mt-1">PNG, JPG or GIF, max 2MB</p>
                 <input id="banner-upload-input" type="file" accept="image/png,image/jpeg,image/gif" className="sr-only" onChange={handleImageUpload} />
               </label>
-              <div className="relative">
-                <input type="url" value={bannerUrl} onChange={(e) => { setBannerUrl(e.target.value); setSelectedBannerFile(null); setLocalBannerPreview(""); }} className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 text-sm" placeholder="Or paste image URL..." />
-              </div>
               {localBannerPreview && (
                 <div className="rounded-xl overflow-hidden border border-[#E8D6B5] dark:border-[#3A3A3A]">
                   <img src={localBannerPreview} alt="Selected banner preview" className="w-full h-32 object-cover" />
-                </div>
-              )}
-              {!localBannerPreview && bannerUrl && (
-                <div className="rounded-xl overflow-hidden border border-[#E8D6B5] dark:border-[#3A3A3A]">
-                  <img src={bannerUrl} alt="Banner preview" className="w-full h-32 object-cover" onError={(e) => { e.target.style.display = "none"; }} />
                 </div>
               )}
               <div className="flex gap-3">
                 <button type="button" onClick={handleSetBanner} disabled={uploadingBanner || readingBanner} className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#D4A017] to-[#B8860B] text-white font-semibold disabled:opacity-60">
                   {readingBanner ? "Reading image..." : uploadingBanner ? "Uploading..." : selectedBannerFile ? "Upload and use image" : "Done"}
                 </button>
-                <button type="button" onClick={() => { setBannerUrl(""); setSelectedBannerFile(null); setLocalBannerPreview(""); setShowUploadModal(false); }} disabled={uploadingBanner || readingBanner} className="px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] disabled:opacity-60">Cancel</button>
+                <button type="button" onClick={closeUploadModal} disabled={uploadingBanner || readingBanner} className="px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] disabled:opacity-60">Cancel</button>
               </div>
             </div>
           </div>

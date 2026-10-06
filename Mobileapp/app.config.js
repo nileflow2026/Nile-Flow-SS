@@ -122,13 +122,6 @@ module.exports = () => ({
       "expo-video",
       "expo-web-browser",
       "expo-secure-store",
-      [
-        "@sentry/react-native",
-        {
-          organization: "nile-flow-africa",
-          project: "nileflowapp",
-        },
-      ],
     ],
     experiments: {
       typedRoutes: true,

@@ -1,6 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import * as Sentry from "@sentry/react-native";
-import * as Updates from "expo-updates";
 import Constants from "expo-constants";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
@@ -42,46 +40,6 @@ import { SocialProvider } from "../Context/SocialContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 import "../global.css";
-
-// Initialize Sentry as early as possible — before any navigation or providers
-Sentry.init({
-  dsn: "https://913978e2e014e234568fdfd4ffc3b3e2@o4510430501666816.ingest.us.sentry.io/4511411561037824",
-  environment: __DEV__ ? "development" : "production",
-  // Release tied to app version for Release Health tracking
-  release: `nile-flow@${Constants.expoConfig?.version ?? "1.0.0"}`,
-  dist: String(
-    Constants.expoConfig?.ios?.buildNumber ??
-      Constants.expoConfig?.android?.versionCode ??
-      "1",
-  ),
-  // Automatically track session start/end (crash-free users & sessions)
-  autoSessionTracking: true,
-  // Capture 20% of sessions for performance tracing in production
-  tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-  // Record replays for 100% of errors, 10% of sessions
-  replaysOnErrorSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  integrations: [Sentry.mobileReplayIntegration()],
-  // Do not send PII in development
-  sendDefaultPii: !__DEV__,
-  enableLogs: true,
-});
-
-// Tag Sentry with OTA update metadata (runs once at startup)
-(async function tagSentryWithOTA() {
-  try {
-    const update = await Updates.checkForUpdateAsync();
-    if (update.isAvailable) {
-      Sentry.setTag("ota.update.available", "true");
-    }
-    const channel = Updates.channel ?? "unknown";
-    Sentry.setTag("ota.channel", channel);
-    Sentry.setTag("ota.runtimeVersion", Updates.runtimeVersion ?? "unknown");
-    Sentry.setTag("ota.updateId", Updates.updateId ?? "unknown");
-  } catch {
-    // Non-critical — Sentry tags are best-effort
-  }
-})();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -484,4 +442,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default RootLayout;
