@@ -230,7 +230,7 @@ async function sendOtpEmail(email, otp, username = "User") {
         If you did not request account deletion, ignore this email. Your account remains safe.
       </p>
     </div>
-    <div style="background:#0f172a;padding:16px;text-align:center;">
+    <div class="email-legacy-footer" style="background:#0f172a;padding:16px;text-align:center;">
       <p style="margin:0;color:#475569;font-size:11px;">© 2026 Nile Flow Africa. All rights reserved.</p>
     </div>
   </div>
@@ -282,7 +282,7 @@ async function sendDeletionConfirmationEmail(email, username, scheduledDate) {
         If you believe this was a mistake, please contact us immediately at support@nileflowafrica.com.
       </p>
     </div>
-    <div style="background:#0f172a;padding:16px;text-align:center;">
+    <div class="email-legacy-footer" style="background:#0f172a;padding:16px;text-align:center;">
       <p style="margin:0;color:#475569;font-size:11px;">© 2026 Nile Flow Africa</p>
     </div>
   </div>

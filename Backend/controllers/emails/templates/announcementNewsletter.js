@@ -17,7 +17,7 @@ function renderAnnouncementNewsletter({ subject, message, year }) {
         <div class="content">
           <p>${message}</p>
         </div>
-        <p style="text-align:center; font-size:12px;">&copy; ${year} Nile Flow. All rights reserved.</p>
+        <p class="email-legacy-footer" style="text-align:center; font-size:12px;">&copy; ${year} Nile Flow. All rights reserved.</p>
       </div>
     </body>
   </html>

@@ -25,6 +25,7 @@ const { ID, Messaging, Users, Databases, Query } = require("node-appwrite");
 const { client } = require("./appwriteService");
 const { env } = require("../src/env");
 const { normalizePhone } = require("../utils/phoneNormalizer");
+const { applyEmailTheme } = require("./emailTheme");
 
 const messaging = new Messaging(client);
 const users = new Users(client);
@@ -372,7 +373,7 @@ async function sendEmail({ userId, email, subject, content, isHtml = true }) {
     await messaging.createEmail({
       messageId: ID.unique(),
       subject,
-      content,
+      content: isHtml ? applyEmailTheme(content) : content,
       topics: [],
       users: [],
       targets: [targetId],

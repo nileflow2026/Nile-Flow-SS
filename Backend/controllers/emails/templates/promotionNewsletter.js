@@ -32,7 +32,7 @@ function renderProductNewsletter({ subject, products, year }) {
       <div class="container">
         <h1>${subject}</h1>
         <div class="product-grid">${productCardsHtml}</div>
-        <p>&copy; ${year} Nile Flow. All rights reserved.</p>
+        <p class="email-legacy-footer">&copy; ${year} Nile Flow. All rights reserved.</p>
       </div>
     </body>
   </html>

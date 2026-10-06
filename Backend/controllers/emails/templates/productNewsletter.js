@@ -22,7 +22,7 @@ function renderPromotionNewsletter({
         <div>
           <a href="${ctaLink}" class="cta-button">${ctaText}</a>
         </div>
-        <p style="font-size:12px;">&copy; ${year} Nile Flow. All rights reserved.</p>
+        <p class="email-legacy-footer" style="font-size:12px;">&copy; ${year} Nile Flow. All rights reserved.</p>
       </div>
     </body>
   </html>

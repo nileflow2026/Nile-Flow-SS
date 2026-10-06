@@ -2,7 +2,7 @@ const { Resend } = require("resend");
 const { env } = require("../src/env");
 
 const resend = new Resend(env.RESEND_API_KEY);
-const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
+const { sendBrandedEmail } = require("./emailTheme");
 
 /**
  * Send Welcome Email — Strategic Positioning
@@ -141,7 +141,6 @@ const sendVendorWelcomeEmail = async ({ vendorName, vendorEmail }) => {
                         font-size: 20px;
                     }
                 }
-            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -399,7 +398,6 @@ const sendVendorDashboardActivationEmail = async ({
                         font-size: 20px;
                     }
                 }
-            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -686,7 +684,6 @@ const sendVendorGrowthEmail = async ({ vendorName, vendorEmail }) => {
                         font-size: 20px;
                     }
                 }
-            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>

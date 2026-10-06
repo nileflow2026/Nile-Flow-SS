@@ -9,7 +9,7 @@ const {
   generateRefreshToken,
 } = require("../utils/tokenUtils");
 const resend = new Resend(env.RESEND_API_KEY);
-const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
+const { sendBrandedEmail } = require("./emailTheme");
 
 // Helper function to get user by email
 const getUserByEmail = async (email) => {
@@ -382,7 +382,6 @@ const sendOrderConfirmationEmail = async ({
                         gap: 10px;
                     }
                 }
-            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -1020,7 +1019,6 @@ const sendWelcomeEmail = async ({ customerEmail, customerName }) => {
                         gap: 10px;
                     }
                 }
-            ${EMAIL_THEME_CSS}
             </style>
         </head>
         <body>
@@ -1644,7 +1642,7 @@ const sendOrderCancellationEmail = async ({
                 </div>
 
                 <!-- Footer -->
-                <div style="background: rgba(15, 23, 42, 0.9); padding: 30px; text-align: center; border-top: 1px solid rgba(245, 158, 11, 0.2);">
+                <div class="email-legacy-footer" style="background: rgba(15, 23, 42, 0.9); padding: 30px; text-align: center; border-top: 1px solid rgba(245, 158, 11, 0.2);">
                     <p style="margin: 0 0 15px; color: #94a3b8; font-size: 14px;">
                         Questions? Contact us at 
                         <a href="mailto:support@nileflowafrica.com" style="color: #fbbf24; text-decoration: none;">support@nileflowafrica.com</a>
@@ -1816,7 +1814,7 @@ const sendCancellationRequestEmail = async ({
                 </div>
 
                 <!-- Footer -->
-                <div style="background: rgba(15, 23, 42, 0.9); padding: 30px; text-align: center; border-top: 1px solid rgba(245, 158, 11, 0.2);">
+                <div class="email-legacy-footer" style="background: rgba(15, 23, 42, 0.9); padding: 30px; text-align: center; border-top: 1px solid rgba(245, 158, 11, 0.2);">
                     <p style="margin: 0 0 15px; color: #94a3b8; font-size: 14px;">
                         Questions? Contact us at 
                         <a href="mailto:support@nileflowafrica.com" style="color: #fbbf24; text-decoration: none;">support@nileflowafrica.com</a>
@@ -1842,23 +1840,7 @@ const sendCancellationRequestEmail = async ({
   }
 };
 
-module.exports = {
-  sendOrderConfirmationEmail,
-  sendOrderStatusUpdateEmail,
-  sendVerificationEmail,
-  sendWelcomeEmail,
-  verifyCustomer,
-  storeVerificationCode,
-  getVerificationCodeRecord,
-  getStoredVerificationCode,
-  deleteVerificationCode,
-  markUserAsVerified,
-  resendVerificationCode,
-  verifyCustomerMobile,
-  sendOrderCancellationEmail,
-  sendCancellationRequestEmail,
-  sendLoginAlertEmail,
-};
+
 
 async function sendLoginAlertEmail({
   customerEmail,
@@ -1956,7 +1938,7 @@ async function sendLoginAlertEmail({
                     </td>
                   </tr>
                   <!-- Footer -->
-                  <tr>
+                  <tr class="email-legacy-footer">
                     <td style="background:rgba(0,0,0,0.3);padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
                       <p style="color:#4b5563;font-size:12px;margin:0;">
                         © ${new Date().getFullYear()} Nile Flow Africa · Kilimani, Nairobi, Kenya
@@ -1976,3 +1958,21 @@ async function sendLoginAlertEmail({
     // Non-fatal — do not rethrow
   }
 }
+
+module.exports = {
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  verifyCustomer,
+  storeVerificationCode,
+  getVerificationCodeRecord,
+  getStoredVerificationCode,
+  deleteVerificationCode,
+  markUserAsVerified,
+  resendVerificationCode,
+  verifyCustomerMobile,
+  sendOrderCancellationEmail,
+  sendCancellationRequestEmail,
+  sendLoginAlertEmail,
+};

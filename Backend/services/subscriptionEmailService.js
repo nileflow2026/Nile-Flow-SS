@@ -2,7 +2,7 @@
 const { Resend } = require("resend");
 const { env } = require("../src/env");
 const logger = require("../utils/logger");
-const { EMAIL_THEME_CSS, sendBrandedEmail } = require("./emailTheme");
+const { sendBrandedEmail } = require("./emailTheme");
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -306,7 +306,6 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
-          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -528,7 +527,6 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
-          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -719,7 +717,6 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
-          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
@@ -879,7 +876,6 @@ class SubscriptionEmailService {
                   font-size: 14px;
                   color: #64748b;
               }
-          ${EMAIL_THEME_CSS}
           </style>
       </head>
       <body>
