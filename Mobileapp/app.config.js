@@ -85,7 +85,7 @@ module.exports = () => ({
             enableProguardInReleaseBuilds: true,
             enableShrinkResourcesInReleaseBuilds: true,
             minSdkVersion: 24,
-            compileSdkVersion: 35,
+            compileSdkVersion: 36,
             targetSdkVersion: 35,
           },
         },
