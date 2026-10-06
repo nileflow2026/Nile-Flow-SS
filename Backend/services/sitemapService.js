@@ -44,16 +44,25 @@ function urlElement(path, opts) {
   var changefreq = opts.changefreq || "weekly";
   var lastmod = opts.lastmod;
   var loc = BASE_URL + path;
-  var now = new Date().toISOString().split("T")[0];
-  var lm = lastmod ? new Date(lastmod).toISOString().split("T")[0] : now;
-  return [
+  var parts = [
     "  <url>",
     "    <loc>" + escapeXml(loc) + "</loc>",
-    "    <lastmod>" + lm + "</lastmod>",
+  ];
+
+  if (lastmod) {
+    parts.push(
+      "    <lastmod>" +
+        escapeXml(new Date(lastmod).toISOString().split("T")[0]) +
+        "</lastmod>"
+    );
+  }
+
+  parts.push(
     "    <changefreq>" + changefreq + "</changefreq>",
     "    <priority>" + priority + "</priority>",
     "  </url>"
-  ].join("\n");
+  );
+  return parts.join("\n");
 }
 
 function xmlHeader(urls) {
@@ -77,7 +86,7 @@ function generateProductSitemap(products) {
   return xmlHeader(
     products.map(function(p) {
       var id = p.$id || p.id;
-      return urlElement("/products/" + id, {
+      return urlElement("/products/" + encodeURIComponent(id), {
         priority: "0.8",
         changefreq: "weekly",
         lastmod: p.updatedAt || p.$updatedAt
@@ -91,7 +100,7 @@ function generateCategorySitemap(categories) {
   return xmlHeader(
     categories.map(function(c) {
       var slug = c.slug || c.$id || c.id;
-      return urlElement("/category/" + slug, {
+      return urlElement("/category/" + encodeURIComponent(slug), {
         priority: "0.7",
         changefreq: "daily"
       });
@@ -109,7 +118,11 @@ function generateImageSitemap(products) {
     var allImages = p.image ? [p.image].concat(images) : images;
     var imageTags = allImages.slice(0, 10).map(function(img) {
       var imgUrl = typeof img === "string" ? img : (img.url || img);
-      var loc = escapeXml(imgUrl.indexOf("http") === 0 ? imgUrl : BASE_URL + "/" + imgUrl);
+      var loc = escapeXml(
+        /^https?:\/\//i.test(imgUrl)
+          ? imgUrl
+          : new URL(imgUrl, BASE_URL + "/").toString()
+      );
       var title = escapeXml(p.productName || p.name || "Product");
       return [
         "      <image:image>",
@@ -123,7 +136,7 @@ function generateImageSitemap(products) {
 
     return [
       "  <url>",
-      "    <loc>" + escapeXml(BASE_URL + "/products/" + id) + "</loc>",
+      "    <loc>" + escapeXml(BASE_URL + "/products/" + encodeURIComponent(id)) + "</loc>",
       imageTags,
       "  </url>"
     ].join("\n");

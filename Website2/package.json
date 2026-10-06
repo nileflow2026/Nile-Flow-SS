@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-indexnow-key.mjs && vite build",
+    "build": "node scripts/generate-indexnow-key.mjs && vite build && node scripts/generate-sitemaps.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
