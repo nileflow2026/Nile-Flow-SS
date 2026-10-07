@@ -16,8 +16,7 @@ import {
 import { usePremiumContext } from "../../Context/PremiumContext";
 
 /**
- * SubscriptionSuccess - Handles return from Stripe checkout
- * Polls subscription status until confirmed
+ * Confirms a subscription after its payment flow returns to the app.
  */
 const SubscriptionSuccess = () => {
   const router = useRouter();
@@ -51,16 +50,16 @@ const SubscriptionSuccess = () => {
 
     const checkStatus = setInterval(async () => {
       console.log(
-        `[Stripe Success] Polling subscription status... (${
+        `[Subscription Success] Polling subscription status... (${
           pollCount + 1
         }/${maxPolls})`,
       );
 
       try {
         await refreshStatus();
-        console.log(`[Stripe Success] Current isPremium status:`, isPremium);
+        console.log(`[Subscription Success] Current isPremium status:`, isPremium);
       } catch (error) {
-        console.error(`[Stripe Success] Error refreshing status:`, error);
+        console.error(`[Subscription Success] Error refreshing status:`, error);
       }
 
       pollCount++;
@@ -70,11 +69,11 @@ const SubscriptionSuccess = () => {
 
       // Stop polling after max attempts
       if (pollCount >= maxPolls) {
-        console.log("[Stripe Success] Max polls reached, stopping...");
+        console.log("[Subscription Success] Max polls reached, stopping...");
         clearInterval(checkStatus);
         if (!isPremium) {
           console.log(
-            "[Stripe Success] Still not premium, showing failed state",
+            "[Subscription Success] Still not premium, showing failed state",
           );
           setStatus("failed");
         }
@@ -87,20 +86,20 @@ const SubscriptionSuccess = () => {
   // Check if premium status changed
   useEffect(() => {
     console.log(
-      "[Stripe Success] isPremium changed:",
+      "[Subscription Success] isPremium changed:",
       isPremium,
       "status:",
       status,
     );
     if (isPremium && status === "checking") {
       console.log(
-        "[Stripe Success] Premium activated! Showing success message",
+        "[Subscription Success] Premium activated! Showing success message",
       );
       setStatus("success");
 
       // Redirect to profile after 3 seconds
       setTimeout(() => {
-        console.log("[Stripe Success] Redirecting to profile...");
+        console.log("[Subscription Success] Redirecting to profile...");
         router.push("/Profile");
       }, 3000);
     }
@@ -148,7 +147,7 @@ const SubscriptionSuccess = () => {
             >
               <Text style={styles.detailsTitle}>⏱️ Verifying Payment</Text>
               <Text style={styles.detailsText}>
-                Stripe is confirming your payment. This can take up to 60
+                We are confirming your subscription. This can take up to 60
                 seconds.
               </Text>
               <Text style={styles.countdownText}>
@@ -249,7 +248,7 @@ const SubscriptionSuccess = () => {
             >
               <View style={styles.errorList}>
                 <Text style={styles.errorItem}>
-                  • Stripe webhook hasn't arrived yet (can take 30-60 seconds)
+                  • Payment confirmation has not arrived yet (it can take 30 to 60 seconds)
                 </Text>
                 <Text style={styles.errorItem}>
                   • Payment was cancelled or declined

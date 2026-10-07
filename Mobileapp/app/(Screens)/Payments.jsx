@@ -6,7 +6,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { Image } from "expo-image";
-import { useStripe } from "@stripe/stripe-react-native";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
@@ -86,7 +85,6 @@ const Payments = () => {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [loading, setLoading] = useState(false);
   const { cart, clearCart, checkoutAddress } = useCart();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [orderId, setOrderId] = useState(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const router = useRouter();
@@ -222,14 +220,6 @@ const Payments = () => {
   }, [cart]);
 
   const paymentMethods = [
-    /* {
-      id: "card",
-      name: "Credit / Debit Card",
-      icon: CreditCard,
-      gradient: ["#F59E0B", "#D97706"],
-      description: "Pay securely with your card",
-      features: ["Secure", "Fast", "3D Secure"],
-    }, */
     {
       id: "pod",
       name: "Payment on Delivery",
@@ -913,104 +903,6 @@ const Payments = () => {
         await handleMpesaPayment(user, token, checkoutMetadata);
       } else if (selectedMethod === "pesapal") {
         await handlePesapalPayment(user, checkoutMetadata);
-      } else if (selectedMethod === "card") {
-        const payload = {
-          cart,
-          userId: userId,
-          customerEmail: customerEmail,
-          username: username,
-          paymentMethod: selectedMethod,
-          totalAmount: parseFloat(totalAmount).toFixed(2),
-          currency: currency || "KES",
-          ...checkoutMetadata,
-        };
-
-        console.log("Submitting card checkout");
-
-        const apiResponse = await axiosClient.post(
-          "/api/payments/stripe-mobile-paymentsheet",
-          payload,
-        );
-
-        const result = apiResponse.data;
-
-        if (!result.client_secret || !result.orderId) {
-          throw new Error("Invalid payment response from server");
-        }
-
-        setOrderId(result.orderId);
-        setCreatedAt(result.createdAt);
-
-        const { error } = await initPaymentSheet({
-          paymentIntentClientSecret: result.client_secret,
-          merchantDisplayName: "Nile Mart",
-          style: "alwaysDark", // Add consistent styling
-          googlePay: {
-            merchantCountryCode: "KE",
-            testEnv: __DEV__, // Use test environment in development
-            currencyCode: currency || "KES",
-          },
-        });
-
-        console.log("=== PAYMENT SHEET INITIALIZATION ===");
-        if (error) {
-          console.error("PaymentSheet initialization error:", error);
-          Alert.alert(
-            "Error",
-            `Payment sheet failed to initialize: ${error.message}`,
-          );
-          return;
-        }
-
-        console.log("✅ PaymentSheet initialized successfully");
-
-        const { error: paymentError } = await presentPaymentSheet();
-
-        console.log("=== PAYMENT SHEET RESULT ===");
-        if (paymentError) {
-          console.error("Payment error:", paymentError);
-          Alert.alert("Payment Failed", paymentError.message);
-          return;
-        }
-
-        console.log("✅ Payment completed successfully");
-        console.log("✅ Payment completed successfully");
-
-        await clearCheckoutAttempt(userId);
-
-        // Create notification after successful payment
-        console.log("=== CREATING POST-PAYMENT NOTIFICATION ===");
-        try {
-          await createNotification({
-            message: `🛍️ New order #${result.orderId} placed by ${customerEmail} totaling ${currency} ${Math.round(totalAmount)}.`,
-            type: "userNotification",
-            username: username,
-            userId,
-            email: customerEmail,
-          });
-          console.log("✅ Notification created successfully");
-        } catch (notificationError) {
-          console.error("❌ Notification creation failed:", notificationError);
-          // Continue with cart clearing even if notification fails
-        }
-
-        // Clear cart after successful payment
-        console.log("🛒 Clearing cart after successful Credit Card payment...");
-        try {
-          await clearCart();
-          console.log("✅ Cart cleared successfully");
-        } catch (clearError) {
-          console.error("❌ Cart clearing failed:", clearError);
-          // Continue to navigation even if cart clearing fails
-        }
-
-        // Trigger navigation via state to avoid async context issues
-        console.log("🧭 Triggering navigation via state for credit card...");
-        setNavigationTrigger({
-          type: "card",
-          orderId: result.orderId,
-          timestamp: Date.now(),
-        });
       }
     } catch (error) {
       // <-- Add this closing brace for the try block

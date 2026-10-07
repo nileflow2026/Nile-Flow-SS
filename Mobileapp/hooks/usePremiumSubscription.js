@@ -120,16 +120,6 @@ export const usePremiumSubscription = () => {
     try {
       const result = await premiumService.subscribe(paymentMethod, phoneNumber);
 
-      // If Stripe and has checkoutUrl, return for redirect
-      if (paymentMethod === "stripe" && result.checkoutUrl) {
-        setLoading(false);
-        return {
-          success: true,
-          data: result,
-          checkoutUrl: result.checkoutUrl,
-        };
-      }
-
       // If M-Pesa and has checkoutRequestId, return for polling
       if (paymentMethod === "mpesa" && result.checkoutRequestId) {
         setLoading(false);

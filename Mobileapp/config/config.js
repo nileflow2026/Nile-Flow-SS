@@ -7,10 +7,6 @@ import Constants from "expo-constants";
 // Flutterwave public key (safe for client-side)
 export const FLW_PUBLIC_KEY = Constants.expoConfig?.extra?.FLW_PUBLIC_KEY || "";
 
-// Stripe publishable key (safe for client-side)
-export const STRIPE_PUBLISH_KEY =
-  Constants.expoConfig?.extra?.STRIPE_PUBLISH_KEY || "";
-
 // PayPal client ID (safe for client-side)
 export const PAYPAL_CLIENT_ID =
   Constants.expoConfig?.extra?.PAYPAL_CLIENT_ID || "";

@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useStripe } from "@stripe/stripe-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +16,7 @@ import { usePremiumContext } from "../../Context/PremiumContext";
 import { usePremiumSubscription } from "../../hooks/usePremiumSubscription";
 
 const SubscriptionSettings = () => {
-  const { isPremium, loading, refreshStatus } = usePremiumContext();
+  const { isPremium, loading } = usePremiumContext();
   const {
     subscribe,
     cancelSubscription,
@@ -26,35 +25,22 @@ const SubscriptionSettings = () => {
     pollPaymentStatus,
   } = usePremiumSubscription();
 
-  // Stripe Payment Sheet hooks
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
-
   const [paymentMethod, setPaymentMethod] = useState("mpesa");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [showPaymentPending, setShowPaymentPending] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
-  const [stripeLoading, setStripeLoading] = useState(false);
 
   const handleSubscribe = async () => {
-    if (paymentMethod === "mpesa" && !phoneNumber) {
+    if (!phoneNumber) {
       Alert.alert("Error", "Please enter your M-Pesa phone number");
       return;
     }
 
-    if (paymentMethod === "stripe") {
-      await handleStripeSubscription();
-      return;
-    }
-
-    const result = await subscribe(paymentMethod, phoneNumber);
+    const result = await subscribe("mpesa", phoneNumber);
 
     if (result.success) {
       // M-Pesa payment - show pending modal and start polling
-      if (
-        paymentMethod === "mpesa" &&
-        result.requiresPolling &&
-        result.checkoutRequestId
-      ) {
+      if (result.requiresPolling && result.checkoutRequestId) {
         setShowPaymentPending(true);
         setPaymentMessage("Processing your payment...");
 
@@ -73,125 +59,6 @@ const SubscriptionSettings = () => {
       }
     } else {
       Alert.alert("Error", result.message || "Failed to initiate subscription");
-    }
-  };
-
-  const handleStripeSubscription = async () => {
-    setStripeLoading(true);
-
-    try {
-      console.log("🔄 Initializing Stripe subscription...");
-
-      // Get payment intent from backend
-      const result = await subscribe("stripe");
-
-      if (!result.success) {
-        Alert.alert("Error", result.message || "Failed to initialize payment");
-        return;
-      }
-
-      // Extract payment details
-      const { paymentIntent, ephemeralKey, customer, publishableKey } =
-        result.data.paymentDetails || {};
-
-      if (!paymentIntent || !ephemeralKey || !customer) {
-        Alert.alert("Error", "Invalid payment configuration received");
-        return;
-      }
-
-      console.log("💳 Initializing Payment Sheet...");
-
-      // Initialize the payment sheet
-      const { error: paymentSheetError } = await initPaymentSheet({
-        merchantDisplayName: "Nile Premium Subscription",
-        customerId: customer,
-        customerEphemeralKeySecret: ephemeralKey,
-        paymentIntentClientSecret: paymentIntent,
-        allowsDelayedPaymentMethods: true,
-        defaultBillingDetails: {
-          name: "Premium Subscriber",
-        },
-        appearance: {
-          colors: {
-            primary: "#F59E0B",
-            background: "#1e293b",
-            componentBackground: "#334155",
-            componentBorder: "#475569",
-            componentDivider: "#64748b",
-            primaryText: "#f1f5f9",
-            secondaryText: "#cbd5e1",
-            componentText: "#f1f5f9",
-            placeholderText: "#94a3b8",
-          },
-        },
-        returnURL: "nilemart://payment-complete",
-      });
-
-      if (paymentSheetError) {
-        console.error("❌ Payment Sheet init error:", paymentSheetError);
-        Alert.alert("Error", "Failed to initialize payment. Please try again.");
-        return;
-      }
-
-      console.log("✅ Payment Sheet initialized successfully");
-
-      // Present the payment sheet
-      const { error: presentError } = await presentPaymentSheet();
-
-      if (presentError) {
-        if (presentError.code === "Canceled") {
-          console.log("💳 User canceled payment");
-        } else {
-          console.error("❌ Payment error:", presentError);
-          Alert.alert("Payment Error", presentError.message);
-        }
-        return;
-      }
-
-      console.log("✅ Payment successful! Confirming with backend...");
-
-      // Extract PaymentIntent ID from client secret
-      const paymentIntentId = paymentIntent.split("_secret_")[0];
-      const subscriptionId = result.data.subscriptionId;
-
-      // Confirm payment with backend after successful Payment Sheet
-      try {
-        const { premiumService } = await import("../../utils/premiumService");
-        const confirmResult = await premiumService.confirmPayment(
-          paymentIntentId,
-          subscriptionId,
-        );
-
-        if (confirmResult.success) {
-          console.log("✅ Payment confirmed! Premium activated.");
-
-          // Refresh premium status
-          await refreshStatus();
-
-          // Show success message
-          Alert.alert(
-            "Success!",
-            "Payment successful! Your premium subscription is now active.",
-            [{ text: "OK", onPress: () => {} }],
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            confirmResult.message || "Failed to activate subscription",
-          );
-        }
-      } catch (confirmError) {
-        console.error("❌ Payment confirmation error:", confirmError);
-        Alert.alert(
-          "Payment Processed",
-          "Payment was successful, but there was an issue activating your subscription. Please contact support.",
-        );
-      }
-    } catch (error) {
-      console.error("❌ Stripe subscription error:", error);
-      Alert.alert("Error", "Failed to process payment. Please try again.");
-    } finally {
-      setStripeLoading(false);
     }
   };
 
@@ -473,40 +340,6 @@ const SubscriptionSettings = () => {
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => setPaymentMethod("stripe")}
-                  style={[
-                    styles.paymentMethod,
-                    paymentMethod === "stripe" && styles.paymentMethodSelected,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.paymentMethodInner,
-                      paymentMethod === "stripe"
-                        ? { backgroundColor: "#F5F3FF", borderColor: "#7C3AED" }
-                        : {},
-                    ]}
-                  >
-                    <Text style={styles.paymentMethodIcon}>💳</Text>
-                    <Text
-                      style={[
-                        styles.paymentMethodText,
-                        paymentMethod === "stripe" &&
-                          styles.paymentMethodTextSelected,
-                      ]}
-                    >
-                      Stripe
-                    </Text>
-                    {paymentMethod === "stripe" && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color="#7C3AED"
-                      />
-                    )}
-                  </View>
-                </TouchableOpacity>
               </View>
 
               {paymentMethod === "mpesa" && (
@@ -533,33 +366,15 @@ const SubscriptionSettings = () => {
 
               <TouchableOpacity
                 onPress={handleSubscribe}
-                disabled={stripeLoading}
-                style={[
-                  styles.subscribeButton,
-                  stripeLoading && { opacity: 0.7 },
-                ]}
+                style={styles.subscribeButton}
               >
                 <View style={styles.subscribeButtonGradient}>
-                  {stripeLoading ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Ionicons name="diamond" size={20} color="white" />
-                  )}
+                  <Ionicons name="diamond" size={20} color="white" />
                   <Text style={styles.subscribeButtonText}>
-                    {stripeLoading
-                      ? "Processing..."
-                      : paymentMethod === "stripe"
-                        ? "Pay with Stripe - 200 Ksh/month"
-                        : "Subscribe Now - 200 Ksh/month"}
+                    Subscribe Now - 200 Ksh/month
                   </Text>
                 </View>
               </TouchableOpacity>
-
-              {paymentMethod === "stripe" && !stripeLoading && (
-                <Text style={styles.stripeNote}>
-                  Secure payment with your card or mobile money
-                </Text>
-              )}
             </View>
           </View>
         )}
@@ -983,12 +798,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginLeft: 8,
-  },
-  stripeNote: {
-    fontSize: 14,
-    color: "#64748b",
-    textAlign: "center",
-    marginTop: 12,
   },
   modalOverlay: {
     flex: 1,

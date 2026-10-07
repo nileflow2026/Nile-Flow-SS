@@ -82,38 +82,6 @@ export const premiumService = {
   },
 
   /**
-   * Confirm Stripe payment after Payment Sheet success
-   * @param {string} paymentIntentId - The PaymentIntent ID from Stripe
-   * @param {string} subscriptionId - Optional subscription ID for additional verification
-   * @returns {Promise<{success: boolean, message: string, isPremium: boolean, expiresAt: string}>}
-   */
-  async confirmPayment(paymentIntentId, subscriptionId = null) {
-    try {
-      const payload = {
-        paymentIntentId,
-      };
-
-      if (subscriptionId) {
-        payload.subscriptionId = subscriptionId;
-      }
-
-      const response = await axiosClient.post(
-        `${PREMIUM_BASE_URL}/confirm-payment`,
-        payload
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Error confirming payment:", error);
-      throw new Error(
-        error.response?.data?.error ||
-          error.response?.data?.message ||
-          "Failed to confirm payment"
-      );
-    }
-  },
-
-  /**
    * Renew premium subscription
    * @param {string} paymentMethod - 'mpesa' or 'paypal' (or 'nile-pay' which maps to 'mpesa')
    * @param {string} phoneNumber - Phone number for M-Pesa (required if paymentMethod is mpesa)

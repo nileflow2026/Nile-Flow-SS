@@ -9,7 +9,6 @@ import { NotificationProvider } from "@/Context/NotificationContext";
 import { PremiumProvider } from "@/Context/PremiumContext";
 import { ThemeProvider } from "@/Context/ThemeProvider";
 import { GroupBuyProvider } from "../Context/GroupBuyContext";
-import { StripeProvider } from "@stripe/stripe-react-native";
 import {
   Stack,
   useRouter,
@@ -31,7 +30,6 @@ import { useEffect, useRef } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
-import { STRIPE_PUBLISH_KEY } from "../config/config";
 import { CartProvider } from "../Context/CartContext_NEW";
 import { FavoritesProvider } from "../Context/FavoritesContext";
 import { initCurrency } from "../api";
@@ -417,23 +415,21 @@ function RootLayout() {
         <ErrorBoundary>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
-              <StripeProvider publishableKey={STRIPE_PUBLISH_KEY}>
-                <GlobalProvider>
-                  <PremiumProvider>
-                    <NotificationProvider>
-                      <SocialProvider>
-                        <CartProvider>
-                          <GroupBuyProvider>
-                            <FavoritesProvider>
-                              <AppContent />
-                            </FavoritesProvider>
-                          </GroupBuyProvider>
-                        </CartProvider>
-                      </SocialProvider>
-                    </NotificationProvider>
-                  </PremiumProvider>
-                </GlobalProvider>
-              </StripeProvider>
+              <GlobalProvider>
+                <PremiumProvider>
+                  <NotificationProvider>
+                    <SocialProvider>
+                      <CartProvider>
+                        <GroupBuyProvider>
+                          <FavoritesProvider>
+                            <AppContent />
+                          </FavoritesProvider>
+                        </GroupBuyProvider>
+                      </CartProvider>
+                    </SocialProvider>
+                  </NotificationProvider>
+                </PremiumProvider>
+              </GlobalProvider>
             </ThemeProvider>
           </QueryClientProvider>
         </ErrorBoundary>

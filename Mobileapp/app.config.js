@@ -26,8 +26,6 @@ module.exports = () => ({
         process.env.API_URL || process.env.API_BASE_URL || "http://10.0.2.2:3000",
       API_BASE_URL:
         process.env.API_BASE_URL || process.env.API_URL || "http://10.0.2.2:3000",
-      STRIPE_KEY: process.env.STRIPE_KEY || "",
-      STRIPE_PUBLISH_KEY: process.env.STRIPE_PUBLISH_KEY || "",
       FLW_PUBLIC_KEY: process.env.FLW_PUBLIC_KEY || "",
       PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || "",
       GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || "",
@@ -110,13 +108,6 @@ module.exports = () => ({
           dark: {
             backgroundColor: "#000000",
           },
-        },
-      ],
-      [
-        "@stripe/stripe-react-native",
-        {
-          merchantIdentifier: "merchant.com.nileflow",
-          enableStripeSdk: true,
         },
       ],
       "expo-video",

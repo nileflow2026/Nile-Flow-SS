@@ -38,18 +38,6 @@ const PaymentMethods = () => {
 
   const paymentOptions = [
     {
-      title: "Credit / Debit Card",
-      subtitle: "Visa, Mastercard, American Express",
-      icon: "credit-card",
-      iconColors: ["#2563EB", "#1D4ED8"],
-      onPress: () =>
-        Alert.alert(
-          "Add Card",
-          "Card payment is handled at checkout via Stripe.",
-          [{ text: "OK" }],
-        ),
-    },
-    {
       title: "M-Pesa",
       subtitle: "Lipa na M-Pesa (Kenya)",
       icon: "phone-android",
@@ -241,8 +229,7 @@ const PaymentMethods = () => {
           <View style={styles.noticeTextContainer}>
             <Text style={styles.noticeTitle}>Secure Payments</Text>
             <Text style={styles.noticeSubtitle}>
-              All transactions are encrypted and processed securely via Stripe,
-              Pesapal, and M-Pesa
+              Transactions are processed securely through Pesapal and M-Pesa.
             </Text>
           </View>
         </View>

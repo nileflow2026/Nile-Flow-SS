@@ -70,7 +70,7 @@ export const trackPremiumEvent = {
     trackEvent("premium_subscription_initiated", {
       event_category: "premium",
       event_label: "payment_started",
-      payment_method: paymentMethod, // 'mpesa' or 'stripe'
+      payment_method: paymentMethod,
     });
   },
 
