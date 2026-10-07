@@ -15,6 +15,7 @@
 "use strict";
 
 const { Worker } = require("bullmq");
+const { env } = require("../../env");
 const {
   connection,
   nileMilesQueue,
@@ -22,6 +23,7 @@ const {
   fraudCheckQueue,
 } = require("../queues");
 const { logger, auditLogger } = require("../../lib/logger");
+const { createAutomaticPush } = require("../../../services/automaticPushService");
 
 const CONCURRENCY = 3; // Low: order operations must be carefully serialised
 
@@ -65,6 +67,15 @@ const worker = new Worker(
           );
         }
 
+        const customerId = order.userId || order.users;
+        if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && customerId) {
+          await createAutomaticPush({
+            eventType: "order.created",
+            userId: customerId,
+            eventKey: `${order.$id}:customer:${customerId}:order.created`,
+          });
+        }
+
         auditLogger.info("Order created event processed", {
           event: "ORDER_CREATED",
           orderId: order.$id,
@@ -88,21 +99,28 @@ const worker = new Worker(
           { jobId: `miles:${order.$id}` }, // idempotent
         );
 
-        // 2. Notify buyer
-        await notificationsQueue.add(
-          "buyer-payment-confirmed",
-          {
-            type: "in-app",
-            payload: {
-              userId: order.userId,
-              title: "Payment Confirmed",
-              message: `Your order #${order.orderId} has been paid successfully.`,
-              notificationType: "payment_processed",
-              metadata: { orderId: order.$id },
+        if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && order.userId) {
+          await createAutomaticPush({
+            eventType: "order.paid",
+            userId: order.userId,
+            eventKey: `order:${order.$id}:paid`,
+          });
+        } else {
+          await notificationsQueue.add(
+            "buyer-payment-confirmed",
+            {
+              type: "in-app",
+              payload: {
+                userId: order.userId,
+                title: "Payment Confirmed",
+                message: `Your order #${order.orderId} has been paid successfully.`,
+                notificationType: "payment_processed",
+                metadata: { orderId: order.$id },
+              },
             },
-          },
-          { jobId: `notify:buyer:${order.$id}:paid` },
-        );
+            { jobId: `notify:buyer:${order.$id}:paid` },
+          );
+        }
 
         auditLogger.info("Order paid event processed", {
           event: "ORDER_PAID",
@@ -116,24 +134,39 @@ const worker = new Worker(
       }
 
       case "order.shipped": {
-        await notificationsQueue.add(
-          "buyer-order-shipped",
-          {
-            type: "in-app",
-            payload: {
-              userId: order.userId,
-              title: "Order Shipped",
-              message: `Your order #${order.orderId} is on its way!`,
-              notificationType: "order_shipped",
-              metadata: { orderId: order.$id, trackingId: order.trackingId },
+        if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && order.userId) {
+          await createAutomaticPush({
+            eventType: "order.shipped",
+            userId: order.userId,
+            eventKey: `order:${order.$id}:shipped`,
+          });
+        } else {
+          await notificationsQueue.add(
+            "buyer-order-shipped",
+            {
+              type: "in-app",
+              payload: {
+                userId: order.userId,
+                title: "Order Shipped",
+                message: `Your order #${order.orderId} is on its way!`,
+                notificationType: "order_shipped",
+                metadata: { orderId: order.$id, trackingId: order.trackingId },
+              },
             },
-          },
-          { jobId: `notify:buyer:${order.$id}:shipped` },
-        );
+            { jobId: `notify:buyer:${order.$id}:shipped` },
+          );
+        }
         break;
       }
 
       case "order.delivered": {
+        if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && order.userId) {
+          await createAutomaticPush({
+            eventType: "order.delivered",
+            userId: order.userId,
+            eventKey: `order:${order.$id}:delivered`,
+          });
+        }
         // Request review 1 hour after delivery (via delayed job)
         await notificationsQueue.add(
           "buyer-review-request",
@@ -164,21 +197,28 @@ const worker = new Worker(
           timestamp: new Date().toISOString(),
         });
 
-        // Notify buyer
-        await notificationsQueue.add(
-          "buyer-order-cancelled",
-          {
-            type: "in-app",
-            payload: {
-              userId: order.userId,
-              title: "Order Cancelled",
-              message: `Your order #${order.orderId} has been cancelled.`,
-              notificationType: "order_cancelled",
-              metadata: { orderId: order.$id },
+        if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && order.userId) {
+          await createAutomaticPush({
+            eventType: "order.cancelled",
+            userId: order.userId,
+            eventKey: `order:${order.$id}:cancelled`,
+          });
+        } else {
+          await notificationsQueue.add(
+            "buyer-order-cancelled",
+            {
+              type: "in-app",
+              payload: {
+                userId: order.userId,
+                title: "Order Cancelled",
+                message: `Your order #${order.orderId} has been cancelled.`,
+                notificationType: "order_cancelled",
+                metadata: { orderId: order.$id },
+              },
             },
-          },
-          { jobId: `notify:buyer:${order.$id}:cancelled` },
-        );
+            { jobId: `notify:buyer:${order.$id}:cancelled` },
+          );
+        }
         break;
       }
 

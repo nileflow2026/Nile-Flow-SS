@@ -21,6 +21,7 @@ const GlobalContext = createContext({
   user: null,
   setUser: () => {},
   loading: true,
+  sessionInitialized: false,
   sessionError: false,
   retrySessionCheck: async () => {},
   pickupAddress: null,
@@ -806,6 +807,7 @@ const GlobalProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLogged, setIsLogged] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
   const [sessionError, setSessionError] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const [pickupAddress, setPickupAddress] = useState(null);
@@ -900,6 +902,7 @@ const GlobalProvider = ({ children }) => {
       } finally {
         console.log("✅ [GlobalProvider] Setting loading = false");
         setLoading(false);
+        setSessionInitialized(true);
       }
     };
 
@@ -908,13 +911,13 @@ const GlobalProvider = ({ children }) => {
 
   const retrySessionCheck = async () => {
     setLoading(true);
-    setSessionError(false);
     try {
       await migrateLegacyOAuthTokens();
       const currentUser = await getCurrentUser(true);
       setUser(currentUser);
       setIsLogged(Boolean(currentUser));
       setIsGuest(false);
+      setSessionError(false);
       return currentUser;
     } catch (error) {
       console.error("Customer session retry failed:", error.message);
@@ -1057,6 +1060,7 @@ const GlobalProvider = ({ children }) => {
       user,
       setUser,
       loading,
+      sessionInitialized,
       sessionError,
       retrySessionCheck,
       pickupAddress,
@@ -1073,6 +1077,7 @@ const GlobalProvider = ({ children }) => {
       isLogged,
       user,
       loading,
+      sessionInitialized,
       sessionError,
       retrySessionCheck,
       isGuest,

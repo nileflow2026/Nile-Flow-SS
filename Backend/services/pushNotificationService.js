@@ -1,14 +1,12 @@
 /**
- * Expo Push Notification Service
+ * Expo Push Notification Service.
  *
- * Sends push notifications to individual users via the Expo Push API.
- * Works for ALL notification types: orders, app updates, promotions, news, etc.
- *
- * The user's Expo push token is stored on their Appwrite user document
- * (registered by the mobile app on startup via POST /api/customernotifications/register-token).
+ * Callers enqueue these sends on nf:notifications. This module only performs
+ * the provider request and returns its ticket outcome to the queue worker.
  */
 
-const { db } = require("./appwriteService");
+const { notificationsQueue } = require("../src/jobs/queues");
+const { instrumentedDb } = require("./appwriteService");
 const { env } = require("../src/env");
 
 const EXPO_PUSH_API = "https://exp.host/--/api/v2/push/send";
@@ -46,155 +44,140 @@ function getTitleForType(type) {
  * Fetch a user's Expo push token from Appwrite.
  * Returns null if not found or not registered.
  */
-async function getUserPushToken(userId) {
-  try {
-    const userDoc = await db.getDocument(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_USER_COLLECTION_ID,
-      userId,
-    );
-    return userDoc?.pushToken || null;
-  } catch (error) {
-    console.warn("[Push] Could not read the user's push token:", error.message);
-    return null;
-  }
-}
-
 /**
- * Send a single push notification to a user.
- *
- * @param {object} options
- * @param {string} options.userId        - Appwrite user document ID
- * @param {string} options.message       - Notification body text
- * @param {string} [options.type]        - Notification type (determines title)
- * @param {string} [options.title]       - Override title (optional)
- * @param {object} [options.data]        - Extra data payload for the app
+ * Enqueue a push for delivery by the notification worker.
  */
-async function sendPushNotification({
+async function enqueuePushNotification({
   userId,
   message,
   type,
   title,
   data = {},
+  idempotencyKey,
+  expiresAfter,
 }) {
-  if (!userId || !message) return;
-
-  const pushToken = await getUserPushToken(userId);
-
-  if (!pushToken) {
-    // User hasn't registered a push token (e.g. web user, simulator, permissions denied)
-    return;
+  if (!userId || !message) {
+    throw new Error("Push notification requires userId and message.");
   }
 
-  const notificationTitle = title || getTitleForType(type);
+  return notificationsQueue.add(
+    "expo-push",
+    {
+      type: "expo-push",
+      payload: {
+        userId,
+        message,
+        type,
+        title: title || getTitleForType(type),
+        data,
+        expiresAfter,
+      },
+    },
+    {
+      jobId: idempotencyKey
+        ? `push:${idempotencyKey}`
+        : undefined,
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1000 },
+      removeOnComplete: { count: 100 },
+      removeOnFail: { count: 500 },
+    },
+  );
+}
+
+/**
+ * Send one already-queued push to Expo and return its ticket outcome.
+ */
+async function sendQueuedPush({ userId, message, type, title, data = {}, expiresAfter }) {
+  if (!userId || !message) {
+    throw new Error("Queued push is missing userId or message.");
+  }
+
+  const userDoc = await instrumentedDb.getDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_USER_COLLECTION_ID,
+    userId,
+  );
+  const pushToken = userDoc?.pushToken;
+  if (!pushToken) return { status: "skipped", reason: "missing_token" };
 
   const payload = {
     to: pushToken,
-    title: notificationTitle,
+    title: title || getTitleForType(type),
     body: message,
     sound: "default",
     badge: 1,
     data: { type, ...data },
     channelId: resolveChannelId(type),
   };
-
-  try {
-    const response = await fetch(EXPO_PUSH_API, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(`Expo Push API returned HTTP ${response.status}`);
-    }
-
-    const tickets = Array.isArray(result?.data) ? result.data : [result?.data];
-    for (const ticket of tickets) {
-      if (ticket?.status !== "error") continue;
-      console.warn("[Push] Expo reported a delivery error:", ticket.message);
-
-      if (ticket.details?.error === "DeviceNotRegistered") {
-        await clearInvalidToken(userId, pushToken);
-      }
-    }
-  } catch (error) {
-    // Push delivery failure is non-critical — never let it break the caller
-    console.warn("[Push] Failed to send notification:", error.message);
+  if (Number.isInteger(expiresAfter) && expiresAfter > 0) {
+    payload.ttl = expiresAfter;
   }
-}
 
-/**
- * Send push notifications to multiple users at once (batch).
- * Uses the Expo bulk API endpoint.
- *
- * @param {Array<{userId, message, type, title, data}>} notifications
- */
-async function sendPushNotificationBatch(notifications) {
-  if (!notifications?.length) return;
-
-  const deliveries = await Promise.all(
-    notifications.map(async ({ userId, message, type, title, data = {} }) => {
-      const pushToken = await getUserPushToken(userId);
-      if (!pushToken) return null;
-      return {
-        userId,
-        pushToken,
-        payload: {
-          to: pushToken,
-          title: title || getTitleForType(type),
-          body: message,
-          sound: "default",
-          badge: 1,
-          data: { type, ...data },
-          channelId: resolveChannelId(type),
-        },
-      };
-    }),
-  );
-
-  const validDeliveries = deliveries.filter(Boolean);
-  if (!validDeliveries.length) return;
-
+  const response = await fetch(EXPO_PUSH_API, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  let result;
   try {
-    const response = await fetch(EXPO_PUSH_API, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(validDeliveries.map(({ payload }) => payload)),
-    });
-
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(`Expo Push API returned HTTP ${response.status}`);
-    }
-
-    const tickets = Array.isArray(result?.data) ? result.data : [];
-    for (const [index, ticket] of tickets.entries()) {
-      if (ticket?.status !== "error") continue;
-      console.warn("[Push] Expo reported a batch delivery error:", ticket.message);
-
-      if (ticket.details?.error === "DeviceNotRegistered") {
-        const delivery = validDeliveries[index];
-        if (delivery) {
-          await clearInvalidToken(delivery.userId, delivery.pushToken);
-        }
-      }
-    }
-
-    console.log(`[Push] Batch submitted ${validDeliveries.length} notifications.`);
-    return result;
+    result = await response.json();
   } catch (error) {
-    console.warn("[Push] Batch send failed:", error.message);
+    const parseError = new Error("Expo returned an unreadable push response.");
+    parseError.retryable = response.status === 429 || response.status >= 500;
+    parseError.errorCategory =
+      response.status === 429
+        ? "http_429"
+        : response.status >= 500
+          ? "http_5xx"
+          : "http_4xx";
+    throw parseError;
   }
+  if (!response.ok) {
+    const error = new Error(`Expo Push API returned HTTP ${response.status}.`);
+    error.statusCode = response.status;
+    error.retryable = response.status === 429 || response.status >= 500;
+    error.errorCategory =
+      response.status === 429
+        ? "http_429"
+        : response.status >= 500
+          ? "http_5xx"
+          : "http_4xx";
+    throw error;
+  }
+
+  const ticket = Array.isArray(result?.data) ? result.data[0] : result?.data;
+  if (ticket?.status === "error") {
+    const providerCode = ticket.details?.error;
+    if (providerCode === "DeviceNotRegistered") {
+      await clearInvalidToken(userId, pushToken);
+      return { status: "rejected", reason: providerCode };
+    }
+    if (
+      ["MessageRateExceeded", "MessageServerUnavailable", "InternalServerError"].includes(
+        providerCode,
+      )
+    ) {
+      const error = new Error(ticket.message || "Expo temporarily rejected the push.");
+      error.providerCode = providerCode;
+      error.retryable = true;
+      error.errorCategory = providerCode;
+      throw error;
+    }
+
+    return { status: "rejected", reason: providerCode || "provider_rejected" };
+  }
+  if (ticket?.status !== "ok") {
+    const error = new Error("Expo returned a response without a valid push ticket.");
+    error.errorCategory = "ambiguous_provider_result";
+    throw error;
+  }
+
+  return { status: "accepted", ticketId: ticket.id || null };
 }
 
 /**
@@ -222,22 +205,21 @@ function resolveChannelId(type) {
 }
 
 async function clearInvalidToken(userId, invalidToken) {
-  try {
-    const currentToken = await getUserPushToken(userId);
-    if (currentToken !== invalidToken) return;
-
-    await db.updateDocument(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_USER_COLLECTION_ID,
-      userId,
-      { pushToken: null },
-    );
-  } catch (error) {
-    console.warn("[Push] Could not remove an invalid push token:", error.message);
-  }
+  const user = await instrumentedDb.getDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_USER_COLLECTION_ID,
+    userId,
+  );
+  if (user?.pushToken !== invalidToken) return;
+  await instrumentedDb.updateDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_USER_COLLECTION_ID,
+    userId,
+    { pushToken: null },
+  );
 }
 
 module.exports = {
-  sendPushNotification,
-  sendPushNotificationBatch,
+  enqueuePushNotification,
+  sendQueuedPush,
 };

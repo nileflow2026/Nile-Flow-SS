@@ -191,6 +191,22 @@ const resetPasswordWithCode = async (req, res) => {
     // The user document's $id matches the Appwrite user ID
     await users.updatePassword(user.$id, newPassword);
 
+    if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true) {
+      try {
+        const { createAutomaticPush } = require("../../services/automaticPushService");
+        await createAutomaticPush({
+          eventType: "account.password_changed",
+          userId: user.$id,
+          eventKey: `account.password_reset:${user.$id}:${crypto.randomUUID()}`,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Password reset, but the security notification could not be queued:",
+          notificationError.message,
+        );
+      }
+    }
+
     // Clear the reset code from user document
     await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,

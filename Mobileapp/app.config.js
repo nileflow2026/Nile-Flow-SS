@@ -46,10 +46,10 @@ module.exports = () => ({
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png",
+        backgroundColor: "#FFFFFF",
+        foregroundImage: "./assets/logo.png",
+        backgroundImage: "./assets/logo.png",
+        monochromeImage: "./assets/logo.png",
       },
       // Android 15+ edge-to-edge display — uses WindowInsets API instead of deprecated Window methods
       enableOnBackInvokedCallback: true,
@@ -64,7 +64,7 @@ module.exports = () => ({
       favicon: "./assets/images/favicon.png",
     },
     notification: {
-      icon: "./assets/images/icon.png",
+      icon: "./assets/images/android-icon-monochrome.png",
       color: "#F59E0B",
       androidMode: "default",
       androidCollapsedTitle: "#{unread_notifications} new notifications",
@@ -106,7 +106,7 @@ module.exports = () => ({
           resizeMode: "contain",
           backgroundColor: "#ffffff",
           dark: {
-            backgroundColor: "#000000",
+            backgroundColor: "#ffffff",
           },
         },
       ],

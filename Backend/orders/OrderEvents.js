@@ -16,8 +16,9 @@
 
 'use strict';
 
-const { ORDER_EVENT_TYPE } = require('./OrderTypes');
 const { logAudit } = require('../utils/auditLogger');
+const { env } = require('../src/env');
+const { getOrderNotificationEvent } = require('../notifications/orderNotificationMapping');
 
 // ── Handlers registry — extend by adding new channel handlers here ──────────
 
@@ -47,6 +48,13 @@ const handlers = {
    * Create an in-app notification for the user.
    */
   inApp: async (event, payload) => {
+    const isHandledByNotificationService =
+      env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
+      Boolean(getOrderNotificationEvent(event, payload));
+    if (isHandledByNotificationService) {
+      return;
+    }
+
     try {
       const { createNotification } = require('../controllers/UserControllers/Clientnotification');
       await createNotification({
@@ -69,18 +77,30 @@ const handlers = {
   notificationService: async (event, payload) => {
     try {
       const NotificationService = require('../notifications/NotificationService');
-      const { EVENT } = require('../notifications/NotificationTypes');
-
-      // Map order events to notification events
-      const eventMap = {
-        'order.created': EVENT.ORDER_CREATED,
-        'order.status_changed': EVENT.ORDER_CONFIRMED,
-        'order.cancelled': EVENT.ORDER_CANCELLED,
-        'order.cancellation_approved': EVENT.ORDER_CANCELLED,
-      };
-
-      const notifEvent = eventMap[event];
+      const notifEvent = getOrderNotificationEvent(event, payload);
       if (!notifEvent) return;
+
+      if (
+        event === 'order.cancellation_requested' ||
+        event === 'order.cancellation_approved' ||
+        event === 'order.cancellation_rejected'
+      ) {
+        const requestId = payload.metadata?.requestId || payload.orderId;
+        await NotificationService.notifyUser(
+          notifEvent,
+          {
+            orderId: payload.orderId,
+            orderNumber: payload.orderNumber,
+          },
+          {
+            userId: payload.userId,
+            email: payload.email,
+            username: payload.username,
+          },
+          `${requestId}:${event}:${payload.userId}`,
+        );
+        return;
+      }
 
       // Build a minimal order-like object for NotificationService
       const order = {
@@ -92,11 +112,38 @@ const handlers = {
         userId: payload.userId,
         amount: payload.amount,
         paymentMethod: payload.paymentMethod,
+        paymentStatus: payload.paymentStatus,
       };
 
-      NotificationService.orderCreated(order, payload.cartItems || []).catch((err) => {
-        console.warn(`[OrderEvents] NotificationService error for ${event}:`, err.message);
-      });
+      if (event === 'order.status_changed' || event === 'order.cancelled') {
+        await NotificationService.notifyUser(
+          notifEvent,
+          order,
+          {
+            userId: payload.userId,
+            email: payload.email,
+            username: payload.username,
+          },
+          `${payload.orderId}:customer:${payload.userId}:${notifEvent}`,
+        );
+        return;
+      }
+
+      if (event === 'order.created') {
+        const isPushV2Enabled = env.PUSH_NOTIFICATIONS_V2_ENABLED === true;
+        await NotificationService.orderCreated(order, payload.cartItems || [], {
+          notifyCustomer:
+            !isPushV2Enabled || payload.paymentStatus !== 'succeeded',
+          suppressCustomerPush:
+            isPushV2Enabled && payload.paymentStatus !== 'succeeded',
+        });
+        if (isPushV2Enabled && payload.paymentStatus === 'succeeded') {
+          await NotificationService.orderConfirmed(order);
+        }
+        return;
+      }
+
+      await NotificationService.orderCreated(order, payload.cartItems || []);
     } catch (err) {
       console.warn(`[OrderEvents] NotificationService handler error for ${event}:`, err.message);
     }

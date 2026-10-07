@@ -411,6 +411,27 @@ async function syncStatus(order, orderTrackingId) {
     ...(completed ? { orderStatus: "Ordered", status: "Ordered" } : {}),
   });
 
+  if (
+    completed &&
+    order.paymentStatus !== "succeeded" &&
+    env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
+    (order.userId || order.users)
+  ) {
+    try {
+      const NotificationService = require("../notifications/NotificationService");
+      await NotificationService.orderConfirmed({
+        ...order,
+        paymentStatus: "succeeded",
+        paymentMethod: paymentMethod || order.paymentMethod,
+      });
+    } catch (notificationError) {
+      logger.error("Could not queue Pesapal order confirmation notification", {
+        orderId: order.$id,
+        error: notificationError.message,
+      });
+    }
+  }
+
   return { success: true, paymentStatus, orderId: order.$id, orderNumber: order.orderNumber, payment };
 }
 

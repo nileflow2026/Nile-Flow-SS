@@ -24,6 +24,16 @@ const { logger } = require("../../lib/logger");
 const redisUrl = process.env.REDIS_URL;
 const nodeEnv = process.env.NODE_ENV || "development";
 
+if (
+  process.env.PUSH_NOTIFICATIONS_V2_ENABLED === "true" &&
+  nodeEnv === "production" &&
+  !redisUrl
+) {
+  throw new Error(
+    "PUSH_NOTIFICATIONS_V2_ENABLED requires REDIS_URL in production.",
+  );
+}
+
 // BullMQ requires a separate connection from the cache client
 // because it sets blocking commands that conflict with regular key ops.
 let connection;

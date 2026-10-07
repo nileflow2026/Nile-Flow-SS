@@ -135,37 +135,47 @@ async function processSuccessfulMpesaPayment(order, orderId, paymentDetails) {
       // Don't fail payment for premium processing errors
     }
 
-    // 5. Send in-app notifications (non-blocking)
-    try {
-      await createNotification({
-        userId: order.userId || order.users,
-        type: "payment_success",
-        title: "Payment Successful",
-        message: `Your M-Pesa payment of KES ${amount} has been confirmed.`,
-        orderId,
-        email: order.customerEmail,
-      });
-    } catch (notificationError) {
-      console.warn("Notification error:", notificationError.message);
+    // The durable order confirmation receipt creates the customer notice in v2.
+    if (env.PUSH_NOTIFICATIONS_V2_ENABLED !== true) {
+      try {
+        await createNotification({
+          userId: order.userId || order.users,
+          type: "payment_success",
+          title: "Payment Successful",
+          message: `Your M-Pesa payment of KES ${amount} has been confirmed.`,
+          orderId,
+          email: order.customerEmail,
+        });
+      } catch (notificationError) {
+        console.warn("Notification error:", notificationError.message);
+      }
     }
 
     // 6. Notify customer, admins, and vendors (centralized NotificationService —
     // Email + SMS + WhatsApp + Push, retried and logged, never blocks the callback)
+    const notificationOrder = {
+      $id: orderId,
+      orderNumber: order.orderNumber,
+      username: order.username || "Customer",
+      customerEmail: order.customerEmail,
+      customerPhone: phoneNumber,
+      userId: order.userId || order.users,
+      amount,
+      paymentMethod: "M-Pesa",
+      paymentStatus: "succeeded",
+    };
     NotificationService.orderCreated(
-      {
-        $id: orderId,
-        orderNumber: order.orderNumber,
-        username: order.username || "Customer",
-        customerEmail: order.customerEmail,
-        customerPhone: phoneNumber,
-        userId: order.userId || order.users,
-        amount,
-        paymentMethod: "M-Pesa",
-      },
+      notificationOrder,
       cart,
+      { notifyCustomer: env.PUSH_NOTIFICATIONS_V2_ENABLED !== true },
     ).catch((err) => {
       console.warn(`[PaymentController] Notification dispatch failed for order ${orderId}:`, err.message);
     });
+    if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true) {
+      NotificationService.orderConfirmed(notificationOrder).catch((err) => {
+        console.warn(`[PaymentController] Order confirmation notification failed for ${orderId}:`, err.message);
+      });
+    }
 
     console.log(`✅ M-Pesa payment processing completed for order ${orderId}`);
   } catch (error) {
@@ -673,21 +683,29 @@ const cashonDelivery = async (req, res) => {
 
     // Notify customer, admins, and vendors (centralized NotificationService —
     // Email + SMS + WhatsApp + Push, retried and logged, never blocks the response)
+    const notificationOrder = {
+      $id: orderId,
+      orderNumber,
+      username,
+      customerEmail,
+      customerPhone: customerPhone || "",
+      userId: finalUserId,
+      amount: Math.round(parseFloat(trustedTotal)),
+      paymentMethod: "Payment on Delivery",
+      paymentStatus: "succeeded",
+    };
     NotificationService.orderCreated(
-      {
-        $id: orderId,
-        orderNumber,
-        username,
-        customerEmail,
-        customerPhone: customerPhone || "",
-        userId: finalUserId,
-        amount: Math.round(parseFloat(trustedTotal)),
-        paymentMethod: "Payment on Delivery",
-      },
+      notificationOrder,
       cart,
+      { notifyCustomer: env.PUSH_NOTIFICATIONS_V2_ENABLED !== true },
     ).catch((err) => {
       console.warn(`[PaymentController] Notification dispatch failed for order ${orderId}:`, err.message);
     });
+    if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true) {
+      NotificationService.orderConfirmed(notificationOrder).catch((err) => {
+        console.warn(`[PaymentController] Order confirmation notification failed for ${orderId}:`, err.message);
+      });
+    }
 
     console.log(`🎉 Order ${orderId} completed successfully`);
   } catch (error) {

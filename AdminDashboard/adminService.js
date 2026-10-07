@@ -3,6 +3,42 @@
 
 import axiosClient from './api';
 
+// ─── Push Broadcasts ────────────────────────────────────────────────────────
+
+export const previewPushBroadcast = async (payload) => {
+  const response = await axiosClient.post('/api/v1/admin/push-broadcasts/preview', payload);
+  return response.data;
+};
+
+export const createPushBroadcast = async (payload, requestKey) => {
+  const response = await axiosClient.post('/api/v1/admin/push-broadcasts', payload, {
+    headers: { 'Idempotency-Key': requestKey },
+  });
+  return response.data;
+};
+
+export const listPushBroadcasts = async ({ page = 1, limit = 20 } = {}) => {
+  const response = await axiosClient.get('/api/v1/admin/push-broadcasts', {
+    params: { page, limit },
+  });
+  return response.data;
+};
+
+export const getPushBroadcast = async (campaignId) => {
+  const response = await axiosClient.get(`/api/v1/admin/push-broadcasts/${campaignId}`);
+  return response.data;
+};
+
+export const cancelPushBroadcast = async (campaignId) => {
+  const response = await axiosClient.post(`/api/v1/admin/push-broadcasts/${campaignId}/cancel`);
+  return response.data;
+};
+
+export const retryPushBroadcast = async (campaignId) => {
+  const response = await axiosClient.post(`/api/v1/admin/push-broadcasts/${campaignId}/retry`);
+  return response.data;
+};
+
 // ─── Authentication & User Profile ──────────────────────────────────────────
 
 export const login = async (credentials) => {

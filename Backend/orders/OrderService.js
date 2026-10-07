@@ -290,6 +290,7 @@ async function createCodOrder(body, authUser, options = {}) {
     orderTotal: trustedOrderTotal,
     deliveryFee,
     paymentMethod: options.paymentMethod || PAYMENT_METHOD.CASH_ON_DELIVERY,
+    paymentStatus: orderDocument.paymentStatus,
     cartItems: cart,
     actor: `customer:${userId}`,
     metadata: { stockUpdated: true, productsUpdated: stockUpdateResult.updatedProducts.length },
@@ -429,7 +430,7 @@ async function requestCancellation(body, authUser) {
   }
 
   // Create cancellation request
-  await OrderRepository.createCancellationRequest({
+  const cancellationRequest = await OrderRepository.createCancellationRequest({
     orderId,
     userId: authUser.userId,
     customerEmail: customerEmail || order.customerEmail,
@@ -449,7 +450,10 @@ async function requestCancellation(body, authUser) {
     username: customerName || order.username,
     reason,
     actor: `customer:${authUser.userId}`,
-    metadata: { additionalDetails },
+    metadata: {
+      requestId: cancellationRequest.$id,
+      additionalDetails,
+    },
   });
 
   return {

@@ -51,6 +51,10 @@ const registerPushTokenWithBackend = async (pushToken) => {
   });
 };
 
+const unregisterPushTokenWithBackend = async () => {
+  await axiosClient.delete("/api/customernotifications/register-token");
+};
+
 const configureNotificationChannels = async (isMuted) => {
   if (Platform.OS !== "android" || !Notifications) return;
 
@@ -89,6 +93,26 @@ export const usePushNotifications = (
 ) => {
   const [expoPushToken, setExpoPushToken] = useState(null);
   const lastResponseId = useRef(null);
+  const registerDeviceRef = useRef(null);
+
+  const requestPushPermission = async () => {
+    if (!userId || !Notifications || !Device?.isDevice) return false;
+
+    try {
+      const permission = await Notifications.getPermissionsAsync();
+      const finalPermission =
+        permission.status === "granted"
+          ? permission
+          : await Notifications.requestPermissionsAsync();
+      if (finalPermission.status !== "granted") return false;
+
+      await registerDeviceRef.current?.();
+      return true;
+    } catch (error) {
+      console.warn("[Push] Could not request notification permission:", error.message);
+      return false;
+    }
+  };
 
   useEffect(() => {
     setExpoPushToken(null);
@@ -105,6 +129,7 @@ export const usePushNotifications = (
     let isMounted = true;
     let registeredToken = null;
     let isRegistering = false;
+    let permissionWasGranted = null;
 
     const handleResponse = (response) => {
       const responseId = response?.notification?.request?.identifier;
@@ -132,15 +157,17 @@ export const usePushNotifications = (
         await configureNotificationChannels(isMuted);
 
         const permission = await Notifications.getPermissionsAsync();
-        let finalStatus = permission.status;
-
-        if (finalStatus !== "granted") {
-          const requestedPermission =
-            await Notifications.requestPermissionsAsync();
-          finalStatus = requestedPermission.status;
+        if (!isMounted) return;
+        if (permission.status !== "granted") {
+          if (permissionWasGranted !== false) {
+            await unregisterPushTokenWithBackend();
+          }
+          permissionWasGranted = false;
+          registeredToken = null;
+          setExpoPushToken(null);
+          return;
         }
-
-        if (!isMounted || finalStatus !== "granted") return;
+        permissionWasGranted = true;
 
         const projectId = getProjectId();
         if (!projectId) {
@@ -168,6 +195,7 @@ export const usePushNotifications = (
       }
     };
 
+    registerDeviceRef.current = registerDevice;
     const receivedSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
         onNotificationReceived?.(notification);
@@ -197,6 +225,9 @@ export const usePushNotifications = (
 
     return () => {
       isMounted = false;
+      if (registerDeviceRef.current === registerDevice) {
+        registerDeviceRef.current = null;
+      }
       receivedSubscription.remove();
       responseSubscription.remove();
       tokenSubscription.remove();
@@ -204,5 +235,5 @@ export const usePushNotifications = (
     };
   }, [userId, onNotificationReceived, onNotificationResponse]);
 
-  return { expoPushToken };
+  return { expoPushToken, requestPushPermission };
 };

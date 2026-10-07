@@ -35,29 +35,39 @@ async function resolveChannels(userId, event) {
 
   // 2. Get user preferences (if any)
   const prefs = await getUserPreferences(userId);
-  if (!prefs) return defaults; // No preferences → use defaults
+  const notifType = EVENT_NOTIFICATION_TYPE[event] || 'order';
+  if (!prefs) {
+    return notifType === 'promotion'
+      ? defaults.filter((channel) => channel !== CHANNEL.PUSH)
+      : defaults;
+  }
 
   // 3. Filter channels by user preferences
-  const notifType = EVENT_NOTIFICATION_TYPE[event] || 'order';
   const typePrefs = prefs[notifType] || DEFAULT_ENABLED;
 
-  return defaults.filter((ch) => typePrefs[ch] !== false);
+  return defaults.filter((ch) => {
+    if (ch !== CHANNEL.PUSH) return typePrefs[ch] !== false;
+    if (notifType === 'promotion') {
+      return prefs.marketingPushEnabled === true;
+    }
+    return typePrefs[ch] !== false;
+  });
 }
 
 /**
  * Get user notification preferences from Appwrite user document.
  */
 async function getUserPreferences(userId) {
-  try {
-    const userDoc = await instrumentedDb.getDocument(
-      env.APPWRITE_DATABASE_ID,
-      env.APPWRITE_USER_COLLECTION_ID,
-      userId,
-    );
-    return userDoc?.notificationPreferences || null;
-  } catch {
-    return null;
-  }
+  const userDoc = await instrumentedDb.getDocument(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_USER_COLLECTION_ID,
+    userId,
+  );
+  if (!userDoc) return null;
+  return {
+    ...(userDoc.notificationPreferences || {}),
+    marketingPushEnabled: userDoc.marketingPushEnabled === true,
+  };
 }
 
 /**
@@ -70,7 +80,7 @@ const DEFAULT_PREFERENCES = {
   product: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
   vendor: { email: true, sms: true, push: true, in_app: true, whatsapp: true },
   system: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
-  promotion: { email: false, sms: false, push: true, in_app: true, whatsapp: false },
+  promotion: { email: false, sms: false, push: false, in_app: true, whatsapp: false },
   security: { email: true, sms: true, push: true, in_app: true, whatsapp: false },
   support: { email: true, sms: false, push: true, in_app: true, whatsapp: false },
   loyalty: { email: false, sms: false, push: true, in_app: true, whatsapp: false },

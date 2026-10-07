@@ -522,6 +522,25 @@ class PaymentCallbackController {
               updatedAt: new Date().toISOString(),
             },
           );
+          if (
+            order.paymentStatus !== "succeeded" &&
+            env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
+            (order.userId || order.users)
+          ) {
+            try {
+              const NotificationService = require("../notifications/NotificationService");
+              await NotificationService.orderConfirmed({
+                ...order,
+                paymentStatus: "succeeded",
+                paymentMethod: "PayPal",
+              });
+            } catch (notificationError) {
+              logger.error("Could not queue PayPal order confirmation notification:", {
+                orderId: order.$id,
+                error: notificationError.message,
+              });
+            }
+          }
           logger.info(`PayPal capture completed for order ${orderId}`);
         }
       }

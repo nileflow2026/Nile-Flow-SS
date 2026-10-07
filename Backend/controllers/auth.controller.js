@@ -481,6 +481,22 @@ const changePassword = async (req, res) => {
     // Update password
     await account.updatePassword(newPassword);
 
+    if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true && currentUser.$id) {
+      try {
+        const { createAutomaticPush } = require("../services/automaticPushService");
+        await createAutomaticPush({
+          eventType: "account.password_changed",
+          userId: currentUser.$id,
+          eventKey: `account.password_changed:${currentUser.$id}:${crypto.randomUUID()}`,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Password changed, but the security notification could not be queued:",
+          notificationError.message,
+        );
+      }
+    }
+
     // Logout all other sessions for security
     const sessions = await account.listSessions();
     const deletePromises = sessions.sessions

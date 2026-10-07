@@ -50,6 +50,7 @@ function AppContent() {
     user,
     isLogged,
     loading,
+    sessionInitialized,
     sessionError,
     retrySessionCheck,
     pickupAddress,
@@ -76,7 +77,7 @@ function AppContent() {
   useEffect(() => {
     if (loading || sessionError) return;
     if (!isLogged && !isPublicScreen) {
-      router.replace("/(auth)/sign-in");
+      router.replace("/");
     } else if (
       isLogged &&
       !pickupAddressLoading &&
@@ -121,19 +122,7 @@ function AppContent() {
     });
   }, [user?.id]);
 
-  // Track screen views automatically on every navigation
-  /*   useEffect(() => {
-    if (pathname) {
-      posthog.screen(pathname, {});
-      posthog.flush();
-    }
-  }, [pathname]);
 
-  useEffect(() => {
-    posthog.debug(true);
-    posthog.capture("app_opened");
-    posthog.flush();
-  }, [posthog]); */
 
   const [fontsLoaded, fontError] = useFonts({
     "Poppins-Thin": require("../assets/fonts/Poppins-Thin.ttf"),
@@ -153,11 +142,14 @@ function AppContent() {
     // singleton — subsequent calls from screens return the same promise.
     initCurrency();
     initializeLanguage();
-    // Hide splash once fonts are ready (or errored out)
-    if (fontsLoaded || fontError) {
+  }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    // Keep session restoration behind the native splash screen.
+    if ((fontsLoaded || fontError) && sessionInitialized) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, sessionInitialized]);
 
   // --- Android Hardware Back Button Handler ---
   const navigation = useNavigation();
@@ -197,26 +189,9 @@ function AppContent() {
     return () => subscription.remove();
   }, [pathname, router, navigation]);
 
-  // Keep splash visible until fonts resolve
+  // Keep startup session restoration out of the app UI.
   if (!fontsLoaded && !fontError) return null;
-
-  if (loading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <ActivityIndicator color="#16A34A" size="large" />
-        <Text style={{ color: "#374151", marginTop: 12 }}>
-          Checking your account…
-        </Text>
-      </View>
-    );
-  }
+  if (!sessionInitialized) return null;
 
   if (sessionError) {
     return (
@@ -253,6 +228,8 @@ function AppContent() {
         </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityState={{ disabled: loading }}
+          disabled={loading}
           onPress={() => retrySessionCheck().catch(() => {})}
           style={{
             marginTop: 24,
@@ -260,6 +237,7 @@ function AppContent() {
             paddingVertical: 14,
             borderRadius: 14,
             backgroundColor: "#16A34A",
+            opacity: loading ? 0.6 : 1,
           }}
         >
           <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>
@@ -269,6 +247,8 @@ function AppContent() {
       </View>
     );
   }
+
+  if (loading) return null;
 
   if (isLogged && pickupAddressLoading) {
     return (
@@ -340,21 +320,7 @@ function AppContent() {
   }
 
   if (!isLogged && !isPublicScreen) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <ActivityIndicator color="#16A34A" size="large" />
-        <Text style={{ color: "#374151", marginTop: 12 }}>
-          Opening sign in…
-        </Text>
-      </View>
-    );
+    return null;
   }
 
   if (

@@ -20,6 +20,7 @@ const router = Router();
 // ── Middleware ────────────────────────────────────────────────────────────────
 
 const authenticateToken = require("../middleware/authMiddleware");
+const { adminOnly } = require("../middleware/auth");
 
 // Optional auth — attaches req.user if a valid token is present; does NOT block unauthenticated requests
 const optionalAuth = (req, res, next) => {
@@ -48,6 +49,18 @@ const {
 } = require("../controllers/v1/bannerController");
 const upload = require("../Config/multer");
 const teamMemberRoutes = require("./teamMemberRoutes");
+const {
+  cancel: cancelPushBroadcast,
+  create: createPushBroadcast,
+  detail: getPushBroadcast,
+  list: listPushBroadcasts,
+  preview: previewPushBroadcast,
+  retry: retryPushBroadcast,
+} = require("../controllers/v1/pushBroadcastController");
+const {
+  getCustomerNotificationPreferences,
+  updateCustomerNotificationPreferences,
+} = require("../controllers/UserControllers/Clientnotification");
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -111,6 +124,54 @@ router.patch("/banners/:bannerId", authenticateToken, upload.single("image"), up
  * Admin — deletes a banner.
  */
 router.delete("/banners/:bannerId", authenticateToken, deleteBanner);
+
+router.get(
+  "/customer/notification-preferences",
+  authenticateToken,
+  getCustomerNotificationPreferences,
+);
+router.patch(
+  "/customer/notification-preferences",
+  authenticateToken,
+  updateCustomerNotificationPreferences,
+);
+
+router.post(
+  "/admin/push-broadcasts/preview",
+  authenticateToken,
+  adminOnly,
+  previewPushBroadcast,
+);
+router.post(
+  "/admin/push-broadcasts",
+  authenticateToken,
+  adminOnly,
+  createPushBroadcast,
+);
+router.get(
+  "/admin/push-broadcasts",
+  authenticateToken,
+  adminOnly,
+  listPushBroadcasts,
+);
+router.get(
+  "/admin/push-broadcasts/:id",
+  authenticateToken,
+  adminOnly,
+  getPushBroadcast,
+);
+router.post(
+  "/admin/push-broadcasts/:id/cancel",
+  authenticateToken,
+  adminOnly,
+  cancelPushBroadcast,
+);
+router.post(
+  "/admin/push-broadcasts/:id/retry",
+  authenticateToken,
+  adminOnly,
+  retryPushBroadcast,
+);
 
 router.use("/team-members", teamMemberRoutes);
 

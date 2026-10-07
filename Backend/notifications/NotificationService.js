@@ -30,17 +30,45 @@ const { dispatchAll, dispatchInApp } = require('./NotificationDispatcher');
  * @param {object} recipient  — { userId, email, phone?, whatsapp?, username? }
  * @param {string} [idempotencyKey] — Stable key (e.g. `${orderId}:customer:${userId}:${event}`)
  */
-async function notifyUser(event, payload, recipient, idempotencyKey = null) {
-  const channels = await resolveChannels(recipient.userId, event);
+async function notifyUser(
+  event,
+  payload,
+  recipient,
+  idempotencyKey = null,
+  { excludeChannels = [] } = {},
+) {
+  const excluded = new Set(excludeChannels);
+  const channels = (await resolveChannels(recipient.userId, event)).filter(
+    (channel) => !excluded.has(channel),
+  );
   if (channels.length === 0) return;
 
   const template = render(event, payload);
   if (!template) return;
 
+  const automaticPush = require("../services/automaticPushService");
+  const useDurableReceipt =
+    env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
+    channels.includes(CHANNEL.PUSH) &&
+    idempotencyKey &&
+    automaticPush.supportsEvent(event);
+  if (useDurableReceipt) {
+    await automaticPush.createAutomaticPush({
+      eventType: event,
+      userId: recipient.userId,
+      eventKey: idempotencyKey,
+    });
+  }
+
   // Dispatch to all channels
   await dispatchAll({
     event,
-    channels,
+    channels: useDurableReceipt
+      ? channels.filter(
+          (channel) =>
+            channel !== CHANNEL.PUSH && channel !== CHANNEL.IN_APP,
+        )
+      : channels,
     recipientId: recipient.userId,
     recipient: recipient.email,
     recipientPhone: recipient.phone,
@@ -52,7 +80,7 @@ async function notifyUser(event, payload, recipient, idempotencyKey = null) {
   });
 
   // In-app notification
-  if (channels.includes(CHANNEL.IN_APP) && template.inApp) {
+  if (!useDurableReceipt && channels.includes(CHANNEL.IN_APP) && template.inApp) {
     await dispatchInApp({
       recipientId: recipient.userId,
       message: template.inApp,
@@ -173,7 +201,11 @@ async function notifyVendors(cartItems, event, payload) {
  * Send all notifications for a new order.
  * Admin gets the full order; each vendor gets only their own line items.
  */
-async function orderCreated(order, cartItems) {
+async function orderCreated(
+  order,
+  cartItems,
+  { notifyCustomer = true, suppressCustomerPush = false } = {},
+) {
   const payload = {
     orderId: order.$id,
     orderNumber: order.orderNumber,
@@ -185,12 +217,24 @@ async function orderCreated(order, cartItems) {
 
   // 1. Notify customer
   const customerId = order.userId || order.users;
-  await notifyUser(EVENT.ORDER_CREATED, payload, {
-    userId: customerId,
-    email: order.customerEmail,
-    phone: order.customerPhone || '',
-    username: order.username,
-  }, `${order.$id}:customer:${customerId}:${EVENT.ORDER_CREATED}`);
+  if (notifyCustomer) {
+    const excludedChannels =
+      suppressCustomerPush && env.PUSH_NOTIFICATIONS_V2_ENABLED === true
+        ? [CHANNEL.PUSH, CHANNEL.IN_APP]
+        : [];
+    await notifyUser(
+      EVENT.ORDER_CREATED,
+      payload,
+      {
+        userId: customerId,
+        email: order.customerEmail,
+        phone: order.customerPhone || '',
+        username: order.username,
+      },
+      `${order.$id}:customer:${customerId}:${EVENT.ORDER_CREATED}`,
+      { excludeChannels: excludedChannels },
+    );
+  }
 
   // 2. Notify admins with admin-specific template (full order visibility)
   const adminPayload = {
@@ -233,6 +277,31 @@ async function orderCreated(order, cartItems) {
   await notifyVendors(cartItems, EVENT.ORDER_CREATED, payload);
 }
 
+async function orderConfirmed(order) {
+  const customerId = order.userId || order.users;
+  if (!customerId) {
+    throw new Error('Order confirmation requires a customer ID.');
+  }
+
+  await notifyUser(
+    EVENT.ORDER_CONFIRMED,
+    {
+      orderId: order.$id,
+      orderNumber: order.orderNumber,
+      customerName: order.username || 'Customer',
+      amount: order.amount,
+      paymentMethod: order.paymentMethod,
+    },
+    {
+      userId: customerId,
+      email: order.customerEmail || order.email,
+      phone: order.customerPhone || order.phone || '',
+      username: order.username,
+    },
+    `${order.$id}:customer:${customerId}:${EVENT.ORDER_CONFIRMED}`,
+  );
+}
+
 /**
  * Send notification for product submission (vendor → admin).
  */
@@ -268,5 +337,6 @@ module.exports = {
   notifyAdmins,
   notifyVendors,
   orderCreated,
+  orderConfirmed,
   productSubmitted,
 };

@@ -121,6 +121,11 @@ const schema = Joi.object({
   // Notification delivery-log audit trail collection
   APPWRITE_NOTIFICATION_LOGS_COLLECTION_ID: Joi.string().optional(),
   APPWRITE_NOTIFICATION_WEBHOOKS_COLLECTION_ID: Joi.string().optional(),
+  APPWRITE_PUSH_BROADCASTS_COLLECTION_ID: Joi.string().optional(),
+  APPWRITE_PUSH_BROADCAST_DELIVERIES_COLLECTION_ID: Joi.string().optional(),
+  APPWRITE_PUSH_EVENT_RECEIPTS_COLLECTION_ID: Joi.string().optional(),
+  PUSH_NOTIFICATIONS_V2_ENABLED: Joi.boolean().default(false),
+  REDIS_URL: Joi.string().uri().optional(),
   // Generic idempotency store (used to dedupe notifications and other retried operations)
   APPWRITE_IDEMPOTENCY_COLLECTION: Joi.string().allow("").optional(),
   // Admin/vendor recipient resolution for the centralized notification system

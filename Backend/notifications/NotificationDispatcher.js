@@ -14,9 +14,8 @@ const { CHANNEL, DELIVERY_STATUS, RETRY } = require('./NotificationTypes');
 const {
   sendEmail,
   sendSms,
-  sendPush,
 } = require('../services/appwriteMessagingService');
-const { sendPushNotification } = require('../services/pushNotificationService');
+const { enqueuePushNotification } = require('../services/pushNotificationService');
 const { createNotification } = require('../controllers/UserControllers/Clientnotification');
 const WhatsAppProvider = require('./WhatsAppProvider');
 const NotificationLogger = require('./NotificationLogger');
@@ -67,7 +66,16 @@ async function dispatch({ event, channel, recipientId, recipient, template, push
   }
 
   // Build template params
-  const params = buildParams(channel, recipientId, recipient, template, pushData);
+  const params = buildParams(
+    channel,
+    recipientId,
+    recipient,
+    template,
+    pushData,
+    idempotencyKey,
+    event,
+    source,
+  );
   if (!params) {
     const logId = await NotificationLogger.log({
       event, channel, recipientId, recipient,
@@ -195,7 +203,16 @@ function getDeliveryFn(channel) {
   return map[channel];
 }
 
-function buildParams(channel, userId, recipient, template, pushData) {
+function buildParams(
+  channel,
+  userId,
+  recipient,
+  template,
+  pushData,
+  idempotencyKey,
+  event,
+  source,
+) {
   switch (channel) {
     case CHANNEL.EMAIL:
       if (!template.emailSubject || !template.emailHtml) return null;
@@ -209,7 +226,15 @@ function buildParams(channel, userId, recipient, template, pushData) {
       return { userId, phone: recipient, content: template.whatsapp || template.sms };
     case CHANNEL.PUSH:
       if (!template.pushTitle || !template.pushBody) return null;
-      return { userId, title: template.pushTitle, body: template.pushBody, data: pushData };
+      return {
+        userId,
+        title: template.pushTitle,
+        body: template.pushBody,
+        data: pushData,
+        idempotencyKey,
+        event,
+        useAutomaticReceipt: source === "NotificationService.notifyUser",
+      };
     default:
       return null;
   }
@@ -242,15 +267,30 @@ async function sendSmsWrapper(params) {
 }
 
 async function sendPushWrapper(params) {
-  const result = await sendPush(params);
-  // Also send via Expo as fallback for mobile — independent of the Appwrite push outcome
-  try {
-    await sendPushNotification({ userId: params.userId, message: params.body, title: params.title, type: 'order', data: params.data });
-  } catch (_) {}
-  if (!result.success) {
-    if (PERMANENT_REASONS.has(result.reason)) throw new SkippedDeliveryError(result.reason);
-    throw new Error(result.reason || 'Push send failed');
+  if (params.useAutomaticReceipt) {
+    const automaticPushService = require("../services/automaticPushService");
+    if (
+      env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
+      params.idempotencyKey &&
+      automaticPushService.supportsEvent(params.event)
+    ) {
+      await automaticPushService.createAutomaticPush({
+        eventType: params.event,
+        userId: params.userId,
+        eventKey: params.idempotencyKey,
+      });
+      return;
+    }
   }
+
+  await enqueuePushNotification({
+    userId: params.userId,
+    message: params.body,
+    title: params.title,
+    type: 'order',
+    data: params.data,
+    idempotencyKey: params.idempotencyKey,
+  });
 }
 
 async function sendWhatsAppWrapper(params) {

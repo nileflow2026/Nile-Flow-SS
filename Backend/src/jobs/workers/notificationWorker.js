@@ -21,6 +21,17 @@ const { logger } = require("../../lib/logger");
 const { instrumentedDb } = require("../../../services/appwriteService");
 const { env } = require("../../env");
 const NotificationRepository = require("../../data/repositories/notificationRepository");
+const { sendQueuedPush } = require("../../../services/pushNotificationService");
+const {
+  processAutomaticPush,
+  recoverPendingReceipts,
+} = require("../../../services/automaticPushService");
+const {
+  processCampaignDelivery,
+  processCampaignPage,
+  pruneExpiredPushDetails,
+  recoverCampaigns,
+} = require("../../../services/pushBroadcastService");
 
 const CONCURRENCY = 5;
 
@@ -94,6 +105,70 @@ const worker = new Worker(
         break;
       }
 
+      case "expo-push": {
+        const outcome = await sendQueuedPush(payload);
+        logger.info("Expo push processed", {
+          meta: {
+            userId: payload.userId,
+            status: outcome.status,
+            reason: outcome.reason,
+          },
+        });
+        return outcome;
+      }
+
+      case "automatic-event-push": {
+        const outcome = await processAutomaticPush(
+          payload.receiptId,
+          sendQueuedPush,
+        );
+        logger.info("Automatic event push processed", {
+          meta: { receiptId: payload.receiptId, status: outcome.status },
+        });
+        return outcome;
+      }
+
+      case "recover-automatic-pushes": {
+        const recovered = await recoverPendingReceipts();
+        logger.info("Automatic push recovery scan completed", {
+          meta: { recovered },
+        });
+        return { recovered };
+      }
+
+      case "push-broadcast-page": {
+        const outcome = await processCampaignPage(payload.campaignId);
+        logger.info("Push broadcast audience page processed", {
+          meta: { campaignId: payload.campaignId, status: outcome.status },
+        });
+        return outcome;
+      }
+
+      case "push-broadcast-delivery": {
+        const outcome = await processCampaignDelivery(
+          payload.deliveryId,
+          job.attemptsMade,
+        );
+        logger.info("Push broadcast delivery processed", {
+          meta: { deliveryId: payload.deliveryId, status: outcome?.status },
+        });
+        return outcome;
+      }
+
+      case "recover-push-broadcasts": {
+        const recovered = await recoverCampaigns();
+        logger.info("Push broadcast recovery scan completed", {
+          meta: { recovered },
+        });
+        return { recovered };
+      }
+
+      case "prune-push-details": {
+        const deleted = await pruneExpiredPushDetails();
+        logger.info("Expired push details pruned", { meta: deleted });
+        return deleted;
+      }
+
       default:
         logger.warn("Unknown notification job type", { meta: { type } });
     }
@@ -117,5 +192,69 @@ worker.on("error", (err) => {
 logger.info("Notification worker started", {
   meta: { concurrency: CONCURRENCY },
 });
+
+if (env.PUSH_NOTIFICATIONS_V2_ENABLED === true) {
+  const { notificationsQueue } = require("../queues");
+  notificationsQueue
+    .upsertJobScheduler(
+      "automatic-push-recovery",
+      { every: 30000 },
+      {
+        name: "recover-automatic-pushes",
+        data: { type: "recover-automatic-pushes", payload: {} },
+        opts: {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 1000 },
+          removeOnComplete: { count: 10 },
+          removeOnFail: { count: 50 },
+        },
+      },
+    )
+    .catch((error) => {
+      logger.error("Could not schedule automatic push recovery", {
+        meta: { error: error.message },
+      });
+    });
+  notificationsQueue
+    .upsertJobScheduler(
+      "push-broadcast-recovery",
+      { every: 30000 },
+      {
+        name: "recover-push-broadcasts",
+        data: { type: "recover-push-broadcasts", payload: {} },
+        opts: {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 1000 },
+          removeOnComplete: { count: 10 },
+          removeOnFail: { count: 50 },
+        },
+      },
+    )
+    .catch((error) => {
+      logger.error("Could not schedule push broadcast recovery", {
+        meta: { error: error.message },
+      });
+    });
+  notificationsQueue
+    .upsertJobScheduler(
+      "push-detail-retention",
+      { every: 24 * 60 * 60 * 1000 },
+      {
+        name: "prune-push-details",
+        data: { type: "prune-push-details", payload: {} },
+        opts: {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 60000 },
+          removeOnComplete: { count: 10 },
+          removeOnFail: { count: 50 },
+        },
+      },
+    )
+    .catch((error) => {
+      logger.error("Could not schedule push detail retention", {
+        meta: { error: error.message },
+      });
+    });
+}
 
 module.exports = worker;

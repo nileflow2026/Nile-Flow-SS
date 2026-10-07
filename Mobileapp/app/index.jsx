@@ -5,11 +5,9 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomButton from "./components/CusttomButton";
 import { gradients, goldHeroStart, goldHeroEnd } from "../constants/theme";
-import { useGlobalContext } from "../Context/GlobalProvider";
 
 const Index = () => {
   const router = useRouter();
-  const { sessionError, retrySessionCheck } = useGlobalContext();
 
   return (
     <SafeAreaView className="flex-1 bg-nile-white">
@@ -75,18 +73,6 @@ const Index = () => {
             Sign in
           </Text>
         </TouchableOpacity>
-
-        {sessionError && (
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => retrySessionCheck().catch(() => {})}
-            style={{ padding: 12, marginTop: 8 }}
-          >
-            <Text style={{ color: "#6B7280", fontWeight: "600" }}>
-              Connection issue? Retry session check
-            </Text>
-          </TouchableOpacity>
-        )}
 
         {/* Footer */}
         <Text className="font-plight text-xs text-gray-400 text-center mt-6">

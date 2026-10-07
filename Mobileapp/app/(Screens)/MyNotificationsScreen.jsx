@@ -178,7 +178,7 @@ const NotificationsSkeleton = () => (
 
 export default function MyNotificationsScreen() {
   const [notifications, setNotifications] = useState([]);
-  const { setNotificationCount } = useNotification();
+  const { setNotificationCount, requestPushPermission } = useNotification();
   const { user } = useGlobalContext();
   const userId = user?.id || user?.userId || user?.$id;
   const [loading, setLoading] = useState(true);
@@ -186,6 +186,9 @@ export default function MyNotificationsScreen() {
   const [hasError, setHasError] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [muteSound, setMuteSound] = useState(false);
+  const [marketingPushEnabled, setMarketingPushEnabled] = useState(false);
+  const [marketingPreferenceLoading, setMarketingPreferenceLoading] = useState(false);
+  const [marketingPreferenceSaving, setMarketingPreferenceSaving] = useState(false);
   const notificationRequestId = useRef(0);
 
   // Load persisted mute preference on mount
@@ -198,6 +201,65 @@ export default function MyNotificationsScreen() {
   const handleToggleMute = async (newValue) => {
     setMuteSound(newValue);
     await applyMuteSetting(newValue);
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (!userId) {
+      setMarketingPushEnabled(false);
+      return undefined;
+    }
+    setMarketingPreferenceLoading(true);
+    axiosClient
+      .get("/api/v1/customer/notification-preferences")
+      .then(({ data }) => {
+        if (active) setMarketingPushEnabled(data.marketingPushEnabled === true);
+      })
+      .catch((error) => {
+        if (active) {
+          Alert.alert(
+            "Settings unavailable",
+            error.response?.data?.message ||
+              "Your promotion preference could not be loaded. Please try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setMarketingPreferenceLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const handleMarketingPushChange = async () => {
+    if (!userId || marketingPreferenceLoading || marketingPreferenceSaving) return;
+    const nextValue = !marketingPushEnabled;
+    setMarketingPreferenceSaving(true);
+    try {
+      const permissionGranted = nextValue
+        ? await requestPushPermission()
+        : true;
+      const { data } = await axiosClient.patch(
+        "/api/v1/customer/notification-preferences",
+        { marketingPushEnabled: nextValue },
+      );
+      setMarketingPushEnabled(data.marketingPushEnabled === true);
+      if (nextValue && !permissionGranted) {
+        Alert.alert(
+          "Notifications are not enabled",
+          "Your promotion choice is saved. Allow notifications in your device settings and register a device token to receive promotions.",
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        "Could not save setting",
+        error.response?.data?.message ||
+          "Your promotion preference was not changed. Please retry.",
+      );
+    } finally {
+      setMarketingPreferenceSaving(false);
+    }
   };
 
   useFocusEffect(
@@ -700,6 +762,46 @@ export default function MyNotificationsScreen() {
                     name={muteSound ? "volume-off" : "volume-up"}
                     size={20}
                     color={muteSound ? "#ef4444" : "#10b981"}
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalSettingItem}>
+                <View style={styles.modalSettingInfo}>
+                  <Text style={styles.modalSettingTitle}>
+                    Promotional Push Notifications
+                  </Text>
+                  <Text style={styles.modalSettingDescription}>
+                    Receive promotions and exclusive deals. You can change this
+                    choice at any time. Notifications also need device
+                    permission and a registered token.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  accessibilityRole="switch"
+                  accessibilityState={{
+                    checked: marketingPushEnabled,
+                    disabled:
+                      marketingPreferenceLoading || marketingPreferenceSaving,
+                  }}
+                  disabled={
+                    marketingPreferenceLoading || marketingPreferenceSaving
+                  }
+                  onPress={handleMarketingPushChange}
+                  style={[
+                    styles.modalToggle,
+                    marketingPushEnabled
+                      ? styles.modalToggleOn
+                      : styles.modalToggleOff,
+                  ]}
+                >
+                  <MaterialIcons
+                    name={
+                      marketingPushEnabled
+                        ? "notifications-active"
+                        : "notifications-off"
+                    }
+                    size={20}
+                    color={marketingPushEnabled ? "#10b981" : "#6B7280"}
                   />
                 </TouchableOpacity>
               </View>

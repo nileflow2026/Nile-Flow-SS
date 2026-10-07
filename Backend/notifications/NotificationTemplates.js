@@ -14,6 +14,15 @@ const { EVENT } = require('./NotificationTypes');
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function truncate(s, len = 50) { return s ? s.substring(0, len) : ''; }
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
 function formatCurrency(amount, currency = 'KES') {
   const n = Number(amount) || 0;
   return `${currency} ${Math.round(n).toLocaleString()}`;
@@ -47,6 +56,38 @@ We'll notify you every step of the way.`,
     inApp: `Order ${p.orderNumber || p.orderId} placed successfully.`,
   }),
 
+  [EVENT.ORDER_CONFIRMED]: (p) => ({
+    emailSubject: `Order ${p.orderNumber || ''} confirmed`,
+    emailHtml: `<h2>Order confirmed</h2><p>Your order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is confirmed and will be prepared soon.</p>`,
+    pushTitle: 'Order confirmed',
+    pushBody: 'Your order is confirmed and will be prepared soon.',
+    inApp: `Order ${p.orderNumber || p.orderId} is confirmed.`,
+  }),
+
+  [EVENT.ORDER_PREPARING]: (p) => ({
+    emailSubject: `Order ${p.orderNumber || ''} is being prepared`,
+    emailHtml: `<h2>Your order is being prepared</h2><p>We are preparing order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong>.</p>`,
+    pushTitle: 'Order update',
+    pushBody: 'Your order is being prepared. Check your orders for the latest update.',
+    inApp: `Order ${p.orderNumber || p.orderId} is being prepared.`,
+  }),
+
+  [EVENT.ORDER_READY]: (p) => ({
+    emailSubject: `Order ${p.orderNumber || ''} is ready for dispatch`,
+    emailHtml: `<h2>Your order is ready</h2><p>Order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is ready for dispatch.</p>`,
+    pushTitle: 'Order update',
+    pushBody: 'Your order is ready to be sent. Check your orders for the latest update.',
+    inApp: `Order ${p.orderNumber || p.orderId} is ready for dispatch.`,
+  }),
+
+  [EVENT.ORDER_OUT_FOR_DELIVERY]: (p) => ({
+    emailSubject: `Order ${p.orderNumber || ''} is out for delivery`,
+    emailHtml: `<h2>Your order is on the way</h2><p>Order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is out for delivery.</p>`,
+    pushTitle: 'Order on the way',
+    pushBody: 'Your order is out for delivery. Check your orders for the latest update.',
+    inApp: `Order ${p.orderNumber || p.orderId} is out for delivery.`,
+  }),
+
   [EVENT.ORDER_CANCELLED]: (p) => ({
     emailSubject: `❌ Order ${p.orderNumber || p.orderId} Cancelled — Nile Flow`,
     emailHtml: `<h2>Order Cancelled</h2>
@@ -58,6 +99,46 @@ We'll notify you every step of the way.`,
     pushTitle: '❌ Order Cancelled',
     pushBody: `Order ${p.orderNumber || ''} has been cancelled.`,
     inApp: `Order ${p.orderNumber || p.orderId} cancelled.`,
+  }),
+
+  [EVENT.ORDER_CANCELLATION_REQUESTED]: (p) => ({
+    emailSubject: `Cancellation request received for order ${p.orderNumber || ''}`,
+    emailHtml: `<h2>Cancellation request received</h2><p>We received your request for order <strong>${p.orderNumber || p.orderId}</strong>. We will update you when it has been reviewed.</p>`,
+    pushTitle: 'Cancellation request received',
+    pushBody: 'We received your cancellation request. We will update you when it is reviewed.',
+    inApp: 'Your cancellation request was received and is being reviewed.',
+  }),
+
+  [EVENT.ORDER_CANCELLATION_APPROVED]: (p) => ({
+    emailSubject: `Cancellation approved for order ${p.orderNumber || ''}`,
+    emailHtml: `<h2>Cancellation approved</h2><p>Your cancellation request for order <strong>${p.orderNumber || p.orderId}</strong> was approved. View your orders for details.</p>`,
+    pushTitle: 'Cancellation approved',
+    pushBody: 'Your cancellation request was approved. View your orders for details.',
+    inApp: 'Your cancellation request was approved.',
+  }),
+
+  [EVENT.ORDER_CANCELLATION_REJECTED]: (p) => ({
+    emailSubject: `Cancellation request update for order ${p.orderNumber || ''}`,
+    emailHtml: `<h2>Cancellation request update</h2><p>Your cancellation request for order <strong>${p.orderNumber || p.orderId}</strong> was not approved. View your orders for details.</p>`,
+    pushTitle: 'Cancellation not approved',
+    pushBody: 'Your cancellation request was not approved. View your orders for details.',
+    inApp: 'Your cancellation request was not approved.',
+  }),
+
+  [EVENT.PASSWORD_CHANGED]: () => ({
+    emailSubject: 'Your Nile Flow password was changed',
+    emailHtml: '<h2>Account security alert</h2><p>Your Nile Flow password was changed. If this was not you, secure your account immediately.</p>',
+    pushTitle: 'Account security alert',
+    pushBody: 'Your password was changed. If this was not you, secure your account.',
+    inApp: 'Your password was changed. If this was not you, secure your account.',
+  }),
+
+  [EVENT.EMAIL_CHANGED]: () => ({
+    emailSubject: 'Your Nile Flow email was changed',
+    emailHtml: '<h2>Account security alert</h2><p>The email on your Nile Flow account was changed. If this was not you, secure your account immediately.</p>',
+    pushTitle: 'Account security alert',
+    pushBody: 'The email on your account was changed. If this was not you, secure your account.',
+    inApp: 'The email on your account was changed. If this was not you, secure your account.',
   }),
 
   // ── Product Submission (Vendor → Admin) ──────────────────────────────────

@@ -24,9 +24,22 @@ export const NotificationProvider = ({ children }) => {
     if (userId) setNotificationCount((previousCount) => previousCount + 1);
   }, [userId]);
 
-  const handleNotificationResponse = useCallback(() => {
+  const handleNotificationResponse = useCallback((response) => {
     try {
-      router.push("/(Screens)/MyNotificationsScreen");
+      const route = response?.notification?.request?.content?.data?.route;
+      const allowedRoutes = new Set([
+        "/(tabs)/BottomTabs",
+        "/(Screens)/MyNotificationsScreen",
+        "/(Screens)/OrdersScreen",
+        "/(Screens)/Deals",
+        "/(Screens)/Settings",
+        "/(Screens)/Profile",
+      ]);
+      router.push(
+        typeof route === "string" && allowedRoutes.has(route)
+          ? route
+          : "/(Screens)/MyNotificationsScreen",
+      );
     } catch (error) {
       console.warn(
         "[NotificationContext] Could not open notifications:",
@@ -35,7 +48,7 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [router]);
 
-  usePushNotifications(
+  const { requestPushPermission } = usePushNotifications(
     userId,
     handleNotificationReceived,
     handleNotificationResponse,
@@ -47,7 +60,11 @@ export const NotificationProvider = ({ children }) => {
 
   return (
     <NotificationContext.Provider
-      value={{ notificationCount, setNotificationCount }}
+      value={{
+        notificationCount,
+        setNotificationCount,
+        requestPushPermission,
+      }}
     >
       {children}
     </NotificationContext.Provider>

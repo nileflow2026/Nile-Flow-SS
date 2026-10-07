@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   clearAllNotifications,
   getNotifications,
@@ -9,6 +9,12 @@ import {
   fetchAdminNotifications,
   fetchAllNotificationTypes,
   forceRefreshNotifications,
+  previewPushBroadcast,
+  createPushBroadcast,
+  listPushBroadcasts,
+  getPushBroadcast,
+  cancelPushBroadcast,
+  retryPushBroadcast,
 } from "../../adminService";
 import { getHasNew, setHasNew, subscribe } from "../notificationBuffer";
 import {
@@ -46,6 +52,165 @@ export default function NotificationsPage() {
   const [selectedNotifications, setSelectedNotifications] = useState(new Set());
   const [viewMode, setViewMode] = useState("grouped"); // 'grouped' or 'list'
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [activeTab, setActiveTab] = useState("notifications");
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignPage, setCampaignPage] = useState(1);
+  const [campaignTotal, setCampaignTotal] = useState(0);
+  const [campaignLoading, setCampaignLoading] = useState(false);
+  const [campaignError, setCampaignError] = useState("");
+  const [campaignDetail, setCampaignDetail] = useState(null);
+  const [campaignBusy, setCampaignBusy] = useState(false);
+  const [campaignPreview, setCampaignPreview] = useState(null);
+  const [campaignDraft, setCampaignDraft] = useState({
+    title: "",
+    body: "",
+    category: "promotion",
+    destinationRoute: "",
+  });
+  const campaignRequestKey = useRef(null);
+
+  const loadCampaigns = useCallback(async () => {
+    setCampaignLoading(true);
+    setCampaignError("");
+    try {
+      const response = await listPushBroadcasts({ page: campaignPage, limit: 20 });
+      setCampaigns(response.data.campaigns || []);
+      setCampaignTotal(response.data.total || 0);
+    } catch (error) {
+      setCampaignError(
+        error.response?.data?.message ||
+          error.message ||
+          "Campaign history could not be loaded.",
+      );
+    } finally {
+      setCampaignLoading(false);
+    }
+  }, [campaignPage]);
+
+  useEffect(() => {
+    if (activeTab !== "broadcasts") return undefined;
+    loadCampaigns();
+    const timer = setInterval(loadCampaigns, 5000);
+    return () => clearInterval(timer);
+  }, [activeTab, loadCampaigns]);
+
+  useEffect(() => {
+    if (!campaignDetail || !["queued", "sending"].includes(campaignDetail.status)) {
+      return undefined;
+    }
+    let active = true;
+    const timer = setInterval(async () => {
+      try {
+        const response = await getPushBroadcast(campaignDetail.id);
+        if (active) setCampaignDetail(response.data);
+      } catch (error) {
+        if (active) {
+          toast.error(
+            error.response?.data?.message || "Campaign details could not be refreshed.",
+          );
+        }
+      }
+    }, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [campaignDetail?.id, campaignDetail?.status]);
+
+  const handleCampaignPreview = async (event) => {
+    event.preventDefault();
+    setCampaignBusy(true);
+    setCampaignPreview(null);
+    try {
+      const payload = {
+        ...campaignDraft,
+        destinationRoute: campaignDraft.destinationRoute || null,
+      };
+      const response = await previewPushBroadcast(payload);
+      setCampaignPreview(response.data);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Campaign preview could not be prepared.",
+      );
+    } finally {
+      setCampaignBusy(false);
+    }
+  };
+
+  const handleCampaignSend = async () => {
+    if (!campaignPreview) return;
+    const confirmed = window.confirm(
+      `Send "${campaignPreview.title}" to an estimated ${campaignPreview.estimatedRecipientCount} eligible users?`,
+    );
+    if (!confirmed) return;
+    setCampaignBusy(true);
+    try {
+      const payload = {
+        title: campaignPreview.title,
+        body: campaignPreview.body,
+        category: campaignPreview.category,
+        destinationRoute: campaignPreview.destinationRoute,
+      };
+      if (!campaignRequestKey.current) {
+        campaignRequestKey.current = window.crypto.randomUUID();
+      }
+      const response = await createPushBroadcast(
+        payload,
+        campaignRequestKey.current,
+      );
+      toast.success(
+        response.queued
+          ? "Campaign queued for delivery."
+          : "Campaign saved, but it was not queued.",
+      );
+      setCampaignPreview(null);
+      campaignRequestKey.current = null;
+      setCampaignDraft({
+        title: "",
+        body: "",
+        category: "promotion",
+        destinationRoute: "",
+      });
+      await loadCampaigns();
+      if (response.campaign?.id) {
+        const detail = await getPushBroadcast(response.campaign.id);
+        setCampaignDetail(detail.data);
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Campaign could not be queued. Keep the same request key when retrying.",
+      );
+    } finally {
+      setCampaignBusy(false);
+    }
+  };
+
+  const handleCampaignAction = async (action, campaignId) => {
+    setCampaignBusy(true);
+    try {
+      if (action === "cancel") {
+        if (!window.confirm("Cancel this campaign before recipient processing starts?")) {
+          return;
+        }
+        await cancelPushBroadcast(campaignId);
+      }
+      else await retryPushBroadcast(campaignId);
+      toast.success(
+        action === "cancel" ? "Campaign cancelled." : "Eligible deliveries queued for retry.",
+      );
+      await loadCampaigns();
+      const response = await getPushBroadcast(campaignId);
+      setCampaignDetail(response.data);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          `Campaign could not be ${action === "cancel" ? "cancelled" : "retried"}.`,
+      );
+    } finally {
+      setCampaignBusy(false);
+    }
+  };
 
   // Fetch notifications
   useEffect(() => {
@@ -428,6 +593,406 @@ export default function NotificationsPage() {
           </div>
         </div>
 
+        <div className="mb-6 flex gap-2 border-b border-[#E8D6B5] pb-3">
+          <button
+            type="button"
+            onClick={() => setActiveTab("notifications")}
+            className={`rounded-xl px-4 py-2 font-semibold transition ${
+              activeTab === "notifications"
+                ? "bg-[#14532D] text-white"
+                : "bg-white text-[#374151] hover:bg-[#F0FDF4]"
+            }`}
+          >
+            Activity
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("broadcasts")}
+            className={`rounded-xl px-4 py-2 font-semibold transition ${
+              activeTab === "broadcasts"
+                ? "bg-[#14532D] text-white"
+                : "bg-white text-[#374151] hover:bg-[#F0FDF4]"
+            }`}
+          >
+            Broadcasts
+          </button>
+        </div>
+
+        {activeTab === "broadcasts" ? (
+          <section className="space-y-6">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+              <form
+                onSubmit={handleCampaignPreview}
+                className="rounded-2xl border border-[#E8D6B5] bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5">
+                  <h2 className="text-xl font-bold text-[#14532D]">
+                    Create a mobile broadcast
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Choose the audience category, preview the eligible audience,
+                    then confirm before sending.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Notification title
+                    <input
+                      required
+                      maxLength={80}
+                      value={campaignDraft.title}
+                      onChange={(event) =>
+                        {
+                          setCampaignPreview(null);
+                          campaignRequestKey.current = null;
+                          setCampaignDraft((draft) => ({
+                            ...draft,
+                            title: event.target.value,
+                          }));
+                        }
+                      }
+                      className="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-2.5 font-normal outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                      placeholder="A clear, helpful title"
+                    />
+                  </label>
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Message
+                    <textarea
+                      required
+                      maxLength={240}
+                      rows={4}
+                      value={campaignDraft.body}
+                      onChange={(event) =>
+                        {
+                          setCampaignPreview(null);
+                          campaignRequestKey.current = null;
+                          setCampaignDraft((draft) => ({
+                            ...draft,
+                            body: event.target.value,
+                          }));
+                        }
+                      }
+                      className="mt-1.5 w-full resize-y rounded-xl border border-gray-300 px-3 py-2.5 font-normal outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                      placeholder="Keep your message concise and useful."
+                    />
+                    <span className="mt-1 block text-right text-xs text-gray-500">
+                      {campaignDraft.body.length}/240
+                    </span>
+                  </label>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Audience category
+                      <select
+                        value={campaignDraft.category}
+                        onChange={(event) => {
+                          setCampaignPreview(null);
+                          campaignRequestKey.current = null;
+                          setCampaignDraft((draft) => ({
+                            ...draft,
+                            category: event.target.value,
+                          }));
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 font-normal"
+                      >
+                        <option value="promotion">Promotion, opted in users</option>
+                        <option value="app_update">App update</option>
+                        <option value="service_announcement">
+                          Service announcement
+                        </option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-semibold text-gray-800">
+                      In app destination
+                      <select
+                        value={campaignDraft.destinationRoute}
+                        onChange={(event) => {
+                          setCampaignPreview(null);
+                          campaignRequestKey.current = null;
+                          setCampaignDraft((draft) => ({
+                            ...draft,
+                            destinationRoute: event.target.value,
+                          }));
+                        }}
+                        className="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 font-normal"
+                      >
+                        <option value="">Notifications</option>
+                        <option value="/(tabs)/BottomTabs">Home</option>
+                        <option value="/(Screens)/MyNotificationsScreen">
+                          Notifications
+                        </option>
+                        <option value="/(Screens)/OrdersScreen">Orders</option>
+                        <option value="/(Screens)/Deals">Deals</option>
+                        <option value="/(Screens)/Settings">Settings</option>
+                        <option value="/(Screens)/Profile">Profile</option>
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={campaignBusy}
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-green-700 px-5 font-semibold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {campaignBusy ? "Preparing preview..." : "Preview audience"}
+                  </button>
+                </div>
+              </form>
+
+              <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-white p-3 text-green-700 shadow-sm">
+                    <Bell className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#14532D]">
+                      Delivery guardrails
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-gray-700">
+                      Promotional messages go only to users who opted in.
+                      Campaign expiry is 24 hours for promotions, 30 days for
+                      app updates, and 7 days for service notices. Expo
+                      acceptance confirms provider receipt, not display on a
+                      device.
+                    </p>
+                  </div>
+                </div>
+                {campaignPreview && (
+                  <div className="mt-5 rounded-xl border border-green-200 bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-green-800">
+                      Ready for confirmation
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold text-gray-900">
+                      {campaignPreview.title}
+                    </h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                      {campaignPreview.body}
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-gray-800">
+                      Estimated eligible recipients:{" "}
+                      {campaignPreview.estimatedRecipientCount}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={campaignBusy}
+                      onClick={handleCampaignSend}
+                      className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#14532D] px-5 font-semibold text-white transition hover:bg-green-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Confirm and send
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-[#E8D6B5] bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-bold text-[#14532D]">
+                    Campaign history
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Aggregate results only, recipient identities are not shown.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadCampaigns}
+                  disabled={campaignLoading}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {campaignLoading ? "Refreshing..." : "Refresh"}
+                </button>
+              </div>
+              {campaignError && (
+                <div role="alert" className="m-4 rounded-xl bg-red-50 p-4 text-sm text-red-800">
+                  {campaignError}
+                </div>
+              )}
+              {campaignLoading && campaigns.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-600">
+                  Loading campaign history...
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell className="mx-auto h-8 w-8 text-gray-400" />
+                  <p className="mt-3 font-semibold text-gray-800">
+                    No broadcasts yet
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Preview a campaign to see its eligible audience before sending.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-600">
+                      <tr>
+                        <th className="px-4 py-3">Campaign</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Audience</th>
+                        <th className="px-4 py-3">Results</th>
+                        <th className="px-4 py-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {campaigns.map((campaign) => (
+                        <tr key={campaign.id} className="align-top">
+                          <td className="px-4 py-4">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const response = await getPushBroadcast(campaign.id);
+                                  setCampaignDetail(response.data);
+                                } catch (error) {
+                                  toast.error(
+                                    error.response?.data?.message ||
+                                      "Campaign details could not be loaded.",
+                                  );
+                                }
+                              }}
+                              className="font-semibold text-green-800 underline-offset-2 hover:underline"
+                            >
+                              {campaign.title}
+                            </button>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {campaign.category.replaceAll("_", " ")} ·{" "}
+                              {new Date(campaign.createdAt).toLocaleString()}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold capitalize text-gray-800">
+                              {campaign.status.replaceAll("_", " ")}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-gray-700">
+                            Estimate {campaign.estimatedRecipientCount}
+                            <br />
+                            Target {campaign.targetedCount ?? "Preparing"}
+                            {campaign.pendingCount !== null && (
+                              <>
+                                <br />
+                                Pending {campaign.pendingCount}
+                              </>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-gray-700">
+                            Accepted {campaign.acceptedCount}
+                            <br />
+                            Rejected {campaign.rejectedCount}
+                            <br />
+                            Unresolved {campaign.unresolvedCount}
+                            <br />
+                            Skipped {campaign.skippedCount}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-wrap gap-2">
+                              {campaign.status === "queued" && (
+                                <button
+                                  type="button"
+                                  disabled={campaignBusy}
+                                  onClick={() =>
+                                    handleCampaignAction("cancel", campaign.id)
+                                  }
+                                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                              {campaign.rejectedCount > 0 && (
+                                <button
+                                  type="button"
+                                  disabled={campaignBusy}
+                                  onClick={() =>
+                                    handleCampaignAction("retry", campaign.id)
+                                  }
+                                  className="rounded-lg border border-green-200 px-3 py-1.5 text-xs font-semibold text-green-800 hover:bg-green-50 disabled:opacity-50"
+                                >
+                                  Retry eligible
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t border-gray-200 px-5 py-4 text-sm">
+                <span className="text-gray-600">
+                  Page {campaignPage} of {Math.max(1, Math.ceil(campaignTotal / 20))}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={campaignPage <= 1 || campaignLoading}
+                    onClick={() => setCampaignPage((page) => Math.max(1, page - 1))}
+                    className="rounded-lg border border-gray-300 px-3 py-2 font-semibold text-gray-700 disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={campaignPage * 20 >= campaignTotal || campaignLoading}
+                    onClick={() => setCampaignPage((page) => page + 1)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 font-semibold text-gray-700 disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {campaignDetail && (
+              <div className="rounded-2xl border border-green-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-green-800">
+                      Campaign detail
+                    </p>
+                    <h2 className="mt-1 text-xl font-bold text-gray-900">
+                      {campaignDetail.title}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCampaignDetail(null)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                </div>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                  {campaignDetail.body}
+                </p>
+                <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["Status", campaignDetail.status.replaceAll("_", " ")],
+                    ["Estimated audience", campaignDetail.estimatedRecipientCount],
+                    ["Final audience", campaignDetail.targetedCount ?? "Preparing"],
+                    ["Accepted by Expo", campaignDetail.acceptedCount],
+                    ["Rejected", campaignDetail.rejectedCount],
+                    ["Unresolved", campaignDetail.unresolvedCount],
+                    ["Skipped", campaignDetail.skippedCount],
+                    ["Expires", new Date(campaignDetail.expiresAt).toLocaleString()],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl bg-gray-50 p-3">
+                      <dt className="text-xs font-medium text-gray-500">{label}</dt>
+                      <dd className="mt-1 font-semibold capitalize text-gray-900">
+                        {value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-4 text-xs text-gray-600">
+                  Expo acceptance confirms that Expo accepted the push request.
+                  It does not confirm that a device displayed the notification.
+                </p>
+              </div>
+            )}
+          </section>
+        ) : (
+          <>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-gradient-to-br from-[#FAF7F2] to-white dark:from-[#1A1A1A] dark:to-[#2A2A2A] rounded-2xl border border-[#E8D6B5]/30 dark:border-[#3A3A3A] p-6 shadow-lg">
@@ -526,7 +1091,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Filters & Controls */}
+          {/* Filters & Controls */}
         <div className="bg-gradient-to-br from-[#FAF7F2] to-white dark:from-[#1A1A1A] dark:to-[#2A2A2A] rounded-2xl border border-[#E8D6B5]/30 dark:border-[#3A3A3A] p-6 mb-6 shadow-lg">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
@@ -944,6 +1509,8 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
