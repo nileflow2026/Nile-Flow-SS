@@ -5,7 +5,7 @@
  * Workers live in ../workers/ — one file per queue.
  *
  * Queue naming convention:
- *   nf:<domain>  e.g.  nf:notifications, nf:miles, nf:emails
+ *   nf-<domain>  e.g.  nf-notifications, nf-miles, nf-emails
  *
  * Default job options enforce:
  *   - Exponential back-off retry (up to 3 attempts)
@@ -87,7 +87,7 @@ function makeQueue(name, overrides = {}) {
  * Notification dispatch — in-app, push, and realtime events.
  * Priority: high (users expect near-instant delivery).
  */
-const notificationsQueue = makeQueue("nf:notifications", {
+const notificationsQueue = makeQueue("nf-notifications", {
   attempts: 5,
   backoff: { type: "exponential", delay: 1000 },
 });
@@ -96,7 +96,7 @@ const notificationsQueue = makeQueue("nf:notifications", {
  * Email dispatch — order confirmations, subscription receipts, password reset.
  * Priority: medium (seconds to minutes acceptable).
  */
-const emailQueue = makeQueue("nf:emails", {
+const emailQueue = makeQueue("nf-emails", {
   attempts: 5,
   backoff: { type: "exponential", delay: 3000 },
 });
@@ -105,13 +105,13 @@ const emailQueue = makeQueue("nf:emails", {
  * Nile Miles calculation — runs after order completion.
  * Idempotency required: processing the same order twice must not double-award.
  */
-const nileMilesQueue = makeQueue("nf:miles");
+const nileMilesQueue = makeQueue("nf-miles");
 
 /**
  * Analytics event aggregation — non-critical, can be slow.
  * Low priority, high throughput.
  */
-const analyticsQueue = makeQueue("nf:analytics", {
+const analyticsQueue = makeQueue("nf-analytics", {
   attempts: 2,
   removeOnComplete: { count: 50 },
 });
@@ -120,7 +120,7 @@ const analyticsQueue = makeQueue("nf:analytics", {
  * AI interaction logging — stores conversation context for recommendation
  * system and future personalization.
  */
-const aiLoggingQueue = makeQueue("nf:ai-logging", {
+const aiLoggingQueue = makeQueue("nf-ai-logging", {
   attempts: 2,
   removeOnComplete: { count: 50 },
 });
@@ -129,7 +129,7 @@ const aiLoggingQueue = makeQueue("nf:ai-logging", {
  * Order event processing — status changes, inventory updates, vendor
  * notifications.  Runs serially per order (concurrency = 1 per worker).
  */
-const orderEventsQueue = makeQueue("nf:order-events", {
+const orderEventsQueue = makeQueue("nf-order-events", {
   attempts: 5,
   backoff: { type: "exponential", delay: 2000 },
 });
@@ -138,7 +138,7 @@ const orderEventsQueue = makeQueue("nf:order-events", {
  * Payment reconciliation — matches Stripe/M-Pesa webhook events to orders.
  * Financial operation: idempotency enforced by job ID = payment reference.
  */
-const paymentReconciliationQueue = makeQueue("nf:payment-reconciliation", {
+const paymentReconciliationQueue = makeQueue("nf-payment-reconciliation", {
   attempts: 10,
   backoff: { type: "exponential", delay: 5000 },
   removeOnFail: { count: 1000 }, // keep failed payment jobs longer for audit
@@ -147,7 +147,7 @@ const paymentReconciliationQueue = makeQueue("nf:payment-reconciliation", {
 /**
  * Webhook retry — re-sends failed outbound webhooks to vendor/partner systems.
  */
-const webhookRetryQueue = makeQueue("nf:webhook-retry", {
+const webhookRetryQueue = makeQueue("nf-webhook-retry", {
   attempts: 7,
   backoff: { type: "exponential", delay: 10000 },
 });
@@ -155,12 +155,12 @@ const webhookRetryQueue = makeQueue("nf:webhook-retry", {
 /**
  * Fraud check — async risk scoring for new orders and payment events.
  */
-const fraudCheckQueue = makeQueue("nf:fraud-check");
+const fraudCheckQueue = makeQueue("nf-fraud-check");
 
 /**
  * Recommendation generation — periodic re-scoring of user affinity models.
  */
-const recommendationsQueue = makeQueue("nf:recommendations", {
+const recommendationsQueue = makeQueue("nf-recommendations", {
   attempts: 2,
   removeOnComplete: { count: 20 },
 });
@@ -189,10 +189,10 @@ function wireQueueEvents(queueName) {
 
 // Wire events only if not in test environment to avoid open handles
 if (process.env.NODE_ENV !== "test") {
-  wireQueueEvents("nf:notifications");
-  wireQueueEvents("nf:emails");
-  wireQueueEvents("nf:order-events");
-  wireQueueEvents("nf:payment-reconciliation");
+  wireQueueEvents("nf-notifications");
+  wireQueueEvents("nf-emails");
+  wireQueueEvents("nf-order-events");
+  wireQueueEvents("nf-payment-reconciliation");
 }
 
 // ── Exports ──────────────────────────────────────────────────────────────────

@@ -348,7 +348,7 @@ export default function MyNotificationsScreen() {
     setNotifications((prev) => prev.map((note) => ({ ...note, read: true })));
 
     try {
-      await axiosClient.post("/api/customernotifications/mark-all-read");
+      await axiosClient.post("/api/customernotifications/mark-read");
       setNotificationCount(0);
     } catch (error) {
       console.error("Failed to mark all as read:", error);

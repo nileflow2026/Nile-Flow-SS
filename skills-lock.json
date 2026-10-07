@@ -37,6 +37,12 @@
       "skillPath": "skills/document/SKILL.md",
       "computedHash": "a47c5d29a1263d987c2fa05dbc993a5276aaf6c4ddc54fbd329463a5f3a1aa77"
     },
+    "expo-audio": {
+      "source": "jchaselubitz/drill-app",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/expo-audio/SKILL.md",
+      "computedHash": "84b61357546e197d0aa5de4ec5ff4b8ebf623b0988bd05a6787f6a1c74224193"
+    },
     "expo-native-ui": {
       "source": "expo/skills",
       "sourceType": "github",

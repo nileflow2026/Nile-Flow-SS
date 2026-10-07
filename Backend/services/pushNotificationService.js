@@ -1,7 +1,7 @@
 /**
  * Expo Push Notification Service.
  *
- * Callers enqueue these sends on nf:notifications. This module only performs
+ * Callers enqueue these sends on nf-notifications. This module only performs
  * the provider request and returns its ticket outcome to the queue worker.
  */
 

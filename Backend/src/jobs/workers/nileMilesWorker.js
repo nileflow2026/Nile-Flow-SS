@@ -23,7 +23,7 @@ const { db, users } = require("../../../services/appwriteService");
 const { env } = require("../../env");
 
 const worker = new Worker(
-  "nf:miles",
+  "nf-miles",
   async (job) => {
     const { orderId, userId, orderTotal, isPremium = false } = job.data;
 

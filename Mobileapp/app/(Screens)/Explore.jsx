@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome";
 import axiosClient, { setDetectedCurrency } from "../../api";
 import { getCurrentUser } from "../../Context/GlobalProvider";
 import CurrencyUpdater from "../components/CurrencyUpdater";
@@ -630,7 +629,7 @@ const Explore = () => {
           <>
             {loadingMore && (
               <View style={{ paddingVertical: 20, alignItems: "center" }}>
-                <Icon name="spinner" size={24} color="#999" />
+                <FontAwesome name="spinner" size={24} color="#999" />
                 <Text style={{ color: "#999", marginTop: 8 }}>
                   Loading more...
                 </Text>

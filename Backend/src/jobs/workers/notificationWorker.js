@@ -1,7 +1,7 @@
 /**
  * Nile Flow — Notification Queue Worker
  *
- * Processes jobs from the nf:notifications queue.
+ * Processes jobs from the nf-notifications queue.
  *
  * Job types:
  *   - in-app       Store notification document in Appwrite
@@ -38,7 +38,7 @@ const CONCURRENCY = 5;
 const notificationRepository = new NotificationRepository(instrumentedDb);
 
 const worker = new Worker(
-  "nf:notifications",
+  "nf-notifications",
   async (job) => {
     const { type, payload } = job.data;
 

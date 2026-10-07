@@ -28,7 +28,7 @@ const { createAutomaticPush } = require("../../../services/automaticPushService"
 const CONCURRENCY = 3; // Low: order operations must be carefully serialised
 
 const worker = new Worker(
-  "nf:order-events",
+  "nf-order-events",
   async (job) => {
     const { event, order } = job.data;
 

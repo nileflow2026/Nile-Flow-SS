@@ -31,16 +31,16 @@ const getQueues = () => {
 };
 
 const QUEUE_NAMES = [
-  "nf:notifications",
-  "nf:emails",
-  "nf:miles",
-  "nf:analytics",
-  "nf:ai-logging",
-  "nf:order-events",
-  "nf:payment-reconciliation",
-  "nf:webhook-retry",
-  "nf:fraud-check",
-  "nf:recommendations",
+  "nf-notifications",
+  "nf-emails",
+  "nf-miles",
+  "nf-analytics",
+  "nf-ai-logging",
+  "nf-order-events",
+  "nf-payment-reconciliation",
+  "nf-webhook-retry",
+  "nf-fraud-check",
+  "nf-recommendations",
 ];
 
 const pollQueueMetrics = async () => {

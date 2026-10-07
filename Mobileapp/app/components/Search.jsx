@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
+import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -16,7 +17,6 @@ import {
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/FontAwesome";
 import { RecentSearches } from "../(Screens)/RecentSearches";
 import { icons, images } from "../../constants";
 import {
@@ -424,7 +424,7 @@ const Search = () => {
         ) : loading ? (
           <View className="flex-1 bg-black h-full justify-center items-center">
             <Animated.View style={{ transform: [{ rotate: spin }] }}>
-              <Icon name="spinner" size={40} color="#3B82F6" />
+              <FontAwesome name="spinner" size={40} color="#3B82F6" />
             </Animated.View>
           </View>
         ) : (
