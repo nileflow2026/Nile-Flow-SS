@@ -6,6 +6,10 @@ FCM and APNs credentials authorize push delivery, but notifications still requir
 
 The existing stack already includes Appwrite user records, a BullMQ queue backed by Redis, Expo notifications, a Mobileapp notification list, and an AdminDashboard Notifications page. Appwrite Messaging is also used for non push delivery. The product expects mobile notices to work under weak network conditions and to reach broad audiences without exposing recipient data to administrators.
 
+Mobile Notification Settings currently stores the global mute on the device and promotional consent on the account. It has no customer facing category or sound choices, and the Expo notifications build configuration registers no custom sounds.
+
+Customers also need control over order, promotion, reward, and app or service update pushes, with sound choices that follow their account across devices. Android notification channels cannot have their sound changed after creation, so category sound selection must be represented by stable channels rather than by trying to edit an existing channel.
+
 ## Options considered
 
 ### Option 1: Strengthen the existing Expo and BullMQ path
@@ -51,11 +55,58 @@ Have the Backend send directly to each platform provider and maintain platform c
 * Adds credential management and separate provider code for both platforms.
 * Replaces a working Expo token flow and adds operational burden without a demonstrated need.
 
+### Preference and sound choices
+
+#### Option 1: Extend the existing user preference object and use bundled sounds
+
+Store category push settings, sound IDs, and master mute in the existing `notificationPreferences` object. Keep promotional consent in the existing indexed user field. Preview local bundled audio with `expo-audio`, and map stable sound IDs to Expo notification payloads and Android channels.
+
+**Pros**:
+
+* Keeps account preferences with the existing user document and syncs them across devices.
+* Uses the current Expo notification path and avoids another preference service.
+* Android channel IDs can reflect the selected sound without trying to mutate immutable channels.
+
+**Cons**:
+
+* Every supported category and sound choice needs a stable bundled asset and Android channel.
+* A native app build is needed to add or replace notification sounds.
+
+#### Option 2: Store settings in a new preference collection
+
+Create a separate Appwrite collection for notification settings and sound choices.
+
+**Pros**:
+
+* Gives notification settings an independent schema and query boundary.
+
+**Cons**:
+
+* Adds another collection and authorization path for data already attached to the user.
+* Requires more synchronization and recovery logic without a query need.
+
+#### Option 3: Keep sound choices local or use the operating system default
+
+Store sound selection on each device, or leave push sound selection to the operating system.
+
+**Pros**:
+
+* Requires less Backend preference handling and fewer sound channels.
+
+**Cons**:
+
+* Device local choices do not follow the customer account to another device.
+* A default sound cannot meet the request for category specific sounds and previews.
+
 ## Rationale
 
 The current failure is fragmented dispatch, not a missing provider. Option 1 repairs the root cause while keeping the Appwrite and Expo choices already in use. BullMQ provides a place for bounded retries, and campaign records provide recovery when Redis work is interrupted. The migration must route each event through exactly one sender because the current dispatcher can call both providers.
 
 The consent value is a queryable Boolean on the existing user document rather than an unindexed nested preference. This keeps campaign audience selection bounded and supports a paged worker. A single token field is retained because it is the current model and the requested audience is registered mobile users, with the explicit limitation that only the latest device is covered.
+
+Category choices extend the existing `notificationPreferences` object; no new collection is needed. The promotion push switch continues to use the indexed `marketingPushEnabled` field as its one source of consent. Order, reward, and app or service update switches default on, while promotions default off. Security and welcome pushes remain locked on. Push switches suppress only device delivery. They do not remove owner scoped in app notices, including a promotional campaign notice for a customer who opted out of its push. The campaign snapshot stays limited to users with a recorded first push token registration, so this does not turn mobile broadcasts into a message to every account.
+
+Sound IDs refer to bundled WAV files in the existing category folders. `expo-audio` is used only for an explicit in app preview, so the feature does not need recording permission or background audio. Android channels are created for each stable category and sound ID, plus a silent choice. A master mute selects the silent channel, while operating system channel controls remain authoritative. iOS uses the same sound registry in its native build and receives no sound when a category is silent or master mute is on.
 
 The admin result reports provider acceptance and failure categories, not device display. Expo tickets cannot establish that a person saw a notification, and an ambiguous timeout cannot be made exactly once by the Backend. The design therefore retries boundedly, reports uncertainty honestly, and avoids manually retrying ambiguous outcomes.
 
@@ -75,4 +126,4 @@ The receipt therefore stores the normalized event type, which selects the server
 
 Reconstruction is limited to a pending receipt that is being recovered or replayed. An accepted receipt does not recreate a notice that a customer cleared after delivery. Recovery retries a pending receipt if Expo may have accepted the push but the Backend did not save the acceptance. This favors delivery reliability and preserves the existing at least once behavior, with a small duplicate risk because the provider and Appwrite cannot share a transaction.
 
-The campaign title and body limits, history page bounds, five second active detail refresh, and one manual retry are product and operational defaults, not Expo requirements. The text limits keep broadcasts short, the page bounds constrain Appwrite reads, the refresh interval balances timely status with request load, and the single manual retry limits extra provider work while retaining a safe recovery option.
+The campaign title and body limits, history page bounds, five second active detail refresh, and one manual retry are product and operational defaults, not Expo requirements. The text limits keep broadcasts short, the page bounds constrain Appwrite reads, the refresh interval balances timely status with request load, and the single manual retry limits extra provider work while retaining a safe recovery option. Separating in app notice creation from push eligibility also keeps consent meaningful: opting out prevents the promotional push without silently hiding the related notice inside the app.

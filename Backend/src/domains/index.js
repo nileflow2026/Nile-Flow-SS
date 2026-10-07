@@ -125,7 +125,13 @@ const DOMAINS = {
     cacheNamespace: "notifications:",
     queues: ["notifications", "email"],
     metricsPrefix: "nf_notifications_",
-    appwriteCollections: ["notifications", "pushTokens"],
+    appwriteCollections: [
+      "notifications",
+      "pushTokens",
+      ...(process.env.APPWRITE_NOTIFICATIONS_COLLECTION_ID
+        ? [process.env.APPWRITE_NOTIFICATIONS_COLLECTION_ID]
+        : []),
+    ],
   },
 
   /**
