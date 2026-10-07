@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { newsletterService } from '@api/services'
 import AppHeader from '@shared/ui/header/AppHeader'
 
 const shopLinks = [
@@ -130,12 +131,33 @@ function ScrollToTopButton() {
   )
 }
 
-function PageShell({ children }) {
+function PageShell({ children, showFooter = true }) {
   const location = useLocation()
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false)
+  const [newsletterFeedback, setNewsletterFeedback] = useState(null)
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname, location.search])
+
+  const handleNewsletterSubmit = async (event) => {
+    event.preventDefault()
+    if (newsletterSubmitting) return
+
+    setNewsletterSubmitting(true)
+    setNewsletterFeedback(null)
+
+    const result = await newsletterService.subscribe(newsletterEmail)
+    if (result.success) {
+      setNewsletterEmail('')
+      setNewsletterFeedback({ type: 'success', message: result.message })
+    } else {
+      setNewsletterFeedback({ type: 'error', message: result.error })
+    }
+
+    setNewsletterSubmitting(false)
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
@@ -147,6 +169,7 @@ function PageShell({ children }) {
 
       <ScrollToTopButton />
 
+      {showFooter && (
       <footer className="border-t border-[var(--color-border)] bg-[linear-gradient(180deg,var(--color-surface-muted)_0%,var(--color-background)_100%)]">
         {/* African pattern divider */}
         <div className="h-[3px] w-full bg-[repeating-linear-gradient(90deg,transparent,transparent_8px,#16a34a_8px,#16a34a_12px,transparent_12px,transparent_20px,#d97706_20px,#d97706_24px,transparent_24px,transparent_32px)]" />
@@ -177,6 +200,60 @@ function PageShell({ children }) {
         </div>
 
         <div className="responsive-shell py-10 sm:py-12 lg:py-14">
+          <section className="mb-10 grid gap-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm sm:p-8 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+            <div>
+              <h2 className="text-xl font-bold text-[var(--color-text-primary)] sm:text-2xl">
+                Get Nile Flow updates
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Sign up for our newsletter to hear about new arrivals, special offers, and marketplace news.
+              </p>
+            </div>
+            <form onSubmit={handleNewsletterSubmit} className="w-full">
+              <label htmlFor="footer-newsletter-email" className="sr-only">
+                Email address
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  id="footer-newsletter-email"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(event) => {
+                    setNewsletterEmail(event.target.value)
+                    setNewsletterFeedback(null)
+                  }}
+                  placeholder="Enter your email address"
+                  aria-describedby="footer-newsletter-feedback"
+                  className="min-h-12 min-w-0 flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-background)] px-5 py-3 text-sm text-[var(--color-text-primary)] outline-none transition placeholder:text-[var(--color-text-secondary)] focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+                />
+                <button
+                  type="submit"
+                  disabled={newsletterSubmitting}
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {newsletterSubmitting ? 'Subscribing…' : 'Subscribe'}
+                </button>
+              </div>
+              <p
+                id="footer-newsletter-feedback"
+                aria-live="polite"
+                role={newsletterFeedback?.type === 'error' ? 'alert' : 'status'}
+                className={`mt-3 min-h-5 text-sm ${
+                  newsletterFeedback?.type === 'error'
+                    ? 'text-red-600'
+                    : newsletterFeedback?.type === 'success'
+                      ? 'text-emerald-700'
+                      : 'text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {newsletterFeedback?.message || 'You can unsubscribe at any time.'}
+              </p>
+            </form>
+          </section>
+
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-[1.15fr_0.7fr_0.7fr_0.8fr]">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -275,6 +352,7 @@ function PageShell({ children }) {
           </div>
         </div>
       </footer>
+      )}
     </div>
   )
 }

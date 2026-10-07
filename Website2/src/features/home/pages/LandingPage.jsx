@@ -37,7 +37,7 @@ function LandingPage() {
   }, [])
 
   return (
-    <PageShell>
+    <PageShell showFooter={false}>
       <SeoHead
         title="Nile Flow | African Commerce & AI Marketplace"
         description="Discover authentic products, secure payments, and dependable delivery across Africa. Shop smarter with Nile Flow."

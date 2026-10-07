@@ -25,6 +25,7 @@ export { groupBuyService } from './groupBuyService';
 export { discoveryService } from './discoveryService';
 export { bannerService } from './bannerService';
 export { teamMemberService } from './teamMemberService';
+export { newsletterService } from './newsletterService';
 
 export { initializeApi, getHttpClient } from '@api/client';
 export { config } from '@api/config';
