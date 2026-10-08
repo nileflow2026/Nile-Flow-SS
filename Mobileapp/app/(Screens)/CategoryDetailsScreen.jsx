@@ -191,11 +191,11 @@ const CategoryDetailsScreen = () => {
             recyclingKey={`cat-item-${item.$id || item.id}`}
           />
 
-          {/* Premium Badge */}
+          {/* {/* Premium Badge 
           <View style={styles.premiumBadge}>
             <Ionicons name="trophy" size={12} color="#FFF" />
             <Text style={styles.premiumText}>Premium</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* Product Info */}
@@ -290,19 +290,13 @@ const CategoryDetailsScreen = () => {
                         color="#16A34A"
                       />
                     </TouchableOpacity>
-
-                    {/* Premium Tag */}
-                    <View style={styles.premiumTag}>
-                      <Ionicons name="sparkles" size={14} color="#D97706" />
-                      <Text style={styles.premiumTagText}>
-                        Premium Collection
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.categoryTitle} numberOfLines={2}>
+                   <Text style={styles.categoryTitle} numberOfLines={2}>
                     {categoryDetails?.name || categoryName || "Loading..."}
                   </Text>
+                    
+                  </View>
+
+                  
 
                   <Text style={styles.categoryDescription}>
                     Discover authentic{" "}
@@ -311,7 +305,7 @@ const CategoryDetailsScreen = () => {
                     products
                   </Text>
                   <Text style={styles.productCount}>
-                    {products.length} premium products available
+                    {products.length}  products available
                   </Text>
 
                   {/* Stats */}

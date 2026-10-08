@@ -45,13 +45,13 @@ const accountItems = [
     icon: "shield",
     route: "/(Screens)/Security",
   },
-  /* {
+  {
     title: "Notifications",
     description: "View your order and account updates",
     icon: "notifications-none",
-    route: "/(Screens)/MyNotificationsScreen",
+    route: "/(Screens)/Notifications",
   },
-  {
+ /*  {
     title: "Premium membership",
     description: "Manage your Nile Premium subscription",
     icon: "workspace-premium",

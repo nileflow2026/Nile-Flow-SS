@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Dimensions,
   FlatList,
@@ -22,14 +23,24 @@ import {
 
 const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
+const AUTO_SLIDE_INTERVAL = 50;
+const AUTO_SLIDE_STEP = 1;
 
 const FeaturedProducts = ({ fullScreen = false }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const hasProducts = useRef(false);
+  const productRailRef = useRef(null);
+  const contentWidthRef = useRef(0);
+  const viewportWidthRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+  const pausedRef = useRef(false);
+  const resumeTimerRef = useRef(null);
   const router = useRouter();
+  const railCardWidth = Math.min(220, (width - 48) * 0.62);
 
   const fetchFeaturedProducts = useCallback(async (isRefresh = false) => {
     setError(false);
@@ -56,6 +67,72 @@ const FeaturedProducts = ({ fullScreen = false }) => {
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mounted) setReduceMotion(enabled);
+      })
+      .catch((accessibilityError) => {
+        console.error("Failed to read reduced motion setting:", accessibilityError);
+      });
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (fullScreen || reduceMotion || products.length < 2) return undefined;
+
+    const interval = setInterval(() => {
+      const maxOffset = contentWidthRef.current - viewportWidthRef.current;
+      if (pausedRef.current || maxOffset <= 0) return;
+
+      const nextOffset = scrollOffsetRef.current + AUTO_SLIDE_STEP;
+      if (nextOffset >= maxOffset) {
+        scrollOffsetRef.current = 0;
+        productRailRef.current?.scrollToOffset({
+          offset: 0,
+          animated: false,
+        });
+      } else {
+        scrollOffsetRef.current = nextOffset;
+        productRailRef.current?.scrollToOffset({
+          offset: nextOffset,
+          animated: false,
+        });
+      }
+    }, AUTO_SLIDE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [fullScreen, products.length, reduceMotion]);
+
+  const pauseAutoSlide = () => {
+    pausedRef.current = true;
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+  };
+
+  const resumeAutoSlideSoon = () => {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      pausedRef.current = false;
+      resumeTimerRef.current = null;
+    }, 1800);
+  };
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -118,7 +195,10 @@ const FeaturedProducts = ({ fullScreen = false }) => {
 
     return (
       <TouchableOpacity
-        style={[styles.productCard, { width: cardWidth }]}
+        style={[
+          styles.productCard,
+          { width: fullScreen ? cardWidth : railCardWidth },
+        ]}
         onPress={() => {
           if (item) {
             router.push({
@@ -371,14 +451,16 @@ const FeaturedProducts = ({ fullScreen = false }) => {
 
       {/* Products Grid */}
       <FlatList
+        ref={fullScreen ? undefined : productRailRef}
         data={fullScreen ? products : products.slice(0, 4)}
         renderItem={renderProduct}
         keyExtractor={(item, index) =>
           item?.$id || item?.id || index.toString()
         }
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        scrollEnabled={fullScreen}
+        horizontal={!fullScreen}
+        numColumns={fullScreen ? 2 : 1}
+        columnWrapperStyle={fullScreen ? styles.row : undefined}
+        ItemSeparatorComponent={fullScreen ? undefined : () => <View style={{ width: 12 }} />}
         contentContainerStyle={
           fullScreen ? styles.screenListContainer : styles.listContainer
         }
@@ -386,6 +468,33 @@ const FeaturedProducts = ({ fullScreen = false }) => {
         maxToRenderPerBatch={4}
         removeClippedSubviews={true}
         ListHeaderComponent={fullScreen ? screenHeader : null}
+        onLayout={
+          fullScreen
+            ? undefined
+            : (event) => {
+                viewportWidthRef.current = event.nativeEvent.layout.width;
+              }
+        }
+        onContentSizeChange={
+          fullScreen
+            ? undefined
+            : (contentWidth) => {
+                contentWidthRef.current = contentWidth;
+              }
+        }
+        onScroll={
+          fullScreen
+            ? undefined
+            : (event) => {
+                scrollOffsetRef.current = event.nativeEvent.contentOffset.x;
+              }
+        }
+        scrollEventThrottle={100}
+        onTouchStart={fullScreen ? undefined : pauseAutoSlide}
+        onTouchEnd={fullScreen ? undefined : resumeAutoSlideSoon}
+        onScrollBeginDrag={fullScreen ? undefined : pauseAutoSlide}
+        onScrollEndDrag={fullScreen ? undefined : resumeAutoSlideSoon}
+        onMomentumScrollEnd={fullScreen ? undefined : resumeAutoSlideSoon}
         ListEmptyComponent={
           fullScreen ? (
             <View style={styles.emptyState}>

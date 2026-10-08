@@ -8,7 +8,7 @@ module.exports = () => ({
     slug: "nile-flow-app",
     version: "2.5.25",
     orientation: "default",
-    icon: "./assets/images/logo.png",
+    icon: "./assets/logo.png",
     scheme: "nileflowapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -92,7 +92,7 @@ module.exports = () => ({
       [
         "expo-notifications",
         {
-          icon: "./assets/images/logo.png",
+          icon: "./assets/images/android-icon-monochrome.png",
           color: "#F59E0B",
           defaultChannel: "default",
           sounds: [
@@ -121,7 +121,7 @@ module.exports = () => ({
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/logo.png",
+          image: "./assets/logo.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
@@ -129,7 +129,7 @@ module.exports = () => ({
             backgroundColor: "#ffffff",
           },
         },
-      ],
+            ],
       "expo-video",
       "expo-web-browser",
       "expo-secure-store",
