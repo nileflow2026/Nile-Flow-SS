@@ -262,11 +262,11 @@ function resolvePushSettings(type, storedPreferences, marketingPushEnabled) {
     sound: silent ? null : soundId ? SOUND_REGISTRY[soundId] : "default",
     channelId: silent
       ? category
-        ? `nf-${category}-silent`
-        : "nf-customer-silent"
+        ? `nf-${category}-silent-v2`
+        : "nf-customer-silent-v2"
       : category
-        ? `nf-${category}-${soundId}`
-        : "default",
+        ? `nf-${category}-${soundId}-v2`
+        : "nf-customer-default-v2",
   };
 }
 

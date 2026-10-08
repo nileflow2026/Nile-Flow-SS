@@ -96,7 +96,7 @@ module.exports = () => ({
         {
           icon: "./assets/images/android-icon-monochrome.png",
           color: "#F59E0B",
-          defaultChannel: "default",
+          defaultChannel: "nf-customer-default-v2",
           sounds: [
             "./assets/notificationSounds/coreflow_1.wav",
             "./assets/notificationSounds/kalimba_1.wav",

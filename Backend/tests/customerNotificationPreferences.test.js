@@ -87,12 +87,12 @@ test("resolves category sounds, silent choices, and master mute to stable channe
       enabled: true,
       soundId: "coreflow_1",
       sound: "coreflow_1.wav",
-      channelId: "nf-order-coreflow_1",
+      channelId: "nf-order-coreflow_1-v2",
     },
   );
   assert.equal(
     resolvePushSettings("appUpdate", preferences, false).channelId,
-    "nf-system-sonic_logo_2",
+    "nf-system-sonic_logo_2-v2",
   );
   assert.equal(
     resolvePushSettings("reward", preferences, false).sound,
@@ -100,7 +100,7 @@ test("resolves category sounds, silent choices, and master mute to stable channe
   );
   assert.equal(
     resolvePushSettings("promotion", preferences, true).channelId,
-    "nf-promotion-kalimba_3",
+    "nf-promotion-kalimba_3-v2",
   );
   assert.equal(
     resolvePushSettings(
@@ -108,7 +108,7 @@ test("resolves category sounds, silent choices, and master mute to stable channe
       { ...preferences, order: { push: true, soundId: "silent" } },
       false,
     ).channelId,
-    "nf-order-silent",
+    "nf-order-silent-v2",
   );
   assert.equal(
     resolvePushSettings(
@@ -116,11 +116,27 @@ test("resolves category sounds, silent choices, and master mute to stable channe
       { ...preferences, system: { push: false }, soundMuted: true },
       false,
     ).channelId,
-    "nf-welcome-silent",
+    "nf-welcome-silent-v2",
+  );
+  assert.equal(
+    resolvePushSettings(
+      "password_changed",
+      { soundMuted: true },
+      false,
+    ).channelId,
+    "nf-security-silent-v2",
+  );
+  assert.equal(
+    resolvePushSettings(
+      "promotion",
+      { ...preferences, soundMuted: true },
+      true,
+    ).channelId,
+    "nf-promotion-silent-v2",
   );
   assert.equal(
     resolvePushSettings("unclassified", { soundMuted: true }, false).channelId,
-    "nf-customer-silent",
+    "nf-customer-silent-v2",
   );
 });
 

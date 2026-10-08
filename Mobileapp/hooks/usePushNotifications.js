@@ -52,6 +52,7 @@ if (isSupportedPlatform) {
 const getProjectId = () =>
   Constants.expoConfig?.extra?.eas?.projectId ||
   Constants.easConfig?.projectId;
+const PUSH_VIBRATION_PATTERN = [0, 250, 150, 250];
 
 export const isPushNotificationPromptSupported = () =>
   isSupportedPlatform && Boolean(Notifications) && Device?.isDevice === true;
@@ -84,28 +85,36 @@ const configureNotificationChannels = async () => {
 
   const definitions = [
     {
-      id: "default",
-      name: "General",
+      id: "nf-customer-default-v2",
+      name: "General, vibrates",
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: "default",
+      enableVibrate: true,
+      vibrationPattern: PUSH_VIBRATION_PATTERN,
     },
     {
       id: "orders",
       name: "Order Updates",
       importance: Notifications.AndroidImportance.HIGH,
       sound: "default",
+      enableVibrate: true,
+      vibrationPattern: PUSH_VIBRATION_PATTERN,
     },
     {
       id: "promotions",
       name: "Promotions",
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: "default",
+      enableVibrate: true,
+      vibrationPattern: PUSH_VIBRATION_PATTERN,
     },
     {
-      id: "nf-customer-silent",
-      name: "Other alerts, silent",
+      id: "nf-customer-silent-v2",
+      name: "Other alerts, silent, vibrates",
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: null,
+      enableVibrate: true,
+      vibrationPattern: PUSH_VIBRATION_PATTERN,
     },
   ];
   for (const [category, options] of Object.entries(
@@ -114,8 +123,8 @@ const configureNotificationChannels = async () => {
     for (const option of options) {
       const locked = category === "order" && option.id === "coreflow_1";
       definitions.push({
-        id: `nf-${category}-${option.id}`,
-        name: `${category} ${option.label}`,
+        id: `nf-${category}-${option.id}-v2`,
+        name: `${category} ${option.label}, vibrates`,
         importance:
           category === "order"
             ? Notifications.AndroidImportance.HIGH
@@ -124,20 +133,26 @@ const configureNotificationChannels = async () => {
           option.id === "silent"
             ? null
             : NOTIFICATION_SOUND_FILES[option.id],
+        enableVibrate: true,
+        vibrationPattern: PUSH_VIBRATION_PATTERN,
       });
       if (locked) {
         for (const lockedCategory of ["security", "welcome"]) {
           definitions.push({
-            id: `nf-${lockedCategory}-coreflow_1`,
-            name: `${lockedCategory} CoreFlow`,
+            id: `nf-${lockedCategory}-coreflow_1-v2`,
+            name: `${lockedCategory} CoreFlow, vibrates`,
             importance: Notifications.AndroidImportance.HIGH,
             sound: NOTIFICATION_SOUND_FILES.coreflow_1,
+            enableVibrate: true,
+            vibrationPattern: PUSH_VIBRATION_PATTERN,
           });
           definitions.push({
-            id: `nf-${lockedCategory}-silent`,
-            name: `${lockedCategory}, silent`,
+            id: `nf-${lockedCategory}-silent-v2`,
+            name: `${lockedCategory}, silent, vibrates`,
             importance: Notifications.AndroidImportance.HIGH,
             sound: null,
+            enableVibrate: true,
+            vibrationPattern: PUSH_VIBRATION_PATTERN,
           });
         }
       }
