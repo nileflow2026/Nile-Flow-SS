@@ -11,6 +11,8 @@ const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
 const socketService = require("../../services/socketService");
 const { getRequestedOrderStatus } = require("../../utils/orderStatusRequest");
+const { enqueuePushNotification } = require("../../services/pushNotificationService");
+const logger = require("../../utils/logger");
 
 const getCancelledOrders = async (req, res) => {
   try {
@@ -833,6 +835,45 @@ const updateOrderStatus = async (req, res) => {
       env.APPWRITE_ORDERS_COLLECTION,
       orderId,
     );
+
+    const customerReference = order.userId || order.users;
+    const customerId =
+      typeof customerReference === "string"
+        ? customerReference
+        : customerReference?.$id || customerReference?.userId;
+    if (typeof customerId === "string" && customerId) {
+      try {
+        const pushJob = await enqueuePushNotification({
+          userId: customerId,
+          title: "Order status updated",
+          message: `Your order ${order.orderNumber || order.$id} status is now ${orderStatus}.`,
+          type: "order",
+          data: {
+            event: "order.status_updated",
+            orderId: order.$id,
+            orderStatus,
+            route: "/(Screens)/OrdersScreen",
+          },
+          idempotencyKey: `admin-order-status:${order.$id}:${orderStatus}:${exec.$id || exec.id || order.$updatedAt || Date.now()}`,
+        });
+        logger.info("Admin order status push queued", {
+          orderId: order.$id,
+          orderStatus,
+          jobId: pushJob.id,
+        });
+      } catch (pushError) {
+        logger.error("Order status updated, but its push notification could not be queued", {
+          orderId: order.$id,
+          orderStatus,
+          error: pushError.message,
+        });
+      }
+    } else {
+      logger.warn("Order status push was not queued because the order has no customer user ID", {
+        orderId: order.$id,
+        orderStatus,
+      });
+    }
 
     // 4. Call email function
     await sendOrderStatusUpdateEmail({

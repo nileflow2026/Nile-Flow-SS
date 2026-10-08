@@ -8,6 +8,7 @@
 const { notificationsQueue } = require("../src/jobs/queues");
 const { instrumentedDb } = require("./appwriteService");
 const { env } = require("../src/env");
+const { pushNotificationJobId } = require("./pushNotificationJobIds");
 const {
   readStoredPreferences,
   resolvePushSettings,
@@ -78,9 +79,7 @@ async function enqueuePushNotification({
       },
     },
     {
-      jobId: idempotencyKey
-        ? `push:${idempotencyKey}`
-        : undefined,
+      jobId: idempotencyKey ? pushNotificationJobId(idempotencyKey) : undefined,
       attempts: 5,
       backoff: { type: "exponential", delay: 1000 },
       removeOnComplete: { count: 100 },

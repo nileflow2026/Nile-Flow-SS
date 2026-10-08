@@ -90,6 +90,16 @@ test("resolves category sounds, silent choices, and master mute to stable channe
       channelId: "nf-order-coreflow_1-v2",
     },
   );
+  assert.deepEqual(
+    resolvePushSettings("order.status_updated", preferences, false),
+    {
+      category: "order",
+      enabled: true,
+      soundId: "coreflow_1",
+      sound: "coreflow_1.wav",
+      channelId: "nf-order-coreflow_1-v2",
+    },
+  );
   assert.equal(
     resolvePushSettings("appUpdate", preferences, false).channelId,
     "nf-system-sonic_logo_2-v2",
