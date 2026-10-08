@@ -195,6 +195,12 @@ export const verifyEmailCode = async (email, verificationCode) => {
       verificationCode,
       deviceId,
     });
+    if (response.data?.accessToken) {
+      await SecureStore.setItemAsync(
+        "oauthAccessToken",
+        response.data.accessToken,
+      );
+    }
     invalidateUserCache();
     return response.data;
   } catch (error) {
@@ -279,9 +285,11 @@ export const signIn = async (email, password) => {
       },
     );
 
-    // Backend response structure: { message, user: { userId, email, username, role, avatar } }
-    // Note: tokens are set as HTTP cookies, not in response body
-    const { user } = response.data;
+    // Keep the access token in secure storage for authenticated native requests.
+    const { user, accessToken } = response.data;
+    if (accessToken) {
+      await SecureStore.setItemAsync("oauthAccessToken", accessToken);
+    }
 
     // Clear guest status upon successful login
     await AsyncStorage.removeItem("isGuest");

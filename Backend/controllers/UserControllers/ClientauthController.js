@@ -808,7 +808,7 @@ const logoutcustomer = async (req, res) => {
             ]
           : [Query.equal("refreshToken", hashedRefreshToken)];
 
-      const result = await db.listDocuments(
+      const result = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         env.APPWRITE_REFRESH_TOKEN_COLLECTION_ID,
         queries,
