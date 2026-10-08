@@ -292,8 +292,8 @@ export const markNotificationsAsRead = async (ids) => {
 
 export const fetchAllNotificationTypes = async () => {
   try {
-    const response = await axiosClient.get('/api/notifications');
-    return response.data?.notifications || [];
+    const response = await axiosClient.get('/api/notifications/admin');
+    return response.data?.result || response.data?.notifications || [];
   } catch (error) {
     console.error('Error fetching all notifications:', error);
     return [];
@@ -303,7 +303,9 @@ export const fetchAllNotificationTypes = async () => {
 export const forceRefreshNotifications = async () => {
   try {
     const timestamp = new Date().getTime();
-    const response = await axiosClient.get(`/api/notifications?_t=${timestamp}&force=true`);
+    const response = await axiosClient.get(
+      `/api/notifications/admin?_t=${timestamp}&force=true`,
+    );
     return response.data?.result || response.data?.notifications || [];
   } catch (error) {
     console.error('Error force refreshing notifications:', error);
