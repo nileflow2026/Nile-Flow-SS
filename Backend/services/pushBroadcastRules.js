@@ -1,6 +1,10 @@
 "use strict";
 
 const crypto = require("crypto");
+const {
+  readStoredPreferences,
+  resolvePushSettings,
+} = require("../notifications/CustomerNotificationPreferences");
 
 const CAMPAIGN_ROUTES = new Set([
   "/(tabs)/BottomTabs",
@@ -65,12 +69,22 @@ function idempotencyKey(value) {
 
 function userEligible(user, category, snapshotAt) {
   if (!user.pushToken) return false;
-  if (category !== "promotion") return true;
-  return (
-    user.marketingPushEnabled === true &&
-    typeof user.marketingPushConsentUpdatedAt === "string" &&
-    user.marketingPushConsentUpdatedAt <= snapshotAt
+  if (
+    category === "promotion" &&
+    (user.marketingPushEnabled !== true ||
+      typeof user.marketingPushConsentUpdatedAt !== "string" ||
+      user.marketingPushConsentUpdatedAt > snapshotAt)
+  ) {
+    return false;
+  }
+  const notificationPreferences = readStoredPreferences(
+    user.notificationPreferences,
   );
+  return resolvePushSettings(
+    CATEGORIES[category].type,
+    notificationPreferences,
+    user.marketingPushEnabled,
+  ).enabled;
 }
 
 module.exports = {

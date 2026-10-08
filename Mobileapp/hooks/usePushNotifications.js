@@ -3,8 +3,16 @@ import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import axiosClient from "@/api";
+import {
+  NOTIFICATION_SOUND_FILES,
+  NOTIFICATION_SOUND_GROUPS,
+} from "../constants/notificationSounds";
+import {
+  MUTE_SOUND_KEY,
+  syncAccountNotificationPreferences,
+} from "../services/notificationPreferences";
 
-export const MUTE_SOUND_KEY = "notificationSoundMuted";
+export { MUTE_SOUND_KEY };
 const isExpoGo = Constants.appOwnership === "expo";
 const isSupportedPlatform = Platform.OS !== "web" && !isExpoGo;
 
@@ -55,35 +63,84 @@ const unregisterPushTokenWithBackend = async () => {
   await axiosClient.delete("/api/customernotifications/register-token");
 };
 
-const configureNotificationChannels = async (isMuted) => {
+const configureNotificationChannels = async () => {
   if (Platform.OS !== "android" || !Notifications) return;
 
-  const sound = isMuted ? null : "default";
-  await Promise.all([
-    Notifications.setNotificationChannelAsync("default", {
+  const definitions = [
+    {
+      id: "default",
       name: "General",
       importance: Notifications.AndroidImportance.DEFAULT,
-      sound,
-    }),
-    Notifications.setNotificationChannelAsync("orders", {
+      sound: "default",
+    },
+    {
+      id: "orders",
       name: "Order Updates",
       importance: Notifications.AndroidImportance.HIGH,
-      sound,
-    }),
-    Notifications.setNotificationChannelAsync("promotions", {
+      sound: "default",
+    },
+    {
+      id: "promotions",
       name: "Promotions",
       importance: Notifications.AndroidImportance.DEFAULT,
-      sound,
+      sound: "default",
+    },
+    {
+      id: "nf-customer-silent",
+      name: "Other alerts, silent",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: null,
+    },
+  ];
+  for (const [category, options] of Object.entries(
+    NOTIFICATION_SOUND_GROUPS,
+  )) {
+    for (const option of options) {
+      const locked = category === "order" && option.id === "coreflow_1";
+      definitions.push({
+        id: `nf-${category}-${option.id}`,
+        name: `${category} ${option.label}`,
+        importance:
+          category === "order"
+            ? Notifications.AndroidImportance.HIGH
+            : Notifications.AndroidImportance.DEFAULT,
+        sound:
+          option.id === "silent"
+            ? null
+            : NOTIFICATION_SOUND_FILES[option.id],
+      });
+      if (locked) {
+        for (const lockedCategory of ["security", "welcome"]) {
+          definitions.push({
+            id: `nf-${lockedCategory}-coreflow_1`,
+            name: `${lockedCategory} CoreFlow`,
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: NOTIFICATION_SOUND_FILES.coreflow_1,
+          });
+          definitions.push({
+            id: `nf-${lockedCategory}-silent`,
+            name: `${lockedCategory}, silent`,
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: null,
+          });
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    definitions.map(async ({ id, ...definition }) => {
+      const existingChannel =
+        await Notifications.getNotificationChannelAsync(id);
+      if (!existingChannel) {
+        await Notifications.setNotificationChannelAsync(id, definition);
+      }
     }),
-  ]);
+  );
 };
 
 export const applyMuteSetting = async (isMuted) => {
-  await AsyncStorage.setItem(
-    MUTE_SOUND_KEY,
-    isMuted ? "true" : "false",
-  );
-  await configureNotificationChannels(isMuted);
+  await AsyncStorage.setItem(MUTE_SOUND_KEY, isMuted ? "true" : "false");
 };
 
 export const usePushNotifications = (
@@ -152,9 +209,15 @@ export const usePushNotifications = (
 
       isRegistering = true;
       try {
-        const isMuted =
-          (await AsyncStorage.getItem(MUTE_SOUND_KEY)) === "true";
-        await configureNotificationChannels(isMuted);
+        try {
+          await syncAccountNotificationPreferences(userId);
+        } catch (error) {
+          console.warn(
+            "[Push] Could not sync notification preferences:",
+            error.response?.data?.message || error.message,
+          );
+        }
+        await configureNotificationChannels();
 
         const permission = await Notifications.getPermissionsAsync();
         if (!isMounted) return;

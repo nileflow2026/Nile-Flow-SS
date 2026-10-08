@@ -114,6 +114,7 @@ async function setupPushBroadcasts() {
   const db = new Databases(client);
   const userCollectionId = env.APPWRITE_USER_COLLECTION_ID;
   await addString(db, userCollectionId, "pushTokenFirstRegisteredAt", 32);
+  await addString(db, userCollectionId, "notificationPreferences", 4096);
   await addBoolean(db, userCollectionId, "marketingPushEnabled");
   await addString(db, userCollectionId, "marketingPushConsentUpdatedAt", 32);
   await addString(db, userCollectionId, "welcomePushSentAt", 32);

@@ -8,7 +8,7 @@ module.exports = () => ({
     slug: "nile-flow-app",
     version: "2.5.25",
     orientation: "default",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo.png",
     scheme: "nileflowapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -64,7 +64,7 @@ module.exports = () => ({
       favicon: "./assets/images/favicon.png",
     },
     notification: {
-      icon: "./assets/images/android-icon-monochrome.png",
+      icon: "./assets/logo.png",
       color: "#F59E0B",
       androidMode: "default",
       androidCollapsedTitle: "#{unread_notifications} new notifications",
@@ -92,16 +92,36 @@ module.exports = () => ({
       [
         "expo-notifications",
         {
-          icon: "./assets/images/android-icon-monochrome.png",
+          icon: "./assets/images/logo.png",
           color: "#F59E0B",
           defaultChannel: "default",
-          sounds: [],
+          sounds: [
+            "./assets/notificationSounds/coreflow_1.wav",
+            "./assets/notificationSounds/kalimba_1.wav",
+            "./assets/notificationSounds/kalimba_2.wav",
+            "./assets/notificationSounds/kalimba_3.wav",
+            "./assets/notificationSounds/kalimba_4.wav",
+            "./assets/notificationSounds/nile_miles_1.wav",
+            "./assets/notificationSounds/nile_miles_2.wav",
+            "./assets/notificationSounds/nile_miles_3.wav",
+            "./assets/notificationSounds/nile_miles_4.wav",
+            "./assets/notificationSounds/sonic_logo_1.wav",
+            "./assets/notificationSounds/sonic_logo_2.wav",
+          ],
+        },
+      ],
+      [
+        "expo-audio",
+        {
+          microphonePermission: false,
+          recordAudioAndroid: false,
+          enableBackgroundPlayback: false,
         },
       ],
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/logo.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",

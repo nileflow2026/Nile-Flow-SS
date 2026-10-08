@@ -75,6 +75,39 @@ test("promotional recipients require explicit consent recorded by the snapshot",
   assert.equal(userEligible({ ...registered, pushToken: null }, "app_update", snapshot), false);
 });
 
+test("campaign push eligibility honors category switches but not sound mute", () => {
+  const snapshot = "2026-10-07T12:00:00.000Z";
+  const registered = { pushToken: "ExponentPushToken[test]" };
+
+  assert.equal(
+    userEligible(
+      {
+        ...registered,
+        notificationPreferences: JSON.stringify({
+          system: { push: false },
+        }),
+      },
+      "app_update",
+      snapshot,
+    ),
+    false,
+  );
+  assert.equal(
+    userEligible(
+      {
+        ...registered,
+        notificationPreferences: JSON.stringify({
+          system: { push: true, soundId: "silent" },
+          soundMuted: true,
+        }),
+      },
+      "app_update",
+      snapshot,
+    ),
+    true,
+  );
+});
+
 test("accepts only UUID version four idempotency keys and canonicalizes case", () => {
   const key = "F47AC10B-58CC-4372-A567-0E02B2C3D479";
   assert.equal(idempotencyKey(key), key.toLowerCase());

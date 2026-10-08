@@ -2,7 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import moment from "moment";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axiosClient from "../../api";
 import {
   ActivityIndicator,
@@ -19,32 +19,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getCurrentUser,
-  getCustomerOrdersPage,
+  getCustomerOrders,
   useGlobalContext,
 } from "../../Context/GlobalProvider";
 import { useTheme } from "../../Context/ThemeProvider";
 
 const { width } = Dimensions.get("window");
-
-const fetchAllOrders = async (status) => {
-  const fetchedOrders = [];
-  let page = 1;
-  let total = Infinity;
-
-  while (fetchedOrders.length < total) {
-    const result = await getCustomerOrdersPage({
-      page,
-      limit: 100,
-      ...(status !== "all" ? { status } : {}),
-    });
-    fetchedOrders.push(...result.orders);
-    total = result.total;
-    if (result.orders.length === 0) break;
-    page += 1;
-  }
-
-  return fetchedOrders;
-};
 
 const Orders = () => {
   const router = useRouter();
@@ -64,12 +44,10 @@ const Orders = () => {
     return () => subscription.remove();
   }, [router]);
   const [orders, setOrders] = useState([]);
-  const [allOrders, setAllOrders] = useState([]);
   const [userId, setUserId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const orderRequestId = useRef(0);
   const { themeStyles } = useTheme();
   const { user } = useGlobalContext();
 
@@ -171,40 +149,19 @@ const Orders = () => {
     }
   };
 
-  const fetchOrders = useCallback(async (
-    status = selectedStatus,
-    refreshAll = false,
-  ) => {
+  const fetchOrders = useCallback(async () => {
     if (!userId) return;
-    const requestId = ++orderRequestId.current;
     setLoading(true);
     try {
-      const shouldRefreshAll = status === "all" || refreshAll;
-      let allOrdersData = null;
-      let filteredOrdersData;
-      if (status === "all") {
-        allOrdersData = await fetchAllOrders("all");
-        filteredOrdersData = allOrdersData;
-      } else if (refreshAll) {
-        [allOrdersData, filteredOrdersData] = await Promise.all([
-          fetchAllOrders("all"),
-          fetchAllOrders(status),
-        ]);
-      } else {
-        filteredOrdersData = await fetchAllOrders(status);
-      }
-      if (orderRequestId.current !== requestId) return;
-
-      if (shouldRefreshAll) setAllOrders(allOrdersData);
-      setOrders(filteredOrdersData);
+      const ordersData = await getCustomerOrders();
+      setOrders(ordersData);
     } catch (error) {
-      if (orderRequestId.current !== requestId) return;
       console.error("❌ Error fetching orders:", error.message);
       Alert.alert("Error", "Failed to fetch orders. Please try again.");
     } finally {
-      if (orderRequestId.current === requestId) setLoading(false);
+      setLoading(false);
     }
-  }, [selectedStatus, userId]);
+  }, [userId]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -226,32 +183,29 @@ const Orders = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchOrders(selectedStatus, true);
+    await fetchOrders();
     setRefreshing(false);
   };
 
-  const filteredOrders = orders;
+  // Filter orders by status
+  const filteredOrders =
+    selectedStatus === "all"
+      ? orders
+      : orders.filter(
+          (order) =>
+            order.status?.toLowerCase() === selectedStatus.toLowerCase(),
+        );
 
   // Status counts for filter badges
   const statusCounts = {
-    all: allOrders.length,
-    delivered: allOrders.filter(
-      (o) => (o.orderStatus || o.status)?.toLowerCase() === "delivered",
-    )
+    all: orders.length,
+    delivered: orders.filter((o) => o.status?.toLowerCase() === "delivered")
       .length,
-    shipped: allOrders.filter(
-      (o) => (o.orderStatus || o.status)?.toLowerCase() === "shipped",
-    ).length,
-    processing: allOrders.filter(
-      (o) => (o.orderStatus || o.status)?.toLowerCase() === "processing",
-    )
+    shipped: orders.filter((o) => o.status?.toLowerCase() === "shipped").length,
+    processing: orders.filter((o) => o.status?.toLowerCase() === "processing")
       .length,
-    pending: allOrders.filter(
-      (o) => (o.orderStatus || o.status)?.toLowerCase() === "pending",
-    ).length,
-    cancelled: allOrders.filter(
-      (o) => (o.orderStatus || o.status)?.toLowerCase() === "cancelled",
-    )
+    pending: orders.filter((o) => o.status?.toLowerCase() === "pending").length,
+    cancelled: orders.filter((o) => o.status?.toLowerCase() === "cancelled")
       .length,
   };
 
@@ -266,7 +220,7 @@ const Orders = () => {
         orderId: order.$id,
         orderTime: new Date(order.createdAt).toLocaleString(),
         paymentTime: new Date(order.createdAt).toLocaleString(),
-        orderStatus: order.orderStatus || order.status || "Processing",
+        orderStatus: order.status || "Processing",
         estimatedDelivery: estimatedDelivery,
       },
     });
@@ -336,7 +290,7 @@ const Orders = () => {
       ],
     );
   };
-
+ 
   return (
     <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
       <SafeAreaView style={styles.safeArea}>
@@ -368,6 +322,7 @@ const Orders = () => {
           </View>
           {/* Hero Section */}
           <View style={styles.heroSection}>
+            
 
             <Text style={styles.heroSubtitle}>Purchase History</Text>
 
@@ -548,9 +503,9 @@ const Orders = () => {
                     const estimatedDelivery = moment(order.createdAt)
                       .add(2, "days")
                       .format("MMMM Do YYYY");
-                    const orderStatus = order.orderStatus || order.status || "pending";
-                    const statusColors = getStatusColor(orderStatus);
-                    const progress = getStatusProgress(orderStatus);
+
+                    const statusColors = getStatusColor(order.status);
+                    const progress = getStatusProgress(order.status);
 
                     return (
                       <View key={order.$id} style={styles.orderCard}>
@@ -563,7 +518,7 @@ const Orders = () => {
                                 style={styles.statusIcon}
                               >
                                 <MaterialIcons
-                                  name={getStatusIcon(orderStatus)}
+                                  name={getStatusIcon(order.status)}
                                   size={20}
                                   color="white"
                                 />
@@ -588,8 +543,8 @@ const Orders = () => {
                               style={styles.statusBadge}
                             >
                               <Text style={styles.statusBadgeText}>
-                                {orderStatus.charAt(0).toUpperCase() +
-                                  orderStatus.slice(1)}
+                                {order.status?.charAt(0).toUpperCase() +
+                                  order.status?.slice(1)}
                               </Text>
                             </LinearGradient>
                           </View>
@@ -648,7 +603,7 @@ const Orders = () => {
                                     Delivery
                                   </Text>
                                   <Text style={styles.orderDetailValue}>
-                                    {orderStatus === "delivered"
+                                    {order.status === "delivered"
                                       ? "Delivered"
                                       : "In Progress"}
                                   </Text>
@@ -657,8 +612,8 @@ const Orders = () => {
                             </View>
 
                             {/* Estimated Delivery */}
-                            {orderStatus !== "delivered" &&
-                              orderStatus !== "cancelled" && (
+                            {order.status !== "delivered" &&
+                              order.status !== "cancelled" && (
                                 <LinearGradient
                                   colors={[
                                     "rgba(251, 191, 36, 0.1)",
@@ -708,8 +663,8 @@ const Orders = () => {
                             </TouchableOpacity>
 
                             {/* Cancel Button for eligible orders */}
-                            {(orderStatus.toLowerCase() === "pending" ||
-                              orderStatus.toLowerCase() === "processing") && (
+                            {(order.status?.toLowerCase() === "pending" ||
+                              order.status?.toLowerCase() === "processing") && (
                               <TouchableOpacity
                                 style={styles.secondaryAction}
                                 onPress={() => handleCancelOrder(order)}

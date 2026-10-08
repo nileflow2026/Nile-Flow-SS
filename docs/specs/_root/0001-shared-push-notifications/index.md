@@ -125,6 +125,8 @@ Campaign destinations are an exact allowlist of registered Mobileapp routes: `/(
 * Automatic event receipt: `pending` → `accepted`, `rejected`, `unresolved`, or `skipped`. A replayed event with an existing receipt reuses it and never creates a second in app notice.
 * A queued campaign includes recipient preparation. In app notification records are created only as recipient processing starts, so cancelling before processing does not leave unread campaign notices behind.
 
+`targetedCount` is set only after the recipient snapshot scan reaches its end. Until then, recipient preparation is incomplete and pending counts are not shown. After that point, `pendingPush` is `targetedCount - acceptedCount - rejectedCount - unresolvedCount - skippedCount`; `pendingInApp` is `targetedCount - inAppCreatedCount - inAppUnresolvedCount - inAppSkippedCount`. Each recipient contributes exactly one current outcome to each independent state machine. A push can be skipped while its in app notice is created. A campaign completes only when preparation is complete and both pending counts are zero. It is `complete_with_issues` when any terminal outcome is unresolved.
+
 **API surface**:
 
 | Endpoint | Method | Key inputs | Key outputs | Auth | Key errors |
@@ -140,9 +142,29 @@ Campaign destinations are an exact allowlist of registered Mobileapp routes: `/(
 | `/api/customernotifications/register-token` | POST | Expo token | Token saved with `pushTokenFirstRegisteredAt` set only on the first registration | Existing authenticated customer session | 401 unauthenticated, 400 invalid token |
 | `/api/customernotifications/register-token` | DELETE | No user ID input | Current device token removed; first registration timestamp retained for an active campaign snapshot | Existing authenticated customer session | 401 unauthenticated, 503 unavailable |
 
+The preference GET response uses this canonical shape:
+
+```json
+{
+  "marketingPushEnabled": false,
+  "marketingPushConsentUpdatedAt": null,
+  "notificationPreferences": {
+    "order": { "push": true, "soundId": "coreflow_1" },
+    "promotion": { "soundId": "kalimba_1" },
+    "loyalty": { "push": true, "soundId": "nile_miles_1" },
+    "system": { "push": true, "soundId": "sonic_logo_1" },
+    "soundMuted": false
+  }
+}
+```
+
+PATCH accepts a partial object with this same shape, except the Backend alone writes `marketingPushConsentUpdatedAt`. Omitted values are unchanged when stored, and resolve to the documented defaults when absent. Nested preference objects merge by allowed field rather than replacing the full object. `marketingPushEnabled` is the only promotion push switch; `notificationPreferences.promotion.push` is not accepted and a legacy value does not grant consent. All unknown fields, invalid types, category keys, or sound IDs are rejected.
+
 The AdminDashboard creates one UUID v4 idempotency key for each send intent and reuses it for transport retries. The Backend trims surrounding whitespace, preserves internal body whitespace and paragraph breaks, normalizes the route to null when absent, and hashes the canonical JSON object containing title, body, category, and route. The hash is compared on an idempotent replay. Campaign audience candidates remain in the in app audience even when they cannot receive a push.
 
 The campaign create request stores the campaign and both estimates before queueing. A retry with the same key returns that same campaign. If queueing fails after the record is saved, the API returns 503 with the campaign ID and explicitly says it was saved but not queued. A recovery scan runs every 30 seconds. It enqueues queued campaigns with no live job and resumes sending campaigns from their saved cursor when the deterministic page job is missing or failed. BullMQ handles stalled active jobs. The API never returns a queued success unless Redis accepts the job.
+
+Campaign work uses the existing `nf:notifications` BullMQ queue. A campaign lock uses Redis key `nf:push-broadcast:<campaignId>:lock`; its 30 second lease is renewed every 10 seconds and released only by the holder's matching lock token. The campaign document remains the source of truth for snapshot time and cursor. Queue job IDs use BullMQ safe hyphen separators: `push-broadcast-<campaignId>-page-<cursorHash>`, where `cursorHash` is `start` before the first page and otherwise the SHA 256 hash of `lastProcessedUserId`. A page job carries the campaign ID and expected cursor; it exits without work if the saved cursor has changed. Automatic event jobs use `push-event-<receiptId>`. Recovery recreates these same IDs, so enqueue retries do not create parallel jobs for the same durable work.
 
 **Value sourcing**:
 

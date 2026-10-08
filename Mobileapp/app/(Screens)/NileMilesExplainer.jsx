@@ -109,14 +109,7 @@ const NileMilesExplainer = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.intro}>
-          <View style={styles.introIcon}>
-            <MaterialIcons
-              accessible={false}
-              name="stars"
-              size={fontSize["2xl"]}
-              color={colors.gold[600]}
-            />
-          </View>
+          
           <Text accessibilityRole="header" style={styles.title}>
             Make your shopping go further
           </Text>
@@ -447,7 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green[600],
   },
   redeemButtonText: {
-    color: colors.neutral.white,
+    color: colors.neutral.green,
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.sm,
   },

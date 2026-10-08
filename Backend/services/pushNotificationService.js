@@ -8,6 +8,10 @@
 const { notificationsQueue } = require("../src/jobs/queues");
 const { instrumentedDb } = require("./appwriteService");
 const { env } = require("../src/env");
+const {
+  readStoredPreferences,
+  resolvePushSettings,
+} = require("../notifications/CustomerNotificationPreferences");
 
 const EXPO_PUSH_API = "https://exp.host/--/api/v2/push/send";
 
@@ -100,15 +104,24 @@ async function sendQueuedPush({ userId, message, type, title, data = {}, expires
   );
   const pushToken = userDoc?.pushToken;
   if (!pushToken) return { status: "skipped", reason: "missing_token" };
+  const preferences = readStoredPreferences(userDoc.notificationPreferences);
+  const pushSettings = resolvePushSettings(
+    data.event || type,
+    preferences,
+    userDoc.marketingPushEnabled,
+  );
+  if (!pushSettings.enabled) {
+    return { status: "skipped", reason: "category_disabled" };
+  }
 
   const payload = {
     to: pushToken,
     title: title || getTitleForType(type),
     body: message,
-    sound: "default",
+    sound: pushSettings.sound,
     badge: 1,
     data: { type, ...data },
-    channelId: resolveChannelId(type),
+    channelId: pushSettings.channelId,
   };
   if (Number.isInteger(expiresAfter) && expiresAfter > 0) {
     payload.ttl = expiresAfter;
@@ -178,30 +191,6 @@ async function sendQueuedPush({ userId, message, type, title, data = {}, expires
   }
 
   return { status: "accepted", ticketId: ticket.id || null };
-}
-
-/**
- * Map notification type to an Android channel ID (created in usePushNotifications.js).
- */
-function resolveChannelId(type) {
-  if (!type) return "default";
-  const lower = type.toLowerCase();
-  if (
-    lower.includes("order") ||
-    lower.includes("payment") ||
-    lower.includes("delivery")
-  ) {
-    return "orders";
-  }
-  if (
-    lower.includes("promo") ||
-    lower.includes("deal") ||
-    lower.includes("flash") ||
-    lower.includes("sale")
-  ) {
-    return "promotions";
-  }
-  return "default";
 }
 
 async function clearInvalidToken(userId, invalidToken) {

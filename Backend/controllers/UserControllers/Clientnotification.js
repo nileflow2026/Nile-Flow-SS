@@ -1,6 +1,13 @@
 const { ID, Permission, Query } = require("node-appwrite");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const {
+  NotificationPreferenceError,
+  mergePreferences,
+  normalizePreferences,
+  readStoredPreferences,
+  validatePreferencePatch,
+} = require("../../notifications/CustomerNotificationPreferences");
 const createNotificationInternal = async (notificationData) => {
   try {
     const { message, type, username, email, userId } = notificationData;
@@ -288,9 +295,14 @@ const getCustomerNotificationPreferences = async (req, res) => {
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
     );
+    const storedPreferences = readStoredPreferences(
+      user.notificationPreferences,
+    );
     return res.status(200).json({
       marketingPushEnabled: user.marketingPushEnabled === true,
       marketingPushConsentUpdatedAt: user.marketingPushConsentUpdatedAt || null,
+      notificationPreferences: normalizePreferences(storedPreferences),
+      soundMutedConfigured: typeof storedPreferences.soundMuted === "boolean",
     });
   } catch (error) {
     console.error("Failed to read notification preferences:", error.message);
@@ -310,30 +322,52 @@ const updateCustomerNotificationPreferences = async (req, res) => {
     if (req.user.role && req.user.role !== "customer") {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
-    const keys = Object.keys(req.body || {});
-    if (
-      keys.length !== 1 ||
-      typeof req.body.marketingPushEnabled !== "boolean"
-    ) {
+    try {
+      validatePreferencePatch(req.body);
+    } catch (error) {
+      if (!(error instanceof NotificationPreferenceError)) throw error;
       return res.status(400).json({
         success: false,
-        message: "marketingPushEnabled must be the only Boolean field.",
+        message: error.message,
       });
     }
 
-    const updatedAt = new Date().toISOString();
+    const user = await instrumentedDb.getDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      userId,
+    );
+    const currentPreferences = readStoredPreferences(
+      user.notificationPreferences,
+    );
+    const updatedPreferences = mergePreferences(
+      currentPreferences,
+      req.body.notificationPreferences,
+    );
+    const updatedAt = Object.hasOwn(req.body, "marketingPushEnabled")
+      ? new Date().toISOString()
+      : user.marketingPushConsentUpdatedAt || null;
+    const update = {
+      notificationPreferences: JSON.stringify(updatedPreferences),
+    };
+    if (Object.hasOwn(req.body, "marketingPushEnabled")) {
+      update.marketingPushEnabled = req.body.marketingPushEnabled;
+      update.marketingPushConsentUpdatedAt = updatedAt;
+    }
     await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
-      {
-        marketingPushEnabled: req.body.marketingPushEnabled,
-        marketingPushConsentUpdatedAt: updatedAt,
-      },
+      update,
     );
     return res.status(200).json({
-      marketingPushEnabled: req.body.marketingPushEnabled,
+      marketingPushEnabled:
+        typeof req.body.marketingPushEnabled === "boolean"
+          ? req.body.marketingPushEnabled
+          : user.marketingPushEnabled === true,
       marketingPushConsentUpdatedAt: updatedAt,
+      notificationPreferences: normalizePreferences(updatedPreferences),
+      soundMutedConfigured: typeof updatedPreferences.soundMuted === "boolean",
     });
   } catch (error) {
     console.error("Failed to update notification preferences:", error.message);

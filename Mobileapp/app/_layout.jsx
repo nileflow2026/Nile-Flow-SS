@@ -21,7 +21,6 @@ import {
   ActivityIndicator,
   BackHandler,
   Platform,
-  Pressable,
   Text,
   View,
 } from "react-native";
@@ -51,12 +50,9 @@ function AppContent() {
     isLogged,
     loading,
     sessionInitialized,
-    sessionError,
-    retrySessionCheck,
     pickupAddress,
     pickupAddressLoading,
     pickupAddressError,
-    retryPickupAddressCheck,
   } = useGlobalContext();
   const firstSegment = segments[0] || "";
   const secondSegment = segments[1] || "";
@@ -75,7 +71,7 @@ function AppContent() {
       ));
 
   useEffect(() => {
-    if (loading || sessionError) return;
+    if (loading) return;
     if (!isLogged && !isPublicScreen) {
       router.replace("/");
     } else if (
@@ -105,7 +101,6 @@ function AppContent() {
     pickupAddressLoading,
     router,
     secondSegment,
-    sessionError,
     isPickupAddressRoute,
   ]);
 
@@ -193,131 +188,7 @@ function AppContent() {
   if (!fontsLoaded && !fontError) return null;
   if (!sessionInitialized) return null;
 
-  if (sessionError) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <Text
-          style={{
-            color: "#111827",
-            fontSize: 22,
-            fontWeight: "700",
-            textAlign: "center",
-          }}
-        >
-          We could not check your session
-        </Text>
-        <Text
-          style={{
-            color: "#6B7280",
-            fontSize: 15,
-            lineHeight: 22,
-            textAlign: "center",
-            marginTop: 10,
-          }}
-        >
-          Your account is still saved on this device. Check your connection and
-          try again.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: loading }}
-          disabled={loading}
-          onPress={() => retrySessionCheck().catch(() => {})}
-          style={{
-            marginTop: 24,
-            paddingHorizontal: 28,
-            paddingVertical: 14,
-            borderRadius: 14,
-            backgroundColor: "#16A34A",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>
-            Retry
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   if (loading) return null;
-
-  if (isLogged && pickupAddressLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <ActivityIndicator color="#16A34A" size="large" />
-        <Text style={{ color: "#374151", marginTop: 12 }}>
-          Checking your delivery address…
-        </Text>
-      </View>
-    );
-  }
-
-  if (isLogged && pickupAddressError) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 24,
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <Text
-          style={{
-            color: "#111827",
-            fontSize: 22,
-            fontWeight: "700",
-            textAlign: "center",
-          }}
-        >
-          We could not check your delivery address
-        </Text>
-        <Text
-          style={{
-            color: "#6B7280",
-            fontSize: 15,
-            lineHeight: 22,
-            textAlign: "center",
-            marginTop: 10,
-          }}
-        >
-          Your sign in is saved. Check your connection and try again.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => retryPickupAddressCheck().catch(() => {})}
-          style={{
-            marginTop: 24,
-            paddingHorizontal: 28,
-            paddingVertical: 14,
-            borderRadius: 14,
-            backgroundColor: "#16A34A",
-          }}
-        >
-          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>
-            Retry
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
 
   if (!isLogged && !isPublicScreen) {
     return null;

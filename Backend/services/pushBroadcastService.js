@@ -602,12 +602,13 @@ async function processCampaignDelivery(deliveryId, attemptsMade = 0) {
     env.APPWRITE_USER_COLLECTION_ID,
     delivery.userId,
   );
-  if (!userEligible(user, campaign.category, campaign.recipientSnapshotAt)) {
-    return finishDelivery(delivery, "skipped", { errorCategory: "consent_or_token_removed" });
-  }
-
   await createCampaignNotice(campaign, delivery);
   const currentDelivery = await getDelivery(deliveryId);
+  if (!userEligible(user, campaign.category, campaign.recipientSnapshotAt)) {
+    return finishDelivery(currentDelivery, "skipped", {
+      errorCategory: "consent_or_token_removed",
+    });
+  }
   const category = CATEGORIES[campaign.category];
   try {
     const outcome = await sendQueuedPush({

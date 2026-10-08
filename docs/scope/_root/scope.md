@@ -55,16 +55,16 @@ Spec [0003](../../specs/Mobileapp/0003-mobile-onboarding-authentication/index.md
 
 ### 3. Shared mobile push notifications and admin broadcasts · in-progress
 
-Customers receive reliable order and account pushes, and admins can send mobile broadcasts with clear promotional consent and aggregate delivery reporting.
-**Done when:** automatic push events use one reliable Expo path, customers control promotional consent, admins can preview and send authorized campaigns, and delivery outcomes are reported without exposing recipients.
+Customers receive reliable order and account pushes, can control notification categories and sounds, and admins can send mobile broadcasts with clear promotional consent and aggregate delivery reporting.
+**Done when:** automatic push events use one reliable Expo path, customers control push categories, promotional consent, and sounds, admins can preview and send authorized campaigns, and delivery outcomes are reported without exposing recipients.
 Code in `Backend/`, `AdminDashboard/`, and `Mobileapp/`.
 - [x] Design it (spec): `/architect shared mobile push notifications and admin broadcasts`
 - [ ] Build it: `/develop shared mobile push notifications and admin broadcasts`
-  - [ ] Add consent and token timestamp fields, campaign and event receipt collections, indexes, retention, and safe migration (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9, AC-10, AC-15, AC-17).
+  - [ ] Add consent and token timestamp fields, campaign and event receipt collections, indexes, retention, and safe migration (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9, AC-10, AC-15, AC-17, AC-18, AC-20).
   - [ ] Centralize Expo delivery and route payment, order, cancellation, welcome, and security events through stable receipts and server owned templates (AC-1, AC-2, AC-3, AC-13, AC-15, AC-16, AC-17).
-  - [ ] Add customer consent APIs and Mobileapp settings, including permission revocation, logout cleanup, loading, and failure states (AC-4, AC-6, AC-14).
-  - [ ] Add secure campaign preview and idempotent send, then build a fixed audience snapshot with cursor recovery and durable queue checks (AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-14).
-  - [ ] Add the Broadcasts tab, paginated aggregate reporting, active refresh, bounded retry, lock protected cancellation, and verify category expiry of 24 hours for promotions, 30 days for app updates, and 7 days for service announcements, plus privacy, retention, template recovery, and physical device delivery (AC-5, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17).
+  - [ ] Add authenticated customer preference APIs and Mobileapp category controls, account synced sound choices, previews, native sounds, and Android channels (AC-4, AC-13, AC-14, AC-18, AC-19, AC-20, AC-21).
+  - [ ] Add secure campaign preview and idempotent send, then build a fixed audience snapshot with cursor recovery and durable queue checks (AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-14, AC-18).
+  - [ ] Add the Broadcasts tab, paginated aggregate reporting, active refresh, bounded retry, lock protected cancellation, and category expiry checks, plus privacy, retention, template recovery, and physical device delivery (AC-5, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-19, AC-20, AC-21).
 - [ ] Verify it: `/check verify shared mobile push notifications and admin broadcasts`
 - [ ] Test it: `/test shared mobile push notifications and admin broadcasts`
 

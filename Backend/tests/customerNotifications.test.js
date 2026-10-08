@@ -10,8 +10,20 @@ const controllerPath = require.resolve(
 const originalLoad = Module._load;
 const updatedNotificationIds = [];
 const listQuery = [];
+let userDocument = {
+  $id: "customer-1",
+  marketingPushEnabled: false,
+  notificationPreferences: JSON.stringify({
+    order: { email: false, push: true },
+    support: { email: true, push: false },
+  }),
+};
+let updatedUserDocument = null;
 
 const instrumentedDb = {
+  async getDocument() {
+    return userDocument;
+  },
   async listDocuments(_databaseId, _collectionId, queries) {
     listQuery.push(...queries);
     return {
@@ -21,8 +33,13 @@ const instrumentedDb = {
       ],
     };
   },
-  async updateDocument(_databaseId, _collectionId, notificationId) {
-    updatedNotificationIds.push(notificationId);
+  async updateDocument(_databaseId, collectionId, documentId, update) {
+    if (collectionId === "users") {
+      updatedUserDocument = { documentId, update };
+      userDocument = { ...userDocument, ...update };
+      return userDocument;
+    }
+    updatedNotificationIds.push(documentId);
   },
 };
 
@@ -45,6 +62,7 @@ Module._load = function (request, parent, isMain) {
       return {
         env: {
           APPWRITE_DATABASE_ID: "database",
+          APPWRITE_USER_COLLECTION_ID: "users",
           APPWRITE_NOTIFICATIONS_COLLECTION_ID: "notifications",
         },
       };
@@ -53,7 +71,11 @@ Module._load = function (request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { markAllNotificationsAsRead } = require(controllerPath);
+const {
+  getCustomerNotificationPreferences,
+  markAllNotificationsAsRead,
+  updateCustomerNotificationPreferences,
+} = require(controllerPath);
 Module._load = originalLoad;
 
 test("marks every unread notification for the authenticated user as read", async () => {
@@ -85,3 +107,92 @@ test("marks every unread notification for the authenticated user as read", async
   ]);
   assert.equal(response.statusCode, 200);
 });
+
+test("returns normalized preferences and reports whether mute was explicitly stored", async () => {
+  userDocument.notificationPreferences = JSON.stringify({
+    order: { email: false },
+    support: { email: true },
+  });
+  const response = createResponse();
+
+  await getCustomerNotificationPreferences(
+    { user: { userId: "customer-1", role: "customer" } },
+    response,
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.marketingPushEnabled, false);
+  assert.equal(response.body.soundMutedConfigured, false);
+  assert.deepEqual(response.body.notificationPreferences.order, {
+    push: true,
+    soundId: "coreflow_1",
+  });
+  assert.deepEqual(JSON.parse(userDocument.notificationPreferences).support, {
+    email: true,
+  });
+});
+
+test("patches only allowed preferences and preserves unrelated stored fields", async () => {
+  userDocument.notificationPreferences = JSON.stringify({
+    order: { email: false, soundId: "coreflow_1" },
+    support: { email: true, push: false },
+  });
+  const response = createResponse();
+
+  await updateCustomerNotificationPreferences(
+    {
+      user: { userId: "customer-1", role: "customer" },
+      body: {
+        notificationPreferences: {
+          order: { push: false },
+          soundMuted: true,
+        },
+      },
+    },
+    response,
+  );
+
+  const saved = JSON.parse(updatedUserDocument.update.notificationPreferences);
+  assert.equal(response.statusCode, 200);
+  assert.equal(saved.order.push, false);
+  assert.equal(saved.order.soundId, "coreflow_1");
+  assert.equal(saved.order.email, false);
+  assert.deepEqual(saved.support, { email: true, push: false });
+  assert.equal(saved.soundMuted, true);
+  assert.equal(response.body.soundMutedConfigured, true);
+});
+
+test("rejects a category preference that is not in the public contract", async () => {
+  const response = createResponse();
+  const previousUpdate = updatedUserDocument;
+
+  await updateCustomerNotificationPreferences(
+    {
+      user: { userId: "customer-1", role: "customer" },
+      body: {
+        notificationPreferences: {
+          promotion: { push: true },
+        },
+      },
+    },
+    response,
+  );
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(updatedUserDocument, previousUpdate);
+});
+
+function createResponse() {
+  return {
+    statusCode: null,
+    body: null,
+    status(statusCode) {
+      this.statusCode = statusCode;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+}

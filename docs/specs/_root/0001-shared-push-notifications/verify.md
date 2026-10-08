@@ -18,6 +18,9 @@
 * Verify campaign validation, category consent filters, zero recipient rejection, per admin idempotency, estimate versus final audience, derived pending counts, expiry, consent withdrawal, and cancellation race behavior.
 * Verify only exact role `admin` can use admin campaign routes. Verify users cannot read campaign or delivery records directly.
 * Verify the customer preference API normalizes category defaults, merges only allowed notification fields, preserves unrelated channel preferences, syncs `soundMuted` across devices, and rejects locked settings or invalid sound IDs.
+* Compare preference GET and PATCH payloads with the canonical schema in the spec. Confirm the consent timestamp is server generated, partial nested updates preserve omitted and unrelated preferences, and a legacy `promotion.push` value is neither returned as a switch nor treated as consent.
+* Confirm `pendingPush` and `pendingInApp` match their specified formulas after each delivery transition. Confirm recipient preparation suppresses pending counts until the snapshot is complete, and a campaign completes only after both outcome streams are terminal.
+* Confirm repeated campaign page enqueue and automatic event enqueue use the same deterministic BullMQ job ID. Confirm a page job with a stale expected cursor exits without changing campaign or delivery records, and the lock can only be released by its holder.
 * Verify safe audit events, no raw token or user level delivery data in logs, pagination bounds, and one year delivery cleanup.
 
 ## AdminDashboard

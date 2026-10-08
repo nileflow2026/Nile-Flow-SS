@@ -1,11 +1,13 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useRef, useState } from "react";
+import { useAudioPlayer } from "expo-audio";
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -20,8 +22,69 @@ import { useNotification } from "../../Context/NotificationContext";
 import NetworkErrorFallback from "../components/NetworkErrorFallback";
 import {
   applyMuteSetting,
-  MUTE_SOUND_KEY,
 } from "../../hooks/usePushNotifications";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  syncAccountNotificationPreferences,
+} from "../../services/notificationPreferences";
+import {
+  NOTIFICATION_SOUND_ASSETS,
+  NOTIFICATION_SOUND_GROUPS,
+} from "../../constants/notificationSounds";
+
+const NOTIFICATION_CATEGORIES = [
+  {
+    key: "order",
+    title: "Order updates",
+    description: "Order confirmation, preparation, delivery, and cancellation.",
+  },
+  {
+    key: "promotion",
+    title: "Promotions",
+    description: "Deals, offers, and promotional announcements.",
+  },
+  {
+    key: "loyalty",
+    title: "Nile Miles and rewards",
+    description: "Miles earned and reward activity.",
+  },
+  {
+    key: "system",
+    title: "App and service updates",
+    description: "Important changes to Nile Flow and its services.",
+  },
+];
+
+function SoundPreviewButton({ soundId }) {
+  const player = useAudioPlayer(NOTIFICATION_SOUND_ASSETS[soundId]);
+
+  const playPreview = async () => {
+    try {
+      await player.seekTo(0);
+      await player.play();
+    } catch (error) {
+      Alert.alert("Sound unavailable", error.message || "This sound could not be played.");
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Preview selected notification sound"
+      onPress={playPreview}
+      style={{
+        minHeight: 38,
+        minWidth: 44,
+        borderRadius: 9,
+        backgroundColor: "#F0FDF4",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <MaterialIcons name="play-arrow" size={22} color="#16A34A" />
+    </TouchableOpacity>
+  );
+}
 
 const NotificationsSkeleton = () => (
   <SafeAreaView
@@ -185,86 +248,92 @@ export default function MyNotificationsScreen() {
   const [filter, setFilter] = useState("all"); // all, unread, important, promotions
   const [hasError, setHasError] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [muteSound, setMuteSound] = useState(false);
   const [marketingPushEnabled, setMarketingPushEnabled] = useState(false);
-  const [marketingPreferenceLoading, setMarketingPreferenceLoading] = useState(false);
-  const [marketingPreferenceSaving, setMarketingPreferenceSaving] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState(
+    DEFAULT_NOTIFICATION_PREFERENCES,
+  );
+  const [preferencesLoading, setPreferencesLoading] = useState(false);
+  const [preferencesError, setPreferencesError] = useState(false);
+  const [savingPreference, setSavingPreference] = useState(false);
   const notificationRequestId = useRef(0);
+  const preferencesRequestId = useRef(0);
 
-  // Load persisted mute preference on mount
-  useEffect(() => {
-    AsyncStorage.getItem(MUTE_SOUND_KEY).then((val) => {
-      if (val === "true") setMuteSound(true);
-    });
-  }, []);
-
-  const handleToggleMute = async (newValue) => {
-    setMuteSound(newValue);
-    await applyMuteSetting(newValue);
-  };
-
-  useEffect(() => {
-    let active = true;
+  const loadNotificationPreferences = useCallback(async () => {
+    const requestId = ++preferencesRequestId.current;
     if (!userId) {
       setMarketingPushEnabled(false);
-      return undefined;
+      setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
+      setPreferencesError(false);
+      setPreferencesLoading(false);
+      return;
     }
-    setMarketingPreferenceLoading(true);
-    axiosClient
-      .get("/api/v1/customer/notification-preferences")
-      .then(({ data }) => {
-        if (active) setMarketingPushEnabled(data.marketingPushEnabled === true);
-      })
-      .catch((error) => {
-        if (active) {
-          Alert.alert(
-            "Settings unavailable",
-            error.response?.data?.message ||
-              "Your promotion preference could not be loaded. Please try again.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setMarketingPreferenceLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    setPreferencesLoading(true);
+    setPreferencesError(false);
+    try {
+      const data = await syncAccountNotificationPreferences(userId);
+      if (preferencesRequestId.current !== requestId) return;
+      setMarketingPushEnabled(data.marketingPushEnabled === true);
+      setNotificationPreferences(data.notificationPreferences);
+    } catch {
+      if (preferencesRequestId.current === requestId) {
+        setPreferencesError(true);
+      }
+    } finally {
+      if (preferencesRequestId.current === requestId) {
+        setPreferencesLoading(false);
+      }
+    }
   }, [userId]);
 
-  const handleMarketingPushChange = async () => {
-    if (!userId || marketingPreferenceLoading || marketingPreferenceSaving) return;
-    const nextValue = !marketingPushEnabled;
-    setMarketingPreferenceSaving(true);
+  useFocusEffect(
+    useCallback(() => {
+      loadNotificationPreferences();
+    }, [loadNotificationPreferences]),
+  );
+
+  const saveNotificationPreference = async ({
+    notificationPreferences: preferencePatch,
+    marketingPushEnabled: marketingPatch,
+    requestPermission = false,
+  }) => {
+    if (!userId || preferencesLoading || savingPreference) return;
+    setSavingPreference(true);
     try {
-      const permissionGranted = nextValue
-        ? await requestPushPermission()
-        : true;
+      const permissionGranted =
+        requestPermission && requestPushPermission
+          ? await requestPushPermission()
+          : true;
+      const payload = {};
+      if (preferencePatch) payload.notificationPreferences = preferencePatch;
+      if (typeof marketingPatch === "boolean") {
+        payload.marketingPushEnabled = marketingPatch;
+      }
       const { data } = await axiosClient.patch(
         "/api/v1/customer/notification-preferences",
-        { marketingPushEnabled: nextValue },
+        payload,
       );
       setMarketingPushEnabled(data.marketingPushEnabled === true);
-      if (nextValue && !permissionGranted) {
+      setNotificationPreferences(data.notificationPreferences);
+      await applyMuteSetting(data.notificationPreferences.soundMuted);
+      if (requestPermission && !permissionGranted) {
         Alert.alert(
           "Notifications are not enabled",
-          "Your promotion choice is saved. Allow notifications in your device settings and register a device token to receive promotions.",
+          "Your choice is saved. Allow notifications in your device settings and register a device token to receive push alerts.",
         );
       }
     } catch (error) {
       Alert.alert(
         "Could not save setting",
         error.response?.data?.message ||
-          "Your promotion preference was not changed. Please retry.",
+          "Your notification preference was not changed. Please retry.",
       );
     } finally {
-      setMarketingPreferenceSaving(false);
+      setSavingPreference(false);
     }
   };
 
   // Refresh notifications list every time the screen comes into focus
   // This is the SINGLE source of truth for notification fetching.
-  // The mount useEffect below has been removed to prevent double-fetch storms.
   const loadNotifications = useCallback(async () => {
     const requestId = ++notificationRequestId.current;
     setNotifications([]);
@@ -521,23 +590,39 @@ export default function MyNotificationsScreen() {
                   <View style={styles.settingHeader}>
                     <Text style={styles.settingTitle}>Notification Sound</Text>
                     <TouchableOpacity
-                      onPress={() => handleToggleMute(!muteSound)}
+                      onPress={() =>
+                        saveNotificationPreference({
+                          notificationPreferences: {
+                            soundMuted: !notificationPreferences.soundMuted,
+                          },
+                        })
+                      }
                       style={[
                         styles.soundToggle,
-                        muteSound
+                        notificationPreferences.soundMuted
                           ? styles.soundToggleMuted
                           : styles.soundToggleActive,
                       ]}
                     >
                       <MaterialIcons
-                        name={muteSound ? "volume-off" : "volume-up"}
+                        name={
+                          notificationPreferences.soundMuted
+                            ? "volume-off"
+                            : "volume-up"
+                        }
                         size={18}
-                        color={muteSound ? "#ef4444" : "#10b981"}
+                        color={
+                          notificationPreferences.soundMuted
+                            ? "#ef4444"
+                            : "#10b981"
+                        }
                       />
                     </TouchableOpacity>
                   </View>
                   <Text style={styles.settingDescription}>
-                    {muteSound ? "Sounds are muted" : "Sounds are enabled"}
+                    {notificationPreferences.soundMuted
+                      ? "Sounds are muted"
+                      : "Sounds are enabled"}
                   </Text>
                 </View>
 
@@ -732,71 +817,213 @@ export default function MyNotificationsScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
-              <View style={styles.modalSettingItem}>
-                <View style={styles.modalSettingInfo}>
-                  <Text style={styles.modalSettingTitle}>
-                    Sound Notifications
-                  </Text>
-                  <Text style={styles.modalSettingDescription}>
-                    Play sound when new notifications arrive
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => handleToggleMute(!muteSound)}
-                  style={[
-                    styles.modalToggle,
-                    muteSound ? styles.modalToggleOff : styles.modalToggleOn,
-                  ]}
-                >
-                  <MaterialIcons
-                    name={muteSound ? "volume-off" : "volume-up"}
-                    size={20}
-                    color={muteSound ? "#ef4444" : "#10b981"}
-                  />
-                </TouchableOpacity>
+            {preferencesLoading ? (
+              <View style={{ alignItems: "center", gap: 10, padding: 28 }}>
+                <ActivityIndicator color="#16A34A" />
+                <Text style={styles.modalSettingDescription}>
+                  Loading your notification settings…
+                </Text>
               </View>
-              <View style={styles.modalSettingItem}>
-                <View style={styles.modalSettingInfo}>
-                  <Text style={styles.modalSettingTitle}>
-                    Promotional Push Notifications
-                  </Text>
-                  <Text style={styles.modalSettingDescription}>
-                    Receive promotions and exclusive deals. You can change this
-                    choice at any time. Notifications also need device
-                    permission and a registered token.
-                  </Text>
-                </View>
+            ) : preferencesError ? (
+              <View style={{ alignItems: "center", gap: 12, padding: 18 }}>
+                <MaterialIcons
+                  name="cloud-off"
+                  size={28}
+                  color="#DC2626"
+                />
+                <Text style={[styles.modalSettingDescription, { textAlign: "center" }]}>
+                  Your settings could not be loaded. Check your connection and try again.
+                </Text>
                 <TouchableOpacity
-                  accessibilityRole="switch"
-                  accessibilityState={{
-                    checked: marketingPushEnabled,
-                    disabled:
-                      marketingPreferenceLoading || marketingPreferenceSaving,
+                  onPress={loadNotificationPreferences}
+                  style={{
+                    backgroundColor: "#16A34A",
+                    borderRadius: 9,
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
                   }}
-                  disabled={
-                    marketingPreferenceLoading || marketingPreferenceSaving
-                  }
-                  onPress={handleMarketingPushChange}
-                  style={[
-                    styles.modalToggle,
-                    marketingPushEnabled
-                      ? styles.modalToggleOn
-                      : styles.modalToggleOff,
-                  ]}
                 >
-                  <MaterialIcons
-                    name={
-                      marketingPushEnabled
-                        ? "notifications-active"
-                        : "notifications-off"
-                    }
-                    size={20}
-                    color={marketingPushEnabled ? "#10b981" : "#6B7280"}
-                  />
+                  <Text style={{ color: "#FFFFFF", fontFamily: "Poppins-SemiBold" }}>
+                    Try again
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            ) : (
+              <ScrollView
+                style={{ maxHeight: "82%" }}
+                contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <View
+                  style={{
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#BBF7D0",
+                    backgroundColor: "#F0FDF4",
+                    padding: 14,
+                    gap: 10,
+                  }}
+                >
+                  <View style={styles.modalSettingItem}>
+                    <View style={styles.modalSettingInfo}>
+                      <Text style={styles.modalSettingTitle}>Mute all sounds</Text>
+                      <Text style={styles.modalSettingDescription}>
+                        Keep push alerts on, but silence their sounds.
+                      </Text>
+                    </View>
+                    <Switch
+                      accessibilityLabel="Mute all notification sounds"
+                      value={notificationPreferences.soundMuted}
+                      disabled={savingPreference}
+                      onValueChange={(value) =>
+                        saveNotificationPreference({
+                          notificationPreferences: { soundMuted: value },
+                        })
+                      }
+                      trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
+                    />
+                  </View>
+                </View>
+
+                {NOTIFICATION_CATEGORIES.map((category) => {
+                  const setting =
+                    notificationPreferences[category.key] ||
+                    DEFAULT_NOTIFICATION_PREFERENCES[category.key];
+                  const enabled =
+                    category.key === "promotion"
+                      ? marketingPushEnabled
+                      : setting.push;
+                  const soundChoices =
+                    NOTIFICATION_SOUND_GROUPS[category.key];
+
+                  return (
+                    <View
+                      key={category.key}
+                      style={{
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: "#E5E7EB",
+                        backgroundColor: "#F9FAFB",
+                        padding: 14,
+                        gap: 11,
+                      }}
+                    >
+                      <View style={styles.modalSettingItem}>
+                        <View style={styles.modalSettingInfo}>
+                          <Text style={styles.modalSettingTitle}>
+                            {category.title}
+                          </Text>
+                          <Text style={styles.modalSettingDescription}>
+                            {category.description}
+                          </Text>
+                        </View>
+                        <Switch
+                          accessibilityLabel={`${category.title} push notifications`}
+                          value={enabled}
+                          disabled={savingPreference}
+                          onValueChange={(value) =>
+                            saveNotificationPreference(
+                              category.key === "promotion"
+                                ? {
+                                    marketingPushEnabled: value,
+                                    requestPermission: value,
+                                  }
+                                : {
+                                    notificationPreferences: {
+                                      [category.key]: { push: value },
+                                    },
+                                    requestPermission: value,
+                                  },
+                            )
+                          }
+                          trackColor={{ false: "#D1D5DB", true: "#16A34A" }}
+                        />
+                      </View>
+
+                      <View style={{ gap: 8 }}>
+                        <Text style={styles.modalSettingDescription}>
+                          Notification sound
+                        </Text>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+                          {soundChoices.map((choice) => {
+                            const selected = setting.soundId === choice.id;
+                            return (
+                              <TouchableOpacity
+                                key={choice.id}
+                                accessibilityRole="radio"
+                                accessibilityState={{ checked: selected }}
+                                accessibilityLabel={`${choice.label} sound`}
+                                disabled={savingPreference}
+                                onPress={() =>
+                                  saveNotificationPreference({
+                                    notificationPreferences: {
+                                      [category.key]: { soundId: choice.id },
+                                    },
+                                  })
+                                }
+                                style={{
+                                  minHeight: 34,
+                                  borderRadius: 18,
+                                  borderWidth: 1,
+                                  borderColor: selected ? "#16A34A" : "#E5E7EB",
+                                  backgroundColor: selected ? "#F0FDF4" : "#FFFFFF",
+                                  justifyContent: "center",
+                                  paddingHorizontal: 11,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: selected ? "#14532D" : "#374151",
+                                    fontSize: 12,
+                                    fontFamily: selected
+                                      ? "Poppins-SemiBold"
+                                      : "Poppins-Regular",
+                                  }}
+                                >
+                                  {choice.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                        {setting.soundId !== "silent" && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                            <SoundPreviewButton
+                              key={setting.soundId}
+                              soundId={setting.soundId}
+                            />
+                            <Text style={styles.modalSettingDescription}>
+                              Preview {soundChoices.find(
+                                (choice) => choice.id === setting.soundId,
+                              )?.label}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 9,
+                    paddingHorizontal: 4,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <MaterialIcons
+                    name="verified-user"
+                    size={20}
+                    color="#16A34A"
+                  />
+                  <Text style={styles.modalSettingDescription}>
+                    Security and welcome alerts always stay on.
+                  </Text>
+                </View>
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>

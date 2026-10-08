@@ -292,7 +292,7 @@ export const markNotificationsAsRead = async (ids) => {
 
 export const fetchAllNotificationTypes = async () => {
   try {
-    const response = await axiosClient.get('/api/notifications/all');
+    const response = await axiosClient.get('/api/notifications');
     return response.data?.notifications || [];
   } catch (error) {
     console.error('Error fetching all notifications:', error);

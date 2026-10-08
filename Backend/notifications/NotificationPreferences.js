@@ -14,6 +14,10 @@ const { Query } = require('node-appwrite');
 const { instrumentedDb } = require('../services/appwriteService');
 const { env } = require('../src/env');
 const { CHANNEL, EVENT_CHANNELS, EVENT_NOTIFICATION_TYPE } = require('./NotificationTypes');
+const {
+  readStoredPreferences,
+  resolvePushSettings,
+} = require('./CustomerNotificationPreferences');
 
 // Default: all channels always enabled
 const DEFAULT_ENABLED = { [CHANNEL.EMAIL]: true, [CHANNEL.SMS]: true, [CHANNEL.PUSH]: true, [CHANNEL.IN_APP]: true, [CHANNEL.WHATSAPP]: true };
@@ -50,7 +54,11 @@ async function resolveChannels(userId, event) {
     if (notifType === 'promotion') {
       return prefs.marketingPushEnabled === true;
     }
-    return typePrefs[ch] !== false;
+    return resolvePushSettings(
+      event,
+      prefs.notificationPreferences,
+      prefs.marketingPushEnabled,
+    ).enabled;
   });
 }
 
@@ -64,8 +72,12 @@ async function getUserPreferences(userId) {
     userId,
   );
   if (!userDoc) return null;
+  const notificationPreferences = readStoredPreferences(
+    userDoc.notificationPreferences,
+  );
   return {
-    ...(userDoc.notificationPreferences || {}),
+    ...notificationPreferences,
+    notificationPreferences,
     marketingPushEnabled: userDoc.marketingPushEnabled === true,
   };
 }
