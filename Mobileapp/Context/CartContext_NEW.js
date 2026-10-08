@@ -8,11 +8,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Toast from "react-native-toast-message";
 import axiosClient, { initCurrency, setDetectedCurrency } from "../api";
-import { fetchUserId, fetchUserName } from "./GlobalProvider";
+import {
+  fetchUserId,
+  fetchUserName,
+  useGlobalContext,
+} from "./GlobalProvider";
 
 // Read the detected currency (set by initCurrency) — used as query param
 // on cart fetch calls so the correct enrichment is guaranteed regardless
@@ -31,6 +36,17 @@ export const CartProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [wishlist, setWishlist] = useState([]);
   const [checkoutAddress, setCheckoutAddress] = useState(null);
+  const cartFetchRequestId = useRef(0);
+  const {
+    isLogged,
+    isGuest,
+    loading: authLoading,
+    user: authUser,
+  } = useGlobalContext();
+  const authenticatedUserId =
+    isLogged && !isGuest && !authLoading
+      ? authUser?.id || authUser?.userId || authUser?.$id
+      : null;
 
   useEffect(() => {
     loadCartFromStorage();
@@ -335,12 +351,14 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const fetchCartItems = useCallback(async () => {
+  const fetchCartItems = useCallback(async (customerId = null) => {
+    const requestId = ++cartFetchRequestId.current;
+    setLoadingCart(true);
+
     try {
-      const id = await fetchUserId();
+      const id = customerId || (await fetchUserId());
       if (!id) {
-        setCart([]);
-        setLoadingCart(false);
+        if (cartFetchRequestId.current === requestId) setCart([]);
         return;
       }
 
@@ -350,11 +368,13 @@ export const CartProvider = ({ children }) => {
       // Do NOT read from cart items — old AsyncStorage items at index 0 may have
       // a stale "KES" currency that would cause the wrong enrichment.
       const currency = await getActiveCurrency();
+      if (cartFetchRequestId.current !== requestId) return;
 
       const res = await axiosClient.get(`/cart/fetch/${id}`, {
         params: { currency },
       });
 
+      if (cartFetchRequestId.current !== requestId) return;
       if (res.status === 200) {
         setCart(res.data);
         // Do NOT call setDetectedCurrency here — a stale KES response from an
@@ -371,9 +391,23 @@ export const CartProvider = ({ children }) => {
       // update. AsyncStorage fallback is handled by loadCartFromStorage
       // (initial load only).
     } finally {
-      setLoadingCart(false);
+      if (cartFetchRequestId.current === requestId) setLoadingCart(false);
     }
   }, []); // stable reference — currency comes from initCurrency() singleton, not closure
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    setUserId(authenticatedUserId);
+    if (!authenticatedUserId) {
+      cartFetchRequestId.current += 1;
+      setCart([]);
+      setLoadingCart(false);
+      return;
+    }
+
+    fetchCartItems(authenticatedUserId);
+  }, [authenticatedUserId, authLoading, fetchCartItems]);
 
   // Validate cart stock before checkout
   const validateCartStock = async () => {

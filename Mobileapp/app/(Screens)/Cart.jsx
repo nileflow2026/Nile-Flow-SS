@@ -636,53 +636,7 @@ const Cart = () => {
           Review your  products before checkout
         </Text>
 
-        {/* Cart Summary */}
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryBox, { backgroundColor: "#FEF3C7" }]}>
-            <Text style={styles.summaryValue}>{cart.length}</Text>
-            <Text
-              style={styles.summaryLabel}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Premium Items
-            </Text>
-          </View>
-          {cart.length > 0 && (
-            <View style={[styles.summaryBox, { backgroundColor: "#F0FDF4" }]}>
-              <Text style={styles.summaryValue}>
-                {subtotal > 100 ? "FREE" : formattedShipping}
-              </Text>
-              <Text
-                style={styles.summaryLabel}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                Shipping
-              </Text> 
-            </View>
-          )}
-          <View style={[styles.summaryBox, { backgroundColor: "#F3F4F6" }]}>
-            <Text style={styles.summaryValue}>100%</Text>
-            <Text
-              style={styles.summaryLabel}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Authentic
-            </Text>
-          </View>
-          <View style={[styles.summaryBox, { backgroundColor: "#FEF2F2" }]}>
-            <Text style={styles.summaryValue}>30D</Text>
-            <Text
-              style={styles.summaryLabel}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Returns
-            </Text>
-          </View>
-        </View>
+        
 
         {/* Cart Items */}
         {cart.length === 0 ? (

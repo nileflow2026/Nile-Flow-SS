@@ -17,6 +17,7 @@
 * Fail Redis before enqueue and after campaign persistence. Confirm the API does not claim success, and the recovery worker resumes pending database records without resending accepted deliveries.
 * Verify campaign validation, category consent filters, zero recipient rejection, per admin idempotency, estimate versus final audience, derived pending counts, expiry, consent withdrawal, and cancellation race behavior.
 * Verify only exact role `admin` can use admin campaign routes. Verify users cannot read campaign or delivery records directly.
+* Verify the customer preference API normalizes category defaults, merges only allowed notification fields, preserves unrelated channel preferences, syncs `soundMuted` across devices, and rejects locked settings or invalid sound IDs.
 * Verify safe audit events, no raw token or user level delivery data in logs, pagination bounds, and one year delivery cleanup.
 
 ## AdminDashboard
@@ -34,5 +35,8 @@
 * Deny operating system permission, opt into promotions, and confirm the app explains that no registered token means no push delivery.
 * Confirm promotions default off for existing and new accounts, and the preference timestamp comes from the Backend.
 * Confirm a promotional opt out is checked again before delivery, and that legacy nested promotion preferences do not grant consent.
+* Confirm order, reward, and app or service update pushes default on, promotion push defaults off, and security and welcome pushes cannot be disabled in the app. Turning a category off suppresses only its push, not its in app notice.
+* Change a category sound and confirm the choice syncs across devices. Preview each bundled sound, select silent, and confirm preview works while push master mute is on without requesting microphone permission or background audio.
+* On Android, confirm each category and sound choice uses a precreated stable channel, master mute uses silent channels, and the app never changes an existing channel sound. On iOS, confirm the same sound registry is used and silent or muted pushes set `sound` to `null`. Confirm operating system notification controls remain authoritative.
 * Confirm title and body display separately in the notification list, sound mute remains effective, and a push tap opens the allowed route or notification list fallback.
 * Confirm welcome pushes apply only to accounts created after rollout and are not resent after token re registration.

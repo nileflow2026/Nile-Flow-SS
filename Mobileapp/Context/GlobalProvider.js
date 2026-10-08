@@ -534,6 +534,26 @@ export const getCustomerOrders = async () => {
   return response.data.orders;
 };
 
+export const getCustomerOrdersPage = async ({
+  page = 1,
+  limit = 100,
+  status,
+} = {}) => {
+  const response = await axiosClient.get("/api/orders/mine", {
+    params: { page, limit, ...(status ? { status } : {}) },
+  });
+  const orders = response.data?.orders || response.data?.response;
+  const total = Number(response.data?.total);
+  if (!Array.isArray(orders) || !Number.isSafeInteger(total) || total < 0) {
+    throw new Error("Invalid customer orders response received");
+  }
+
+  return {
+    orders,
+    total,
+  };
+};
+
 export const fetchReviews = async (productId) => {
   try {
     const response = await axiosClient.get(

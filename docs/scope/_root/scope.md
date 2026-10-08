@@ -12,6 +12,7 @@ Nile Flow connects customers, merchants, and delivery teams through commerce and
 | 1 | Checkout address confirmation | Checkout | in-progress |
 | 2 | Mobile customer onboarding authentication | Onboarding | in-progress |
 | 3 | Shared mobile push notifications and admin broadcasts | Notifications | in-progress |
+| 4 | Nile Miles explainer screen | Loyalty | in-progress |
 
 ## Checkout
 
@@ -69,6 +70,24 @@ Code in `Backend/`, `AdminDashboard/`, and `Mobileapp/`.
 
 Spec [0001](../../specs/_root/0001-shared-push-notifications/index.md)
 
+## Loyalty
+
+### 4. Nile Miles explainer screen · in-progress
+
+Customers learn how Nile Miles work, see their current balance, and continue to the rewards catalogue from Settings.
+**Done when:** Settings opens a dedicated explainer with the authenticated current balance, accurate earning and redemption guidance, and clear loading, error, retry, and focus refresh behavior.
+Code in `Mobileapp/`.
+- [x] Design it (spec): `/architect Mobileapp Nile Miles explainer screen`
+  Spec [0004](../../specs/Mobileapp/0004-nile-miles-explainer.md)
+- [ ] Build it: `/develop Mobileapp Nile Miles explainer screen`
+  - [x] Replace the Settings Saved items row and build the explainer route with authenticated balance loading, retry, and focus refresh (AC-1, AC-2, AC-7).
+  - [x] Add the approved earning, eligibility, Premium, redemption, and terms content with a neutral Redeem link and localization (AC-3, AC-4, AC-5, AC-6, AC-8).
+  - [ ] Verify route behavior, balance success and failure, stale request handling, session scope, and approved copy (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8).
+- [ ] Verify it: `/check verify Mobileapp Nile Miles explainer screen`
+- [ ] Test it: `/test Mobileapp Nile Miles explainer screen`
+
 ## Deferred
 
 - MFA support (from spec 0003): design separately.
+- Nile Miles purchase and referral award consistency (from spec 0004): align award timing, amounts, and Premium handling across backend paths.
+- Backend verified redemption options in the Mobileapp (from spec 0004): load active rewards from the backend instead of the local list.

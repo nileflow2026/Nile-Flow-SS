@@ -1,0 +1,5 @@
+{
+  "tool": null,
+  "gate": "expo lint + manual verification",
+  "packageManager": "npm"
+}

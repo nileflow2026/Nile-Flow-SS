@@ -1,7 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import axios from "axios";
+import { useRouter } from "expo-router";
 import { Gift, RefreshCw, Target, Users } from "lucide-react-native";
 import { useState } from "react";
+import axiosClient from "../../api";
 import { Dimensions } from "react-native";
 import { StyleSheet } from "react-native";
 import {
@@ -9,15 +10,13 @@ import {
   Alert,
   ScrollView,
   Text,
-  TouchableOpacity,
+  TouchableOpacity, 
   View,
 } from "react-native";
 const { width } = Dimensions.get("window");
 
-const API_BASE = "https://nile-flow-backend-5dqm.onrender.com/api/gamification";
-// ⚠️ Change to your server’s URL (e.g., https://nilemart-backend.com/api/gamification)
-
 export default function GamificationHub({ userId = "123" }) {
+  const router = useRouter();
   const [streak, setStreak] = useState(0);
   const [spinResult, setSpinResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +25,7 @@ export default function GamificationHub({ userId = "123" }) {
   const handleCheckIn = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/checkin`, { userId });
+      const res = await axiosClient.post("/api/gamification/checkin", { userId });
       setStreak(streak + 1);
       Alert.alert("Success", `You earned ${res.data.reward} Nile Miles!`);
     } catch (err) {
@@ -40,7 +39,7 @@ export default function GamificationHub({ userId = "123" }) {
   const handleSpin = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/spin`, { userId });
+      const res = await axiosClient.post("/api/gamification/spin", { userId });
       setSpinResult(res.data.prize);
       Alert.alert("Spin Result", `🎉 You won: ${res.data.prize}`);
     } catch (err) {
@@ -56,7 +55,7 @@ export default function GamificationHub({ userId = "123" }) {
     try {
       // Example: hardcoding refereeId (replace with real user sign-up flow)
       const refereeId = "456";
-      const res = await axios.post(`${API_BASE}/referral`, {
+      const res = await axiosClient.post("/api/gamification/referral", {
         referrerId: userId,
         refereeId,
       });

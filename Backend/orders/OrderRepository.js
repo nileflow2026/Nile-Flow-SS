@@ -177,7 +177,12 @@ async function listByUser(userId, options = {}) {
   ];
 
   if (options.status) {
-    queries.push(Query.equal('orderStatus', options.status));
+    queries.push(
+      Query.or([
+        Query.equal('orderStatus', options.status),
+        Query.equal('status', options.status),
+      ]),
+    );
   }
 
   const response = await instrumentedDb.listDocuments(DB(), ORDERS_COL(), queries);

@@ -20,10 +20,12 @@ const accountItems = [
     route: "/(Screens)/Orders",
   },
   {
-    title: "Saved items",
-    description: "Products you have added to your wishlist",
-    icon: "favorite-border",
-    route: "/(Screens)/Favorites",
+    title: "Nile Miles",
+    description: "Learn how to earn and use your Miles",
+    titleTranslationKey: "Nile Miles",
+    descriptionTranslationKey: "Learn how to earn and use your Miles",
+    icon: "stars",
+    route: "/(Screens)/NileMilesExplainer",
   },
   {
     title: "Delivery addresses",
@@ -56,7 +58,7 @@ const accountItems = [
     route: "/(Screens)/SubscriptionSettings",
   }, */
   {
-    title: "Nile Miles",
+    title: "GamificationHub",
     description: "Explore and redeem your rewards",
     icon: "stars",
     route: "/(Screens)/GamificationHub",
@@ -135,8 +137,16 @@ const SettingsSection = ({ title, items, onSelect }) => (
             <MaterialIcons name={item.icon} size={21} color="#15803D" />
           </View>
           <View style={styles.rowText}>
-            <Text style={styles.rowTitle}>{item.title}</Text>
-            <Text style={styles.rowDescription}>{item.description}</Text>
+            <Text style={styles.rowTitle}>
+              {item.titleTranslationKey
+                ? i18n.t(item.titleTranslationKey)
+                : item.title}
+            </Text>
+            <Text style={styles.rowDescription}>
+              {item.descriptionTranslationKey
+                ? i18n.t(item.descriptionTranslationKey)
+                : item.description}
+            </Text>
           </View>
           <MaterialIcons name="chevron-right" size={22} color="#9CA3AF" />
         </Pressable>

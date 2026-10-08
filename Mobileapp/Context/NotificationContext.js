@@ -3,16 +3,18 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "expo-router";
-import { useGlobalContext } from "./GlobalProvider";
+import { getCustomerNotification, useGlobalContext } from "./GlobalProvider";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notificationCount, setNotificationCount] = useState(0);
+  const notificationLoadId = useRef(0);
   const { isLogged, isGuest, loading, user } = useGlobalContext();
   const router = useRouter();
   const userId =
@@ -56,6 +58,37 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     setNotificationCount(0);
+    const loadId = ++notificationLoadId.current;
+    let active = true;
+
+    if (!userId) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const loadUnreadNotificationCount = async () => {
+      try {
+        const notifications = await getCustomerNotification();
+        if (!active || notificationLoadId.current !== loadId) return;
+
+        setNotificationCount(
+          notifications.filter((notification) => !notification.read).length,
+        );
+      } catch (error) {
+        if (!active || notificationLoadId.current !== loadId) return;
+        console.error(
+          "Failed to load unread notification count:",
+          error.response?.data || error.message,
+        );
+      }
+    };
+
+    loadUnreadNotificationCount();
+
+    return () => {
+      active = false;
+    };
   }, [userId]);
 
   return (

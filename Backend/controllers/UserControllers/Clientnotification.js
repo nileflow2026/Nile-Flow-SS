@@ -168,7 +168,6 @@ const markAllNotificationsAsRead = async (req, res) => {
       env.APPWRITE_NOTIFICATIONS_COLLECTION_ID,
       [
         Query.equal("userId", userId),
-        Query.equal("type", "userNotification"),
         Query.equal("read", false),
       ],
     );

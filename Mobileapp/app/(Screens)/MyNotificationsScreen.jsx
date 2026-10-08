@@ -262,25 +262,6 @@ export default function MyNotificationsScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      const markAllAsRead = async () => {
-        if (!userId) return;
-
-        try {
-          await axiosClient.post("/api/customernotifications/mark-read");
-          setNotificationCount(0);
-        } catch (error) {
-          console.error(
-            "❌ Error marking notifications as read:",
-            error.message,
-          );
-        }
-      };
-      markAllAsRead();
-    }, [userId, setNotificationCount]),
-  );
-
   // Refresh notifications list every time the screen comes into focus
   // This is the SINGLE source of truth for notification fetching.
   // The mount useEffect below has been removed to prevent double-fetch storms.
@@ -297,6 +278,14 @@ export default function MyNotificationsScreen() {
 
     setLoading(true);
     try {
+      try {
+        await axiosClient.post("/api/customernotifications/mark-read");
+        setNotificationCount(0);
+      } catch (error) {
+        console.error("Failed to mark notifications as read:", error.message);
+      }
+      if (notificationRequestId.current !== requestId) return;
+
       const data = await getCustomerNotification();
       if (notificationRequestId.current !== requestId) return;
 
@@ -304,7 +293,9 @@ export default function MyNotificationsScreen() {
         (notification) => notification.userId === userId,
       );
       setNotifications(ownedNotifications);
-      setNotificationCount(ownedNotifications.length);
+      setNotificationCount(
+        ownedNotifications.filter((notification) => !notification.read).length,
+      );
     } catch {
       if (notificationRequestId.current !== requestId) return;
       setHasError(true);
