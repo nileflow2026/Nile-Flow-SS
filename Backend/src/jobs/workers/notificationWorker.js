@@ -123,7 +123,11 @@ const worker = new Worker(
           sendQueuedPush,
         );
         logger.info("Automatic event push processed", {
-          meta: { receiptId: payload.receiptId, status: outcome.status },
+          meta: {
+            receiptId: payload.receiptId,
+            status: outcome.status,
+            reason: outcome.reason,
+          },
         });
         return outcome;
       }
