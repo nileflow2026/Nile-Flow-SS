@@ -702,7 +702,7 @@ export default function NotificationsPage() {
                         <option value="promotion">Promotion, opted in users</option>
                         <option value="app_update">App update</option>
                         <option value="service_announcement">
-                          Service announcement
+                          Service announcement 
                         </option>
                       </select>
                     </label>

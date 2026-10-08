@@ -27,7 +27,24 @@ function authenticatedUserId(user) {
 }
 
 async function findOrderByAttempt(checkoutAttemptId) {
-  const response = await db.listDocuments(
+  const indexedResponse = await db.listDocuments(
+    env.APPWRITE_DATABASE_ID,
+    env.APPWRITE_ORDERS_COLLECTION,
+    [
+      Query.equal("checkoutAttemptKey", checkoutAttemptId),
+      Query.limit(2),
+    ],
+  );
+
+  if (indexedResponse.documents.length > 1) {
+    throw new Error("Checkout attempt index returned duplicate orders.");
+  }
+
+  if (indexedResponse.documents[0]) {
+    return indexedResponse.documents[0];
+  }
+
+  const legacyResponse = await db.listDocuments(
     env.APPWRITE_DATABASE_ID,
     env.APPWRITE_ORDERS_COLLECTION,
     [
@@ -36,11 +53,11 @@ async function findOrderByAttempt(checkoutAttemptId) {
     ],
   );
 
-  if (response.documents.length > 1) {
-    throw new Error("Checkout attempt index returned duplicate orders.");
+  if (legacyResponse.documents.length > 1) {
+    throw new Error("Legacy checkout attempt lookup returned duplicate orders.");
   }
 
-  return response.documents[0] || null;
+  return legacyResponse.documents[0] || null;
 }
 
 async function findOwnedOrderByAttempt(checkoutAttemptId, userId) {
@@ -155,6 +172,7 @@ async function prepareMobileCheckout(body, user) {
       recoveryState: getRecoveryState(existingOrder),
       orderFields: {
         checkoutAttemptId,
+        checkoutAttemptKey: checkoutAttemptId,
         deliveryAddressId,
       },
     };
@@ -181,6 +199,7 @@ async function prepareMobileCheckout(body, user) {
     recoveryState: CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING,
     orderFields: {
       checkoutAttemptId,
+      checkoutAttemptKey: checkoutAttemptId,
       ...deliverySnapshot,
     },
   };

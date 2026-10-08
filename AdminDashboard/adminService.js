@@ -215,7 +215,10 @@ export const assignRiderToOrder = async (orderId, riderId) => {
 
 export const updateOrderStatus = async (orderId, status) => {
   try {
-    const response = await axiosClient.post('/api/admin/orderStatus', { orderId, status });
+    const response = await axiosClient.post('/api/admin/orderStatus', {
+      orderId,
+      orderStatus: status,
+    });
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;

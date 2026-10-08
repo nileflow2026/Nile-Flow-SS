@@ -10,6 +10,7 @@ const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
 const socketService = require("../../services/socketService");
+const { getRequestedOrderStatus } = require("../../utils/orderStatusRequest");
 
 const getCancelledOrders = async (req, res) => {
   try {
@@ -802,12 +803,19 @@ const getUsers = async (_req, res) => {
 };
 
 const updateOrderStatus = async (req, res) => {
-  const { orderId, orderStatus } = req.body;
+  const orderId = req.body?.orderId;
+  const orderStatus = getRequestedOrderStatus(req.body);
   try {
     if (!req.user) {
       return res
         .status(401)
         .json({ error: "Unauthorized: No user information found." });
+    }
+
+    if (!orderId || !orderStatus) {
+      return res
+        .status(400)
+        .json({ error: "Order ID and order status are required." });
     }
 
     const userId = req.user.userId; // Now safely extract
