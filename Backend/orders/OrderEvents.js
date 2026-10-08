@@ -134,8 +134,6 @@ const handlers = {
         await NotificationService.orderCreated(order, payload.cartItems || [], {
           notifyCustomer:
             !isPushV2Enabled || payload.paymentStatus !== 'succeeded',
-          suppressCustomerPush:
-            isPushV2Enabled && payload.paymentStatus !== 'succeeded',
         });
         if (isPushV2Enabled && payload.paymentStatus === 'succeeded') {
           await NotificationService.orderConfirmed(order);
