@@ -12,6 +12,36 @@ export const DEFAULT_NOTIFICATION_PREFERENCES = {
   soundMuted: false,
 };
 
+export async function getPermissionPromptSnooze() {
+  const { data } = await axiosClient.get(
+    "/api/v1/customer/notification-preferences",
+  );
+  const snoozedUntil =
+    data.notificationPreferences?.pushPermissionPromptSnoozedUntil ?? null;
+  if (
+    snoozedUntil !== null &&
+    (typeof snoozedUntil !== "string" || !Number.isFinite(Date.parse(snoozedUntil)))
+  ) {
+    throw new Error("The Backend returned an invalid reminder deadline.");
+  }
+  return snoozedUntil;
+}
+
+export async function snoozePermissionPrompt() {
+  const { data } = await axiosClient.post(
+    "/api/v1/customer/notification-permission-prompt/snooze",
+  );
+  const snoozedUntil =
+    data.notificationPreferences?.pushPermissionPromptSnoozedUntil;
+  if (
+    typeof snoozedUntil !== "string" ||
+    !Number.isFinite(Date.parse(snoozedUntil))
+  ) {
+    throw new Error("The Backend returned an invalid reminder deadline.");
+  }
+  return snoozedUntil;
+}
+
 export async function syncAccountNotificationPreferences(userId) {
   if (!userId) throw new Error("A signed in customer is required.");
 

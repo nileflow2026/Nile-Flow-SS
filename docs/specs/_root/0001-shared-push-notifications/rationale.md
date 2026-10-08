@@ -10,6 +10,8 @@ Mobile Notification Settings currently stores the global mute on the device and 
 
 Customers also need control over order, promotion, reward, and app or service update pushes, with sound choices that follow their account across devices. Android notification channels cannot have their sound changed after creation, so category sound selection must be represented by stable channels rather than by trying to edit an existing channel.
 
+Customers who have not enabled operating system notification permission also need a clear in app invitation, with a reminder after they decline. The reminder must respect the existing rule that app resume does not trigger another operating system permission request, and its snooze must follow the account across devices.
+
 ## Options considered
 
 ### Option 1: Strengthen the existing Expo and BullMQ path
@@ -98,6 +100,36 @@ Store sound selection on each device, or leave push sound selection to the opera
 * Device local choices do not follow the customer account to another device.
 * A default sound cannot meet the request for category specific sounds and previews.
 
+### Permission prompt snooze
+
+#### Option 1: Store the snooze in the existing account preferences
+
+Store a Backend generated snooze deadline in the existing `notificationPreferences` object and return it with the other notification preferences.
+
+**Pros**:
+
+* A customer who declines on one device is not prompted again on another device before the week passes.
+* The Backend supplies the deadline, so device clock differences do not change the reminder interval.
+* No new collection or top level Appwrite attribute is needed.
+
+**Cons**:
+
+* Choosing Not now requires a Backend write, so a network failure must leave the prompt available for retry.
+
+#### Option 2: Store the snooze on each device
+
+Save the dismissal time in local app storage and evaluate it on that device.
+
+**Pros**:
+
+* The app can save the choice without a network request.
+* No Backend endpoint or account data update is needed.
+
+**Cons**:
+
+* The reminder can reappear immediately on another device or after reinstall.
+* Device clock changes can shorten or extend the reminder interval.
+
 ## Rationale
 
 The current failure is fragmented dispatch, not a missing provider. Option 1 repairs the root cause while keeping the Appwrite and Expo choices already in use. BullMQ provides a place for bounded retries, and campaign records provide recovery when Redis work is interrupted. The migration must route each event through exactly one sender because the current dispatcher can call both providers.
@@ -127,3 +159,9 @@ The receipt therefore stores the normalized event type, which selects the server
 Reconstruction is limited to a pending receipt that is being recovered or replayed. An accepted receipt does not recreate a notice that a customer cleared after delivery. Recovery retries a pending receipt if Expo may have accepted the push but the Backend did not save the acceptance. This favors delivery reliability and preserves the existing at least once behavior, with a small duplicate risk because the provider and Appwrite cannot share a transaction.
 
 The campaign title and body limits, history page bounds, five second active detail refresh, and one manual retry are product and operational defaults, not Expo requirements. The text limits keep broadcasts short, the page bounds constrain Appwrite reads, the refresh interval balances timely status with request load, and the single manual retry limits extra provider work while retaining a safe recovery option. Separating in app notice creation from push eligibility also keeps consent meaningful: opting out prevents the promotional push without silently hiding the related notice inside the app.
+
+The permission reminder uses the existing account preference object because the customer chose a snooze that must carry across devices. A small authenticated endpoint writes a deadline using Backend time, which avoids trusting device clocks and does not require a new collection or Appwrite attribute. This adds a network dependent save, so a failed write keeps the reminder available and explains that the snooze was not saved. The prompt waits until the existing global context confirms pickup address setup and the app is active outside authentication and address setup routes. It checks the supported physical device and notification module before showing. The existing permission check on app resume continues to unregister a revoked token without directly requesting operating system permission again; a later in app reminder can instead offer the device settings page.
+
+The existing first registration timestamp has no guaranteed historical source for tokens that predate the migration. Using rollout time for those accounts is honest and reproducible; estimating an earlier date would make audience reports appear more complete than the stored evidence supports. It also means campaign audience history before rollout is intentionally unavailable.
+
+Permission to send push alerts is separate from promotional consent. The global prompt only controls operating system permission and token registration; it never changes `marketingPushEnabled`. If permission is granted but token registration fails, the prompt stays useful by exposing a registration retry that does not request operating system permission again.

@@ -228,10 +228,13 @@ const registerPushToken = async (req, res) => {
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
     );
-    const tokenData = { pushToken };
-    if (!user.pushTokenFirstRegisteredAt) {
-      tokenData.pushTokenFirstRegisteredAt = new Date().toISOString();
-    }
+    const registeredAt =
+      user.pushTokenFirstRegisteredAt || new Date().toISOString();
+    const tokenData = {
+      pushToken,
+      pushTokenFirstRegisteredAt: registeredAt,
+      pushTokenFirstRegisteredAtIndex: registeredAt,
+    };
 
     await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
@@ -353,6 +356,7 @@ const updateCustomerNotificationPreferences = async (req, res) => {
     if (Object.hasOwn(req.body, "marketingPushEnabled")) {
       update.marketingPushEnabled = req.body.marketingPushEnabled;
       update.marketingPushConsentUpdatedAt = updatedAt;
+      update.marketingPushConsentUpdatedAtIndex = updatedAt;
     }
     await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
@@ -378,6 +382,58 @@ const updateCustomerNotificationPreferences = async (req, res) => {
   }
 };
 
+const snoozeCustomerNotificationPermissionPrompt = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    if (req.user.role !== "customer") {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    const user = await instrumentedDb.getDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      userId,
+    );
+    if (!user) {
+      throw new Error("Customer notification preferences were not found.");
+    }
+
+    const currentPreferences = readStoredPreferences(
+      user.notificationPreferences,
+    );
+    const snoozedUntil = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const updatedPreferences = mergePreferences(currentPreferences, {
+      pushPermissionPromptSnoozedUntil: snoozedUntil,
+    });
+
+    await instrumentedDb.updateDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_USER_COLLECTION_ID,
+      userId,
+      { notificationPreferences: JSON.stringify(updatedPreferences) },
+    );
+
+    return res.status(200).json({
+      success: true,
+      notificationPreferences: normalizePreferences(updatedPreferences),
+    });
+  } catch (error) {
+    console.error(
+      "Failed to snooze notification permission prompt:",
+      error.message,
+    );
+    return res.status(503).json({
+      success: false,
+      message: "The notification reminder could not be snoozed.",
+    });
+  }
+};
+
 module.exports = {
   createNotification,
   fetchCustomerNotification,
@@ -387,4 +443,5 @@ module.exports = {
   unregisterPushToken,
   getCustomerNotificationPreferences,
   updateCustomerNotificationPreferences,
+  snoozeCustomerNotificationPermissionPrompt,
 };

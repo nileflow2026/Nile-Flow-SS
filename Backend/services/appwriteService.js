@@ -1,3 +1,6 @@
+// Node 26 global fetch rejects the custom agent used by the Appwrite SDK.
+process.env.FORCE_NODE_FETCH = "1";
+
 const {
   Client,
   Databases,

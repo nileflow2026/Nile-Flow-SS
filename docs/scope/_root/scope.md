@@ -60,13 +60,13 @@ Customers receive reliable order and account pushes, can control notification ca
 Code in `Backend/`, `AdminDashboard/`, and `Mobileapp/`.
 - [x] Design it (spec): `/architect shared mobile push notifications and admin broadcasts`
 - [ ] Build it: `/develop shared mobile push notifications and admin broadcasts`
-  - [ ] Add consent and token timestamp fields, campaign and event receipt collections, indexes, retention, and safe migration (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9, AC-10, AC-15, AC-17, AC-18, AC-20).
+  - [x] Add consent and token timestamp fields, campaign and event receipt collections, indexes, retention, and safe migration (AC-1, AC-3, AC-4, AC-7, AC-8, AC-9, AC-10, AC-15, AC-17, AC-18, AC-20).
   - [ ] Centralize Expo delivery and route payment, order, cancellation, welcome, and security events through stable receipts and server owned templates (AC-1, AC-2, AC-3, AC-13, AC-15, AC-16, AC-17).
-  - [ ] Add authenticated customer preference APIs and Mobileapp category controls, account synced sound choices, previews, native sounds, and Android channels (AC-4, AC-13, AC-14, AC-18, AC-19, AC-20, AC-21).
+  - [ ] Add authenticated customer preference APIs and Mobileapp category controls, account synced sound choices, previews, native sounds, Android channels, and the account synced permission reminder with registration retry (AC-1, AC-4, AC-13, AC-14, AC-18, AC-19, AC-20, AC-21, AC-22).
   - [ ] Add secure campaign preview and idempotent send, then build a fixed audience snapshot with cursor recovery and durable queue checks (AC-5, AC-6, AC-7, AC-8, AC-9, AC-11, AC-14, AC-18).
   - [ ] Add the Broadcasts tab, paginated aggregate reporting, active refresh, bounded retry, lock protected cancellation, and category expiry checks, plus privacy, retention, template recovery, and physical device delivery (AC-5, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-19, AC-20, AC-21).
-- [ ] Verify it: `/check verify shared mobile push notifications and admin broadcasts`
-- [ ] Test it: `/test shared mobile push notifications and admin broadcasts`
+- [x] Verify it: `/check verify shared mobile push notifications and admin broadcasts`
+- [x] Test it: `/test shared mobile push notifications and admin broadcasts`
 
 Spec [0001](../../specs/_root/0001-shared-push-notifications/index.md)
 

@@ -71,6 +71,14 @@ function validateStoredPreferences(preferences) {
   ) {
     throw new Error("Stored notification mute preference is invalid.");
   }
+  if (
+    preferences.pushPermissionPromptSnoozedUntil !== undefined &&
+    preferences.pushPermissionPromptSnoozedUntil !== null &&
+    (typeof preferences.pushPermissionPromptSnoozedUntil !== "string" ||
+      !Number.isFinite(Date.parse(preferences.pushPermissionPromptSnoozedUntil)))
+  ) {
+    throw new Error("Stored notification prompt snooze deadline is invalid.");
+  }
 }
 
 function normalizePreferences(preferences) {
@@ -95,6 +103,8 @@ function normalizePreferences(preferences) {
         preferences.system?.soundId ?? DEFAULT_PREFERENCES.system.soundId,
     },
     soundMuted: preferences.soundMuted ?? DEFAULT_PREFERENCES.soundMuted,
+    pushPermissionPromptSnoozedUntil:
+      preferences.pushPermissionPromptSnoozedUntil ?? null,
   };
 }
 
@@ -173,6 +183,8 @@ function mergePreferences(current, patch) {
   for (const [category, value] of Object.entries(patch || {})) {
     if (category === "soundMuted") {
       merged.soundMuted = value;
+    } else if (category === "pushPermissionPromptSnoozedUntil") {
+      merged.pushPermissionPromptSnoozedUntil = value;
     } else {
       merged[category] = { ...(current[category] || {}), ...value };
     }

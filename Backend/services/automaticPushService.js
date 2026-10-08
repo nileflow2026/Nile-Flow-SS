@@ -5,6 +5,7 @@ const { ID, Permission, Query, Role } = require("node-appwrite");
 const { env } = require("../src/env");
 const { instrumentedDb } = require("./appwriteService");
 const { notificationsQueue, connection } = require("../src/jobs/queues");
+const { eventPushJobId, eventPushRecoveryJobId } = require("./automaticPushJobIds");
 
 const TEMPLATES = Object.freeze({
   "order.created": {
@@ -106,6 +107,19 @@ const collectionId = () => {
   return env.APPWRITE_PUSH_EVENT_RECEIPTS_COLLECTION_ID;
 };
 
+const withReceiptIndexAliases = (document) => ({
+  ...document,
+  ...(Object.hasOwn(document, "eventKeyHash")
+    ? { eventKeyHashLookup: document.eventKeyHash }
+    : {}),
+  ...(Object.hasOwn(document, "status")
+    ? { statusIndex: document.status }
+    : {}),
+  ...(Object.hasOwn(document, "createdAt")
+    ? { createdAtIndex: document.createdAt }
+    : {}),
+});
+
 const digest = (value, length = 64) =>
   crypto.createHash("sha256").update(value).digest("hex").slice(0, length);
 
@@ -180,7 +194,7 @@ async function createAutomaticPush({ eventType, userId, eventKey }) {
       env.APPWRITE_DATABASE_ID,
       collectionId(),
       id,
-      {
+      withReceiptIndexAliases({
         eventKeyHash,
         eventType,
         templateVersion,
@@ -191,7 +205,7 @@ async function createAutomaticPush({ eventType, userId, eventKey }) {
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
         expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      },
+      }),
     );
   } catch (error) {
     if (error.code !== 409) throw error;
@@ -212,7 +226,7 @@ async function createAutomaticPush({ eventType, userId, eventKey }) {
     "automatic-event-push",
     { type: "automatic-event-push", payload: { receiptId: id } },
     {
-      jobId: `push-event:${id}`,
+      jobId: eventPushJobId(id),
       attempts: 5,
       backoff: { type: "exponential", delay: 1000 },
       removeOnComplete: { count: 100 },
@@ -254,7 +268,7 @@ async function processLockedAutomaticPush(receiptId, sendQueuedPush) {
       env.APPWRITE_DATABASE_ID,
       collectionId(),
       receiptId,
-      { status: "unresolved", errorCategory: "unsupported_template", updatedAt: new Date().toISOString() },
+      withReceiptIndexAliases({ status: "unresolved", errorCategory: "unsupported_template", updatedAt: new Date().toISOString() }),
     );
     return { status: "unresolved" };
   }
@@ -267,7 +281,7 @@ async function processLockedAutomaticPush(receiptId, sendQueuedPush) {
       env.APPWRITE_DATABASE_ID,
       collectionId(),
       receiptId,
-      { status: "skipped", errorCategory: "expired", updatedAt: new Date().toISOString() },
+      withReceiptIndexAliases({ status: "skipped", errorCategory: "expired", updatedAt: new Date().toISOString() }),
     );
     return { status: "skipped" };
   }
@@ -286,7 +300,7 @@ async function processLockedAutomaticPush(receiptId, sendQueuedPush) {
     env.APPWRITE_DATABASE_ID,
     collectionId(),
     receiptId,
-    {
+    withReceiptIndexAliases({
       status:
         outcome.status === "accepted"
           ? "accepted"
@@ -297,7 +311,7 @@ async function processLockedAutomaticPush(receiptId, sendQueuedPush) {
       errorCategory: outcome.reason || "",
       attemptCount: (receipt.attemptCount || 0) + 1,
       updatedAt,
-    },
+    }),
   );
 
   if (outcome.status === "accepted" && receipt.eventType === "account.welcome") {
@@ -317,7 +331,7 @@ async function recoverPendingReceipts() {
   let recovered = 0;
   while (true) {
     const queries = [
-      Query.equal("status", "pending"),
+      Query.equal("statusIndex", "pending"),
       Query.orderAsc("$id"),
       Query.limit(100),
     ];
@@ -336,7 +350,7 @@ async function recoverPendingReceipts() {
           env.APPWRITE_DATABASE_ID,
           collectionId(),
           receipt.$id,
-          { status: "unresolved", errorCategory: "unsupported_template", updatedAt: new Date().toISOString() },
+          withReceiptIndexAliases({ status: "unresolved", errorCategory: "unsupported_template", updatedAt: new Date().toISOString() }),
         );
         continue;
       }
@@ -345,7 +359,7 @@ async function recoverPendingReceipts() {
         "automatic-event-push",
         { type: "automatic-event-push", payload: { receiptId: receipt.$id } },
         {
-          jobId: `push-event:${receipt.$id}:recovery:${Math.floor(Date.now() / 30000)}`,
+          jobId: eventPushRecoveryJobId(receipt.$id),
           attempts: 5,
           backoff: { type: "exponential", delay: 1000 },
           removeOnComplete: { count: 100 },

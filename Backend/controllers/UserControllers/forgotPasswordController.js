@@ -4,6 +4,7 @@ const { users } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 const { Resend } = require("resend");
 const { instrumentedDb } = require("../../services/appwriteService");
+const { getPasswordResetErrorResponse } = require("../../utils/passwordResetError");
 
 const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
@@ -245,10 +246,8 @@ const resetPasswordWithCode = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error resetting password with code:", error);
-    res.status(500).json({
-      success: false,
-      message: "Unable to reset password. Please try again later.",
-    });
+    const response = getPasswordResetErrorResponse(error);
+    res.status(response.status).json(response.body);
   }
 };
 

@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   ScrollView,
   Switch,
   Text,
@@ -126,10 +127,10 @@ export default function Notifications() {
     if (!userId || loading || saving) return;
     setSaving(true);
     try {
-      const permissionGranted =
+      const permissionResult =
         requestPermission && requestPushPermission
           ? await requestPushPermission()
-          : true;
+          : { status: "registered" };
       const payload = {};
       if (preferencePatch) {
         payload.notificationPreferences = preferencePatch;
@@ -151,10 +152,32 @@ export default function Notifications() {
       setMarketingPushEnabled(data.marketingPushEnabled === true);
       setNotificationPreferences(data.notificationPreferences);
       await applyMuteSetting(data.notificationPreferences.soundMuted);
-      if (requestPermission && !permissionGranted) {
+      if (requestPermission && permissionResult.status !== "registered") {
+        const canOpenSettings =
+          permissionResult.status === "settings_required" ||
+          (permissionResult.status === "denied" &&
+            !permissionResult.canAskAgain);
         Alert.alert(
           "Notifications are not enabled",
-          "Your choice is saved. Allow notifications in your device settings and register a device token to receive push alerts.",
+          permissionResult.status === "registration_failed"
+            ? "Permission is enabled, but this device could not register for push alerts. Retry from notification settings."
+            : "Your choice is saved. Enable notifications and register a device token to receive push alerts.",
+          canOpenSettings
+            ? [
+                { text: "Not now", style: "cancel" },
+                {
+                  text: "Open settings",
+                  onPress: () =>
+                    Linking.openSettings().catch((error) => {
+                      Alert.alert(
+                        "Could not open settings",
+                        error.message ||
+                          "Open device settings to allow notifications.",
+                      );
+                    }),
+                },
+              ]
+            : undefined,
         );
       }
     } catch (error) {

@@ -18,7 +18,27 @@ test("normalizes absent preferences to the documented category defaults", () => 
     loyalty: { push: true, soundId: "nile_miles_1" },
     system: { push: true, soundId: "sonic_logo_1" },
     soundMuted: false,
+    pushPermissionPromptSnoozedUntil: null,
   });
+});
+
+test("normalizes and validates the account synced prompt snooze deadline", () => {
+  const snoozedUntil = "2026-10-15T12:00:00.000Z";
+  assert.equal(
+    normalizePreferences(
+      readStoredPreferences({ pushPermissionPromptSnoozedUntil: snoozedUntil }),
+    ).pushPermissionPromptSnoozedUntil,
+    snoozedUntil,
+  );
+  assert.throws(
+    () =>
+      normalizePreferences(
+        readStoredPreferences({
+          pushPermissionPromptSnoozedUntil: "not-a-date",
+        }),
+      ),
+    /snooze deadline is invalid/,
+  );
 });
 
 test("merges category updates without replacing unrelated stored preferences", () => {

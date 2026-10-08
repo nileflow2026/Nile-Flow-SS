@@ -186,8 +186,10 @@ const ForgotPassword = () => {
       router.replace("/(auth)/sign-in");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Failed to reset password. The code may have expired. Please start over.",
+        err.response?.data?.code === "password_recently_used"
+          ? "Choose a different password. This password is too similar to one you used recently. Enter a new password you have not used before."
+          : err.response?.data?.message ||
+              "Failed to reset password. The code may have expired. Please start over.",
       );
     } finally {
       setSubmitting(false);

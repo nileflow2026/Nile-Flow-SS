@@ -74,6 +74,7 @@ Module._load = function (request, parent, isMain) {
 const {
   getCustomerNotificationPreferences,
   markAllNotificationsAsRead,
+  snoozeCustomerNotificationPermissionPrompt,
   updateCustomerNotificationPreferences,
 } = require(controllerPath);
 Module._load = originalLoad;
@@ -179,6 +180,47 @@ test("rejects a category preference that is not in the public contract", async (
   );
 
   assert.equal(response.statusCode, 400);
+  assert.equal(updatedUserDocument, previousUpdate);
+});
+
+test("snoozes the permission reminder for seven days using Backend time", async () => {
+  userDocument.notificationPreferences = JSON.stringify({
+    order: { email: false },
+    support: { email: true, push: false },
+  });
+  const response = createResponse();
+  const before = Date.now();
+
+  await snoozeCustomerNotificationPermissionPrompt(
+    { user: { userId: "customer-1", role: "customer" } },
+    response,
+  );
+
+  const after = Date.now();
+  const stored = JSON.parse(userDocument.notificationPreferences);
+  const snoozedUntil = Date.parse(
+    stored.pushPermissionPromptSnoozedUntil,
+  );
+  assert.equal(response.statusCode, 200);
+  assert.ok(snoozedUntil >= before + 7 * 24 * 60 * 60 * 1000);
+  assert.ok(snoozedUntil <= after + 7 * 24 * 60 * 60 * 1000);
+  assert.equal(
+    response.body.notificationPreferences.pushPermissionPromptSnoozedUntil,
+    stored.pushPermissionPromptSnoozedUntil,
+  );
+  assert.deepEqual(stored.support, { email: true, push: false });
+});
+
+test("requires an authenticated customer to snooze the permission reminder", async () => {
+  const response = createResponse();
+  const previousUpdate = updatedUserDocument;
+
+  await snoozeCustomerNotificationPermissionPrompt(
+    { user: { userId: "admin-1", role: "admin" } },
+    response,
+  );
+
+  assert.equal(response.statusCode, 403);
   assert.equal(updatedUserDocument, previousUpdate);
 });
 

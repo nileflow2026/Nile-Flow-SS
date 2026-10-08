@@ -35,6 +35,7 @@ import { initCurrency } from "../api";
 import { initializeLanguage } from "../i18n";
 import { SocialProvider } from "../Context/SocialContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PushPermissionPrompt from "../components/PushPermissionPrompt";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 import "../global.css";
 
@@ -219,6 +220,7 @@ function AppContent() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false }} />
+      <PushPermissionPrompt />
       <Toast />
       <StatusBar style="dark" />
     </>

@@ -59,6 +59,7 @@ const {
 } = require("../controllers/v1/pushBroadcastController");
 const {
   getCustomerNotificationPreferences,
+  snoozeCustomerNotificationPermissionPrompt,
   updateCustomerNotificationPreferences,
 } = require("../controllers/UserControllers/Clientnotification");
 
@@ -134,6 +135,11 @@ router.patch(
   "/customer/notification-preferences",
   authenticateToken,
   updateCustomerNotificationPreferences,
+);
+router.post(
+  "/customer/notification-permission-prompt/snooze",
+  authenticateToken,
+  snoozeCustomerNotificationPermissionPrompt,
 );
 
 router.post(

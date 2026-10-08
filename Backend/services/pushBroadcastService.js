@@ -30,6 +30,30 @@ const TERMINAL_DELIVERY_STATUSES = [
   "skipped",
 ];
 
+function withIndexAliases(document, aliases) {
+  const indexedDocument = { ...document };
+  for (const [source, indexed] of Object.entries(aliases)) {
+    if (Object.hasOwn(document, source)) indexedDocument[indexed] = document[source];
+  }
+  return indexedDocument;
+}
+
+const withCampaignIndexAliases = (document) =>
+  withIndexAliases(document, {
+    createdBy: "createdByIndex",
+    idempotencyKey: "idempotencyKeyIndex",
+    status: "statusIndex",
+    createdAt: "createdAtIndex",
+  });
+
+const withDeliveryIndexAliases = (document) =>
+  withIndexAliases(document, {
+    campaignId: "campaignIdIndex",
+    userId: "userIdIndex",
+    status: "statusIndex",
+    createdAt: "createdAtIndex",
+  });
+
 function collectionIds() {
   const ids = {
     campaigns: env.APPWRITE_PUSH_BROADCASTS_COLLECTION_ID,
@@ -52,8 +76,8 @@ function assertEnabled() {
 
 function candidateQueries({ snapshotAt, cursor, limit = PAGE_SIZE }) {
   const queries = [
-    Query.isNotNull("pushTokenFirstRegisteredAt"),
-    Query.lessThanEqual("pushTokenFirstRegisteredAt", snapshotAt),
+    Query.isNotNull("pushTokenFirstRegisteredAtIndex"),
+    Query.lessThanEqual("pushTokenFirstRegisteredAtIndex", snapshotAt),
     Query.orderAsc("$id"),
     Query.limit(limit),
   ];
@@ -92,8 +116,8 @@ async function findCampaignByIdempotencyKey(createdBy, key) {
     env.APPWRITE_DATABASE_ID,
     campaigns,
     [
-      Query.equal("createdBy", createdBy),
-      Query.equal("idempotencyKey", key),
+      Query.equal("createdByIndex", createdBy),
+      Query.equal("idempotencyKeyIndex", key),
       Query.limit(1),
     ],
   );
@@ -161,7 +185,7 @@ async function createCampaign(input, createdBy, headerKey) {
       env.APPWRITE_DATABASE_ID,
       campaigns,
       ID.unique(),
-      {
+      withCampaignIndexAliases({
         ...payload,
         destinationRoute: payload.destinationRoute || "",
         createdBy,
@@ -182,7 +206,7 @@ async function createCampaign(input, createdBy, headerKey) {
         startedAt: "",
         completedAt: "",
         cancelledAt: "",
-      },
+      }),
     );
   } catch (error) {
     if (error.code !== 409) throw error;
@@ -254,7 +278,7 @@ async function listCampaigns(page = 1, limit = 20) {
     env.APPWRITE_DATABASE_ID,
     campaigns,
     [
-      Query.orderDesc("createdAt"),
+      Query.orderDesc("createdAtIndex"),
       Query.orderDesc("$id"),
       Query.limit(limitNum),
       Query.offset((pageNum - 1) * limitNum),
@@ -341,7 +365,7 @@ async function cancelCampaign(campaignId) {
       env.APPWRITE_DATABASE_ID,
       collectionIds().campaigns,
       campaignId,
-      { status: "cancelled", cancelledAt },
+      withCampaignIndexAliases({ status: "cancelled", cancelledAt }),
     );
   });
 }
@@ -358,7 +382,7 @@ async function createDelivery(campaign, user) {
     campaign.category,
     campaign.recipientSnapshotAt,
   );
-  const data = {
+  const data = withDeliveryIndexAliases({
     campaignId: campaign.$id,
     userId: user.$id,
     status: eligible ? "pending" : "skipped",
@@ -370,7 +394,7 @@ async function createDelivery(campaign, user) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     lastAttemptAt: "",
-  };
+  });
   let delivery;
   try {
     delivery = await instrumentedDb.createDocument(
@@ -393,11 +417,11 @@ async function createDelivery(campaign, user) {
       env.APPWRITE_DATABASE_ID,
       deliveries,
       deliveryId,
-      {
+      withDeliveryIndexAliases({
         status: "skipped",
         errorCategory: "consent_or_token_removed",
         updatedAt: new Date().toISOString(),
-      },
+      }),
     );
     return;
   }
@@ -439,11 +463,11 @@ async function processCampaignPage(campaignId) {
         env.APPWRITE_DATABASE_ID,
         collectionIds().campaigns,
         campaignId,
-        {
+        withCampaignIndexAliases({
           status: "sending",
           recipientSnapshotAt: now,
           startedAt: now,
-        },
+        }),
       );
     }
 
@@ -452,8 +476,8 @@ async function processCampaignPage(campaignId) {
       env.APPWRITE_DATABASE_ID,
       deliveries,
       [
-        Query.equal("campaignId", campaignId),
-        Query.equal("status", "pending"),
+        Query.equal("campaignIdIndex", campaignId),
+        Query.equal("statusIndex", "pending"),
         Query.limit(1),
       ],
     );
@@ -473,7 +497,7 @@ async function processCampaignPage(campaignId) {
       const deliveryCount = await instrumentedDb.listDocuments(
         env.APPWRITE_DATABASE_ID,
         deliveries,
-        [Query.equal("campaignId", campaignId), Query.limit(1)],
+        [Query.equal("campaignIdIndex", campaignId), Query.limit(1)],
       );
       await instrumentedDb.updateDocument(
         env.APPWRITE_DATABASE_ID,
@@ -501,8 +525,8 @@ async function processCampaignPage(campaignId) {
       env.APPWRITE_DATABASE_ID,
       deliveries,
       [
-        Query.equal("campaignId", campaignId),
-        Query.equal("status", "pending"),
+        Query.equal("campaignIdIndex", campaignId),
+        Query.equal("statusIndex", "pending"),
         Query.limit(1),
       ],
     );
@@ -573,11 +597,11 @@ async function finishDelivery(delivery, status, fields = {}) {
     env.APPWRITE_DATABASE_ID,
     collectionIds().deliveries,
     delivery.$id,
-    {
+    withDeliveryIndexAliases({
       status,
       ...fields,
       updatedAt: new Date().toISOString(),
-    },
+    }),
   );
   await refreshCampaignCounts(delivery.campaignId);
 }
@@ -663,8 +687,8 @@ async function refreshCampaignCounts(campaignId) {
       env.APPWRITE_DATABASE_ID,
       deliveries,
       [
-        Query.equal("campaignId", campaignId),
-        Query.equal("status", status),
+        Query.equal("campaignIdIndex", campaignId),
+        Query.equal("statusIndex", status),
         Query.limit(1),
       ],
     );
@@ -685,7 +709,7 @@ async function refreshCampaignCounts(campaignId) {
     env.APPWRITE_DATABASE_ID,
     campaigns,
     campaignId,
-    {
+    withCampaignIndexAliases({
       ...counts,
       ...(complete
         ? {
@@ -693,7 +717,7 @@ async function refreshCampaignCounts(campaignId) {
             completedAt: new Date().toISOString(),
           }
         : {}),
-    },
+    }),
   );
 }
 
@@ -705,8 +729,8 @@ async function retryCampaign(campaignId) {
     let retried = 0;
     while (true) {
       const queries = [
-        Query.equal("campaignId", campaignId),
-        Query.equal("status", "rejected"),
+        Query.equal("campaignIdIndex", campaignId),
+        Query.equal("statusIndex", "rejected"),
         Query.orderAsc("$id"),
         Query.limit(PAGE_SIZE),
       ];
@@ -729,12 +753,12 @@ async function retryCampaign(campaignId) {
           env.APPWRITE_DATABASE_ID,
           collectionIds().deliveries,
           delivery.$id,
-          {
+          withDeliveryIndexAliases({
             status: "pending",
             manualRetryCount: 1,
             errorCategory: "",
             updatedAt: new Date().toISOString(),
-          },
+          }),
         );
         if (
           retried === 0 &&
@@ -745,7 +769,7 @@ async function retryCampaign(campaignId) {
             env.APPWRITE_DATABASE_ID,
             collectionIds().campaigns,
             campaignId,
-            { status: "sending", completedAt: "" },
+            withCampaignIndexAliases({ status: "sending", completedAt: "" }),
           );
         }
         await enqueueDelivery(delivery.$id, 1);
@@ -768,7 +792,7 @@ async function recoverCampaigns() {
   let count = 0;
   while (true) {
     const queries = [
-      Query.equal("status", ["queued", "sending"]),
+      Query.equal("statusIndex", ["queued", "sending"]),
       Query.orderAsc("$id"),
       Query.limit(PAGE_SIZE),
     ];
@@ -791,8 +815,8 @@ async function recoverCampaigns() {
       let deliveryCursor = null;
       while (true) {
         const deliveryQueries = [
-          Query.equal("campaignId", campaign.$id),
-          Query.equal("status", "pending"),
+          Query.equal("campaignIdIndex", campaign.$id),
+          Query.equal("statusIndex", "pending"),
           Query.orderAsc("$id"),
           Query.limit(PAGE_SIZE),
         ];
@@ -832,8 +856,8 @@ async function pruneExpiredPushDetails() {
     let cursor = null;
     while (true) {
       const queries = [
-        Query.equal("status", TERMINAL_DELIVERY_STATUSES),
-        Query.lessThan("createdAt", cutoff),
+        Query.equal("statusIndex", TERMINAL_DELIVERY_STATUSES),
+        Query.lessThan("createdAtIndex", cutoff),
         Query.orderAsc("$id"),
         Query.limit(PAGE_SIZE),
       ];

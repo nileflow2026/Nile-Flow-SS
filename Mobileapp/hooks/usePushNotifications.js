@@ -53,6 +53,22 @@ const getProjectId = () =>
   Constants.expoConfig?.extra?.eas?.projectId ||
   Constants.easConfig?.projectId;
 
+export const isPushNotificationPromptSupported = () =>
+  isSupportedPlatform && Boolean(Notifications) && Device?.isDevice === true;
+
+export const getPushPermissionState = async () => {
+  if (!isPushNotificationPromptSupported()) {
+    return { supported: false, granted: false, canAskAgain: false };
+  }
+
+  const permission = await Notifications.getPermissionsAsync();
+  return {
+    supported: true,
+    granted: permission.status === "granted",
+    canAskAgain: permission.canAskAgain === true,
+  };
+};
+
 const registerPushTokenWithBackend = async (pushToken) => {
   await axiosClient.post("/api/customernotifications/register-token", {
     pushToken,
@@ -153,21 +169,35 @@ export const usePushNotifications = (
   const registerDeviceRef = useRef(null);
 
   const requestPushPermission = async () => {
-    if (!userId || !Notifications || !Device?.isDevice) return false;
+    if (!userId || !isPushNotificationPromptSupported()) {
+      return { status: "unsupported" };
+    }
 
     try {
       const permission = await Notifications.getPermissionsAsync();
-      const finalPermission =
-        permission.status === "granted"
-          ? permission
-          : await Notifications.requestPermissionsAsync();
-      if (finalPermission.status !== "granted") return false;
+      let finalPermission = permission;
+      if (permission.status !== "granted") {
+        if (!permission.canAskAgain) return { status: "settings_required" };
+        finalPermission = await Notifications.requestPermissionsAsync();
+      }
+      if (finalPermission.status !== "granted") {
+        return {
+          status: "denied",
+          canAskAgain: finalPermission.canAskAgain === true,
+        };
+      }
 
-      await registerDeviceRef.current?.();
-      return true;
+      const registration = await registerDeviceRef.current?.();
+      if (registration?.status !== "registered") {
+        return { status: "registration_failed" };
+      }
+      return { status: "registered" };
     } catch (error) {
-      console.warn("[Push] Could not request notification permission:", error.message);
-      return false;
+      console.warn(
+        "[Push] Could not request notification permission:",
+        error.message,
+      );
+      return { status: "registration_failed" };
     }
   };
 
@@ -185,7 +215,7 @@ export const usePushNotifications = (
 
     let isMounted = true;
     let registeredToken = null;
-    let isRegistering = false;
+    let registrationPromise = null;
     let permissionWasGranted = null;
 
     const handleResponse = (response) => {
@@ -205,56 +235,69 @@ export const usePushNotifications = (
     };
 
     const registerDevice = async () => {
-      if (!userId || !Device?.isDevice || isRegistering) return;
+      if (!userId || !Device?.isDevice) return { status: "unsupported" };
+      if (registrationPromise) return registrationPromise;
 
-      isRegistering = true;
-      try {
+      registrationPromise = (async () => {
         try {
-          await syncAccountNotificationPreferences(userId);
+          try {
+            await syncAccountNotificationPreferences(userId);
+          } catch (error) {
+            console.warn(
+              "[Push] Could not sync notification preferences:",
+              error.response?.data?.message || error.message,
+            );
+          }
+          await configureNotificationChannels();
+
+          const permission = await Notifications.getPermissionsAsync();
+          if (!isMounted) return { status: "unavailable" };
+          if (permission.status !== "granted") {
+            if (permissionWasGranted !== false) {
+              await unregisterPushTokenWithBackend();
+            }
+            permissionWasGranted = false;
+            registeredToken = null;
+            setExpoPushToken(null);
+            return {
+              status: "permission_required",
+              canAskAgain: permission.canAskAgain === true,
+            };
+          }
+          permissionWasGranted = true;
+
+          const projectId = getProjectId();
+          if (!projectId) {
+            throw new Error("The Expo EAS project ID is not configured.");
+          }
+
+          const tokenResponse = await Notifications.getExpoPushTokenAsync({
+            projectId,
+          });
+          const token = tokenResponse.data;
+          if (!token) return { status: "token_unavailable" };
+          if (!isMounted) return { status: "unavailable" };
+          if (token === registeredToken) return { status: "registered" };
+
+          await registerPushTokenWithBackend(token);
+          if (!isMounted) return { status: "unavailable" };
+
+          registeredToken = token;
+          setExpoPushToken(token);
+          return { status: "registered" };
         } catch (error) {
           console.warn(
-            "[Push] Could not sync notification preferences:",
+            "[Push] Device registration failed. It will retry when the app becomes active:",
             error.response?.data?.message || error.message,
           );
+          return { status: "registration_failed" };
         }
-        await configureNotificationChannels();
+      })();
 
-        const permission = await Notifications.getPermissionsAsync();
-        if (!isMounted) return;
-        if (permission.status !== "granted") {
-          if (permissionWasGranted !== false) {
-            await unregisterPushTokenWithBackend();
-          }
-          permissionWasGranted = false;
-          registeredToken = null;
-          setExpoPushToken(null);
-          return;
-        }
-        permissionWasGranted = true;
-
-        const projectId = getProjectId();
-        if (!projectId) {
-          throw new Error("The Expo EAS project ID is not configured.");
-        }
-
-        const tokenResponse = await Notifications.getExpoPushTokenAsync({
-          projectId,
-        });
-        const token = tokenResponse.data;
-        if (!isMounted || !token || token === registeredToken) return;
-
-        await registerPushTokenWithBackend(token);
-        if (!isMounted) return;
-
-        registeredToken = token;
-        setExpoPushToken(token);
-      } catch (error) {
-        console.warn(
-          "[Push] Device registration failed. It will retry when the app becomes active:",
-          error.response?.data?.message || error.message,
-        );
+      try {
+        return await registrationPromise;
       } finally {
-        isRegistering = false;
+        registrationPromise = null;
       }
     };
 
