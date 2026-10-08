@@ -208,7 +208,12 @@ async function createAutomaticPush({ eventType, userId, eventKey }) {
       }),
     );
   } catch (error) {
-    if (error.code !== 409) throw error;
+    if (error.code !== 409) {
+      throw new Error(
+        `Could not create push event receipt in Appwrite project ${env.APPWRITE_PROJECT_ID}, database ${env.APPWRITE_DATABASE_ID}, collection ${collectionId()}: ${error.message}`,
+        { cause: error },
+      );
+    }
     receipt = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       collectionId(),
