@@ -43,6 +43,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const formatCampaignLabel = (value) =>
+  typeof value === "string" && value
+    ? value.replaceAll("_", " ")
+    : "Unknown";
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [filterType, setFilterType] = useState("all");
@@ -855,13 +860,13 @@ export default function NotificationsPage() {
                               {campaign.title}
                             </button>
                             <p className="mt-1 text-xs text-gray-500">
-                              {campaign.category.replaceAll("_", " ")} ·{" "}
+                              {formatCampaignLabel(campaign.category)} ·{" "}
                               {new Date(campaign.createdAt).toLocaleString()}
                             </p>
                           </td>
                           <td className="px-4 py-4">
                             <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold capitalize text-gray-800">
-                              {campaign.status.replaceAll("_", " ")}
+                              {formatCampaignLabel(campaign.status)}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-gray-700">
@@ -967,7 +972,7 @@ export default function NotificationsPage() {
                 </p>
                 <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    ["Status", campaignDetail.status.replaceAll("_", " ")],
+                    ["Status", formatCampaignLabel(campaignDetail.status)],
                     ["Estimated audience", campaignDetail.estimatedRecipientCount],
                     ["Final audience", campaignDetail.targetedCount ?? "Preparing"],
                     ["Accepted by Expo", campaignDetail.acceptedCount],
