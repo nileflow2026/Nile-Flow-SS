@@ -37,6 +37,7 @@ google-play*.json
 credentials*.json
 secrets/
 nile-flow-app-3ad669df2cd0.json
+/google-services.json
 
 # ── Metro Bundler ────────────────────────────────────────
 .metro-health-check*
