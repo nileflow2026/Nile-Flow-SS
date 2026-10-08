@@ -2,6 +2,13 @@
 const { verifyAccessToken } = require("../utils/tokenManager");
 const { users } = require("../services/appwriteService");
 const { isCustomerEmailVerified } = require("../utils/customerAuthPolicy");
+const logger = require("../utils/logger");
+
+const isPushTokenRegistrationRequest = (req) =>
+  req.method === "POST" &&
+  /\/customernotifications\/register-token(?:\?|$)/.test(
+    req.originalUrl || req.url || "",
+  );
 
 // Exact-match allowed origins to prevent subdomain bypass
 const ALLOWED_ORIGINS = new Set([
@@ -22,6 +29,7 @@ const ALLOWED_ORIGINS = new Set([
 
 const authMiddleware = async (req, res, next) => {
   try {
+    const isPushRegistration = isPushTokenRegistrationRequest(req);
     // Set CORS headers using exact-match origin validation
     const origin = req.headers.origin;
     if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -46,6 +54,14 @@ const authMiddleware = async (req, res, next) => {
     const accessToken = cookieToken || bearerToken;
 
     if (!accessToken) {
+      if (isPushRegistration) {
+        logger.warn("Push token registration authentication rejected", {
+          correlationId: req.correlationId,
+          reason: "missing_access_token",
+          hasBearerHeader: Boolean(bearerToken),
+          hasAccessCookie: Boolean(cookieToken),
+        });
+      }
       return res.status(401).json({
         error: "No access token provided",
       });
@@ -55,6 +71,14 @@ const authMiddleware = async (req, res, next) => {
     try {
       decoded = verifyAccessToken(accessToken);
     } catch {
+      if (isPushRegistration) {
+        logger.warn("Push token registration authentication rejected", {
+          correlationId: req.correlationId,
+          reason: "invalid_or_expired_access_token",
+          hasBearerHeader: Boolean(bearerToken),
+          hasAccessCookie: Boolean(cookieToken),
+        });
+      }
       return res.status(401).json({
         success: false,
         code: "INVALID_SESSION",
@@ -75,6 +99,13 @@ const authMiddleware = async (req, res, next) => {
         user = await users.get(decoded.sub);
       } catch (error) {
         if (error.code === 404) {
+          if (isPushRegistration) {
+            logger.warn("Push token registration customer lookup failed", {
+              correlationId: req.correlationId,
+              reason: "customer_not_found",
+              appwriteCode: error.code,
+            });
+          }
           return res.status(401).json({
             success: false,
             code: "INVALID_SESSION",
@@ -82,6 +113,15 @@ const authMiddleware = async (req, res, next) => {
           });
         }
 
+        if (isPushRegistration) {
+          logger.error("Push token registration customer lookup failed", {
+            correlationId: req.correlationId,
+            reason: "customer_lookup_unavailable",
+            appwriteCode: error.code,
+            errorType: error.type,
+            errorMessage: error.message,
+          });
+        }
         console.error("Customer verification status lookup failed:", error.message);
         return res.status(503).json({
           success: false,
@@ -91,6 +131,12 @@ const authMiddleware = async (req, res, next) => {
       }
 
       if (!isCustomerEmailVerified(user)) {
+        if (isPushRegistration) {
+          logger.warn("Push token registration authentication rejected", {
+            correlationId: req.correlationId,
+            reason: "customer_email_not_verified",
+          });
+        }
         return res.status(403).json({
           success: false,
           code: "EMAIL_NOT_VERIFIED",

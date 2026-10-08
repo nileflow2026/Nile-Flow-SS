@@ -1,6 +1,7 @@
 const { ID, Permission, Query } = require("node-appwrite");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const logger = require("../../utils/logger");
 const {
   NotificationPreferenceError,
   mergePreferences,
@@ -203,14 +204,32 @@ const markAllNotificationsAsRead = async (req, res) => {
  * targeted push notifications (e.g. on order status change).
  */
 const registerPushToken = async (req, res) => {
+  let stage = "validate_request";
+  const pushToken = req.body?.pushToken;
+
   try {
+    logger.info("Push token registration request received", {
+      correlationId: req.correlationId,
+      authenticated: Boolean(req.user?.userId),
+      pushTokenPresent: typeof pushToken === "string" && pushToken.length > 0,
+      clientType: req.get("X-Client-Type") || null,
+    });
+
     if (!req.user || !req.user.userId) {
+      logger.warn("Push token registration rejected", {
+        correlationId: req.correlationId,
+        stage,
+        reason: "authenticated_user_missing",
+      });
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { pushToken } = req.body;
-
     if (!pushToken || typeof pushToken !== "string") {
+      logger.warn("Push token registration rejected", {
+        correlationId: req.correlationId,
+        stage,
+        reason: "push_token_missing_or_invalid_type",
+      });
       return res.status(400).json({ error: "pushToken is required" });
     }
 
@@ -219,15 +238,27 @@ const registerPushToken = async (req, res) => {
       !pushToken.startsWith("ExponentPushToken[") &&
       !pushToken.startsWith("ExpoPushToken[")
     ) {
+      logger.warn("Push token registration rejected", {
+        correlationId: req.correlationId,
+        stage,
+        reason: "invalid_expo_push_token_format",
+      });
       return res.status(400).json({ error: "Invalid Expo push token format" });
     }
 
     const userId = req.user.userId;
+    stage = "read_user_document";
     const user = await instrumentedDb.getDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
     );
+    logger.info("Push token registration user document loaded", {
+      correlationId: req.correlationId,
+      hasExistingPushToken: Boolean(user.pushToken),
+      hasFirstRegisteredAt: Boolean(user.pushTokenFirstRegisteredAt),
+    });
+
     const registeredAt =
       user.pushTokenFirstRegisteredAt || new Date().toISOString();
     const tokenData = {
@@ -236,17 +267,23 @@ const registerPushToken = async (req, res) => {
       pushTokenFirstRegisteredAtIndex: registeredAt,
     };
 
+    stage = "update_user_document";
     await instrumentedDb.updateDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
       userId,
       tokenData,
     );
+    logger.info("Push token registration user document updated", {
+      correlationId: req.correlationId,
+      firstRegistration: !user.pushTokenFirstRegisteredAt,
+    });
 
     if (
       env.PUSH_NOTIFICATIONS_V2_ENABLED === true &&
       !user.welcomePushSentAt
     ) {
+      stage = "queue_welcome_push";
       const { createAutomaticPush } = require("../../services/automaticPushService");
       await createAutomaticPush({
         eventType: "account.welcome",
@@ -259,7 +296,16 @@ const registerPushToken = async (req, res) => {
       .status(200)
       .json({ message: "Push token registered successfully" });
   } catch (error) {
-    console.error("Failed to register push token:", error.message);
+    const safeErrorMessage = String(error?.message || "Unknown error")
+      .replace(pushToken || "\u0000", "[REDACTED]")
+      .replace(/(?:Exponent|Expo)PushToken\[[^\]]+\]/g, "[REDACTED]");
+    logger.error("Push token registration failed", {
+      correlationId: req.correlationId,
+      stage,
+      appwriteCode: error?.code,
+      errorType: error?.type || error?.name,
+      errorMessage: safeErrorMessage,
+    });
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };

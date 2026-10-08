@@ -239,6 +239,7 @@ export const usePushNotifications = (
       if (registrationPromise) return registrationPromise;
 
       registrationPromise = (async () => {
+        let registrationStage = "sync_preferences";
         try {
           try {
             await syncAccountNotificationPreferences(userId);
@@ -248,8 +249,10 @@ export const usePushNotifications = (
               error.response?.data?.message || error.message,
             );
           }
+          registrationStage = "configure_channels";
           await configureNotificationChannels();
 
+          registrationStage = "check_permission";
           const permission = await Notifications.getPermissionsAsync();
           if (!isMounted) return { status: "unavailable" };
           if (permission.status !== "granted") {
@@ -266,19 +269,27 @@ export const usePushNotifications = (
           }
           permissionWasGranted = true;
 
+          registrationStage = "resolve_project_id";
           const projectId = getProjectId();
           if (!projectId) {
             throw new Error("The Expo EAS project ID is not configured.");
           }
 
+          registrationStage = "get_expo_push_token";
           const tokenResponse = await Notifications.getExpoPushTokenAsync({
             projectId,
           });
           const token = tokenResponse.data;
-          if (!token) return { status: "token_unavailable" };
+          if (!token) {
+            console.warn("[Push] Expo did not return a device push token.", {
+              stage: registrationStage,
+            });
+            return { status: "token_unavailable" };
+          }
           if (!isMounted) return { status: "unavailable" };
           if (token === registeredToken) return { status: "registered" };
 
+          registrationStage = "register_with_backend";
           await registerPushTokenWithBackend(token);
           if (!isMounted) return { status: "unavailable" };
 
@@ -286,10 +297,16 @@ export const usePushNotifications = (
           setExpoPushToken(token);
           return { status: "registered" };
         } catch (error) {
-          console.warn(
-            "[Push] Device registration failed. It will retry when the app becomes active:",
-            error.response?.data?.message || error.message,
-          );
+          console.warn("[Push] Device registration failed.", {
+            stage: registrationStage,
+            status: error.response?.status || null,
+            correlationId:
+              error.response?.headers?.["x-correlation-id"] || null,
+            error:
+              error.response?.data?.error ||
+              error.response?.data?.message ||
+              error.message,
+          });
           return { status: "registration_failed" };
         }
       })();
