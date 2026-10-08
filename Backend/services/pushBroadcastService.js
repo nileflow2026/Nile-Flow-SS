@@ -7,6 +7,10 @@ const { instrumentedDb } = require("./appwriteService");
 const { notificationsQueue, connection } = require("../src/jobs/queues");
 const { sendQueuedPush } = require("./pushNotificationService");
 const {
+  campaignDeliveryJobId,
+  campaignPageJobId,
+} = require("./pushBroadcastJobIds");
+const {
   CATEGORIES,
   PushBroadcastError,
   idempotencyKey,
@@ -125,8 +129,7 @@ async function findCampaignByIdempotencyKey(createdBy, key) {
 }
 
 async function enqueueCampaignPage(campaignId, cursor) {
-  const cursorKey = cursor || "start";
-  const jobId = `push-broadcast:${campaignId}:page:${cursorKey}`;
+  const jobId = campaignPageJobId(campaignId, cursor);
   const existing = await notificationsQueue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();
@@ -429,7 +432,7 @@ async function createDelivery(campaign, user) {
 }
 
 async function enqueueDelivery(deliveryId, manualRetryCount) {
-  const jobId = `push-broadcast-delivery:${deliveryId}:${manualRetryCount}`;
+  const jobId = campaignDeliveryJobId(deliveryId, manualRetryCount);
   const existing = await notificationsQueue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();
