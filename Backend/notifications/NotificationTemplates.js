@@ -27,6 +27,9 @@ function formatCurrency(amount, currency = 'KES') {
   const n = Number(amount) || 0;
   return `${currency} ${Math.round(n).toLocaleString()}`;
 }
+function inAppOrderLabel(payload) {
+  return payload.orderNumber ? `Order ${payload.orderNumber}` : 'Your order';
+}
 
 // ── Template Registry ───────────────────────────────────────────────────────
 // Each template is a function(payload, locale?) => { subject, html?, text, sms, pushTitle, pushBody }
@@ -53,7 +56,7 @@ Payment: ${p.paymentMethod}
 We'll notify you every step of the way.`,
     pushTitle: '🎉 Order Received!',
     pushBody: `Your order ${p.orderNumber || ''} of ${formatCurrency(p.amount)} has been placed successfully.`,
-    inApp: `Order ${p.orderNumber || p.orderId} placed successfully.`,
+    inApp: `${inAppOrderLabel(p)} placed successfully.`,
   }),
 
   [EVENT.ORDER_CONFIRMED]: (p) => ({
@@ -61,7 +64,7 @@ We'll notify you every step of the way.`,
     emailHtml: `<h2>Order confirmed</h2><p>Your order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is confirmed and will be prepared soon.</p>`,
     pushTitle: 'Order confirmed',
     pushBody: 'Your order is confirmed and will be prepared soon.',
-    inApp: `Order ${p.orderNumber || p.orderId} is confirmed.`,
+    inApp: `${inAppOrderLabel(p)} is confirmed.`,
   }),
 
   [EVENT.ORDER_PREPARING]: (p) => ({
@@ -69,7 +72,7 @@ We'll notify you every step of the way.`,
     emailHtml: `<h2>Your order is being prepared</h2><p>We are preparing order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong>.</p>`,
     pushTitle: 'Order update',
     pushBody: 'Your order is being prepared. Check your orders for the latest update.',
-    inApp: `Order ${p.orderNumber || p.orderId} is being prepared.`,
+    inApp: `${inAppOrderLabel(p)} is being prepared.`,
   }),
 
   [EVENT.ORDER_READY]: (p) => ({
@@ -77,7 +80,7 @@ We'll notify you every step of the way.`,
     emailHtml: `<h2>Your order is ready</h2><p>Order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is ready for dispatch.</p>`,
     pushTitle: 'Order update',
     pushBody: 'Your order is ready to be sent. Check your orders for the latest update.',
-    inApp: `Order ${p.orderNumber || p.orderId} is ready for dispatch.`,
+    inApp: `${inAppOrderLabel(p)} is ready for dispatch.`,
   }),
 
   [EVENT.ORDER_OUT_FOR_DELIVERY]: (p) => ({
@@ -85,7 +88,7 @@ We'll notify you every step of the way.`,
     emailHtml: `<h2>Your order is on the way</h2><p>Order <strong>${escapeHtml(p.orderNumber || p.orderId)}</strong> is out for delivery.</p>`,
     pushTitle: 'Order on the way',
     pushBody: 'Your order is out for delivery. Check your orders for the latest update.',
-    inApp: `Order ${p.orderNumber || p.orderId} is out for delivery.`,
+    inApp: `${inAppOrderLabel(p)} is out for delivery.`,
   }),
 
   [EVENT.ORDER_CANCELLED]: (p) => ({
@@ -98,7 +101,7 @@ We'll notify you every step of the way.`,
     sms: `NileFlow: Order ${p.orderNumber || p.orderId} has been cancelled.`,
     pushTitle: '❌ Order Cancelled',
     pushBody: `Order ${p.orderNumber || ''} has been cancelled.`,
-    inApp: `Order ${p.orderNumber || p.orderId} cancelled.`,
+    inApp: `${inAppOrderLabel(p)} cancelled.`,
   }),
 
   [EVENT.ORDER_CANCELLATION_REQUESTED]: (p) => ({

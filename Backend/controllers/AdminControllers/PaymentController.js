@@ -2725,7 +2725,9 @@ const cancelCodOrder = async (req, res) => {
     try {
       await createNotification({
         userId: order.userId || order.users,
-        message: `Your Cash on Delivery order ${orderId} was cancelled successfully.`,
+        message: order.orderNumber
+          ? `Your Cash on Delivery order ${order.orderNumber} was cancelled successfully.`
+          : "Your Cash on Delivery order was cancelled successfully.",
         type: "order",
         username: order.username,
         email: order.customerEmail,

@@ -65,3 +65,22 @@ test("escapes order identifiers in new status email templates", () => {
   assert.equal(rendered.emailHtml.includes("<script>"), false);
   assert.equal(rendered.emailHtml.includes("&lt;script&gt;"), true);
 });
+
+test("in app order messages show the human readable order number", () => {
+  const rendered = render(EVENT.ORDER_CONFIRMED, {
+    orderId: "appwrite-document-id",
+    orderNumber: "NF-2026-0001",
+  });
+
+  assert.match(rendered.inApp, /NF-2026-0001/);
+  assert.doesNotMatch(rendered.inApp, /appwrite-document-id/);
+});
+
+test("in app order messages do not expose the Appwrite ID when no order number exists", () => {
+  const rendered = render(EVENT.ORDER_CONFIRMED, {
+    orderId: "appwrite-document-id",
+  });
+
+  assert.match(rendered.inApp, /Your order/);
+  assert.doesNotMatch(rendered.inApp, /appwrite-document-id/);
+});

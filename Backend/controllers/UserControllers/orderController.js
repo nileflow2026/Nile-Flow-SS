@@ -129,7 +129,9 @@ const handleCancelRequest = async (req, res) => {
     try {
       await createNotification({
         userId,
-        message: `Your cancellation request for order ${orderId} has been received. We'll review it within 24 hours.`,
+        message: `Your cancellation request for ${
+          order.orderNumber ? `order ${order.orderNumber}` : "your order"
+        } has been received. We'll review it within 24 hours.`,
         type: "order",
         username: customerName || order.username,
         email: customerEmail || order.customerEmail,
