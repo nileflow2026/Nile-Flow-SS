@@ -6,6 +6,32 @@
 **Version:** 1.0
 **Last Updated:** 2026-06-09
 
+## Required OTA Setup
+
+The Mobileapp uses EAS Update with fingerprint runtime versions. Keep the EAS environment used to publish an update aligned with the environment used to create its native build.
+
+| Build profile | Update channel | EAS environment |
+| --- | --- | --- |
+| `development` | `development` | `development` |
+| `staging` | `staging` | `preview` |
+| `preview` | `preview` | `preview` |
+| `production` | `production` | `production` |
+
+Before publishing, configure the following:
+
+1. Add `EXPO_TOKEN` as a repository GitHub Actions secret so the validation and deployment jobs can access it.
+2. Add the client API address as `API_URL` or `API_BASE_URL` in the EAS `preview` and `production` environments. Use the same address that was used to create builds for each channel. It must be a public HTTPS address because it is included in the app.
+3. Add any other client configuration required by the app to the matching EAS environments. Do not put server secrets in EAS variables used by a mobile bundle.
+4. Set required reviewers on the GitHub `production` Environment to keep production OTA publishing approval gated.
+
+The deploy workflows check that the selected EAS environment contains a public HTTPS API address before publishing. Production native builds run the same check. If it fails, configure the environment variable and retry instead of publishing an update with a local development address.
+
+## Runtime Compatibility
+
+The app uses `runtimeVersion.policy` set to `fingerprint`. JavaScript and asset changes can be delivered over the air when their fingerprint still matches an installed build. Changes to the Expo SDK, native dependencies, config plugins, native app configuration, or bundled native assets can change the fingerprint. In that case, create and distribute new iOS and Android builds before expecting users on the new runtime to receive updates. An OTA update cannot install native code or upgrade a user's Expo SDK.
+
+The app checks for updates on launch. It waits up to 30 seconds for a downloaded update, then starts with the available embedded or cached bundle. A downloaded update that is not ready before launch is applied on a later app launch. Expo Go is not a production OTA target. Validate updates on EAS development, staging, or production builds.
+
 ---
 
 ## Table of Contents
@@ -278,17 +304,19 @@ Rotation schedule:
 ### Common Commands
 
 ```bash
-# Publish to staging
-eas update --branch staging --message "Update: <description>"
+# Validate and publish to staging
+npm run ota:validate:staging
+npm run ota:staging -- --message "Update: <description>"
 
-# Publish to production
-eas update --branch production --message "Release: <description>"
+# Validate and publish to production
+npm run ota:validate:production
+npm run ota:production -- --message "Release: <description>"
 
 # Rollback
-eas update:rollback --branch production --channel production
+npx --yes eas-cli@24.12.1 update:rollback
 
 # List updates
-eas update:list --branch production --limit 10
+npx --yes eas-cli@24.12.1 update:list --branch production --limit 10
 
 # Check config
 npx expo config --type public

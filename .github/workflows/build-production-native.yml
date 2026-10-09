@@ -38,16 +38,12 @@ concurrency:
 
 env:
     NODE_VERSION: "20.x"
-    WORKING_DIRECTORY: Mobileapp
 
 jobs:
     build-android:
         name: Build Android App Bundle
         if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android' }}
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ${{ env.WORKING_DIRECTORY }}
 
         steps:
             - name: Checkout Repository
@@ -58,22 +54,32 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: "npm"
-                  cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+                  cache-dependency-path: Mobileapp/package-lock.json
 
             - name: Install Dependencies
+              working-directory: Mobileapp
               run: npm ci
 
             - name: Validate Expo Config
+              working-directory: Mobileapp
               run: npx expo config --type public
 
+            - name: Validate Production EAS Environment
+              working-directory: Mobileapp
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+              run: npm run ota:validate:production
+
             - name: EAS Build Android
-              run: npx eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+              working-directory: Mobileapp
+              run: npx --yes eas-cli@24.12.1 build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
               env:
                   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
             - name: Submit to Google Play
               if: ${{ github.event.inputs.submit_to_store == 'true' }}
-              run: npx eas submit --platform android --profile ${{ github.event.inputs.profile }}
+              working-directory: Mobileapp
+              run: npx --yes eas-cli@24.12.1 submit --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
               env:
                   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
@@ -81,9 +87,6 @@ jobs:
         name: Build iOS IPA
         if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios' }}
         runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ${{ env.WORKING_DIRECTORY }}
 
         steps:
             - name: Checkout Repository
@@ -94,21 +97,31 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: "npm"
-                  cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+                  cache-dependency-path: Mobileapp/package-lock.json
 
             - name: Install Dependencies
+              working-directory: Mobileapp
               run: npm ci
 
             - name: Validate Expo Config
+              working-directory: Mobileapp
               run: npx expo config --type public
 
+            - name: Validate Production EAS Environment
+              working-directory: Mobileapp
+              env:
+                  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+              run: npm run ota:validate:production
+
             - name: EAS Build iOS
-              run: npx eas build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
+              working-directory: Mobileapp
+              run: npx --yes eas-cli@24.12.1 build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
               env:
                   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
             - name: Submit to App Store
               if: ${{ github.event.inputs.submit_to_store == 'true' }}
-              run: npx eas submit --platform ios --profile ${{ github.event.inputs.profile }}
+              working-directory: Mobileapp
+              run: npx --yes eas-cli@24.12.1 submit --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
               env:
                   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

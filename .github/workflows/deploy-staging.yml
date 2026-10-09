@@ -12,6 +12,9 @@ on:
     branches:
       - develop
       - staging
+    paths:
+      - "Mobileapp/**"
+      - ".github/workflows/deploy-staging.yml"
   workflow_dispatch:
 
 concurrency:
@@ -20,15 +23,11 @@ concurrency:
 
 env:
   NODE_VERSION: "20.x"
-  WORKING_DIRECTORY: Mobileapp
 
 jobs:
   validate-and-deploy:
     name: Validate and Deploy Staging OTA
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
     steps:
       - name: Checkout Repository
@@ -39,30 +38,41 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+          cache-dependency-path: Mobileapp/package-lock.json
 
       - name: Install Dependencies
+        working-directory: Mobileapp
         run: npm ci
 
       - name: Validate Expo Config
+        working-directory: Mobileapp
         run: npx expo config --type public
 
       - name: Generate Fingerprint
+        working-directory: Mobileapp
         run: npx @expo/fingerprint .
+
+      - name: Validate Staging EAS Environment
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npm run ota:validate:staging
 
       - name: Publish OTA Update (Staging Channel)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SHA: ${{ github.sha }}
+        working-directory: Mobileapp
         shell: bash
-        run: |
-          npx eas update \
-            --branch staging \
-            --message "Staging OTA: $SHA"
+        run: 'npm run ota:staging -- --non-interactive --message "Staging OTA: $SHA"'
 
       - name: Tag Deployment
         env:
           TAG: staging-ota-${{ github.run_number }}
+        working-directory: Mobileapp
         run: |
           git tag "${{ env.TAG }}"
           git push origin "${{ env.TAG }}"
+
+permissions:
+  contents: write

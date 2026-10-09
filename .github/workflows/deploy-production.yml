@@ -11,12 +11,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "Mobileapp/**"
+      - ".github/workflows/deploy-production.yml"
   workflow_dispatch:
     inputs:
       confirm_deployment:
         description: "Type 'deploy' to confirm production OTA deployment"
         required: true
-        default: ""
+        type: choice
+        options:
+          - cancel
+          - deploy
+        default: cancel
 
 concurrency:
   group: production-ota
@@ -24,15 +31,12 @@ concurrency:
 
 env:
   NODE_VERSION: "20.x"
-  WORKING_DIRECTORY: Mobileapp
 
 jobs:
   validate:
     name: Validate Production Readiness
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+    if: github.event_name != 'workflow_dispatch' || inputs.confirm_deployment == 'deploy'
 
     steps:
       - uses: actions/checkout@v4
@@ -40,27 +44,32 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+          cache-dependency-path: Mobileapp/package-lock.json
       - name: Install Dependencies
+        working-directory: Mobileapp
         run: npm ci
       - name: Validate Expo Config
+        working-directory: Mobileapp
         run: npx expo config --type public
       - name: Generate Fingerprint
+        working-directory: Mobileapp
         run: npx @expo/fingerprint .
       - name: Run TypeScript Check
+        working-directory: Mobileapp
         run: npx tsc --noEmit
       - name: Run Lint
+        working-directory: Mobileapp
         run: npx eslint . --max-warnings 75
-      - name: Upload Validation Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: validation-results
-          path: Mobileapp/.expo/
-
+      - name: Validate Production EAS Environment
+        working-directory: Mobileapp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npm run ota:validate:production
   production-gate:
     name: Production Approval Gate
     runs-on: ubuntu-latest
     needs: [validate]
+    if: github.event_name != 'workflow_dispatch' || inputs.confirm_deployment == 'deploy'
     environment: production
     steps:
       - name: Environment Check
@@ -72,9 +81,7 @@ jobs:
     name: Deploy OTA to Production
     runs-on: ubuntu-latest
     needs: [production-gate]
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+    if: github.event_name != 'workflow_dispatch' || inputs.confirm_deployment == 'deploy'
 
     steps:
       - uses: actions/checkout@v4
@@ -82,21 +89,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+          cache-dependency-path: Mobileapp/package-lock.json
       - name: Install Dependencies
+        working-directory: Mobileapp
         run: npm ci
       - name: Publish OTA Update (Production Channel)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           SHA: ${{ github.sha }}
-        shell: bash
-        run: |
-          npx eas update \
-            --branch production \
-            --message "Production OTA: $SHA"
+        working-directory: Mobileapp
+        run: 'npm run ota:production -- --non-interactive --message "Production OTA: $SHA"'
       - name: Tag Release
         env:
           TAG: production-ota-${{ github.run_number }}
+        working-directory: Mobileapp
         run: |
           git tag "${{ env.TAG }}"
           git push origin "${{ env.TAG }}"
@@ -108,3 +114,6 @@ jobs:
           echo "- **Deployed By:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
           echo "- **Channel:** production" >> $GITHUB_STEP_SUMMARY
+
+permissions:
+  contents: write
