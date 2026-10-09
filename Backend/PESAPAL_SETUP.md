@@ -41,13 +41,14 @@ For live payments, run this with `PESAPAL_ENVIRONMENT=production`. Copy the retu
 
 ## Appwrite order attributes
 
-Run this once against the same Appwrite project used by the backend before testing checkout:
+Run both migrations once against the same Appwrite project used by the backend:
 
 ```bash
 node scripts/setup-pesapal-order-attributes.js
+node scripts/setup-pesapal-checkout-sessions.js
 ```
 
-The script creates optional `pesapalTrackingId`, `pesapalMerchantReference`, `pesapalPaymentMethod`, and `paymentReference` attributes when they are missing.
+The first script creates optional Pesapal tracking fields on orders. The second creates the private `pesapal_checkout_sessions` collection with fields for the order ID, Pesapal tracking ID, and redirect URL. The checkout attempt UUID is used as the document ID. This keeps payment session data out of the Orders collection and lets a repeated attempt resume the same pending payment.
 
 The payment callback and cancellation URLs are generated from `FRONTEND_URL`. Pesapal callbacks do not contain payment status, so the backend always verifies the amount, currency, and final status using `GetTransactionStatus` before marking an order paid.
 

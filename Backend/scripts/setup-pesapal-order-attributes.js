@@ -1,6 +1,9 @@
-require("dotenv").config();
+"use strict";
 
-const { Client, Databases } = require("node-appwrite");
+require("dotenv").config();
+process.env.FORCE_NODE_FETCH = "1";
+
+const { Client, Databases, Query } = require("node-appwrite");
 
 const databaseId = process.env.APPWRITE_DATABASE_ID;
 const collectionId = process.env.APPWRITE_ORDERS_COLLECTION;
@@ -25,7 +28,16 @@ async function main() {
     .setProject(projectId)
     .setKey(apiKey);
   const databases = new Databases(client);
-  const existing = await databases.listAttributes(databaseId, collectionId);
+  const existing = await databases.listAttributes(
+    databaseId,
+    collectionId,
+    [Query.limit(100)],
+  );
+  if (existing.attributes.length !== existing.total) {
+    throw new Error(
+      `Attribute listing was incomplete (${existing.attributes.length} of ${existing.total}).`,
+    );
+  }
   const existingKeys = new Set(existing.attributes.map((attribute) => attribute.key));
 
   for (const [key, size] of attributes) {

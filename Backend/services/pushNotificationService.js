@@ -88,6 +88,41 @@ async function enqueuePushNotification({
   );
 }
 
+async function getPushRecipient(userId) {
+  const candidates = [
+    {
+      databaseId: env.APPWRITE_DATABASE_ID,
+      collectionId: env.APPWRITE_USER_COLLECTION_ID,
+    },
+    {
+      databaseId: env.APPWRITE_DATABASE_ID,
+      collectionId: env.APPWRITE_ADMIN_COLLECTION_ID,
+    },
+    {
+      databaseId: env.VENDOR_DATABASE_ID || env.APPWRITE_DATABASE_ID,
+      collectionId: env.VENDOR_COLLECTION_ID,
+    },
+  ].filter((candidate) => candidate.collectionId);
+  let firstFound = null;
+
+  for (const candidate of candidates) {
+    try {
+      const document = await instrumentedDb.getDocument(
+        candidate.databaseId,
+        candidate.collectionId,
+        userId,
+      );
+      const recipient = { ...candidate, document };
+      if (!firstFound) firstFound = recipient;
+      if (document?.pushToken) return recipient;
+    } catch (error) {
+      if (error.code !== 404) throw error;
+    }
+  }
+
+  return firstFound;
+}
+
 /**
  * Send one already-queued push to Expo and return its ticket outcome.
  */
@@ -96,11 +131,9 @@ async function sendQueuedPush({ userId, message, type, title, data = {}, expires
     throw new Error("Queued push is missing userId or message.");
   }
 
-  const userDoc = await instrumentedDb.getDocument(
-    env.APPWRITE_DATABASE_ID,
-    env.APPWRITE_USER_COLLECTION_ID,
-    userId,
-  );
+  const recipient = await getPushRecipient(userId);
+  if (!recipient) return { status: "skipped", reason: "recipient_not_found" };
+  const { document: userDoc } = recipient;
   const pushToken = userDoc?.pushToken;
   if (!pushToken) return { status: "skipped", reason: "missing_token" };
   const preferences = readStoredPreferences(userDoc.notificationPreferences);
@@ -166,7 +199,7 @@ async function sendQueuedPush({ userId, message, type, title, data = {}, expires
   if (ticket?.status === "error") {
     const providerCode = ticket.details?.error;
     if (providerCode === "DeviceNotRegistered") {
-      await clearInvalidToken(userId, pushToken);
+      await clearInvalidToken(userId, pushToken, recipient);
       return { status: "rejected", reason: providerCode };
     }
     if (
@@ -192,16 +225,16 @@ async function sendQueuedPush({ userId, message, type, title, data = {}, expires
   return { status: "accepted", ticketId: ticket.id || null };
 }
 
-async function clearInvalidToken(userId, invalidToken) {
+async function clearInvalidToken(userId, invalidToken, recipient) {
   const user = await instrumentedDb.getDocument(
-    env.APPWRITE_DATABASE_ID,
-    env.APPWRITE_USER_COLLECTION_ID,
+    recipient.databaseId,
+    recipient.collectionId,
     userId,
   );
   if (user?.pushToken !== invalidToken) return;
   await instrumentedDb.updateDocument(
-    env.APPWRITE_DATABASE_ID,
-    env.APPWRITE_USER_COLLECTION_ID,
+    recipient.databaseId,
+    recipient.collectionId,
     userId,
     { pushToken: null },
   );
@@ -209,5 +242,6 @@ async function clearInvalidToken(userId, invalidToken) {
 
 module.exports = {
   enqueuePushNotification,
+  getPushRecipient,
   sendQueuedPush,
 };

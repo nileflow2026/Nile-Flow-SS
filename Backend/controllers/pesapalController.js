@@ -4,10 +4,11 @@ const { env } = require("../src/env");
 const pesapalService = require("../services/pesapalService");
 const logger = require("../utils/logger");
 const { createHash } = require("node:crypto");
+const PesapalCheckoutSessionRepository = require("../repositories/pesapalCheckoutSessionRepository");
 const {
   CHECKOUT_RECOVERY_STATES,
   CheckoutRequestError,
-  checkoutSuccessResponse,
+  getReusablePesapalCheckoutResponse,
   getRecoveryState,
   prepareMobileCheckout,
 } = require("../services/mobileCheckoutService");
@@ -101,6 +102,7 @@ async function initiateVersioned(req, res) {
   let orderId;
   let paymentStatus = "unknown";
   let phase = "checkout validation";
+  let replaceCheckoutSession = false;
 
   try {
     const checkout = await prepareMobileCheckout(req.body, req.user);
@@ -115,13 +117,21 @@ async function initiateVersioned(req, res) {
     if (order) {
       orderId = order.$id;
       paymentStatus = order.paymentStatus || "unknown";
-      if (
-        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
-        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN ||
-        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
-        checkout.recoveryState === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED
-      ) {
-        return res.status(200).json(checkoutSuccessResponse(order));
+      replaceCheckoutSession = [
+        CHECKOUT_RECOVERY_STATES.PAYMENT_FAILED,
+        CHECKOUT_RECOVERY_STATES.PAYMENT_CANCELLED,
+      ].includes(checkout.recoveryState);
+      const reusableResponse = getReusablePesapalCheckoutResponse(
+        order,
+        checkout.recoveryState,
+        await PesapalCheckoutSessionRepository.findByAttemptId(
+          checkout.checkoutAttemptId,
+        ),
+      );
+      if (reusableResponse) {
+        return res
+          .status(reusableResponse.status)
+          .json(reusableResponse.body);
       }
     } else {
       phase = "order creation";
@@ -148,13 +158,21 @@ async function initiateVersioned(req, res) {
 
       if (created.alreadyExisting) {
         const recoveryState = getRecoveryState(order);
-        if (
-          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
-          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN ||
-          recoveryState === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED ||
-          recoveryState === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED
-        ) {
-          return res.status(200).json(checkoutSuccessResponse(order));
+        replaceCheckoutSession = [
+          CHECKOUT_RECOVERY_STATES.PAYMENT_FAILED,
+          CHECKOUT_RECOVERY_STATES.PAYMENT_CANCELLED,
+        ].includes(recoveryState);
+        const reusableResponse = getReusablePesapalCheckoutResponse(
+          order,
+          recoveryState,
+          await PesapalCheckoutSessionRepository.findByAttemptId(
+            checkout.checkoutAttemptId,
+          ),
+        );
+        if (reusableResponse) {
+          return res
+            .status(reusableResponse.status)
+            .json(reusableResponse.body);
         }
       }
     }
@@ -177,24 +195,29 @@ async function initiateVersioned(req, res) {
       cancellationUrl: req.body.cancellationUrl,
     });
 
-    await updateOrder(
-      orderId,
+    const checkoutSession = await PesapalCheckoutSessionRepository.save(
+      checkout.checkoutAttemptId,
       {
-        pesapalTrackingId: payment.order_tracking_id,
-        pesapalMerchantReference:
-          payment.merchant_reference || order.orderNumber,
-        paymentStatus: "pending",
-        updatedAt: new Date().toISOString(),
+        orderId,
+        redirectUrl: payment.redirect_url,
+        trackingId: payment.order_tracking_id,
       },
-      "versioned Pesapal reference",
+      { replaceExisting: replaceCheckoutSession },
     );
+    await OrderRepository.update(orderId, {
+      pesapalTrackingId: checkoutSession.trackingId,
+      pesapalMerchantReference:
+        payment.merchant_reference || order.orderNumber,
+      paymentStatus: "pending",
+      updatedAt: new Date().toISOString(),
+    });
     paymentStatus = "pending";
 
     return res.status(201).json({
       success: true,
       orderId,
       orderNumber: order.orderNumber,
-      redirectUrl: payment.redirect_url,
+      redirectUrl: checkoutSession.redirectUrl,
       paymentStatus,
       recoveryState: CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING,
     });
@@ -219,6 +242,8 @@ async function initiateVersioned(req, res) {
         errorCategory: String(
           error?.code || error?.type || error?.name || "unknown_error",
         ),
+        providerResponse: error?.providerResponse,
+        providerMessage: error?.message,
         userIdHash: hashId(userId),
         checkoutAttemptIdHash: hashId(checkoutAttemptId),
         paymentStatus,
@@ -386,7 +411,22 @@ async function initiate(req, res) {
 }
 
 async function syncStatus(order, orderTrackingId) {
-  if (!order || order.pesapalTrackingId !== orderTrackingId) {
+  if (!order) {
+    return { success: false, status: 404, message: "Payment not found" };
+  }
+
+  let expectedTrackingId = order.pesapalTrackingId;
+  if (!expectedTrackingId) {
+    const attemptId = order.checkoutAttemptKey || order.checkoutAttemptId;
+    if (attemptId) {
+      const checkoutSession =
+        await PesapalCheckoutSessionRepository.findByAttemptId(attemptId);
+      if (checkoutSession?.orderId === order.$id) {
+        expectedTrackingId = checkoutSession.trackingId;
+      }
+    }
+  }
+  if (!expectedTrackingId || expectedTrackingId !== orderTrackingId) {
     return { success: false, status: 404, message: "Payment not found" };
   }
 
@@ -440,7 +480,18 @@ async function status(req, res) {
   if (!order || order.userId !== req.user.userId) {
     return res.status(404).json({ success: false, message: "Order not found" });
   }
-  const result = await syncStatus(order, order.pesapalTrackingId);
+  let trackingId = order.pesapalTrackingId;
+  if (!trackingId) {
+    const attemptId = order.checkoutAttemptKey || order.checkoutAttemptId;
+    if (attemptId) {
+      const checkoutSession =
+        await PesapalCheckoutSessionRepository.findByAttemptId(attemptId);
+      if (checkoutSession?.orderId === order.$id) {
+        trackingId = checkoutSession.trackingId;
+      }
+    }
+  }
+  const result = await syncStatus(order, trackingId);
   return res.status(result.status || 200).json(result);
 }
 

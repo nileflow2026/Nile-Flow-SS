@@ -111,3 +111,80 @@ test("writes both attempt fields for new confirmed-address checkouts", async () 
   assert.equal(checkout.orderFields.checkoutAttemptId, checkoutAttemptId);
   assert.equal(checkout.orderFields.checkoutAttemptKey, checkoutAttemptId);
 });
+
+test("returns the saved redirect URL when a pending Pesapal attempt is retried", () => {
+  const recovery = checkoutService.getReusablePesapalCheckoutResponse(
+    {
+      $id: "order-2",
+      orderNumber: "NF-2026-0002",
+      paymentMethod: "Pesapal",
+      paymentStatus: "pending",
+    },
+    checkoutService.CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING,
+    {
+      orderId: "order-2",
+      redirectUrl: "https://pay.pesapal.com/checkout/123",
+    },
+  );
+
+  assert.equal(recovery.status, 200);
+  assert.equal(recovery.body.success, true);
+  assert.equal(
+    recovery.body.redirectUrl,
+    "https://pay.pesapal.com/checkout/123",
+  );
+});
+
+test("does not report pending attempts as successful without a redirect URL", () => {
+  const recovery = checkoutService.getReusablePesapalCheckoutResponse(
+    {
+      $id: "order-3",
+      paymentMethod: "Pesapal",
+      paymentStatus: "pending",
+    },
+    checkoutService.CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING,
+  );
+
+  assert.equal(recovery.status, 409);
+  assert.equal(recovery.body.success, false);
+  assert.equal(recovery.body.code, "PESAPAL_CHECKOUT_LINK_UNAVAILABLE");
+  assert.match(recovery.body.message, /before trying again/);
+});
+
+test("does not restart an attempt with an unknown payment status", () => {
+  const recovery = checkoutService.getReusablePesapalCheckoutResponse(
+    {
+      $id: "order-4",
+      paymentMethod: "Pesapal",
+      paymentStatus: "unknown",
+    },
+    checkoutService.CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN,
+  );
+
+  assert.equal(recovery.status, 409);
+  assert.equal(recovery.body.success, false);
+  assert.equal(recovery.body.code, "PESAPAL_PAYMENT_STATUS_UNKNOWN");
+});
+
+test("resumes an unknown attempt when its provider session was saved", () => {
+  const recovery = checkoutService.getReusablePesapalCheckoutResponse(
+    {
+      $id: "order-5",
+      orderNumber: "NF-2026-0005",
+      paymentMethod: "Pesapal",
+      paymentStatus: "unknown",
+    },
+    checkoutService.CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN,
+    {
+      orderId: "order-5",
+      redirectUrl: "https://pay.pesapal.com/checkout/456",
+    },
+  );
+
+  assert.equal(recovery.status, 200);
+  assert.equal(recovery.body.success, true);
+  assert.equal(
+    recovery.body.redirectUrl,
+    "https://pay.pesapal.com/checkout/456",
+  );
+});

@@ -110,6 +110,8 @@ const schema = Joi.object({
     .allow("")
     .optional(),
   PESAPAL_ENVIRONMENT: Joi.string().valid("sandbox", "production").default("sandbox"),
+  APPWRITE_PESAPAL_CHECKOUT_COLLECTION_ID: Joi.string()
+    .default("pesapal_checkout_sessions"),
   // OpenAI API
   OPENAI_API_KEY: Joi.string().optional(),
   // Exchange Rate API (optional — free tier works without key)

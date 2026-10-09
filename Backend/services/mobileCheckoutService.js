@@ -215,10 +215,85 @@ function checkoutSuccessResponse(order) {
   };
 }
 
+function getReusablePesapalCheckoutResponse(order, recoveryState, session) {
+  const response = {
+    orderId: order.$id,
+    orderNumber: order.orderNumber,
+    paymentStatus: order.paymentStatus,
+    recoveryState,
+  };
+  const reusableSession =
+    session?.orderId === order.$id &&
+    typeof session.redirectUrl === "string" &&
+    session.redirectUrl.trim()
+      ? session
+      : null;
+
+  if (
+    recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_PENDING ||
+    recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+  ) {
+    if (reusableSession) {
+      return {
+        status: 200,
+        body: {
+          success: true,
+          ...response,
+          redirectUrl: reusableSession.redirectUrl,
+        },
+      };
+    }
+
+    return {
+      status: 409,
+      body: {
+        success: false,
+        ...response,
+        code:
+          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+            ? "PESAPAL_PAYMENT_STATUS_UNKNOWN"
+            : "PESAPAL_CHECKOUT_LINK_UNAVAILABLE",
+        message:
+          recoveryState === CHECKOUT_RECOVERY_STATES.PAYMENT_UNKNOWN
+            ? "We could not confirm whether the previous payment started. Check your orders or contact support before trying again."
+            : "A previous payment is still pending, but its checkout link is unavailable. Check your orders or contact support before trying again.",
+      },
+    };
+  }
+
+  if (recoveryState === CHECKOUT_RECOVERY_STATES.ORDER_SUCCEEDED) {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        ...response,
+        code: "PESAPAL_ORDER_ALREADY_COMPLETED",
+        message: "This order is already marked as paid. Check your orders.",
+      },
+    };
+  }
+
+  if (recoveryState === CHECKOUT_RECOVERY_STATES.COD_ORDER_CREATED) {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        ...response,
+        code: "CHECKOUT_PAYMENT_METHOD_CONFLICT",
+        message:
+          "This checkout attempt already created a payment on delivery order. Check your orders before starting another checkout.",
+      },
+    };
+  }
+
+  return null;
+}
+
 module.exports = {
   CHECKOUT_RECOVERY_STATES,
   CheckoutRequestError,
   checkoutSuccessResponse,
+  getReusablePesapalCheckoutResponse,
   findOrderByAttempt,
   findOwnedOrderByAttempt,
   getRecoveryState,

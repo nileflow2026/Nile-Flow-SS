@@ -30,7 +30,12 @@ class IdempotencyService {
         return null;
       }
 
-      return doc.result;
+      if (typeof doc.result !== "string") return doc.result;
+      try {
+        return JSON.parse(doc.result);
+      } catch {
+        return doc.result;
+      }
     } catch (error) {
       logger.error("Idempotency check failed", { key, error: error.message });
       return null;
@@ -39,13 +44,17 @@ class IdempotencyService {
 
   async store(key, result) {
     try {
+      const serializedResult = JSON.stringify(result);
+      if (typeof serializedResult !== "string") {
+        throw new Error("Idempotency result could not be serialized.");
+      }
       await db.createDocument(
         env.APPWRITE_DATABASE_ID,
         this.collectionId,
         ID.unique(),
         {
           key,
-          result,
+          result: serializedResult,
           expiresAt: new Date(Date.now() + this.ttl).toISOString(),
           createdAt: new Date().toISOString(),
         }
