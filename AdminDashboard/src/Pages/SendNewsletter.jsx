@@ -14,7 +14,34 @@ const CAMPAIGN_TYPES = [
   { id: "survey", label: "Survey", color: "from-[#27AE60] to-[#2ECC71]", icon: <HelpCircle className="w-4 h-4" /> },
   { id: "promotion", label: "Promotion", color: "from-[#E74C3C] to-[#C0392B]", icon: <Megaphone className="w-4 h-4" /> },
   { id: "newsletter", label: "Newsletter", color: "from-[#D4A017] to-[#B8860B]", icon: <FileText className="w-4 h-4" /> },
+  { id: "anniversary_1010", label: "Nile Flow Turns 1", color: "from-[#16A34A] to-[#14532D]", icon: <Sparkles className="w-4 h-4" /> },
 ];
+
+const ANNIVERSARY_SUBJECTS = [
+  "Nile Flow turns 1 today. This one’s for you. 💚",
+  "10.10: Thank you for building this with us",
+  "Today only: a thank-you from Nile Flow",
+];
+
+const EMPTY_ANNIVERSARY_CONTENT = {
+  founderVideoUrl: "",
+  doubleMilesEndsAt: "",
+  doubleMilesConfirmed: false,
+  meetTenUrl: "",
+  discoveryDropDescription: "",
+  discoveryDropConfirmed: false,
+  liveAt: "",
+  liveUrl: "",
+  liveConfirmed: false,
+  merchantsOnboarded: "",
+  ordersDelivered: "",
+  citiesReached: "",
+  whatsappUrl: "",
+  shopUrl: "",
+  playStoreUrl: "",
+  appStoreUrl: "",
+  referralUrl: "",
+};
 
 const AUDIENCE_GROUPS = [
   { id: "all_platform", label: "All Platform Users", icon: <Globe className="w-5 h-5" />, color: "from-[#D4A017] to-[#B8860B]" },
@@ -38,6 +65,9 @@ export default function SendNewsletter({ setSection }) {
   const [bannerUrl, setBannerUrl] = useState("");
   const [ctaText, setCtaText] = useState("");
   const [ctaLink, setCtaLink] = useState("");
+  const [anniversaryContent, setAnniversaryContent] = useState(EMPTY_ANNIVERSARY_CONTENT);
+  const [testEmail, setTestEmail] = useState("");
+  const [testLoading, setTestLoading] = useState(false);
 
   // Modal states
   const [showSubscribersModal, setShowSubscribersModal] = useState(false);
@@ -65,39 +95,105 @@ export default function SendNewsletter({ setSection }) {
     }
   };
 
+  const setAnniversaryField = (field, value) => {
+    setAnniversaryContent((current) => ({ ...current, [field]: value }));
+  };
+
+  const selectCampaignType = (typeId) => {
+    setCampaignType(typeId);
+    if (typeId === "anniversary_1010") {
+      setTargetAudience("subscribers");
+      if (!subject.trim()) setSubject(ANNIVERSARY_SUBJECTS[0]);
+    }
+  };
+
+  const buildBroadcastPayload = useCallback((testOnly = false) => {
+    const payload = {
+      subject: subject.trim(),
+      message: message.trim(),
+      campaignType,
+      audience: campaignType === "anniversary_1010" ? "subscribers" : targetAudience,
+    };
+    if (campaignType === "survey") payload.surveyLink = surveyLink.trim() || "https://nileflowafrica.com/survey";
+    if (campaignType === "promotion") {
+      if (bannerUrl) payload.bannerUrl = bannerUrl.trim();
+      if (ctaText) payload.ctaText = ctaText.trim();
+      if (ctaLink) payload.ctaLink = ctaLink.trim();
+    }
+    if (campaignType === "app_update") {
+      const validFeatures = features.filter((feature) => feature.title.trim());
+      if (validFeatures.length > 0) payload.features = validFeatures;
+    }
+    if (campaignType === "anniversary_1010") {
+      Object.assign(payload, {
+        ...anniversaryContent,
+        merchantsOnboarded: anniversaryContent.merchantsOnboarded || undefined,
+        ordersDelivered: anniversaryContent.ordersDelivered || undefined,
+        citiesReached: anniversaryContent.citiesReached || undefined,
+      });
+    }
+    if (testOnly) {
+      payload.testOnly = true;
+      payload.testEmail = testEmail.trim();
+    }
+    return payload;
+  }, [
+    subject,
+    message,
+    campaignType,
+    targetAudience,
+    surveyLink,
+    bannerUrl,
+    ctaText,
+    ctaLink,
+    features,
+    anniversaryContent,
+    testEmail,
+  ]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("");
     if (!subject.trim()) { toast.error("Please enter a subject line"); return; }
-    if (campaignType !== "survey" && !message.trim()) { toast.error("Please enter a message"); return; }
+    if (!["survey", "anniversary_1010"].includes(campaignType) && !message.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+    if (campaignType === "anniversary_1010" && !window.confirm(
+      `Send this anniversary email to ${audienceStats.subscribers.toLocaleString()} opted-in newsletter subscribers now?`,
+    )) return;
     setLoading(true);
     try {
-      const payload = { subject: subject.trim(), message: message.trim(), campaignType, audience: targetAudience };
-      if (campaignType === "survey") payload.surveyLink = surveyLink.trim() || "https://nileflowafrica.com/survey";
-      if (campaignType === "promotion") {
-        if (bannerUrl) payload.bannerUrl = bannerUrl.trim();
-        if (ctaText) payload.ctaText = ctaText.trim();
-        if (ctaLink) payload.ctaLink = ctaLink.trim();
-      }
-      if (campaignType === "app_update") {
-        const validFeatures = features.filter(f => f.title.trim());
-        if (validFeatures.length > 0) payload.features = validFeatures;
-      }
-      const result = await sendBroadcast(payload);
+      const result = await sendBroadcast(buildBroadcastPayload());
       setStatus(result.message || "Campaign sent successfully!");
       setStatusType("success");
       toast.success(`✅ Sent to ${result.stats?.sent || 0} recipients`);
       setSubject(""); setMessage(""); setFeatures([{ icon: "✨", title: "", description: "" }]);
       setSurveyLink(""); setBannerUrl(""); setCtaText(""); setCtaLink("");
+      setAnniversaryContent(EMPTY_ANNIVERSARY_CONTENT);
     } catch (err) {
-      setStatus(`Failed: ${err.message}`); setStatusType("error"); toast.error(err.message);
+      const errorMessage = err.error || err.message || "Campaign could not be sent.";
+      setStatus(`Failed: ${errorMessage}`); setStatusType("error"); toast.error(errorMessage);
     } finally { setLoading(false); }
   };
 
-  const handleSendTest = useCallback(() => {
+  const handleSendTest = useCallback(async () => {
     if (!subject.trim()) { toast.warning("Enter a subject first"); return; }
-    toast.success("Test email sent to admin inbox!");
-  }, [subject]);
+    if (!testEmail.trim()) { toast.warning("Enter your email address for the test"); return; }
+    if (!["survey", "anniversary_1010"].includes(campaignType) && !message.trim()) {
+      toast.warning("Enter a message before sending a test");
+      return;
+    }
+    setTestLoading(true);
+    try {
+      await sendBroadcast(buildBroadcastPayload(true));
+      toast.success(`Test email sent to ${testEmail.trim()}`);
+    } catch (err) {
+      toast.error(err.error || err.message || "Test email could not be sent.");
+    } finally {
+      setTestLoading(false);
+    }
+  }, [subject, testEmail, campaignType, message, buildBroadcastPayload]);
 
   const addFeature = () => setFeatures(prev => [...prev, { icon: "✨", title: "", description: "" }]);
   const removeFeature = (index) => setFeatures(prev => prev.filter((_, i) => i !== index));
@@ -215,7 +311,9 @@ export default function SendNewsletter({ setSection }) {
     setShowUploadModal(false);
   };
 
-  const selectedAudienceCount = getTotalForAudience(targetAudience);
+  const selectedAudienceCount = campaignType === "anniversary_1010"
+    ? audienceStats.subscribers || 0
+    : getTotalForAudience(targetAudience);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAF7F2] to-[#F5F0E6] dark:from-[#1A1A1A] dark:to-[#242424] p-4 md:p-6">
@@ -266,8 +364,8 @@ export default function SendNewsletter({ setSection }) {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-[#2C1810] dark:text-[#F5E6D3]">Create New Broadcast</h2>
                 <div className="flex items-center gap-2">
-                  <button onClick={handleSendTest} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white/50 dark:bg-[#2A2A2A] text-[#8B4513] dark:text-[#D4A017] hover:bg-white dark:hover:bg-[#2A2A2A] transition-all duration-200 text-sm font-medium">
-                    <Mail className="w-4 h-4" /> Send Test
+                    <button type="button" onClick={handleSendTest} disabled={testLoading} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white/50 dark:bg-[#2A2A2A] text-[#8B4513] dark:text-[#D4A017] hover:bg-white dark:hover:bg-[#2A2A2A] transition-all duration-200 text-sm font-medium disabled:opacity-50">
+                      {testLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />} {testLoading ? "Sending test..." : "Send Test"}
                   </button>
                   <button onClick={() => setShowPreview(!showPreview)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white/50 dark:bg-[#2A2A2A] text-[#8B4513] dark:text-[#D4A017] hover:bg-white dark:hover:bg-[#2A2A2A] transition-all duration-200 text-sm font-medium">
                     <Eye className="w-4 h-4" /> {showPreview ? "Hide Preview" : "Preview"}
@@ -284,9 +382,19 @@ export default function SendNewsletter({ setSection }) {
                       className="w-full pl-12 pr-4 py-4 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent text-lg font-medium"
                       placeholder="e.g. New App Update — What's New at Nile Flow" required />
                   </div>
+                  {campaignType === "anniversary_1010" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {ANNIVERSARY_SUBJECTS.slice(0, anniversaryContent.doubleMilesConfirmed ? 3 : 2).map((option) => (
+                        <button key={option} type="button" onClick={() => setSubject(option)}
+                          className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2 text-left text-xs text-[#14532D] hover:bg-[#DCFCE7]">
+                          Use: {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mb-6">
+                {campaignType !== "anniversary_1010" && <div className="mb-6">
                   <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">Message *</label>
                   <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10}
                     className="w-full px-4 py-3 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white dark:bg-[#2A2A2A] text-[#2C1810] dark:text-[#F5E6D3] placeholder-[#8B4513]/50 dark:placeholder-[#D4A017]/50 focus:outline-none focus:ring-2 focus:ring-[#D4A017]/50 focus:border-transparent resize-y leading-7 tracking-normal"
@@ -294,13 +402,13 @@ export default function SendNewsletter({ setSection }) {
                   <p className="mt-2 text-xs leading-relaxed text-[#8B4513]/70 dark:text-[#D4A017]/70">
                     Use a blank line between paragraphs. Paragraphs and line breaks will be preserved in the email.
                   </p>
-                </div>
+                </div>}
 
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">Campaign Type</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {CAMPAIGN_TYPES.map((type) => (
-                      <button key={type.id} type="button" onClick={() => setCampaignType(type.id)}
+                      <button key={type.id} type="button" onClick={() => selectCampaignType(type.id)}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 ${campaignType === type.id ? `bg-gradient-to-r ${type.color} text-white border-transparent shadow-lg scale-[1.02]` : "border-[#E8D6B5] dark:border-[#3A3A3A] text-[#8B4513] dark:text-[#D4A017] hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A]"}`}>
                         <div className={`mb-1 ${campaignType === type.id ? "text-white" : ""}`}>{type.icon}</div>
                         <span className="text-xs font-medium">{type.label}</span>
@@ -308,6 +416,112 @@ export default function SendNewsletter({ setSection }) {
                     ))}
                   </div>
                 </div>
+
+                {campaignType === "anniversary_1010" && (
+                  <div className="mb-6 space-y-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
+                    <div>
+                      <h3 className="font-semibold text-[#14532D]">Nile Flow Turns 1 content</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#374151]">
+                        Optional details stay out of the email when blank. Only add offers and event details after you have confirmed they are live.
+                      </p>
+                    </div>
+
+                    <label className="block text-sm font-medium text-[#374151]">
+                      Founder thank you video URL
+                      <input type="url" value={anniversaryContent.founderVideoUrl}
+                        onChange={(event) => setAnniversaryField("founderVideoUrl", event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="https://..." />
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <label className="block text-sm font-medium text-[#374151]">
+                        Double Nile Miles end time
+                        <input type="text" value={anniversaryContent.doubleMilesEndsAt}
+                          onChange={(event) => setAnniversaryField("doubleMilesEndsAt", event.target.value)}
+                          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="11:59 PM EAT" />
+                      </label>
+                      <label className="flex items-center gap-2 self-end pb-2 text-sm text-[#374151]">
+                        <input type="checkbox" checked={anniversaryContent.doubleMilesConfirmed}
+                          onChange={(event) => setAnniversaryField("doubleMilesConfirmed", event.target.checked)} />
+                        Confirmed live
+                      </label>
+                    </div>
+
+                    <label className="block text-sm font-medium text-[#374151]">
+                      Meet the Ten URL
+                      <input type="url" value={anniversaryContent.meetTenUrl}
+                        onChange={(event) => setAnniversaryField("meetTenUrl", event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="https://..." />
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <label className="block text-sm font-medium text-[#374151]">
+                        Discovery Drop description
+                        <input type="text" value={anniversaryContent.discoveryDropDescription}
+                          onChange={(event) => setAnniversaryField("discoveryDropDescription", event.target.value)}
+                          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="One line, up to 500 characters" maxLength={500} />
+                      </label>
+                      <label className="flex items-center gap-2 self-end pb-2 text-sm text-[#374151]">
+                        <input type="checkbox" checked={anniversaryContent.discoveryDropConfirmed}
+                          onChange={(event) => setAnniversaryField("discoveryDropConfirmed", event.target.checked)} />
+                        Confirmed live
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <label className="block text-sm font-medium text-[#374151]">
+                        Live time
+                        <input type="text" value={anniversaryContent.liveAt}
+                          onChange={(event) => setAnniversaryField("liveAt", event.target.value)}
+                          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="e.g. 3:00 PM EAT" />
+                      </label>
+                      <label className="block text-sm font-medium text-[#374151] md:col-span-2">
+                        Live URL
+                        <input type="url" value={anniversaryContent.liveUrl}
+                          onChange={(event) => setAnniversaryField("liveUrl", event.target.value)}
+                          className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="https://..." />
+                      </label>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-[#374151]">
+                      <input type="checkbox" checked={anniversaryContent.liveConfirmed}
+                        onChange={(event) => setAnniversaryField("liveConfirmed", event.target.checked)} />
+                      Live session details are confirmed
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      {[
+                        ["merchantsOnboarded", "Merchants onboarded"],
+                        ["ordersDelivered", "Orders delivered"],
+                        ["citiesReached", "Cities reached"],
+                      ].map(([field, label]) => (
+                        <label key={field} className="block text-sm font-medium text-[#374151]">
+                          {label}
+                          <input type="number" min="0" step="1" value={anniversaryContent[field]}
+                            onChange={(event) => setAnniversaryField(field, event.target.value)}
+                            className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="Real number only" />
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {[
+                        ["whatsappUrl", "WhatsApp community URL"],
+                        ["shopUrl", "Main Shop today URL"],
+                        ["playStoreUrl", "Google Play URL"],
+                        ["appStoreUrl", "App Store URL"],
+                        ["referralUrl", "Share Nile Flow URL"],
+                      ].map(([field, label]) => (
+                        <label key={field} className="block text-sm font-medium text-[#374151]">
+                          {label}
+                          <input type="url" value={anniversaryContent[field]}
+                            onChange={(event) => setAnniversaryField(field, event.target.value)}
+                            className="mt-1 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm" placeholder="https://..." />
+                        </label>
+                      ))}
+                    </div>
+
+                  </div>
+                )}
 
                 {campaignType === "app_update" && (
                   <div className="mb-6 p-4 rounded-xl border border-[#E8D6B5] dark:border-[#3A3A3A] bg-white/50 dark:bg-[#2A2A2A]/50">
@@ -369,7 +583,11 @@ export default function SendNewsletter({ setSection }) {
                   </div>
                 )}
 
-                <div className="mb-6">
+                {campaignType === "anniversary_1010" ? (
+                  <div className="mb-6 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4 text-sm text-[#14532D]">
+                    This campaign will only go to opted-in newsletter subscribers, currently about {audienceStats.subscribers.toLocaleString()} people.
+                  </div>
+                ) : <div className="mb-6">
                   <label className="block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017] mb-3">Target Audience</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {AUDIENCE_GROUPS.map((audience) => {
@@ -389,7 +607,14 @@ export default function SendNewsletter({ setSection }) {
                       );
                     })}
                   </div>
-                </div>
+                </div>}
+
+                <label className="mb-6 block text-sm font-semibold text-[#8B4513] dark:text-[#D4A017]">
+                  Test email address
+                  <input type="email" value={testEmail} onChange={(event) => setTestEmail(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-[#E8D6B5] bg-white px-4 py-3 text-sm text-[#2C1810] dark:border-[#3A3A3A] dark:bg-[#2A2A2A] dark:text-[#F5E6D3]"
+                    placeholder="you@example.com" />
+                </label>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button type="submit" disabled={loading}
@@ -422,7 +647,7 @@ export default function SendNewsletter({ setSection }) {
                 <div className="p-4 rounded-xl bg-gradient-to-r from-[#E8D6B5]/10 to-[#F5E6D3]/5 dark:from-[#3A3A3A]/50 dark:to-[#2A2A2A] border border-[#E8D6B5] dark:border-[#3A3A3A]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#D4A017] to-[#B8860B] flex items-center justify-center"><Mail className="w-5 h-5 text-white" /></div>
-                    <div><div className="font-bold text-[#2C1810] dark:text-[#F5E6D3] text-sm">Nile Flow Africa</div><div className="text-xs text-gray-500">to all recipients</div></div>
+                    <div><div className="font-bold text-[#2C1810] dark:text-[#F5E6D3] text-sm">Nile Flow Africa</div><div className="text-xs text-gray-500">{campaignType === "anniversary_1010" ? "to opted-in newsletter subscribers" : "to all recipients"}</div></div>
                   </div>
                   <div className="text-base font-bold text-[#2C1810] dark:text-[#F5E6D3] mb-2">{subject}</div>
                   {message && (
@@ -432,8 +657,15 @@ export default function SendNewsletter({ setSection }) {
                       ))}
                     </div>
                   )}
+                  {campaignType === "anniversary_1010" && (
+                    <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">
+                      One year ago, Nile Flow was an idea. Today, it is a community. Optional event details will appear only when confirmed and provided.
+                    </p>
+                  )}
                 </div>
-                <div className="mt-3 text-center text-xs text-[#8B4513]/70">Sending to ~{selectedAudienceCount.toLocaleString()} recipients</div>
+                <div className="mt-3 text-center text-xs text-[#8B4513]/70">
+                  {campaignType === "anniversary_1010" ? "Sending immediately to" : "Sending to"} ~{selectedAudienceCount.toLocaleString()} recipients
+                </div>
               </div>
             )}
 

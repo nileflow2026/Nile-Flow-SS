@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const {
+  addEmailCampaignTracking,
   applyEmailTheme,
   sendBrandedEmail,
 } = require("./emailTheme");
@@ -108,6 +109,40 @@ test("sends the normalized HTML through the shared sender", async () => {
     to: "customer@example.com",
     subject: "Order update",
     html: "<p>Your order is on its way.</p>",
+  });
+
+  test("adds campaign tracking to branded links but preserves unsubscribe links", async () => {
+    let sentOptions;
+    const resend = {
+      emails: {
+        send: async (options) => {
+          sentOptions = options;
+          return { id: "email-id" };
+        },
+      },
+    };
+
+    await sendBrandedEmail(resend, {
+      to: "customer@example.com",
+      subject: "10.10",
+      html: '<a href="https://example.com/shop?ref=campaign">Shop</a><a href="https://example.com/unsubscribe?email=a%40b.com">Unsubscribe</a>',
+      emailCampaign: { source: "email", name: "nileflow1010" },
+    });
+
+    assert.match(sentOptions.html, /ref=campaign&amp;utm_source=email&amp;utm_campaign=nileflow1010/);
+    assert.match(sentOptions.html, /href="https:\/\/example\.com\/unsubscribe\?email=a%40b\.com"/);
+    assert.doesNotMatch(sentOptions.html, /unsubscribe[^"]*utm_source/i);
+    assert.equal(sentOptions.emailCampaign, undefined);
+  });
+
+  test("campaign tracking works on already themed HTML", () => {
+    const html = addEmailCampaignTracking(
+      applyEmailTheme('<a href="https://example.com/shop">Shop</a>'),
+      { source: "email", name: "nileflow1010" },
+    );
+
+    assert.match(html, /href="https:\/\/example\.com\/shop\?utm_source=email&amp;utm_campaign=nileflow1010"/);
+    assert.match(html, /href="https:\/\/www\.facebook\.com\/profile\.php\?id=61580711948973&amp;utm_source=email&amp;utm_campaign=nileflow1010"/);
   });
 
   assert.match(sentOptions.html, /Your order is on its way/);

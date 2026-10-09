@@ -10,6 +10,7 @@ const { Resend } = require("resend");
 const resend = new Resend(env.RESEND_API_KEY);
 const { sendBrandedEmail } = require("../../services/emailTheme");
 const renderNewsletter = require("../emails/newsletterRenderer");
+const validator = require("validator");
 
 const uploadNewsletterBanner = async (req, res) => {
   const bucketId = env.APPWRITE_PROMOTION_BUCKET;
@@ -1541,26 +1542,195 @@ const sendBroadcast = async (req, res) => {
       message,
       campaignType = 'announcement',
       audience = 'all_platform',
+      testOnly = false,
+      testEmail,
       ctaText,
       ctaLink,
       bannerUrl,
       surveyLink,
       features, // [{icon, title, description}]
+      founderVideoUrl,
+      doubleMilesEndsAt,
+      doubleMilesConfirmed = false,
+      meetTenUrl,
+      discoveryDropDescription,
+      discoveryDropConfirmed = false,
+      liveAt,
+      liveUrl,
+      liveConfirmed = false,
+      merchantsOnboarded,
+      ordersDelivered,
+      citiesReached,
+      whatsappUrl,
+      shopUrl,
+      playStoreUrl,
+      appStoreUrl,
+      referralUrl,
     } = req.body;
+    const isAnniversaryNewsletter = campaignType === 'anniversary_1010';
 
-    if (!subject) {
+    if (typeof subject !== 'string' || !subject.trim()) {
       return res.status(400).json({ error: 'Subject is required.' });
     }
+    if (typeof testOnly !== 'boolean') {
+      return res.status(400).json({ error: 'testOnly must be a boolean.' });
+    }
 
-    if (!message && campaignType !== 'app_update') {
+    if (!message && !['app_update', 'anniversary_1010'].includes(campaignType)) {
       return res.status(400).json({ error: 'Message is required.' });
+    }
+
+    if (testOnly && (typeof testEmail !== 'string' || !validator.isEmail(testEmail.trim()))) {
+      return res.status(400).json({ error: 'A valid test recipient email is required.' });
+    }
+
+    const anniversaryLinks = {
+      founderVideoUrl,
+      meetTenUrl,
+      liveUrl,
+      whatsappUrl,
+      shopUrl,
+      playStoreUrl,
+      appStoreUrl,
+      referralUrl,
+    };
+    if (isAnniversaryNewsletter) {
+      if (
+        subject.trim() === 'Today only: a thank-you from Nile Flow' &&
+        !doubleMilesConfirmed
+      ) {
+        return res.status(400).json({
+          error: 'Use the Today only subject only when the offer is confirmed live.',
+        });
+      }
+
+      for (const [field, value] of Object.entries({
+        doubleMilesConfirmed,
+        discoveryDropConfirmed,
+        liveConfirmed,
+      })) {
+        if (typeof value !== 'boolean') {
+          return res.status(400).json({ error: `${field} must be a boolean.` });
+        }
+      }
+
+      for (const [field, value] of Object.entries(anniversaryLinks)) {
+        if (value === undefined || value === null || value === '') continue;
+        if (typeof value !== 'string') {
+          return res.status(400).json({ error: `${field} must be an HTTPS URL.` });
+        }
+        try {
+          const parsedUrl = new URL(value.trim());
+          if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname) {
+            throw new Error('invalid url');
+          }
+          anniversaryLinks[field] = parsedUrl.toString();
+        } catch {
+          return res.status(400).json({ error: `${field} must be an HTTPS URL.` });
+        }
+      }
+
+      const optionalTextFields = [
+        ['doubleMilesEndsAt', doubleMilesEndsAt, 100],
+        ['discoveryDropDescription', discoveryDropDescription, 500],
+        ['liveAt', liveAt, 100],
+      ];
+      for (const [field, value, maxLength] of optionalTextFields) {
+        if (value === undefined || value === null || value === '') continue;
+        if (typeof value !== 'string' || value.trim().length > maxLength) {
+          return res.status(400).json({
+            error: `${field} must be text no longer than ${maxLength} characters.`,
+          });
+        }
+      }
+
+      const optionalMetrics = [
+        ['merchantsOnboarded', merchantsOnboarded],
+        ['ordersDelivered', ordersDelivered],
+        ['citiesReached', citiesReached],
+      ];
+      for (const [field, value] of optionalMetrics) {
+        if (value === undefined || value === null || value === '') continue;
+        if (!Number.isSafeInteger(Number(value)) || Number(value) < 0) {
+          return res.status(400).json({ error: `${field} must be a non-negative whole number.` });
+        }
+      }
+
+      if (doubleMilesConfirmed && !doubleMilesEndsAt?.trim()) {
+        return res.status(400).json({
+          error: 'Enter the confirmed Double Nile Miles end time before including the offer.',
+        });
+      }
+      if (doubleMilesEndsAt?.trim() && !doubleMilesConfirmed) {
+        return res.status(400).json({
+          error: 'Confirm the Double Nile Miles offer before including its end time.',
+        });
+      }
+      if (discoveryDropConfirmed && !discoveryDropDescription?.trim()) {
+        return res.status(400).json({
+          error: 'Enter the confirmed Discovery Drop description before including it.',
+        });
+      }
+      if (discoveryDropDescription?.trim() && !discoveryDropConfirmed) {
+        return res.status(400).json({
+          error: 'Confirm the Discovery Drop before including its description.',
+        });
+      }
+      if (liveConfirmed && (!liveAt?.trim() || !anniversaryLinks.liveUrl)) {
+        return res.status(400).json({
+          error: 'Enter the confirmed live time and HTTPS link before including the event.',
+        });
+      }
+      if ((liveAt || anniversaryLinks.liveUrl) && !liveConfirmed) {
+        return res.status(400).json({
+          error: 'Confirm the live event before including its time or link.',
+        });
+      }
     }
 
     // ── 1. Gather recipients ─────────────────────────────
     const recipients = [];
 
+    if (testOnly) {
+      recipients.push({
+        email: testEmail.trim(),
+        name: 'Test recipient',
+        type: 'test',
+      });
+    } else if (isAnniversaryNewsletter) {
+      let cursor = null;
+      const seenEmails = new Set();
+      while (true) {
+        const queries = [
+          Query.equal('subscribed', true),
+          Query.limit(100),
+          ...(cursor ? [Query.cursorAfter(cursor)] : []),
+        ];
+        const batch = await instrumentedDb.listDocuments(
+          env.APPWRITE_DATABASE_ID,
+          env.APPWRITE_NEWSLETTER_COLLECTION_ID,
+          queries,
+        );
+        for (const subscriber of batch.documents) {
+          const email = typeof subscriber.email === 'string' ? subscriber.email.trim() : '';
+          const normalizedEmail = email.toLowerCase();
+          if (!email || !validator.isEmail(email) || seenEmails.has(normalizedEmail)) {
+            continue;
+          }
+          seenEmails.add(normalizedEmail);
+          recipients.push({
+            email,
+            name: subscriber.name || email.split('@')[0] || 'there',
+            type: 'subscriber',
+          });
+        }
+        if (batch.documents.length < 100) break;
+        cursor = batch.documents[batch.documents.length - 1].$id;
+      }
+    }
+
     // Get all subscribed newsletter subscribers
-    if (audience === 'all_platform' || audience === 'all_end_users') {
+    if (!testOnly && !isAnniversaryNewsletter && (audience === 'all_platform' || audience === 'all_end_users')) {
       try {
         const { documents: subscribers } = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
@@ -1576,7 +1746,7 @@ const sendBroadcast = async (req, res) => {
     }
 
     // Get all registered users from users collection
-    if (audience === 'all_platform' || audience === 'all_users') {
+    if (!testOnly && !isAnniversaryNewsletter && (audience === 'all_platform' || audience === 'all_users')) {
       try {
         let cursor = null;
         while (true) {
@@ -1602,7 +1772,7 @@ const sendBroadcast = async (req, res) => {
     }
 
     // Get all vendors
-    if (audience === 'all_platform' || audience === 'all_vendors') {
+    if (!testOnly && !isAnniversaryNewsletter && (audience === 'all_platform' || audience === 'all_vendors')) {
       try {
         let cursor = null;
         while (true) {
@@ -1628,7 +1798,7 @@ const sendBroadcast = async (req, res) => {
     }
 
     // Get newsletter subscribers (for subscribers-only targeting)
-    if (audience === 'subscribers') {
+    if (!testOnly && !isAnniversaryNewsletter && audience === 'subscribers') {
       try {
         const { documents: subscribers } = await instrumentedDb.listDocuments(
           env.APPWRITE_DATABASE_ID,
@@ -1683,6 +1853,28 @@ const sendBroadcast = async (req, res) => {
           recipientName: '{{recipient_name}}',
         });
         break;
+      case 'anniversary_1010':
+        htmlContent = emailTpl.anniversaryNewsletter({
+          subject: subject.trim(),
+          recipientName: '{{recipient_name}}',
+          founderVideoUrl: anniversaryLinks.founderVideoUrl,
+          doubleMilesEndsAt: doubleMilesConfirmed ? doubleMilesEndsAt.trim() : undefined,
+          meetTenUrl: anniversaryLinks.meetTenUrl,
+          discoveryDropDescription: discoveryDropConfirmed
+            ? discoveryDropDescription.trim()
+            : undefined,
+          liveAt: liveConfirmed ? liveAt.trim() : undefined,
+          liveUrl: liveConfirmed ? anniversaryLinks.liveUrl : undefined,
+          merchantsOnboarded,
+          ordersDelivered,
+          citiesReached,
+          whatsappUrl: anniversaryLinks.whatsappUrl,
+          shopUrl: anniversaryLinks.shopUrl,
+          playStoreUrl: anniversaryLinks.playStoreUrl,
+          appStoreUrl: anniversaryLinks.appStoreUrl,
+          referralUrl: anniversaryLinks.referralUrl,
+        });
+        break;
       case 'newsletter':
       case 'announcement':
       default:
@@ -1700,8 +1892,17 @@ const sendBroadcast = async (req, res) => {
     const resendClient = new Resend(env.RESEND_API_KEY);
 
     const emailJobs = recipients.map((recipient) => {
+      const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
       const personalizedHtml = htmlContent
-        .replace(/{{recipient_name}}/g, recipient.name)
+        .replace(
+          /{{recipient_name}}/g,
+          isAnniversaryNewsletter ? escapeHtml(recipient.name) : recipient.name,
+        )
         .replace(
           /{{unsubscribe_link}}/g,
           `https://nileflowafrica.com/unsubscribe?email=${encodeURIComponent(recipient.email)}`
@@ -1710,11 +1911,21 @@ const sendBroadcast = async (req, res) => {
       return sendBrandedEmail(resendClient, {
         from: 'Nile Flow Africa <updates@nileflowafrica.com>',
         to: recipient.email,
-        subject,
+        subject: subject.trim(),
         html: personalizedHtml,
-      }).then(() => ({ email: recipient.email, status: 'sent' }))
+        ...(isAnniversaryNewsletter
+          ? { emailCampaign: { source: 'email', name: 'nileflow1010' } }
+          : {}),
+      }).then((result) => {
+        if (result?.error) throw result.error;
+        return { email: recipient.email, status: 'sent' };
+      })
         .catch((err) => {
-          console.error(`Failed to send to ${recipient.email}:`, err.message);
+          console.error('Failed to send broadcast email.', {
+            campaignType,
+            recipientType: recipient.type,
+            errorType: err.name || 'UnknownError',
+          });
           return { email: recipient.email, status: 'failed', error: err.message };
         });
     });
@@ -1723,20 +1934,29 @@ const sendBroadcast = async (req, res) => {
     const sent = results.filter(r => r.status === 'fulfilled' && r.value?.status === 'sent').length;
     const failed = results.filter(r => r.status === 'rejected' || r.value?.status === 'failed').length;
 
+    if (testOnly && sent !== 1) {
+      return res.status(502).json({
+        success: false,
+        error: 'The test email could not be delivered. Check the mail provider and retry.',
+      });
+    }
+
     // ── 4. Response ──────────────────────────────────────
     res.status(200).json({
       success: true,
-      message: `Broadcast campaign "${subject}" sent.`,
+      message: testOnly
+        ? `Test email for "${subject.trim()}" sent.`
+        : `Broadcast campaign "${subject.trim()}" sent.`,
       stats: {
         total: recipients.length,
         sent,
         failed,
-        audience,
+        audience: testOnly ? 'test' : isAnniversaryNewsletter ? 'subscribers' : audience,
         campaignType,
       },
     });
   } catch (error) {
-    console.error('[sendBroadcast] Error:', error);
+    console.error('[sendBroadcast] Error:', error.message);
     res.status(500).json({
       success: false,
       error: 'Failed to send broadcast campaign.',

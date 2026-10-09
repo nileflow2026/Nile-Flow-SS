@@ -44,7 +44,7 @@ function parseNewsletterImage(req, res, next) {
 
 router.post("/subscribe", newsletter);
 router.post("/send-newsletter", sendnewsletter);
-router.post("/send-broadcast", sendBroadcast);
+router.post("/send-broadcast", authenticateToken, adminOnly, sendBroadcast);
 router.post(
   "/upload-banner",
   authenticateToken,

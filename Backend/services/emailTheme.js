@@ -151,14 +151,35 @@ function applyEmailTheme(content) {
   return html.replace(/<\/body\s*>/i, `${footer}</body>`);
 }
 
+function addEmailCampaignTracking(html, campaign) {
+  return html.replace(
+    /\bhref=(["'])(https?:\/\/[^"']+)\1/gi,
+    (_match, quote, escapedHref) => {
+      const href = escapedHref.replace(/&amp;/g, "&");
+      const url = new URL(href);
+      if (/\/unsubscribe(?:\/|$)/i.test(url.pathname)) {
+        return `href=${quote}${escapeHtmlAttribute(url.toString())}${quote}`;
+      }
+      url.searchParams.set("utm_source", campaign.source);
+      url.searchParams.set("utm_campaign", campaign.name);
+      return `href=${quote}${escapeHtmlAttribute(url.toString())}${quote}`;
+    },
+  );
+}
+
 async function sendBrandedEmail(resend, options) {
-  const html = applyEmailTheme(options.html);
-  return resend.emails.send({ ...options, html });
+  const { emailCampaign, ...emailOptions } = options;
+  let html = applyEmailTheme(options.html);
+  if (emailCampaign) {
+    html = addEmailCampaignTracking(html, emailCampaign);
+  }
+  return resend.emails.send({ ...emailOptions, html });
 }
 
 module.exports = {
   EMAIL_THEME_CSS,
   EMAIL_FOOTER_HTML,
   applyEmailTheme,
+  addEmailCampaignTracking,
   sendBrandedEmail,
 };

@@ -26,7 +26,11 @@ const BRAND = {
  * Build the outer shell that wraps every Nile Flow email.
  * All templates call this then inject their body content.
  */
-function shell({ bodyContent, subject = '' }) {
+function shell({
+  bodyContent,
+  subject = '',
+  footerReason = `You received this email because you are registered with ${BRAND.name}.`,
+}) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -339,7 +343,7 @@ function shell({ bodyContent, subject = '' }) {
         <p>© ${YEAR} ${BRAND.name}. All rights reserved.</p>
         <p style="margin-top:4px;">Nairobi, Kenya</p>
         <p style="margin-top:12px;">
-          You received this email because you are registered with ${BRAND.name}.
+          ${escapeHtml(footerReason)}
           <br><a href="{{unsubscribe_link}}" style="color:#6b7280;">Unsubscribe</a>
         </p>
       </div>
@@ -365,6 +369,133 @@ function formatMessage(message) {
       .replace(/'/g, '&#39;')
       .replace(/\n/g, '<br />')}</p>`)
     .join('\n');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function trackedUrl(value) {
+  const url = new URL(value);
+  if (url.protocol !== 'https:') {
+    throw new TypeError('Email campaign links must use HTTPS.');
+  }
+  url.searchParams.set('utm_source', 'email');
+  url.searchParams.set('utm_campaign', 'nileflow1010');
+  return escapeHtml(url.toString());
+}
+
+function anniversaryNewsletter({
+  subject,
+  recipientName = '{{recipient_name}}',
+  founderVideoUrl,
+  doubleMilesEndsAt,
+  meetTenUrl,
+  discoveryDropDescription,
+  liveAt,
+  liveUrl,
+  merchantsOnboarded,
+  ordersDelivered,
+  citiesReached,
+  whatsappUrl,
+  shopUrl = 'https://www.nileflowafrica.com',
+  playStoreUrl,
+  appStoreUrl,
+  referralUrl,
+}) {
+  const text = (value) => escapeHtml(value);
+  const textLink = (label, url) => `
+    <a href="${trackedUrl(url)}" style="color:#16a34a;font-weight:700;text-decoration:underline;">
+      ${text(label)} &rarr;
+    </a>`;
+  const eventSections = [
+    founderVideoUrl ? `
+      <h2 style="color:#14532d;font-size:20px;margin:28px 0 8px;">Our founder has a message for you</h2>
+      <p class="paragraph">Our founder, Anthony Wai, recorded a short thank-you for this day.</p>
+      <p>${textLink('Watch the video', founderVideoUrl)}</p>` : '',
+    doubleMilesEndsAt ? `
+      <p class="paragraph"><strong>Double Nile Miles for 24 hours.</strong>
+      Every order today earns 2x points. Ends ${text(doubleMilesEndsAt)}.</p>` : '',
+    meetTenUrl ? `
+      <p class="paragraph"><strong>Meet the Ten.</strong>
+      We are celebrating 10 merchants from our community, nominated by you.
+      ${textLink('Meet the Ten', meetTenUrl)}</p>` : '',
+    discoveryDropDescription ? `
+      <p class="paragraph"><strong>The 10.10 Discovery Drop.</strong>
+      ${text(discoveryDropDescription)}</p>` : '',
+    liveAt && liveUrl ? `
+      <p class="paragraph"><strong>Live with the team at ${text(liveAt)}.</strong>
+      Join us for a thank-you moment with the founder and our merchants.
+      ${textLink('Join the live', liveUrl)}</p>` : '',
+  ].filter(Boolean).join('\n');
+
+  const metrics = [
+    ['Merchants onboarded', merchantsOnboarded],
+    ['Orders delivered', ordersDelivered],
+    ['Cities reached', citiesReached],
+  ].filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+  const metricsSection = metrics.length ? `
+    <h2 style="color:#14532d;font-size:20px;margin:32px 0 12px;">Our first year, in numbers</h2>
+    <ul style="padding-left:22px;color:#374151;line-height:1.9;">
+      ${metrics.map(([label, value]) => `<li><strong>${text(value)}</strong> ${label}</li>`).join('')}
+    </ul>
+    <p class="paragraph">Behind every number is a person. Thank you.</p>` : '';
+
+  const communitySection = whatsappUrl ? `
+    <h2 style="color:#14532d;font-size:20px;margin:28px 0 8px;">Be part of what comes next</h2>
+    <p class="paragraph">Join our WhatsApp community for first access to drops, merchant stories and what we are building in Year 2.
+      ${textLink('Join the community', whatsappUrl)}</p>` : '';
+
+  const storeLinks = [
+    playStoreUrl ? textLink('Download on Google Play', playStoreUrl) : '',
+    appStoreUrl ? textLink('Download on the App Store', appStoreUrl) : '',
+  ].filter(Boolean).join(' &nbsp;|&nbsp; ');
+
+  const body = `
+    <div style="display:none!important;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;">
+      One year ago, it was just an idea. Today, it is a community.
+    </div>
+    <div class="greeting">Hi ${text(recipientName)},</div>
+    <p class="paragraph">One year ago today, Nile Flow was an idea and a question:
+      <em>what if African commerce was built around the people who use it?</em></p>
+    <p class="paragraph">Today, it is a community of customers, merchants, creators and dreamers.
+      <strong>You are part of that. Nile Flow turns 1, and this year belongs to you.</strong> 💚</p>
+    ${eventSections ? `<h2 style="color:#14532d;font-size:20px;margin:32px 0 12px;">What is happening today, 10.10</h2>${eventSections}` : ''}
+    ${metricsSection}
+    ${communitySection}
+    <div style="text-align:center;margin:32px 0 12px;">
+      <a href="${trackedUrl(shopUrl)}" class="btn-primary">Open Nile Flow</a>
+    </div>
+    ${storeLinks ? `<p style="text-align:center;margin:16px 0;">${storeLinks}</p>` : ''}
+    <p class="paragraph">Thank you for trusting us in Year 1. We are just getting started.</p>
+    <div class="signature">
+      <div class="team-name">Built together,</div>
+      <div style="margin:8px 0;color:#f1f5f9;font-weight:700;">Anthony Wai</div>
+      <div class="team-title">Founder/CEO, Nile Flow</div>
+    </div>
+    ${referralUrl ? `<p class="paragraph" style="margin-top:24px;"><strong>P.S.</strong>
+      Know someone who should be part of this? Share Nile Flow with them today, and tell them to join the community:
+      ${textLink('Share Nile Flow', referralUrl)}</p>` : ''}
+    <p style="border-top:1px solid #dce8e2;padding-top:16px;color:#6b7280;font-size:12px;text-align:center;">
+      Nile Flow | <a href="mailto:info@nileflowafrica.com">info@nileflowafrica.com</a> |
+      <a href="${trackedUrl('https://www.nileflowafrica.com')}">www.nileflowafrica.com</a> |
+      #NileFlow1010 | <a href="${trackedUrl('https://www.nileflowafrica.com/privacy')}">Privacy policy</a>
+    </p>
+    <p style="color:#6b7280;font-size:11px;text-align:center;">
+      You received this email because you agreed to receive Nile Flow newsletter emails.
+    </p>`;
+
+  return shell({
+    bodyContent: body,
+    subject: escapeHtml(subject),
+    footerReason: `You received this email because you agreed to receive Nile Flow newsletter emails.`,
+  });
 }
 
 /**
@@ -532,6 +663,7 @@ function render(type, payload) {
 module.exports = {
   shell,
   newsletter,
+  anniversaryNewsletter,
   appUpdate,
   survey,
   promotion,
