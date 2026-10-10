@@ -850,6 +850,16 @@ try {
 
 // ========== V1 API GATEWAY ROUTES ==========
 try {
+  const {
+    dealShareLimiter,
+    getDealSharePage,
+  } = require("../controllers/v1/dealShareController");
+  app.get("/share/deal/:dealId", dealShareLimiter, getDealSharePage);
+} catch (dealShareRouteError) {
+  console.warn("Deal share route failed to load:", dealShareRouteError.message);
+}
+
+try {
   const v1Router = require("../routes/v1");
   app.use("/api/v1", v1Router);
 } catch (v1Error) {

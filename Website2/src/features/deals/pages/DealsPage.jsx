@@ -181,21 +181,34 @@ function createDealShareContent(product, discount) {
   }
 }
 
+function supportsFileShare(file) {
+  if (!file || typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') {
+    return false
+  }
+  try {
+    return navigator.canShare({ files: [file] })
+  } catch {
+    return false
+  }
+}
+
 function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFailed, onClose, push }) {
   const dialogRef = useRef(null)
   const titleRef = useRef(null)
   const copyFallbackRef = useRef(null)
+  const downloadUrlsRef = useRef(new Set())
   const [preparedImage, setPreparedImage] = useState(null)
+  const [whatsappFallbackMessage, setWhatsappFallbackMessage] = useState('')
   const { dealUrl, offerText, message } = shareContent
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
   const imageUrl = getShareImageUrl(product)
   const imageKey = `${product.$id}:${imageUrl || ''}`
   const matchingPreparedImage = preparedImage?.key === imageKey ? preparedImage : null
   const imageFile = matchingPreparedImage?.file || null
+  const canShareFiles = supportsFileShare(imageFile)
   const isPreparingImage = Boolean(
-    isOpen && canShare && imageUrl && preparedImage?.key !== imageKey,
+    isOpen && imageUrl && preparedImage?.key !== imageKey,
   )
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(dealUrl)}`
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(offerText)}&url=${encodeURIComponent(dealUrl)}`
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(dealUrl)}&text=${encodeURIComponent(offerText)}`
@@ -218,7 +231,19 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
   }, [copyFailed])
 
   useEffect(() => {
-    if (!isOpen || !canShare || !imageUrl || preparedImage?.key === imageKey) return undefined
+    if (isOpen) return undefined
+    for (const url of downloadUrlsRef.current) URL.revokeObjectURL(url)
+    downloadUrlsRef.current.clear()
+    return undefined
+  }, [isOpen])
+
+  useEffect(() => () => {
+    for (const url of downloadUrlsRef.current) URL.revokeObjectURL(url)
+    downloadUrlsRef.current.clear()
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen || !imageUrl || preparedImage?.key === imageKey) return undefined
 
     const controller = new AbortController()
     let cancelled = false
@@ -249,11 +274,7 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
           type: mimeType,
         })
 
-        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-          if (!cancelled) setPreparedImage({ key: imageKey, file, failed: false })
-        } else if (!cancelled) {
-          setPreparedImage({ key: imageKey, file: null, failed: false })
-        }
+        if (!cancelled) setPreparedImage({ key: imageKey, file, failed: false })
       } catch {
         if (!cancelled) setPreparedImage({ key: imageKey, file: null, failed: true })
       } finally {
@@ -267,7 +288,7 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [canShare, imageKey, imageUrl, isOpen, preparedImage?.key, product.$id])
+  }, [imageKey, imageUrl, isOpen, preparedImage?.key, product.$id])
 
   const handleCancel = (event) => {
     event.preventDefault()
@@ -281,9 +302,9 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
         title: product.productName || 'Nile Flow deal',
         text: offerText,
         url: dealUrl,
-        ...(imageFile ? { files: [imageFile] } : {}),
+        ...(canShareFiles ? { files: [imageFile] } : {}),
       })
-      if (!imageFile) {
+      if (imageUrl && !canShareFiles) {
         push({
           title: 'Deal shared without image',
           message: 'The offer and link were shared, but the product image could not be attached.',
@@ -297,16 +318,11 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
 
   const handleWhatsAppShare = async () => {
     if (!imageFile) {
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
-      onClose()
-      if (imageUrl) {
-        push({
-          title: 'WhatsApp opened without the image',
-          message: matchingPreparedImage?.failed
-            ? 'The product image could not be prepared, so WhatsApp will receive only the offer text.'
-            : 'This browser cannot attach images through WhatsApp text sharing. Use a device share option that supports image files for WhatsApp Status.',
-        })
-      }
+      setWhatsappFallbackMessage('The product image could not be prepared. Copy the offer link or try another share option.')
+      return
+    }
+    if (!canShare || !canShareFiles) {
+      setWhatsappFallbackMessage('Unable to share the product image. Download it and add it to your WhatsApp Status, then copy the offer link.')
       return
     }
 
@@ -319,13 +335,24 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
       onClose()
     } catch (error) {
       if (error?.name === 'AbortError') return
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
-      onClose()
-      push({
-        title: 'Unable to share the product image',
-        message: 'WhatsApp opened with the offer text. To add the image to your Status, try Share from this device and choose WhatsApp.',
-      })
+      setWhatsappFallbackMessage('Unable to share the product image. Download it and add it to your WhatsApp Status, then copy the offer link.')
     }
+  }
+
+  const handleDownloadImage = () => {
+    if (!imageFile) return
+    const objectUrl = URL.createObjectURL(imageFile)
+    downloadUrlsRef.current.add(objectUrl)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = imageFile.name
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl)
+      downloadUrlsRef.current.delete(objectUrl)
+    }, 1000)
   }
 
   const handleCopyLink = async () => {
@@ -413,7 +440,11 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
             type="button"
             onClick={handleWhatsAppShare}
             disabled={isPreparingImage}
-            aria-describedby={isPreparingImage ? `whatsapp-image-preparing-${product.$id}` : undefined}
+            aria-describedby={isPreparingImage
+              ? `whatsapp-image-preparing-${product.$id}`
+              : whatsappFallbackMessage
+                ? `whatsapp-image-fallback-${product.$id}`
+                : undefined}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
           >
             <MessageCircle aria-hidden="true" className="h-4 w-4" />
@@ -427,6 +458,24 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
             >
               Preparing product image for WhatsApp sharing.
             </p>
+          )}
+          {whatsappFallbackMessage && (
+            <p
+              id={`whatsapp-image-fallback-${product.$id}`}
+              role="status"
+              className="text-sm text-[var(--color-text-secondary)]"
+            >
+              {whatsappFallbackMessage}
+            </p>
+          )}
+          {whatsappFallbackMessage.startsWith('Unable to share the product image.') && imageFile && (
+            <button
+              type="button"
+              onClick={handleDownloadImage}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition hover:border-red-500 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+            >
+              Download product image
+            </button>
           )}
 
           <a
@@ -501,6 +550,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
   const { display: countdown, isExpired } = useCountdown(product.endTime)
   const shareContent = createDealShareContent(product, discount)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [shareSession, setShareSession] = useState(0)
   const [copyFailed, setCopyFailed] = useState(false)
   const { push } = useToast()
   const shareUnavailableDescriptionId = `deal-share-unavailable-${product.$id}`
@@ -612,6 +662,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
             type="button"
             onClick={() => {
               setCopyFailed(false)
+              setShareSession((session) => session + 1)
               setIsShareOpen(true)
             }}
             disabled={isExpired || !shareContent.isValid}
@@ -629,6 +680,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
           </p>
         )}
         <DealShareDialog
+          key={`${product.$id}:${shareSession}`}
           isOpen={isShareOpen}
           product={product}
           shareContent={shareContent}

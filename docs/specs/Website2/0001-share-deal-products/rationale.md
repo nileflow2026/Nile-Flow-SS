@@ -21,21 +21,33 @@ Attach a product image to the browser share sheet where supported, while leaving
 - Social crawlers may not see deal metadata or the product image because the static page adds its tags in JavaScript.
 - Different share destinations would produce inconsistent image previews.
 
-### Option 2: Add a public backend share page beside the static deal page
+### Option 2: Add a branded share subdomain to the existing Render Backend
 
-Add a public route on the existing Backend service that reads the deal from Appwrite and returns HTML metadata for crawlers. Keep the public link on `www.nileflowafrica.com` at `/share/deal/{dealId}`. A Cloudflare Worker handles only that path, forwards it to the existing Backend preview endpoint, and returns the metadata page to the crawler. The page redirects shoppers to the canonical Website2 deal page. Website2 sends this share URL to social platforms and the device share sheet, attaching an image file when the browser supports it. (basis: Backend Appwrite access, existing Website2 API configuration, Cloudflare proxy routing, crawler readable metadata practice)
+Add a public route on the existing Backend service that reads the deal from Appwrite and returns HTML metadata for crawlers. Add `share.nileflowafrica.com` as a custom domain on the Backend's existing Render web service, then create the DNS record Render specifies. The page redirects shoppers to the canonical Website2 deal page. Website2 sends this share URL to social platforms. WhatsApp receives an actual image file through the browser share sheet, not just a link message. (basis: Backend Appwrite access, existing Website2 API configuration, Render custom domain support, crawler readable metadata practice)
 
 **Pros**:
 - Social crawlers receive metadata and a public product image in the first HTML response.
 - Website2 remains a static site and the existing deal page remains the canonical destination.
-- The new endpoint can be deployed before Website2 switches links, so the old links keep working during rollout.
+- Keeps the share link branded without changing the hosting or routing for the root domain.
+- Uses the existing Backend service rather than adding another service or proxy.
 
 **Cons**:
-- A Cloudflare Worker route and its Backend origin configuration are needed.
-- The preview adds one navigation step and needs a dedicated Website2 origin setting and careful HTML escaping.
+- Requires a DNS change and custom domain validation in Render before public links work.
 - Device image attachment still depends on browser support and image proxy availability.
 
-### Option 3: Change Website2 to server rendered pages
+### Option 3: Use the Render service hostname for share links
+
+Use the existing public Render service URL directly for preview pages and metadata. (basis: existing Backend deployment)
+
+**Pros**:
+- No DNS changes or custom domain setup are needed.
+- The existing Backend preview endpoint already returns crawler readable metadata.
+
+**Cons**:
+- Shared links expose the Render service hostname, which is not a Nile Flow branded URL.
+- The Backend service hostname becomes a permanent public link contract.
+
+### Option 4: Change Website2 to server rendered pages
 
 Move deal page rendering to a server capable of loading deal data and returning per deal metadata on the Website2 domain. (basis: crawler readable metadata practice)
 
@@ -49,11 +61,15 @@ Move deal page rendering to a server capable of loading deal data and returning 
 
 ## Rationale
 
-Choose Option 2 with a Cloudflare Worker route on the existing Website2 domain. Website2 remains static, while the Backend still returns the deal data and crawler metadata. The Worker forwards only `/share/deal/{dealId}` to the current Backend preview endpoint and returns its HTML response, so the shared link and `og:url` stay on `www.nileflowafrica.com` without introducing a new domain. This requires a small Cloudflare routing configuration, but avoids changing Website2 rendering or adding another service. (basis: existing Website2 static hosting, Backend Appwrite access, Cloudflare proxy routing, Open Graph crawler metadata practice)
+Choose Option 2. The root domain is already hosted separately, so adding a path route there depends on infrastructure Nile Flow does not control. A branded subdomain can be attached directly to the existing Render Backend service, with DNS pointed to the target Render specifies. This keeps the public link branded, reuses the existing Appwrite access and metadata controller, and does not add a Worker or new hosting service. Option 3 is simpler but exposes the Render hostname. Option 4 is disproportionate for one preview route. (basis: existing Website2 static hosting, Backend Appwrite access, Render custom domain support, Open Graph crawler metadata practice)
 
-Set `DEAL_SHARE_URL` on the Backend and `VITE_DEAL_SHARE_URL` in the Website2 build to the same public origin, `https://www.nileflowafrica.com`. The Backend uses the configured origin for crawler metadata, while its canonical Website2 URL comes from a dedicated `WEBSITE2_URL` setting, rather than assuming the general `FRONTEND_URL` belongs to Website2. Configure Cloudflare to forward the public share path to the Backend's existing versioned preview endpoint without redirecting the browser to the Backend host. The page uses a fixed server configured destination, escapes product values, and does not accept arbitrary redirect URLs. Keep the old versioned endpoint available for compatibility, but do not use it in newly shared or copied links.
+Set `DEAL_SHARE_URL` on the Backend and `VITE_DEAL_SHARE_URL` in the Website2 build to `https://share.nileflowafrica.com`. The Backend uses the configured origin for crawler metadata, while its canonical Website2 URL comes from a dedicated `WEBSITE2_URL` setting, rather than assuming the general `FRONTEND_URL` belongs to Website2. Add the share route alias to the existing Express service and invoke the existing preview controller and limiter. Use the Render custom domain settings and DNS record they provide. The page escapes product values and does not accept an arbitrary redirect destination. Keep the old versioned endpoint available for compatibility, but do not use it in newly shared or copied links.
 
-For device sharing, prepare the product image while the chooser is open and call `navigator.canShare({ files })` before attaching it. This avoids making image support a requirement for text sharing and reduces the risk that an image network request consumes the browser's user action. When the image cannot be included, continue with the offer and link and tell the shopper. (basis: graceful degradation and user controlled sharing)
+For WhatsApp, prepare the product image while the chooser is open and call `navigator.canShare({ files })` before starting the share action. `wa.me` accepts a text message, not an attached image file, so it cannot satisfy the requirement for an image in Status. Pass the actual file and offer text to `navigator.share`, then let the shopper choose WhatsApp and Status where supported. If the file share is unavailable or fails, offer a direct image download and a separate Copy link action. Treat cancellation as quiet and keep the chooser available for another action. General device sharing may still degrade to text and URL. (basis: Web Share file capability and user controlled sharing)
+
+Render supplies the custom domain verification instructions and DNS record target for the specific web service. Do not hardcode a record type or address in the application spec, since those values depend on the Render service configuration. The DNS zone owner applies exactly the record Render provides. Confirm the domain resolves and HTTPS is active before Website2 uses the branded subdomain.
+
+The deal image metadata is useful only if the referenced image can be fetched by a social crawler without the shopper's authentication state. Require a public HTTPS Appwrite image URL, and verify the image response without cookies or authorization before enabling production sharing.
 
 ## References
 

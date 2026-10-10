@@ -66,7 +66,7 @@ export const config = {
   },
 
   sharing: {
-    dealShareOrigin: getEnv('VITE_DEAL_SHARE_URL', 'https://www.nileflowafrica.com'),
+    dealShareOrigin: getEnv('VITE_DEAL_SHARE_URL', 'https://share.nileflowafrica.com'),
   },
 
   // ── Currency API ──────────────────────────────────────────────────
