@@ -6,7 +6,7 @@ import { productService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { imageProxyUrl } from '@api/config'
-import { Zap, Flame, Clock, ArrowRight, Tag } from 'lucide-react'
+import { Zap, Flame, Clock, ArrowRight, Tag, Share2, MessageCircle, Copy, Send } from 'lucide-react'
 
 // ── Countdown Hook ───────────────────────────────────────────────────────────
 function useCountdown(endTime) {
@@ -26,11 +26,12 @@ function useCountdown(endTime) {
     const formatTime = () => {
       const target = new Date(endTimeRef.current).getTime()
       const now = Date.now()
-      const totalSeconds = Math.max(0, Math.floor((target - now) / 1000))
-      if (totalSeconds <= 0) {
+      if (!Number.isFinite(target)) return '00:00:00'
+      if (target <= now) {
         setIsExpired(true)
         return '00:00:00'
       }
+      const totalSeconds = Math.floor((target - now) / 1000)
       const h = Math.floor(totalSeconds / 3600)
       const m = Math.floor((totalSeconds % 3600) / 60)
       const s = totalSeconds % 60
@@ -43,7 +44,7 @@ function useCountdown(endTime) {
     }, 1000)
 
     return () => clearInterval(intervalRef.current)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps — interval must not restart; endTime is accessed via ref
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- interval must not restart; endTime is accessed via ref
 
   return { display, isExpired }
 }
@@ -85,9 +86,259 @@ function UrgencyBadge({ discount, isExpiringSoon, isFlash, isPremium }) {
   return null
 }
 
+function formatDealSharePrice(value) {
+  return `KES ${value.toLocaleString()}`
+}
+
+function createDealShareContent(product, discount) {
+  const productId = typeof product.$id === 'string' ? product.$id.trim() : ''
+  const dealPriceValid = typeof product.dealPrice === 'number' && Number.isFinite(product.dealPrice)
+  const originalPriceValid = typeof product.price === 'number' && Number.isFinite(product.price)
+  const discountValid = typeof discount === 'number'
+    && Number.isFinite(discount)
+    && typeof product.discount === 'number'
+    && Number.isFinite(product.discount)
+  const hasExpiry = product.endTime !== null && product.endTime !== undefined && product.endTime !== ''
+  const expiryDate = hasExpiry ? new Date(product.endTime) : null
+  const expiryValid = !hasExpiry || !Number.isNaN(expiryDate.getTime())
+  const dealUrl = typeof window === 'undefined'
+    ? ''
+    : new URL(`/deal/${encodeURIComponent(productId)}`, window.location.origin).toString()
+  const expiryText = expiryDate && expiryValid
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(expiryDate)
+    : null
+  const offerText = [
+    `Check out ${product.productName || 'this deal'} on Nile Flow!`,
+    `Deal price: ${dealPriceValid ? formatDealSharePrice(product.dealPrice) : ''}`,
+    `Original price: ${originalPriceValid ? formatDealSharePrice(product.price) : ''}`,
+    `Save ${discountValid ? `${discount}%` : ''}`,
+    expiryText ? `Offer ends: ${expiryText}` : null,
+  ].filter(Boolean).join('\n')
+  const message = `${offerText}\nShop now: ${dealUrl}`
+  let validationMessage = ''
+
+  if (!productId) {
+    validationMessage = 'This deal is missing its product link and cannot be shared.'
+  } else if (!dealPriceValid || !originalPriceValid || !discountValid) {
+    validationMessage = 'This deal is missing valid offer details and cannot be shared.'
+  } else if (!expiryValid) {
+    validationMessage = 'This deal has an invalid expiry time and cannot be shared.'
+  }
+
+  return {
+    dealUrl,
+    offerText,
+    message,
+    isValid: Boolean(productId && dealPriceValid && originalPriceValid && discountValid && expiryValid && dealUrl),
+    validationMessage,
+  }
+}
+
+function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFailed, onClose, push }) {
+  const dialogRef = useRef(null)
+  const titleRef = useRef(null)
+  const copyFallbackRef = useRef(null)
+  const { dealUrl, offerText, message } = shareContent
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(dealUrl)}`
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(offerText)}&url=${encodeURIComponent(dealUrl)}`
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(dealUrl)}&text=${encodeURIComponent(offerText)}`
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return undefined
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal()
+      titleRef.current?.focus()
+    } else if (!isOpen && dialog.open) {
+      dialog.close()
+    }
+    return undefined
+  }, [isOpen])
+
+  useEffect(() => {
+    if (copyFailed) copyFallbackRef.current?.focus()
+  }, [copyFailed])
+
+  const handleCancel = (event) => {
+    event.preventDefault()
+    onClose()
+  }
+
+  const handleDeviceShare = async () => {
+    if (!canShare) return
+    try {
+      await navigator.share({
+        title: product.productName || 'Nile Flow deal',
+        text: offerText,
+        url: dealUrl,
+      })
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      push({ title: 'Unable to share', message: 'Please try one of the social platforms or copy the deal link instead.' })
+    }
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard access is not available in this browser.')
+      }
+      await navigator.clipboard.writeText(dealUrl)
+      push({ title: 'Deal link copied', message: 'Share the link with anyone who may like this offer.' })
+      onClose()
+    } catch {
+      setCopyFailed(true)
+      push({ title: 'Could not copy the link', message: 'You can select and copy the full deal message below.' })
+    }
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      onCancel={handleCancel}
+      aria-labelledby={`deal-share-title-${product.$id}`}
+      aria-describedby={`deal-share-description-${product.$id}`}
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-0 text-[var(--color-text-primary)] shadow-2xl backdrop:bg-black/50"
+    >
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2
+              ref={titleRef}
+              id={`deal-share-title-${product.$id}`}
+              tabIndex="-1"
+              className="text-lg font-bold text-[var(--color-text-primary)]"
+            >
+              Share this deal
+            </h2>
+            <p id={`deal-share-description-${product.$id}`} className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              Share the offer details and link with someone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          <div>
+            <button
+              type="button"
+              onClick={handleDeviceShare}
+              disabled={!canShare}
+              aria-describedby={!canShare ? `device-share-unavailable-${product.$id}` : undefined}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition hover:bg-red-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Share2 aria-hidden="true" className="h-4 w-4" />
+              Share from this device
+            </button>
+            {!canShare && (
+              <p id={`device-share-unavailable-${product.$id}`} className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                Device sharing is not available in this browser.
+              </p>
+            )}
+          </div>
+
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          >
+            <MessageCircle aria-hidden="true" className="h-4 w-4" />
+            WhatsApp
+          </a>
+
+          <a
+            href={facebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          >
+            <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-xs font-bold text-blue-700">f</span>
+            Facebook
+          </a>
+
+          <a
+            href={xUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
+          >
+            <span aria-hidden="true" className="text-base font-bold">X</span>
+            Share on X
+          </a>
+
+          <a
+            href={telegramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+          >
+            <Send aria-hidden="true" className="h-4 w-4" />
+            Telegram
+          </a>
+
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition hover:border-red-500 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          >
+            <Copy aria-hidden="true" className="h-4 w-4" />
+            Copy link
+          </button>
+        </div>
+
+        {copyFailed && (
+          <div className="mt-4">
+            <p role="alert" className="mb-2 text-sm font-medium text-red-700">
+              Copying is unavailable. You can select the message below and copy it manually.
+            </p>
+            <label htmlFor={`deal-share-message-${product.$id}`} className="mb-1 block text-sm font-semibold">
+              Select and copy this deal message
+            </label>
+            <textarea
+              ref={copyFallbackRef}
+              id={`deal-share-message-${product.$id}`}
+              readOnly
+              value={message}
+              rows={6}
+              aria-label="Deal share message to copy"
+              className="w-full resize-y rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-3 text-sm text-[var(--color-text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+            />
+          </div>
+        )}
+      </div>
+    </dialog>
+  )
+}
+
 // ── Deal Card Component ──────────────────────────────────────────────────────
 function DealCard({ product, isFlash, isPremium, discount }) {
   const { display: countdown, isExpired } = useCountdown(product.endTime)
+  const shareContent = createDealShareContent(product, discount)
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
+  const { push } = useToast()
+  const shareUnavailableDescriptionId = `deal-share-unavailable-${product.$id}`
+  const shareUnavailableMessage = isExpired
+    ? 'This deal has expired and cannot be shared.'
+    : shareContent.validationMessage
+  const closeShareDialog = () => {
+    setIsShareOpen(false)
+    setCopyFailed(false)
+  }
 
   return (
     <div
@@ -170,18 +421,48 @@ function DealCard({ product, isFlash, isPremium, discount }) {
         </div>
 
         {/* CTA Button */}
-        <Link
-          to={`/deal/${product.$id}`}
-          className={`block w-full text-center py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${
-            isFlash
-              ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl'
-              : isPremium
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
-              : 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] hover:bg-red-600 hover:text-white'
-          }`}
-        >
-          {isExpired ? 'Deal Ended' : 'View Deal →'}
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to={`/deal/${product.$id}`}
+            className={`block min-w-0 flex-1 text-center py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${
+              isFlash
+                ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700 shadow-lg hover:shadow-xl'
+                : isPremium
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+                : 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] hover:bg-red-600 hover:text-white'
+            }`}
+          >
+            {isExpired ? 'Deal Ended' : 'View Deal →'}
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setCopyFailed(false)
+              setIsShareOpen(true)
+            }}
+            disabled={isExpired || !shareContent.isValid}
+            aria-describedby={shareUnavailableMessage ? shareUnavailableDescriptionId : undefined}
+            title={shareUnavailableMessage || undefined}
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-[var(--color-border)] px-2 py-2 text-xs font-bold text-[var(--color-text-primary)] transition hover:border-red-500 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Share2 aria-hidden="true" className="h-4 w-4" />
+            Share
+          </button>
+        </div>
+        {shareUnavailableMessage && (
+          <p id={shareUnavailableDescriptionId} className="mt-2 text-xs text-[var(--color-text-secondary)]">
+            {shareUnavailableMessage}
+          </p>
+        )}
+        <DealShareDialog
+          isOpen={isShareOpen}
+          product={product}
+          shareContent={shareContent}
+          copyFailed={copyFailed}
+          setCopyFailed={setCopyFailed}
+          onClose={closeShareDialog}
+          push={push}
+        />
       </div>
     </div>
   )
