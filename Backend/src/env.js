@@ -12,6 +12,7 @@ const schema = Joi.object({
   APPWRITE_ENDPOINT: Joi.string().uri().required(),
   APPWRITE_PROJECT_ID: Joi.string().required(),
   APPWRITE_API_KEY: Joi.string().required(),
+  APPWRITE_STORAGE_ID: Joi.string().optional(),
   APPWRITE_DATABASE_ID: Joi.string().required(),
   APPWRITE_USER_COLLECTION_ID: Joi.string().required(),
   APPWRITE_ORDERS_COLLECTION: Joi.string().required(),
@@ -38,6 +39,8 @@ const schema = Joi.object({
   APPWRITE_PRODUCT_COLLECTION_ID: Joi.string().optional(),
   // Categories Collection
   APPWRITE_CATEGORIES_COLLECTION_ID: Joi.string().optional(),
+  // Deals Collection
+  APPWRITE_DEALS_COLLECTION_ID: Joi.string().required(),
   // African Facts & Proverbs Collections
   AFRICAN_FACTS_COLLECTION_ID: Joi.string().optional(),
   AFRICAN_PROVERBS_COLLECTION_ID: Joi.string().optional(),
@@ -70,6 +73,8 @@ const schema = Joi.object({
   APPWRITE_PAYOUT_AUDIT_LOGS_COLLECTION_ID: Joi.string().optional(),
   // Frontend URL used for OAuth final redirect
   FRONTEND_URL: Joi.string().uri().default("http://localhost:5173"),
+  // Website2 public origin used by deal sharing preview pages
+  WEBSITE2_URL: Joi.string().uri({ scheme: ["http", "https"] }).required(),
   // Google OAuth
   GOOGLE_CLIENT_ID: Joi.string().optional(),
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
@@ -145,6 +150,28 @@ if (error) {
   throw Object.assign(new Error(`Environment validation failed: ${missing}`), {
     details: error.details,
   });
+}
+
+try {
+  const website2Url = new URL(env.WEBSITE2_URL);
+  if (
+    website2Url.pathname !== "/" ||
+    website2Url.search ||
+    website2Url.hash ||
+    website2Url.username ||
+    website2Url.password ||
+    (env.NODE_ENV === "production" && website2Url.protocol !== "https:")
+  ) {
+    throw new Error(
+      "WEBSITE2_URL must be a public origin without a path, query, or fragment, and must use HTTPS in production.",
+    );
+  }
+  env.WEBSITE2_URL = website2Url.origin;
+} catch (website2UrlError) {
+  throw Object.assign(
+    new Error(`Environment validation failed: ${website2UrlError.message}`),
+    { cause: website2UrlError },
+  );
 }
 
 module.exports = { env };

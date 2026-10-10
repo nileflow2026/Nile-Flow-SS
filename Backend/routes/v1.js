@@ -42,6 +42,10 @@ const optionalAuth = (req, res, next) => {
 
 const { getHomeFeed } = require("../controllers/v1/homeFeedController");
 const {
+  dealShareLimiter,
+  getDealSharePage,
+} = require("../controllers/v1/dealShareController");
+const {
   getBanners,
   createBanner,
   updateBanner,
@@ -64,6 +68,12 @@ const {
 } = require("../controllers/UserControllers/Clientnotification");
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/v1/deal-shares/:dealId
+ * Public crawler preview page for an active deal.
+ */
+router.get("/deal-shares/:dealId", dealShareLimiter, getDealSharePage);
 
 /**
  * GET /api/v1/home-feed

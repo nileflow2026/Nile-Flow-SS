@@ -5,7 +5,7 @@ import ResponsiveSection from '@shared/ui/section/ResponsiveSection'
 import { productService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { SeoHead } from '@shared/seo/SeoHead'
-import { imageProxyUrl } from '@api/config'
+import { config, imageProxyUrl } from '@api/config'
 import { Zap, Flame, Clock, ArrowRight, Tag, Share2, MessageCircle, Copy, Send } from 'lucide-react'
 
 // ── Countdown Hook ───────────────────────────────────────────────────────────
@@ -90,8 +90,46 @@ function formatDealSharePrice(value) {
   return `KES ${value.toLocaleString()}`
 }
 
+function getShareImageUrl(product) {
+  const candidates = [product.image, ...(Array.isArray(product.images) ? product.images : [])]
+
+  for (const candidate of candidates) {
+    let image = candidate
+    if (typeof image === 'string') {
+      try {
+        const parsed = JSON.parse(image)
+        if (parsed && typeof parsed === 'object') image = parsed
+      } catch {
+        // A non JSON string is already an image URL.
+      }
+    }
+
+    if (image && typeof image === 'object') {
+      image = image.url || image.imageUrl
+    }
+    if (typeof image !== 'string') continue
+
+    try {
+      const url = new URL(image)
+      if (
+        url.protocol === 'https:' &&
+        ['fra.cloud.appwrite.io', 'cloud.appwrite.io'].includes(url.hostname) &&
+        !url.username &&
+        !url.password
+      ) {
+        return url.toString()
+      }
+    } catch {
+      // Skip invalid image values and try the next candidate.
+    }
+  }
+
+  return null
+}
+
 function createDealShareContent(product, discount) {
   const productId = typeof product.$id === 'string' ? product.$id.trim() : ''
+  const activeDeal = product.isDeal === true
   const dealPriceValid = typeof product.dealPrice === 'number' && Number.isFinite(product.dealPrice)
   const originalPriceValid = typeof product.price === 'number' && Number.isFinite(product.price)
   const discountValid = typeof discount === 'number'
@@ -99,13 +137,19 @@ function createDealShareContent(product, discount) {
     && typeof product.discount === 'number'
     && Number.isFinite(product.discount)
   const hasExpiry = product.endTime !== null && product.endTime !== undefined && product.endTime !== ''
-  const expiryDate = hasExpiry ? new Date(product.endTime) : null
-  const expiryValid = !hasExpiry || !Number.isNaN(expiryDate.getTime())
-  const dealUrl = typeof window === 'undefined'
-    ? ''
-    : new URL(`/deal/${encodeURIComponent(productId)}`, window.location.origin).toString()
-  const expiryText = expiryDate && expiryValid
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(expiryDate)
+  const expiryTimestamp = hasExpiry ? new Date(product.endTime).getTime() : null
+  const expiryValid = !hasExpiry || Number.isFinite(expiryTimestamp)
+  const isExpired = expiryValid && expiryTimestamp !== null && expiryTimestamp <= Date.now()
+  let dealUrl = ''
+  if (productId && typeof window !== 'undefined') {
+    const backendOrigin = config.api.baseURL || window.location.origin
+    dealUrl = new URL(
+      `/api/v1/deal-shares/${encodeURIComponent(productId)}`,
+      backendOrigin,
+    ).toString()
+  }
+  const expiryText = expiryValid && expiryTimestamp !== null
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(expiryTimestamp))
     : null
   const offerText = [
     `Check out ${product.productName || 'this deal'} on Nile Flow!`,
@@ -117,10 +161,14 @@ function createDealShareContent(product, discount) {
   const message = `${offerText}\nShop now: ${dealUrl}`
   let validationMessage = ''
 
-  if (!productId) {
+  if (!activeDeal) {
+    validationMessage = 'This deal is no longer available to share.'
+  } else if (!productId) {
     validationMessage = 'This deal is missing its product link and cannot be shared.'
   } else if (!dealPriceValid || !originalPriceValid || !discountValid) {
     validationMessage = 'This deal is missing valid offer details and cannot be shared.'
+  } else if (isExpired) {
+    validationMessage = 'This deal has expired and cannot be shared.'
   } else if (!expiryValid) {
     validationMessage = 'This deal has an invalid expiry time and cannot be shared.'
   }
@@ -129,7 +177,7 @@ function createDealShareContent(product, discount) {
     dealUrl,
     offerText,
     message,
-    isValid: Boolean(productId && dealPriceValid && originalPriceValid && discountValid && expiryValid && dealUrl),
+    isValid: Boolean(activeDeal && productId && dealPriceValid && originalPriceValid && discountValid && expiryValid && !isExpired && dealUrl),
     validationMessage,
   }
 }
@@ -138,8 +186,15 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
   const dialogRef = useRef(null)
   const titleRef = useRef(null)
   const copyFallbackRef = useRef(null)
+  const [preparedImage, setPreparedImage] = useState(null)
   const { dealUrl, offerText, message } = shareContent
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  const imageUrl = getShareImageUrl(product)
+  const imageKey = `${product.$id}:${imageUrl || ''}`
+  const imageFile = preparedImage?.key === imageKey ? preparedImage.file : null
+  const isPreparingImage = Boolean(
+    isOpen && canShare && imageUrl && preparedImage?.key !== imageKey,
+  )
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(dealUrl)}`
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(offerText)}&url=${encodeURIComponent(dealUrl)}`
@@ -162,6 +217,58 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
     if (copyFailed) copyFallbackRef.current?.focus()
   }, [copyFailed])
 
+  useEffect(() => {
+    if (!isOpen || !canShare || !imageUrl || preparedImage?.key === imageKey) return undefined
+
+    const controller = new AbortController()
+    let cancelled = false
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    const prepareImage = async () => {
+      try {
+        const response = await fetch(imageProxyUrl(imageUrl), {
+          signal: controller.signal,
+        })
+        if (!response.ok) {
+          throw new Error(`Image request failed with status ${response.status}.`)
+        }
+
+        const mimeType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase()
+        if (!config.upload.allowedImageTypes.includes(mimeType)) {
+          throw new Error('The product image type is not supported for sharing.')
+        }
+
+        const blob = await response.blob()
+        const extensions = {
+          'image/jpeg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+        }
+        const file = new File([blob], `deal-${product.$id}.${extensions[mimeType]}`, {
+          type: mimeType,
+        })
+
+        if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+          if (!cancelled) setPreparedImage({ key: imageKey, file })
+        } else if (!cancelled) {
+          setPreparedImage({ key: imageKey, file: null })
+        }
+      } catch {
+        if (!cancelled) setPreparedImage({ key: imageKey, file: null })
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    }
+
+    prepareImage()
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
+  }, [canShare, imageKey, imageUrl, isOpen, preparedImage?.key, product.$id])
+
   const handleCancel = (event) => {
     event.preventDefault()
     onClose()
@@ -174,7 +281,14 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
         title: product.productName || 'Nile Flow deal',
         text: offerText,
         url: dealUrl,
+        ...(imageFile ? { files: [imageFile] } : {}),
       })
+      if (!imageFile) {
+        push({
+          title: 'Deal shared without image',
+          message: 'The offer and link were shared, but the product image could not be attached.',
+        })
+      }
     } catch (error) {
       if (error?.name === 'AbortError') return
       push({ title: 'Unable to share', message: 'Please try one of the social platforms or copy the deal link instead.' })
@@ -232,18 +346,30 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
             <button
               type="button"
               onClick={handleDeviceShare}
-              disabled={!canShare}
-              aria-describedby={!canShare ? `device-share-unavailable-${product.$id}` : undefined}
+              disabled={!canShare || isPreparingImage}
+              aria-describedby={!canShare
+                ? `device-share-unavailable-${product.$id}`
+                : isPreparingImage
+                  ? `device-share-preparing-${product.$id}`
+                  : undefined}
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-surface-muted)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] transition hover:bg-red-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Share2 aria-hidden="true" className="h-4 w-4" />
               Share from this device
             </button>
-            {!canShare && (
+            {!canShare ? (
               <p id={`device-share-unavailable-${product.$id}`} className="mt-1 text-xs text-[var(--color-text-secondary)]">
                 Device sharing is not available in this browser.
               </p>
-            )}
+            ) : isPreparingImage ? (
+              <p
+                id={`device-share-preparing-${product.$id}`}
+                role="status"
+                className="mt-1 text-xs text-[var(--color-text-secondary)]"
+              >
+                Preparing product image for device sharing.
+              </p>
+            ) : null}
           </div>
 
           <a
@@ -405,6 +531,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
         </div>
 
         {/* Countdown Timer */}
+        {product.endTime && (
         <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg mb-2 sm:mb-3 ${
           isExpired
             ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-muted)]'
@@ -419,6 +546,7 @@ function DealCard({ product, isFlash, isPremium, discount }) {
             <span className="text-[10px] sm:text-xs font-mono font-bold">{countdown}</span>
           )}
         </div>
+        )}
 
         {/* CTA Button */}
         <div className="flex gap-2">

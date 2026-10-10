@@ -9,6 +9,10 @@ const {
   validateCurrencyCode,
 } = require("../../utils/currencyConverter");
 const { InputFile } = require("node-appwrite/file");
+const {
+  buildImageUrl,
+  normalizeImagesToUrls,
+} = require("../../utils/appwriteImages");
 
 const getCustomerProfile = async (req, res) => {
   try {
@@ -663,67 +667,6 @@ const getProductsForMobile = async (req, res) => {
       .json({ success: false, message: "Failed to fetch products" });
   }
 };
-/**
- * Convert Appwrite storage URLs to public preview URLs so they can be used
- * reliably by web/mobile clients without admin-mode params or /view restrictions.
- */
-const normalizeAppwritePublicUrl = (url) => {
-  if (!url || typeof url !== "string") return url;
-  if (!url.includes("cloud.appwrite.io") && !url.includes("/v1/storage/")) {
-    return url;
-  }
-
-  try {
-    const parsed = new URL(url);
-    const params = parsed.searchParams;
-
-    [
-      "mode",
-      "impersonateuserid",
-      "impersonateUserId",
-      "impersonateuseremail",
-      "impersonateUserEmail",
-      "impersonateuserphone",
-      "impersonateUserPhone",
-    ].forEach((key) => params.delete(key));
-
-    if (!params.has("project") && parsed.hostname.includes("appwrite")) {
-      params.set("project", env.APPWRITE_PROJECT_ID || "");
-    }
-
-    params.set("mode", "public");
-
-    const pathname = parsed.pathname.replace(/\/view(?=$|[/?])/, "/preview");
-    parsed.pathname = pathname;
-    return parsed.toString();
-  } catch (_) {
-    return url;
-  }
-};
-
-/**
- * Convert an Appwrite file ID or URL to a full image URL.
- * If the input is already a full URL, normalize it to a public preview URL.
- * If it's a file ID, build the proper Appwrite storage URL.
- */
-const buildImageUrl = (imageData) => {
-  if (!imageData) return null;
-  if (typeof imageData === "string") {
-    if (imageData.startsWith("http")) {
-      return normalizeAppwritePublicUrl(imageData);
-    }
-    return normalizeAppwritePublicUrl(
-      `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${imageData}/view?project=${env.APPWRITE_PROJECT_ID}&mode=public`,
-    );
-  }
-  if (typeof imageData === "object" && !Array.isArray(imageData)) {
-    return normalizeAppwritePublicUrl(
-      imageData.url || imageData.imageUrl || buildImageUrl(imageData.id),
-    );
-  }
-  return null;
-};
-
 // Simple in-memory cache for categories
 let _categoryCache = null;
 let _categoryCacheTime = 0;
@@ -762,29 +705,6 @@ const resolveCategoryName = async (categoryId) => {
   }
 
   return _categoryCache[categoryId] || categoryId;
-};
-
-/**
- * Normalize an images array (from Appwrite) to plain URL strings.
- * Handles: string URLs, objects like { url, id, filename }, and JSON-stringified objects.
- */
-const normalizeImagesToUrls = (images) => {
-  if (!Array.isArray(images)) return [];
-  return images
-    .map((img) => {
-      if (!img) return null;
-      if (typeof img === "string") {
-        try {
-          const parsed = JSON.parse(img);
-          if (parsed && typeof parsed === "object" && parsed.url)
-            return normalizeAppwritePublicUrl(parsed.url);
-        } catch (_) {}
-        return normalizeAppwritePublicUrl(img);
-      }
-      if (typeof img === "object") return normalizeAppwritePublicUrl(img.url ?? null);
-      return null;
-    })
-    .filter(Boolean);
 };
 
 const getProductImages = async (req, res) => {
@@ -1378,13 +1298,11 @@ const getDealProducts = async (req, res) => {
     const rate = rates[targetCurrency] ?? 1;
 
     const enrichedProducts = await Promise.all(response.documents.map(async (product) => {
-      const discount = product.discount || 0;
-      const timeLeft = calculateTimeLeft(
-        product.dealEndTime || new Date(Date.now() + 24 * 60 * 60 * 1000),
-      );
-
-      const basePrice = product.dealPrice || product.price || 0;
-      const originalPrice = product.price || 0;
+      const discount = Number.isFinite(product.discount) ? product.discount : 0;
+      const originalPrice = Number.isFinite(product.price) ? product.price : 0;
+      const basePrice = Number.isFinite(product.dealPrice)
+        ? product.dealPrice
+        : originalPrice;
 
       // Enrich with currency conversion
       const converted = enrichProductWithCurrency(
@@ -1399,13 +1317,13 @@ const getDealProducts = async (req, res) => {
 
       return {
         ...converted,
-        price: originalPrice, // Original price for strikethrough display
-        dealPrice: converted.price?.convertedPrice ?? basePrice,
+        price: product.price, // Original price for strikethrough display
+        dealPrice: product.dealPrice,
         image: buildImageUrl(product.image),
         images: product.images ? normalizeImagesToUrls(product.images) : [],
         category: categoryName,
-        discount,
-        endTime: product.dealEndTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        discount: product.discount,
+        endTime: product.dealEndTime ?? null,
         originalPrice: {
           basePrice: originalPrice,
           baseCurrency: "KES",

@@ -2,52 +2,72 @@
 
 ## Context
 
-The Website2 Deals page displays discounted products with a price, original price, discount percentage, and an optional expiry time. Each product already has a detail route that shoppers can open directly.
+Website2 is a React and Vite static site on Render. Its deal page gets product data in the browser, and its current Open Graph metadata is added by client side JavaScript. Social crawlers may read the first HTML response without running that JavaScript, so they cannot reliably see the deal name, offer, or product image.
 
-Shoppers want to tell other people about these offers on WhatsApp and other social platforms. Sharing must not imply that Website2 can post to a shopper's status or profile without their involvement. The shopper chooses a destination and completes the post in the selected app or platform. WhatsApp, X, and Telegram can open with the complete offer message and deal link. Facebook's share dialog receives the deal link and creates its own preview from the linked page.
+The backend already reads the Appwrite deal collection and Website2 already uses its public image proxy. The browser share action currently sends text and a direct deal URL, but not an image file. Social platforms accept a page URL and create their own preview from metadata; device file sharing is a separate browser capability. Shoppers must remain in control of every post.
 
 ## Options considered
 
-### Option 1: Add a deal share chooser to each card
+### Option 1: Keep the current direct deal links and add device image sharing
 
-Keep the existing deal card and add an accessible chooser with device sharing, direct sharing options for WhatsApp, Facebook, X, and Telegram, and a copy link action.
-
-**Pros**:
-- Uses the deal data and route already available on the page.
-- Works across devices without requesting social account access.
-- Keeps sharing actions available when device sharing is unsupported.
-- Provides direct access to several social platforms without restricting shoppers to one network.
-
-**Cons**:
-- Some browsers do not support the device share sheet.
-- The shopper must finish the action in the selected sharing app.
-
-### Option 2: Use only the device share sheet
-
-Add one action that opens the browser or device share sheet.
+Attach a product image to the browser share sheet where supported, while leaving all social links pointed directly at the client rendered Website2 deal page. (basis: existing Website2 share chooser and image proxy)
 
 **Pros**:
-- Requires little interface and uses the browser's available share targets.
-- Lets each device offer its own apps and destinations.
+- Smallest change to the existing sharing flow.
+- Device users can attach the product image without a new backend route.
+- Existing Website2 links remain unchanged.
 
 **Cons**:
-- The share sheet is not supported in every browser.
-- Shoppers cannot rely on seeing a direct platform choice or copy option.
+- Social crawlers may not see deal metadata or the product image because the static page adds its tags in JavaScript.
+- Different share destinations would produce inconsistent image previews.
 
-### Option 3: Generate a share image for each deal
+### Option 2: Add a public backend share page beside the static deal page
 
-Create an offer image containing the product and discount, then provide it for status and social sharing.
+Add a public endpoint that reads the deal from Appwrite and returns HTML metadata for crawlers. The page redirects shoppers to the canonical Website2 deal page. Website2 sends this share URL to social platforms and the device share sheet, attaching an image file when the browser supports it. (basis: Backend Appwrite access, existing Website2 API configuration, crawler readable metadata practice)
 
 **Pros**:
-- An image can be useful in visual social feeds and statuses.
-- The offer details can appear without opening a link.
+- Social crawlers receive metadata and a public product image in the first HTML response.
+- Website2 remains a static site and the existing deal page remains the canonical destination.
+- The new endpoint can be deployed before Website2 switches links, so the old links keep working during rollout.
 
 **Cons**:
-- Adds image generation, download, and maintenance work beyond the requested link sharing.
-- Image sharing support differs by browser and social app.
+- Shared links use the backend domain and add one navigation step.
+- The backend needs a dedicated Website2 origin setting and careful HTML escaping.
+- Device image attachment still depends on browser support and image proxy availability.
+
+### Option 3: Change Website2 to server rendered pages
+
+Move deal page rendering to a server capable of loading deal data and returning per deal metadata on the Website2 domain. (basis: crawler readable metadata practice)
+
+**Pros**:
+- Deal links keep the Website2 domain and can return metadata directly.
+- Server rendering could support other dynamically generated Website2 pages later.
+
+**Cons**:
+- Replaces the current static hosting model and expands this feature into a rendering and deployment migration.
+- Adds an always running render path for a need that can be met by one endpoint on the existing backend.
 
 ## Rationale
 
-The Deals page already provides the offer values and a route for each product. A share chooser can use these sources directly, so its message can match the offer the shopper sees without introducing another product data path.
+Choose Option 2. It addresses the cause of missing social images, which is that a static client rendered page cannot put deal specific metadata in its initial HTML response. The existing backend already reads the deal collection, while the current static site remains in place. Render's static site rewrite rules route paths to static responses; they do not execute deal specific application code for each request. (basis: Render static site rewrite behavior, Open Graph crawler metadata practice)
 
-The device share sheet reaches apps installed on a shopper's device, while direct platform links make common destinations easy to find without suggesting that one network is preferred. Each destination receives the format it supports. Creating an image or social account integrations would add complexity and permissions without being needed to share the offer text and link.
+Deploy the endpoint first, then switch Website2 links. This is an additive migration, and reverting Website2 restores the existing direct links without removing the new endpoint. The backend share URL is the same link sent to platforms and copied to the clipboard; its canonical Website2 URL comes from a dedicated `WEBSITE2_URL` setting, rather than assuming the general `FRONTEND_URL` belongs to Website2. The page uses a fixed server configured destination, escapes product values, and does not accept arbitrary redirect URLs.
+
+For device sharing, prepare the product image while the chooser is open and call `navigator.canShare({ files })` before attaching it. This avoids making image support a requirement for text sharing and reduces the risk that an image network request consumes the browser's user action. When the image cannot be included, continue with the offer and link and tell the shopper. (basis: graceful degradation and user controlled sharing)
+
+## References
+
+**Project sources**:
+- `docs/scope/Website2/scope.md`, Website2's static site and Tracer Bullet approach.
+- `Website2/src/shared/seo/SeoHead.jsx`, current client side metadata behavior.
+- `Website2/src/api/config/index.js`, backend URL and image proxy configuration.
+- `Backend/routes/v1.js` and `Backend/src/index.js`, versioned API routing.
+- `Backend/controllers/UserControllers/ClientController.js`, Appwrite deal data and public image URL conventions.
+
+**Practices & standards**:
+- Open Graph metadata for crawler readable link previews.
+- HTML output escaping and fixed redirect destinations for public HTML responses.
+- Strangler pattern for adding a route before switching existing callers.
+
+**Links**:
+- Render static site redirects and rewrites: https://render.com/docs/redirects-rewrites
