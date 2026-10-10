@@ -295,6 +295,39 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
     }
   }
 
+  const handleWhatsAppShare = async () => {
+    if (!imageFile) {
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+      onClose()
+      if (imageUrl) {
+        push({
+          title: 'WhatsApp opened without the image',
+          message: matchingPreparedImage?.failed
+            ? 'The product image could not be prepared, so WhatsApp will receive only the offer text.'
+            : 'This browser cannot attach images through WhatsApp text sharing. Use a device share option that supports image files for WhatsApp Status.',
+        })
+      }
+      return
+    }
+
+    try {
+      await navigator.share({
+        title: product.productName || 'Nile Flow deal',
+        text: message,
+        files: [imageFile],
+      })
+      onClose()
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+      onClose()
+      push({
+        title: 'Unable to share the product image',
+        message: 'WhatsApp opened with the offer text. To add the image to your Status, try Share from this device and choose WhatsApp.',
+      })
+    }
+  }
+
   const handleCopyLink = async () => {
     try {
       if (!navigator.clipboard?.writeText) {
@@ -376,16 +409,25 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
             ) : null}
           </div>
 
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onClose}
+          <button
+            type="button"
+            onClick={handleWhatsAppShare}
+            disabled={isPreparingImage}
+            aria-describedby={isPreparingImage ? `whatsapp-image-preparing-${product.$id}` : undefined}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
           >
             <MessageCircle aria-hidden="true" className="h-4 w-4" />
-            WhatsApp
-          </a>
+            WhatsApp or Status
+          </button>
+          {imageUrl && isPreparingImage && (
+            <p
+              id={`whatsapp-image-preparing-${product.$id}`}
+              role="status"
+              className="mt-1 text-xs text-[var(--color-text-secondary)]"
+            >
+              Preparing product image for WhatsApp sharing.
+            </p>
+          )}
 
           <a
             href={facebookUrl}
