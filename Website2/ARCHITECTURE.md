@@ -1,8 +1,8 @@
-# Nile Flow Website 2 — API Integration Architecture
+# Nile Flow Website  — API Integration Architecture
 
 ## Overview
 
-This document describes the complete frontend integration layer for Website2. The architecture is an enterprise-grade, clean, modular, and scalable backend integration designed for plug-and-play connectivity with the existing Nile Flow backend.
+This document describes the complete frontend integration layer for Website. The architecture is an enterprise-grade, clean, modular, and scalable backend integration designed for plug-and-play connectivity with the existing Nile Flow backend.
 
 **Design Principles:**
 - Zero API logic in React components

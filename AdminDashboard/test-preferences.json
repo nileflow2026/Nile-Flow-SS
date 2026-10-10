@@ -1,0 +1,9 @@
+{
+  "tool": "vitest",
+  "gate": null,
+  "additionalTools": [],
+  "e2eTool": "playwright",
+  "testDir": "src",
+  "filePattern": "*.test.{js,jsx,ts,tsx}",
+  "packageManager": "npm"
+}
