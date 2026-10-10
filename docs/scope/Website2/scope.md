@@ -24,5 +24,5 @@ Code in `Website2/src/features/deals/`.
   - [x] Complete the canonical offer message, deal URL, and invalid data behavior (AC-2, AC-5).
   - [x] Add the accessible chooser and device, WhatsApp, Facebook, X, Telegram, and copy actions (AC-1, AC-3, AC-4).
   - [x] Handle expiry, unavailable sharing, cancellation, and copy failure, then verify the platform payloads (AC-3, AC-4, AC-5).
-- [ ] Verify it: `/check verify Website2 deal sharing`
+- [x] Verify it: `/check verify Website2 deal sharing`
 - [ ] Test it: `/test Website2 deal sharing`
