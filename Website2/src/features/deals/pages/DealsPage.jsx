@@ -6,6 +6,10 @@ import { productService } from '@api/services'
 import { useToast } from '@shared/ui/toast/ToastProvider'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { config, imageProxyUrl } from '@api/config'
+import {
+  createDealShareContent,
+  getDealShareImageProxyUrl,
+} from '../utils/dealShareContent'
 import { Zap, Flame, Clock, ArrowRight, Tag, Share2, MessageCircle, Copy, Send } from 'lucide-react'
 
 // ── Countdown Hook ───────────────────────────────────────────────────────────
@@ -86,10 +90,6 @@ function UrgencyBadge({ discount, isExpiringSoon, isFlash, isPremium }) {
   return null
 }
 
-function formatDealSharePrice(value) {
-  return `KES ${value.toLocaleString()}`
-}
-
 function getShareImageUrl(product) {
   const candidates = [product.image, ...(Array.isArray(product.images) ? product.images : [])]
 
@@ -125,60 +125,6 @@ function getShareImageUrl(product) {
   }
 
   return null
-}
-
-function createDealShareContent(product, discount) {
-  const productId = typeof product.$id === 'string' ? product.$id.trim() : ''
-  const activeDeal = product.isDeal === true
-  const dealPriceValid = typeof product.dealPrice === 'number' && Number.isFinite(product.dealPrice)
-  const originalPriceValid = typeof product.price === 'number' && Number.isFinite(product.price)
-  const discountValid = typeof discount === 'number'
-    && Number.isFinite(discount)
-    && typeof product.discount === 'number'
-    && Number.isFinite(product.discount)
-  const hasExpiry = product.endTime !== null && product.endTime !== undefined && product.endTime !== ''
-  const expiryTimestamp = hasExpiry ? new Date(product.endTime).getTime() : null
-  const expiryValid = !hasExpiry || Number.isFinite(expiryTimestamp)
-  const isExpired = expiryValid && expiryTimestamp !== null && expiryTimestamp <= Date.now()
-  let dealUrl = ''
-  if (productId && typeof window !== 'undefined') {
-    dealUrl = new URL(
-      `/share/deal/${encodeURIComponent(productId)}`,
-      config.sharing.dealShareOrigin,
-    ).toString()
-  }
-  const expiryText = expiryValid && expiryTimestamp !== null
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(expiryTimestamp))
-    : null
-  const offerText = [
-    `Check out ${product.productName || 'this deal'} on Nile Flow!`,
-    `Deal price: ${dealPriceValid ? formatDealSharePrice(product.dealPrice) : ''}`,
-    `Original price: ${originalPriceValid ? formatDealSharePrice(product.price) : ''}`,
-    `Save ${discountValid ? `${discount}%` : ''}`,
-    expiryText ? `Offer ends: ${expiryText}` : null,
-  ].filter(Boolean).join('\n')
-  const message = `${offerText}\nShop now: ${dealUrl}`
-  let validationMessage = ''
-
-  if (!activeDeal) {
-    validationMessage = 'This deal is no longer available to share.'
-  } else if (!productId) {
-    validationMessage = 'This deal is missing its product link and cannot be shared.'
-  } else if (!dealPriceValid || !originalPriceValid || !discountValid) {
-    validationMessage = 'This deal is missing valid offer details and cannot be shared.'
-  } else if (isExpired) {
-    validationMessage = 'This deal has expired and cannot be shared.'
-  } else if (!expiryValid) {
-    validationMessage = 'This deal has an invalid expiry time and cannot be shared.'
-  }
-
-  return {
-    dealUrl,
-    offerText,
-    message,
-    isValid: Boolean(activeDeal && productId && dealPriceValid && originalPriceValid && discountValid && expiryValid && !isExpired && dealUrl),
-    validationMessage,
-  }
 }
 
 function supportsFileShare(file) {
@@ -251,7 +197,7 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
 
     const prepareImage = async () => {
       try {
-        const response = await fetch(imageProxyUrl(imageUrl), {
+        const response = await fetch(getDealShareImageProxyUrl(imageUrl), {
           signal: controller.signal,
         })
         if (!response.ok) {
@@ -548,7 +494,11 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
 // ── Deal Card Component ──────────────────────────────────────────────────────
 function DealCard({ product, isFlash, isPremium, discount }) {
   const { display: countdown, isExpired } = useCountdown(product.endTime)
-  const shareContent = createDealShareContent(product, discount)
+  const shareContent = createDealShareContent(
+    product,
+    discount,
+    config.sharing.dealShareOrigin,
+  )
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [shareSession, setShareSession] = useState(0)
   const [copyFailed, setCopyFailed] = useState(false)
