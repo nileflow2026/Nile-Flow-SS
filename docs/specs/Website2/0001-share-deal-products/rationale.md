@@ -4,7 +4,7 @@
 
 Website2 is a React and Vite static site on Render. Its deal page gets product data in the browser, and its current Open Graph metadata is added by client side JavaScript. Social crawlers may read the first HTML response without running that JavaScript, so they cannot reliably see the deal name, offer, or product image.
 
-The backend already reads the Appwrite deal collection and Website2 already uses its public image proxy. The browser share action currently sends text and a direct deal URL, but not an image file. Social platforms accept a page URL and create their own preview from metadata; device file sharing is a separate browser capability. Shoppers must remain in control of every post.
+The backend already reads the Appwrite deal collection and Website2 already uses its public image proxy. The browser share action currently sends text and a direct deal URL, but not an image file. Social platforms accept a page URL and create their own preview from metadata; device file sharing is a separate browser capability. Shoppers must remain in control of every post. The current preview URL also exposes the Backend service host and API route, which does not look like a shopper facing Nile Flow link.
 
 ## Options considered
 
@@ -23,7 +23,7 @@ Attach a product image to the browser share sheet where supported, while leaving
 
 ### Option 2: Add a public backend share page beside the static deal page
 
-Add a public endpoint that reads the deal from Appwrite and returns HTML metadata for crawlers. The page redirects shoppers to the canonical Website2 deal page. Website2 sends this share URL to social platforms and the device share sheet, attaching an image file when the browser supports it. (basis: Backend Appwrite access, existing Website2 API configuration, crawler readable metadata practice)
+Add a public route on the existing Backend service that reads the deal from Appwrite and returns HTML metadata for crawlers. Keep the public link on `www.nileflowafrica.com` at `/share/deal/{dealId}`. A Cloudflare Worker handles only that path, forwards it to the existing Backend preview endpoint, and returns the metadata page to the crawler. The page redirects shoppers to the canonical Website2 deal page. Website2 sends this share URL to social platforms and the device share sheet, attaching an image file when the browser supports it. (basis: Backend Appwrite access, existing Website2 API configuration, Cloudflare proxy routing, crawler readable metadata practice)
 
 **Pros**:
 - Social crawlers receive metadata and a public product image in the first HTML response.
@@ -31,8 +31,8 @@ Add a public endpoint that reads the deal from Appwrite and returns HTML metadat
 - The new endpoint can be deployed before Website2 switches links, so the old links keep working during rollout.
 
 **Cons**:
-- Shared links use the backend domain and add one navigation step.
-- The backend needs a dedicated Website2 origin setting and careful HTML escaping.
+- A Cloudflare Worker route and its Backend origin configuration are needed.
+- The preview adds one navigation step and needs a dedicated Website2 origin setting and careful HTML escaping.
 - Device image attachment still depends on browser support and image proxy availability.
 
 ### Option 3: Change Website2 to server rendered pages
@@ -49,9 +49,9 @@ Move deal page rendering to a server capable of loading deal data and returning 
 
 ## Rationale
 
-Choose Option 2. It addresses the cause of missing social images, which is that a static client rendered page cannot put deal specific metadata in its initial HTML response. The existing backend already reads the deal collection, while the current static site remains in place. Render's static site rewrite rules route paths to static responses; they do not execute deal specific application code for each request. (basis: Render static site rewrite behavior, Open Graph crawler metadata practice)
+Choose Option 2 with a Cloudflare Worker route on the existing Website2 domain. Website2 remains static, while the Backend still returns the deal data and crawler metadata. The Worker forwards only `/share/deal/{dealId}` to the current Backend preview endpoint and returns its HTML response, so the shared link and `og:url` stay on `www.nileflowafrica.com` without introducing a new domain. This requires a small Cloudflare routing configuration, but avoids changing Website2 rendering or adding another service. (basis: existing Website2 static hosting, Backend Appwrite access, Cloudflare proxy routing, Open Graph crawler metadata practice)
 
-Deploy the endpoint first, then switch Website2 links. This is an additive migration, and reverting Website2 restores the existing direct links without removing the new endpoint. The backend share URL is the same link sent to platforms and copied to the clipboard; its canonical Website2 URL comes from a dedicated `WEBSITE2_URL` setting, rather than assuming the general `FRONTEND_URL` belongs to Website2. The page uses a fixed server configured destination, escapes product values, and does not accept arbitrary redirect URLs.
+Set `DEAL_SHARE_URL` on the Backend and `VITE_DEAL_SHARE_URL` in the Website2 build to the same public origin, `https://www.nileflowafrica.com`. The Backend uses the configured origin for crawler metadata, while its canonical Website2 URL comes from a dedicated `WEBSITE2_URL` setting, rather than assuming the general `FRONTEND_URL` belongs to Website2. Configure Cloudflare to forward the public share path to the Backend's existing versioned preview endpoint without redirecting the browser to the Backend host. The page uses a fixed server configured destination, escapes product values, and does not accept arbitrary redirect URLs. Keep the old versioned endpoint available for compatibility, but do not use it in newly shared or copied links.
 
 For device sharing, prepare the product image while the chooser is open and call `navigator.canShare({ files })` before attaching it. This avoids making image support a requirement for text sharing and reduces the risk that an image network request consumes the browser's user action. When the image cannot be included, continue with the offer and link and tell the shopper. (basis: graceful degradation and user controlled sharing)
 
@@ -68,6 +68,3 @@ For device sharing, prepare the product image while the chooser is open and call
 - Open Graph metadata for crawler readable link previews.
 - HTML output escaping and fixed redirect destinations for public HTML responses.
 - Strangler pattern for adding a route before switching existing callers.
-
-**Links**:
-- Render static site redirects and rewrites: https://render.com/docs/redirects-rewrites

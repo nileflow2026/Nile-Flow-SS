@@ -24,11 +24,10 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
-const getDealShareUrl = (req, dealId) => {
-  const requestOrigin = `${req.protocol}://${req.get("host")}`;
+const getDealShareUrl = (dealId) => {
   return new URL(
-    `/api/v1/deal-shares/${encodeURIComponent(dealId)}`,
-    requestOrigin,
+    `/share/deal/${encodeURIComponent(dealId)}`,
+    env.DEAL_SHARE_URL,
   ).toString();
 };
 
@@ -107,7 +106,7 @@ const getDealSharePage = async (req, res) => {
     : "This Nile Flow deal";
   const descriptionName = productName || "this deal";
   const description = `Save ${deal.discount}% on ${descriptionName}. Deal price: KES ${deal.dealPrice}. Original price: KES ${deal.price}.`;
-  const shareUrl = getDealShareUrl(req, deal.$id);
+  const shareUrl = getDealShareUrl(deal.$id);
   const canonicalUrl = new URL(
     `/deal/${encodeURIComponent(deal.$id)}`,
     env.WEBSITE2_URL,

@@ -105,7 +105,7 @@ function getShareImageUrl(product) {
     }
 
     if (image && typeof image === 'object') {
-      image = image.url || image.imageUrl
+      image = image.url || image.imageUrl || image.id
     }
     if (typeof image !== 'string') continue
 
@@ -142,10 +142,9 @@ function createDealShareContent(product, discount) {
   const isExpired = expiryValid && expiryTimestamp !== null && expiryTimestamp <= Date.now()
   let dealUrl = ''
   if (productId && typeof window !== 'undefined') {
-    const backendOrigin = config.api.baseURL || window.location.origin
     dealUrl = new URL(
-      `/api/v1/deal-shares/${encodeURIComponent(productId)}`,
-      backendOrigin,
+      `/share/deal/${encodeURIComponent(productId)}`,
+      config.sharing.dealShareOrigin,
     ).toString()
   }
   const expiryText = expiryValid && expiryTimestamp !== null
@@ -191,7 +190,8 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
   const imageUrl = getShareImageUrl(product)
   const imageKey = `${product.$id}:${imageUrl || ''}`
-  const imageFile = preparedImage?.key === imageKey ? preparedImage.file : null
+  const matchingPreparedImage = preparedImage?.key === imageKey ? preparedImage : null
+  const imageFile = matchingPreparedImage?.file || null
   const isPreparingImage = Boolean(
     isOpen && canShare && imageUrl && preparedImage?.key !== imageKey,
   )
@@ -250,12 +250,12 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
         })
 
         if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-          if (!cancelled) setPreparedImage({ key: imageKey, file })
+          if (!cancelled) setPreparedImage({ key: imageKey, file, failed: false })
         } else if (!cancelled) {
-          setPreparedImage({ key: imageKey, file: null })
+          setPreparedImage({ key: imageKey, file: null, failed: false })
         }
       } catch {
-        if (!cancelled) setPreparedImage({ key: imageKey, file: null })
+        if (!cancelled) setPreparedImage({ key: imageKey, file: null, failed: true })
       } finally {
         clearTimeout(timeoutId)
       }
@@ -368,6 +368,10 @@ function DealShareDialog({ isOpen, product, shareContent, copyFailed, setCopyFai
                 className="mt-1 text-xs text-[var(--color-text-secondary)]"
               >
                 Preparing product image for device sharing.
+              </p>
+            ) : matchingPreparedImage?.failed ? (
+              <p role="status" className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                The product image could not be prepared. Sharing will include the offer and link.
               </p>
             ) : null}
           </div>

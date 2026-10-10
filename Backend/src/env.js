@@ -75,6 +75,7 @@ const schema = Joi.object({
   FRONTEND_URL: Joi.string().uri().default("http://localhost:5173"),
   // Website2 public origin used by deal sharing preview pages
   WEBSITE2_URL: Joi.string().uri({ scheme: ["http", "https"] }).required(),
+  DEAL_SHARE_URL: Joi.string().uri({ scheme: ["http", "https"] }).required(),
   // Google OAuth
   GOOGLE_CLIENT_ID: Joi.string().optional(),
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
@@ -171,6 +172,28 @@ try {
   throw Object.assign(
     new Error(`Environment validation failed: ${website2UrlError.message}`),
     { cause: website2UrlError },
+  );
+}
+
+try {
+  const dealShareUrl = new URL(env.DEAL_SHARE_URL);
+  if (
+    dealShareUrl.pathname !== "/" ||
+    dealShareUrl.search ||
+    dealShareUrl.hash ||
+    dealShareUrl.username ||
+    dealShareUrl.password ||
+    (env.NODE_ENV === "production" && dealShareUrl.protocol !== "https:")
+  ) {
+    throw new Error(
+      "DEAL_SHARE_URL must be a public origin without a path, query, or fragment, and must use HTTPS in production.",
+    );
+  }
+  env.DEAL_SHARE_URL = dealShareUrl.origin;
+} catch (dealShareUrlError) {
+  throw Object.assign(
+    new Error(`Environment validation failed: ${dealShareUrlError.message}`),
+    { cause: dealShareUrlError },
   );
 }
 

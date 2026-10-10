@@ -65,6 +65,10 @@ export const config = {
     currency: getEnv('VITE_CURRENCY', 'KES'),
   },
 
+  sharing: {
+    dealShareOrigin: getEnv('VITE_DEAL_SHARE_URL', 'https://www.nileflowafrica.com'),
+  },
+
   // ── Currency API ──────────────────────────────────────────────────
   currency: {
     ratesEndpoint: '/api/currency/rates',
