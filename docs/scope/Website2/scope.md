@@ -10,6 +10,7 @@ This scope tracks customer facing work in the Website2 workspace.
 | # | Feature | Phase | Status |
 |---|---|---|---|
 | 1 | Website2 deal sharing | Deals | in-progress |
+| 2 | Website2 product detail sharing | Products | in-progress |
 
 ## Deals
 
@@ -26,3 +27,20 @@ Code in `Website2/src/features/deals/`.
   - [x] Prepare product image files for device sharing and implement WhatsApp image download and Copy link fallbacks (AC-3, AC-6).
 - [ ] Verify it: `/check verify Website2 deal sharing`
 - [ ] Test it: `/test Website2 deal sharing`
+
+## Products
+
+### 2. Website2 product detail sharing · in-progress
+
+Shoppers share ordinary products from their detail pages using a branded preview link and an image when browser sharing supports it.
+**Done when:** a compact accessible Share control appears over the product image on detail pages; the chooser shares the displayed product name and price through device sharing, WhatsApp, Facebook, X, Telegram, or Copy link; the public preview returns safe crawler metadata and redirects to the canonical product page; image and clipboard failures have clear fallbacks; active deals keep their existing share flow.
+Code in `Website2/src/features/products/` and the existing Backend share preview area.
+- [x] Design it (spec): `/architect Website2 product detail sharing`
+  Spec [0002](../../specs/Website2/0002-share-products-from-detail-page/index.md)
+- [x] Build it: `/develop Website2 product detail sharing`
+  - [x] Add the public product preview route with visibility checks, safe metadata, and the fixed product page redirect (AC-6, AC-7, AC-8).
+  - [x] Add the ordinary product message and share chooser, preserving the existing deal flow (AC-1, AC-2, AC-3, AC-5).
+  - [x] Place the accessible Share control on the product detail image only (AC-1, AC-2, AC-3).
+  - [x] Prepare product images for file sharing and implement image and currency fallbacks (AC-2, AC-3, AC-4).
+- [ ] Verify it: `/check verify Website2 product detail sharing`
+- [ ] Test it: `/test Website2 product detail sharing`

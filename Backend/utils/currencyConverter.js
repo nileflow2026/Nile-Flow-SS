@@ -150,7 +150,7 @@ function enrichProductWithCurrency(
     psychological,
   });
 
-  return {
+  const enrichedProduct = {
     ...product,
     price: {
       basePrice,
@@ -162,6 +162,29 @@ function enrichProductWithCurrency(
       raw: basePrice,
     },
   };
+
+  const originalPrice = Number.isFinite(product.originalPrice) &&
+    product.originalPrice > basePrice
+      ? product.originalPrice
+      : null;
+
+  if (originalPrice !== null) {
+    const convertedOriginalPrice = convertPrice({
+      amount: originalPrice,
+      from: "KES",
+      to: currency,
+      rate,
+      psychological,
+    });
+    enrichedProduct.originalPriceDisplayValue = formatCurrency(
+      convertedOriginalPrice,
+      currency,
+    );
+  } else {
+    delete enrichedProduct.originalPriceDisplayValue;
+  }
+
+  return enrichedProduct;
 }
 
 /**

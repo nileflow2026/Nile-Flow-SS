@@ -860,6 +860,16 @@ try {
 }
 
 try {
+  const {
+    getProductSharePage,
+    productShareLimiter,
+  } = require("../controllers/v1/productShareController");
+  app.get("/share/product/:productId", productShareLimiter, getProductSharePage);
+} catch (productShareRouteError) {
+  console.warn("Product share route failed to load:", productShareRouteError.message);
+}
+
+try {
   const v1Router = require("../routes/v1");
   app.use("/api/v1", v1Router);
 } catch (v1Error) {

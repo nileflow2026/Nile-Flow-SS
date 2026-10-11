@@ -21,6 +21,14 @@ import { usePostHog } from '@posthog/react'
 import { SeoHead } from '@shared/seo/SeoHead'
 import { createProductSchema, buildCanonicalUrl } from '@shared/seo/SchemaFactory'
 import Breadcrumbs from '@shared/ui/breadcrumbs/Breadcrumbs'
+import { Share2 } from 'lucide-react'
+import { config } from '@api/config'
+import { createDealShareContent } from '../../deals/utils/dealShareContent'
+import ProductShareDialog from '../components/ProductShareDialog'
+import {
+  createProductShareContent,
+  getProductShareImageUrl,
+} from '../utils/productShareContent'
 
 const COLOR_SWATCHES = {
   black: '#111827',
@@ -69,6 +77,8 @@ function ProductDetailPage() {
   const [selectedVariants, setSelectedVariants] = useState({})
   const [showFullDescription, setShowFullDescription] = useState(false)
   const [categories, setCategories] = useState([])
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
 
   const loadReviews = useCallback(async () => {
     if (!productId) return
@@ -282,6 +292,42 @@ function ProductDetailPage() {
     priceStr = '—'
   }
 
+  const productDocumentId = product?.$id || product?.productId || product?.id
+  const isDeal = product?.isDeal === true
+  const catalogPrice = product?.price && typeof product.price === 'object'
+    ? product.price.basePrice
+    : product?.price
+  const shareProduct = isDeal
+    ? {
+        ...product,
+        $id: productDocumentId,
+        productName: product?.productName || product?.name || product?.title,
+        price: catalogPrice,
+      }
+    : product
+  const shareContent = isDeal
+    ? {
+        ...createDealShareContent(
+          shareProduct,
+          shareProduct.discount,
+          config.sharing.dealShareOrigin,
+        ),
+        imageUrl: getProductShareImageUrl(product),
+        productId: productDocumentId,
+        productName: name,
+        shareUrl: new URL(
+          `/share/deal/${encodeURIComponent(productDocumentId || '')}`,
+          config.sharing.dealShareOrigin,
+        ).toString(),
+      }
+    : createProductShareContent(product, config.sharing.dealShareOrigin)
+  const shareUnavailableMessage = shareContent.validationMessage
+  const shareUnavailableDescriptionId = `product-share-unavailable-${productDocumentId || 'unknown'}`
+  const closeShareDialog = () => {
+    setIsShareOpen(false)
+    setCopyFailed(false)
+  }
+
   const description = product?.description || ''
   const descriptionLimit = 220
   const hasLongDescription = description.length > descriptionLimit
@@ -361,7 +407,29 @@ function ProductDetailPage() {
       <ResponsiveSection  className="py-6 sm:py-10 lg:py-16">
         <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
           <div className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-lg)] sm:rounded-3xl sm:p-6 lg:p-8">
-            <ImageCarousel images={productImages} alt={name} />
+            <div className="relative">
+              <ImageCarousel images={productImages} alt={name} />
+              <button
+                type="button"
+                onClick={() => {
+                  setCopyFailed(false)
+                  setIsShareOpen(true)
+                }}
+                disabled={!shareContent.isValid}
+                aria-label={isDeal ? 'Share deal' : 'Share product'}
+                aria-describedby={shareUnavailableMessage ? shareUnavailableDescriptionId : undefined}
+                title={shareUnavailableMessage || undefined}
+                className="absolute right-3 top-3 z-10 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-2 text-sm font-semibold text-gray-900 shadow-lg transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 disabled:cursor-not-allowed disabled:opacity-60 sm:right-4 sm:top-4"
+              >
+                <Share2 aria-hidden="true" className="h-4 w-4" />
+                Share
+              </button>
+              {shareUnavailableMessage && (
+                <p id={shareUnavailableDescriptionId} className="mt-2 text-xs text-[var(--color-text-secondary)]">
+                  {shareUnavailableMessage}
+                </p>
+              )}
+            </div>
             <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2">
               {inStock ? (
                 <Badge variant="success">{stock ? `In stock (${stock})` : 'In stock'}</Badge>
@@ -593,6 +661,16 @@ function ProductDetailPage() {
           </div>
         </div>
       </ResponsiveSection>
+
+      <ProductShareDialog
+        isOpen={isShareOpen}
+        isDeal={isDeal}
+        shareContent={shareContent}
+        copyFailed={copyFailed}
+        setCopyFailed={setCopyFailed}
+        onClose={closeShareDialog}
+        push={push}
+      />
     </PageShell>
   )
 }

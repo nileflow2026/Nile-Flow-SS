@@ -188,6 +188,49 @@ describe("enrichProductWithCurrency()", () => {
   // KES → KES (no conversion)
   const kesEnriched = enrichProductWithCurrency(product, "KES", 1);
   assertEq(kesEnriched.price.convertedPrice, 2000, "KES → KES no conversion");
+
+  const discountedProduct = enrichProductWithCurrency(
+    { ...product, originalPrice: 2500 },
+    "UGX",
+    rate,
+  );
+  assertEq(
+    discountedProduct.originalPriceDisplayValue,
+    "UGX 68,750",
+    "original price is converted from KES using the same rate",
+  );
+
+  const psychologicallyPricedProduct = enrichProductWithCurrency(
+    { ...product, originalPrice: 2500 },
+    "KES",
+    1,
+    true,
+  );
+  assertEq(
+    psychologicallyPricedProduct.originalPriceDisplayValue,
+    formatCurrency(
+      convertPrice({
+        amount: 2500,
+        from: "KES",
+        to: "KES",
+        rate: 1,
+        psychological: true,
+      }),
+      "KES",
+    ),
+    "original price uses the same psychological pricing mode",
+  );
+
+  const invalidOriginalPrice = enrichProductWithCurrency(
+    { ...product, originalPrice: product.price },
+    "KES",
+    1,
+  );
+  assertEq(
+    invalidOriginalPrice.originalPriceDisplayValue,
+    undefined,
+    "original price is omitted when it is not higher than the current price",
+  );
 });
 
 describe("enrichProductsWithCurrency() batch", () => {

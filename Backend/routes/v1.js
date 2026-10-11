@@ -46,6 +46,10 @@ const {
   getDealSharePage,
 } = require("../controllers/v1/dealShareController");
 const {
+  getProductSharePage,
+  productShareLimiter,
+} = require("../controllers/v1/productShareController");
+const {
   getBanners,
   createBanner,
   updateBanner,
@@ -74,6 +78,7 @@ const {
  * Public crawler preview page for an active deal.
  */
 router.get("/deal-shares/:dealId", dealShareLimiter, getDealSharePage);
+router.get("/product-shares/:productId", productShareLimiter, getProductSharePage);
 
 /**
  * GET /api/v1/home-feed
