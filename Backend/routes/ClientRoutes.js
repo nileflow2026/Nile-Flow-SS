@@ -37,6 +37,11 @@ const {
   getPublicVendorInfo,
 } = require("../controllers/UserControllers/vendorInfoController");
 const {
+  listBusinesses,
+  getBusiness,
+} = require("../controllers/UserControllers/businessDirectoryController");
+const { apiLimiter } = require("../middleware/rate-limiter");
+const {
   handleCancelRequest,
 } = require("../controllers/UserControllers/orderController");
 
@@ -86,6 +91,10 @@ router.get("/hero-products", getHeroProducts);
 
 // Public vendor info for storefront
 router.get("/vendor/:vendorId", getPublicVendorInfo);
+
+// Public, sanitized business directory and profile
+router.get("/businesses", apiLimiter, listBusinesses);
+router.get("/businesses/:businessId", apiLimiter, getBusiness);
 
 // Single product images (fetches from both main + vendor collections)
 router.get("/product/:productId/images", getProductImages);

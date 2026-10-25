@@ -263,19 +263,25 @@ class HttpClient {
         delete requestConfig._uploadId;
         delete requestConfig.skipAuth;
 
-        const request = this.instance.request(requestConfig);
+        const request = this.instance.request(requestConfig)
+          .then((response) => this._normalizeSuccess(response));
 
-        // Track for deduplication
         if (method === 'GET') {
           this._pendingRequests.set(dedupKey, request);
         }
 
-        const response = await request;
-
-        // Normalize success response
-        const normalized = this._normalizeSuccess(response);
-
-        return normalized;
+        try {
+          const normalized = await request;
+          if (method === 'GET' && this._pendingRequests.get(dedupKey) === request) {
+            this._pendingRequests.delete(dedupKey);
+          }
+          return normalized;
+        } catch (error) {
+          if (method === 'GET' && this._pendingRequests.get(dedupKey) === request) {
+            this._pendingRequests.delete(dedupKey);
+          }
+          throw error;
+        }
       } catch (error) {
         lastError = normalizeError(error);
 

@@ -4,8 +4,10 @@ import PageShell from '@shared/ui/layout/PageShell'
 import { SeoHead } from '@shared/seo/SeoHead'
 import ProductCard from '@shared/ui/product-card/ProductCard'
 import BannerCarousel from '@shared/ui/banner-carousel/BannerCarousel'
-import { categoryService, productService } from '@api/services'
+import { businessService, categoryService, productService } from '@api/services'
 import { imageProxyUrl } from '@api/config'
+import BusinessBanner from '@features/businesses/components/BusinessBanner'
+import { BUSINESS_HOME_LIMIT } from '@features/businesses/data/businesses'
 
 const fallbackProducts = [
   {
@@ -43,6 +45,10 @@ function HomePage() {
   const [bannersLoading, setBannersLoading] = useState(true)
   const [dealsLoading, setDealsLoading] = useState(true)
   const [dealCounts, setDealCounts] = useState({ flash: 0, deals: 0, endingSoon: 0 })
+  const [businesses, setBusinesses] = useState([])
+  const [businessesLoading, setBusinessesLoading] = useState(true)
+  const [businessesError, setBusinessesError] = useState(null)
+  const [businessRetryKey, setBusinessRetryKey] = useState(0)
   const categoryRailRef = useRef(null)
 
   useEffect(() => {
@@ -60,6 +66,24 @@ function HomePage() {
       })
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    businessService.getBusinesses({ page: 1, limit: BUSINESS_HOME_LIMIT })
+      .then((result) => {
+        if (!cancelled) setBusinesses(result.businesses)
+      })
+      .catch((requestError) => {
+        if (!cancelled) setBusinessesError(requestError.message || 'Unable to load businesses.')
+      })
+      .finally(() => {
+        if (!cancelled) setBusinessesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [businessRetryKey])
 
   useEffect(() => {
     let cancelled = false
@@ -318,6 +342,65 @@ function HomePage() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8" aria-labelledby="home-businesses-heading">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
+              Meet the local makers
+            </p>
+            <h2 id="home-businesses-heading" className="mt-1 text-xl font-bold text-[var(--color-text-primary)] sm:text-2xl">
+              Discover local businesses
+            </h2>
+          </div>
+          <Link to="/businesses" className="shrink-0 rounded-sm text-sm font-semibold text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]">
+            See all businesses
+          </Link>
+        </div>
+
+        {businessesLoading ? (
+          <div aria-label="Loading businesses" className="mt-5 flex gap-4 overflow-hidden">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="w-[min(82vw,24rem)] shrink-0 overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] sm:w-[22rem]">
+                <div className="aspect-video animate-pulse bg-[var(--color-surface-muted)]" />
+                <div className="space-y-3 p-5">
+                  <div className="h-3 w-28 animate-pulse rounded bg-[var(--color-surface-muted)]" />
+                  <div className="h-6 w-3/4 animate-pulse rounded bg-[var(--color-surface-muted)]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : businessesError ? (
+          <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-5" role="alert">
+            <p className="text-sm leading-6 text-red-800">{businessesError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setBusinessesError(null)
+                setBusinessesLoading(true)
+                setBusinessRetryKey((current) => current + 1)
+              }}
+              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+            >
+              Try again
+            </button>
+          </div>
+        ) : businesses.length > 0 ? (
+          <div className="-mx-4 mt-5 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0">
+            <ul aria-label="Active businesses" className="flex w-max list-none gap-4 px-4 pb-3 sm:px-0">
+              {businesses.slice(0, BUSINESS_HOME_LIMIT).map((business) => (
+                <li key={business.id} className="w-[min(82vw,24rem)] shrink-0 sm:w-[22rem]">
+                  <BusinessBanner business={business} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-[var(--color-surface-muted)] p-5 text-sm text-[var(--color-text-secondary)]">
+            No active businesses are available yet.
+          </p>
+        )}
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
