@@ -1,7 +1,7 @@
 // controllers/vendorController.js
 const path = require("path");
-const { Query, Storage, ID } = require("node-appwrite");
-const { db } = require("../../src/appwrite");
+const { Query } = require("node-appwrite");
+const { db, storage, ID } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 
 const vendorController = {
@@ -64,12 +64,6 @@ const vendorController = {
         });
       }
 
-      // Initialize Appwrite Storage
-      const storage = new Storage()
-        .setEndpoint(env.APPWRITE_ENDPOINT) // Your Appwrite endpoint
-        .setProject(env.APPWRITE_PROJECT_ID) // Your project ID
-        .setKey(env.APPWRITE_API_KEY); // Your API key
-
       // Generate unique file ID
       const fileId = ID.unique();
       const fileName = `vendor-avatar-${vendorId}-${Date.now()}${path.extname(req.file.originalname)}`;
@@ -78,7 +72,7 @@ const vendorController = {
 
       // Upload file to Appwrite Storage
       const file = await storage.createFile(
-        env.APPWRITE_STORAGE_ID, // Your bucket ID for profile pictures
+        env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
         fileId,
         req.file.buffer, // File buffer from multer memory storage
         [
@@ -90,7 +84,7 @@ const vendorController = {
       console.log("File uploaded to Appwrite:", file);
 
       // Get file preview URL (or you can use getFileView or getFileDownload)
-      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.VENDOR_PROFILE_STORAGE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
 
       // Update vendor with new profile picture URL
       const updatedVendor = await db.updateDocument(
@@ -132,10 +126,6 @@ const vendorController = {
         return res.status(400).json({ success: false, error: "No file uploaded" });
       }
 
-      const storage = new Storage()
-        .setEndpoint(env.APPWRITE_ENDPOINT)
-        .setProject(env.APPWRITE_PROJECT_ID)
-        .setKey(env.APPWRITE_API_KEY);
       const fileId = ID.unique();
       const fileName = `vendor-cover-${vendorId}-${Date.now()}${path.extname(req.file.originalname)}`;
       await storage.createFile(
@@ -145,7 +135,7 @@ const vendorController = {
         [`user:${vendorId}`, "role:all"],
       );
 
-      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
       const updatedVendor = await db.updateDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_COLLECTION_ID,
@@ -174,13 +164,8 @@ const vendorController = {
 
       // If vendor has an avatar file ID, delete it from Appwrite
       if (currentVendor.avatarFileId) {
-        const storage = new Storage()
-          .setEndpoint(env.APPWRITE_ENDPOINT)
-          .setProject(env.APPWRITE_PROJECT_ID)
-          .setKey(env.APPWRITE_API_KEY);
-
         await storage.deleteFile(
-          env.APPWRITE_BUCKET_ID,
+          env.APPWRITE_STORAGE_ID,
           currentVendor.avatarFileId
         );
       }
