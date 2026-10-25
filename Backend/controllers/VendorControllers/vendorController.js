@@ -1,6 +1,7 @@
 // controllers/vendorController.js
 const path = require("path");
 const { Query } = require("node-appwrite");
+const { InputFile } = require("node-appwrite/file");
 const { db, storage, ID } = require("../../src/appwrite");
 const { env } = require("../../src/env");
 
@@ -74,7 +75,7 @@ const vendorController = {
       const file = await storage.createFile(
         env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
         fileId,
-        req.file.buffer, // File buffer from multer memory storage
+        InputFile.fromBuffer(req.file.buffer, req.file.originalname),
         [
           `user:${vendorId}`, // Permission for the user
           "role:all", // Adjust permissions as needed
@@ -129,13 +130,13 @@ const vendorController = {
       const fileId = ID.unique();
       const fileName = `vendor-cover-${vendorId}-${Date.now()}${path.extname(req.file.originalname)}`;
       await storage.createFile(
-        env.APPWRITE_STORAGE_ID,
+        env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
         fileId,
-        req.file.buffer,
+        InputFile.fromBuffer(req.file.buffer, req.file.originalname),
         [`user:${vendorId}`, "role:all"],
       );
 
-      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.APPWRITE_STORAGE_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
+      const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.VENDOR_PROFILE_STORAGE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
       const updatedVendor = await db.updateDocument(
         env.VENDOR_DATABASE_ID,
         env.VENDOR_COLLECTION_ID,
@@ -165,7 +166,7 @@ const vendorController = {
       // If vendor has an avatar file ID, delete it from Appwrite
       if (currentVendor.avatarFileId) {
         await storage.deleteFile(
-          env.APPWRITE_STORAGE_ID,
+          env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
           currentVendor.avatarFileId
         );
       }
