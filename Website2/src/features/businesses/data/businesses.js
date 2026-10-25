@@ -13,6 +13,16 @@ export function getBusinessLocation(business) {
   return city || country || optionalText(business.location)
 }
 
+export function getBusinessDescriptionPreview(description, sentenceLimit = 2) {
+  const text = optionalText(description)
+  const sentences = text.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)
+  return (sentences || [])
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .slice(0, sentenceLimit)
+    .join(' ')
+}
+
 export function normalizeBusiness(record) {
   const id = optionalText(record?.id || record?.$id)
   const name = optionalText(record?.storeName) || optionalText(record?.name)

@@ -1,9 +1,12 @@
 import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { imageProxyUrl } from '@api/config'
-import { BUSINESS_IMAGE_FALLBACK } from '../data/businesses'
+import { BUSINESS_IMAGE_FALLBACK, getBusinessDescriptionPreview } from '../data/businesses'
 
-function BusinessBanner({ business }) {
+function BusinessBanner({ business, showDescription = true }) {
+  const mobileDescriptionPreview = getBusinessDescriptionPreview(business.description, 1)
+  const descriptionPreview = getBusinessDescriptionPreview(business.description)
+
   return (
     <Link
       to={`/businesses/${business.id}`}
@@ -52,10 +55,15 @@ function BusinessBanner({ business }) {
             {business.location}
           </span>
         )}
-        {business.description && (
-          <span className="line-clamp-2 block text-sm leading-6 text-[var(--color-text-secondary)]">
-            {business.description}
-          </span>
+        {showDescription && descriptionPreview && (
+          <>
+            <span className="block text-sm leading-6 text-[var(--color-text-secondary)] sm:hidden">
+              {mobileDescriptionPreview}
+            </span>
+            <span className="hidden text-sm leading-6 text-[var(--color-text-secondary)] sm:block">
+              {descriptionPreview}
+            </span>
+          </>
         )}
         <span className="block pt-1 text-sm font-semibold text-emerald-700">
           Visit business

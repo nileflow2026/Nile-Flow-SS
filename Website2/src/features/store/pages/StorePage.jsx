@@ -248,7 +248,7 @@ function StorePage() {
 
       <div className="responsive-shell">
         {/* ── Contact Information ───────────────────────────────── */}
-        {hasContactInfo && (
+        {/* {hasContactInfo && (
           <div className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] sm:mt-8 sm:p-6">
             <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
               Contact
@@ -301,7 +301,7 @@ function StorePage() {
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* ── Products Section ──────────────────────────────────── */}
         <section className="mt-8 sm:mt-10">
@@ -411,7 +411,7 @@ function StorePage() {
         )}
 
         {/* ── Contact Seller CTA ────────────────────────────────── */}
-        <section className="mt-10 mb-16 sm:mt-12 sm:mb-20">
+{/*         <section className="mt-10 mb-16 sm:mt-12 sm:mb-20">
           <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center shadow-[var(--shadow-md)] sm:p-8">
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)] sm:text-xl">
               Interested in this store?
@@ -456,7 +456,7 @@ function StorePage() {
             </div>
           </div>
         </section>
-      </div>
+ */}      </div>
     </PageShell>
   )
 }

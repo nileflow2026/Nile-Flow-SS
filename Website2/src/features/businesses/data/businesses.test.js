@@ -4,6 +4,7 @@ import {
   BUSINESS_HOME_LIMIT,
   BUSINESS_IMAGE_FALLBACK,
   BUSINESS_PAGE_SIZE,
+  getBusinessDescriptionPreview,
   getBusinessLocation,
   normalizeBusiness,
 } from './businesses.js'
@@ -53,6 +54,19 @@ test('uses available public fallbacks for missing names, location, and images', 
   assert.equal(business.coverImagePath, 'https://images.example/profile.jpg')
   assert.equal(getBusinessLocation({ city: 'Juba' }), 'Juba')
   assert.equal(normalizeBusiness({ id: 'vendor-id', name: 'Store' }).coverImagePath, BUSINESS_IMAGE_FALLBACK)
+})
+
+test('limits business card descriptions to two sentences', () => {
+  assert.equal(
+    getBusinessDescriptionPreview('First sentence. Second sentence! Third sentence?'),
+    'First sentence. Second sentence!',
+  )
+  assert.equal(
+    getBusinessDescriptionPreview('First sentence. Second sentence! Third sentence?', 1),
+    'First sentence.',
+  )
+  assert.equal(getBusinessDescriptionPreview('One sentence'), 'One sentence')
+  assert.equal(getBusinessDescriptionPreview('  '), '')
 })
 
 test('rejects a vendor response that cannot identify a business', () => {

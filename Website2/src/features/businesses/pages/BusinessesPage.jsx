@@ -105,8 +105,17 @@ function BusinessesPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-8">
-        <header className="relative overflow-hidden rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-6 shadow-[var(--shadow-sm)] sm:p-10 lg:p-12">
-          <div aria-hidden="true" className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-emerald-100/70 blur-3xl" />
+        <header className="relative overflow-hidden rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 shadow-[var(--shadow-sm)] sm:p-10 lg:p-12">
+          <img
+            src="/Businessdirectoryimage.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/75 to-white/15"
+          />
           <div className="relative max-w-3xl">
             <p className="inline-flex min-h-10 items-center rounded-full border border-emerald-200 bg-white/90 px-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-800">
               Business directory
@@ -153,7 +162,7 @@ function BusinessesPage() {
           </div>
 
           {loading ? (
-            <ul aria-label="Loading businesses" className="mt-7 grid list-none grid-cols-1 gap-5 p-0 md:grid-cols-2 lg:grid-cols-3">
+            <ul aria-label="Loading businesses" className="mt-7 grid list-none grid-cols-2 gap-3 p-0 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }, (_, index) => (
                 <li key={index} className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]">
                   <div className="aspect-video animate-pulse bg-[var(--color-surface-muted)]" />
@@ -175,7 +184,7 @@ function BusinessesPage() {
             </div>
           ) : businesses.length > 0 ? (
             <>
-              <ul className="mt-7 grid list-none grid-cols-1 gap-5 p-0 md:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-7 grid list-none grid-cols-2 gap-3 p-0 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {businesses.map((business) => (
                   <li key={business.id}>
                     <BusinessBanner business={business} />

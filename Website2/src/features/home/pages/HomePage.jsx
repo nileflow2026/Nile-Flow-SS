@@ -347,7 +347,7 @@ function HomePage() {
             <ul aria-label="Active businesses" className="flex w-max list-none gap-4 px-4 pb-3 sm:px-0">
               {businesses.slice(0, BUSINESS_HOME_LIMIT).map((business) => (
                 <li key={business.id} className="w-[min(82vw,24rem)] shrink-0 sm:w-[22rem]">
-                  <BusinessBanner business={business} />
+                  <BusinessBanner business={business} showDescription={false} />
                 </li>
               ))}
             </ul>
