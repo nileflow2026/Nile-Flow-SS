@@ -81,7 +81,7 @@ test("profile and cover uploads use the configured Appwrite storage client and b
     {
       handler: vendorController.updateCoverPicture,
       imageField: "coverImage",
-      bucketId: "vendor-images",
+      bucketId: "vendor-profile-images",
     },
   ];
 
@@ -104,7 +104,11 @@ test("profile and cover uploads use the configured Appwrite storage client and b
   assert.equal(uploadedFiles.length, 2);
   assert.deepEqual(
     uploadedFiles.map(({ bucketId }) => bucketId),
-    ["vendor-profile-images", "vendor-images"],
+    ["vendor-profile-images", "vendor-profile-images"],
+  );
+  assert.deepEqual(
+    uploadedFiles.map(({ permissions }) => permissions),
+    [['read("any")'], ['read("any")']],
   );
   assert.ok(uploadedFiles.every(({ file: uploadedFile }) => uploadedFile instanceof File));
   assert.ok(uploadedFiles.every(({ file: uploadedFile }) => uploadedFile.name === "business-image.jpeg"));
@@ -120,6 +124,6 @@ test("profile picture removal uses the configured Appwrite storage client and bu
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.success, true);
   assert.deepEqual(deletedFiles, [
-    { bucketId: "vendor-images", fileId: "previous-avatar" },
+    { bucketId: "vendor-profile-images", fileId: "previous-avatar" },
   ]);
 });

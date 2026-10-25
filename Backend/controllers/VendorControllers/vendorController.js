@@ -1,6 +1,6 @@
 // controllers/vendorController.js
 const path = require("path");
-const { Query } = require("node-appwrite");
+const { Permission, Query, Role } = require("node-appwrite");
 const { InputFile } = require("node-appwrite/file");
 const { db, storage, ID } = require("../../src/appwrite");
 const { env } = require("../../src/env");
@@ -76,10 +76,7 @@ const vendorController = {
         env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
         fileId,
         InputFile.fromBuffer(req.file.buffer, req.file.originalname),
-        [
-          `user:${vendorId}`, // Permission for the user
-          "role:all", // Adjust permissions as needed
-        ]
+        [Permission.read(Role.any())]
       );
 
       console.log("File uploaded to Appwrite:", file);
@@ -133,7 +130,7 @@ const vendorController = {
         env.VENDOR_PROFILE_STORAGE_BUCKET_ID,
         fileId,
         InputFile.fromBuffer(req.file.buffer, req.file.originalname),
-        [`user:${vendorId}`, "role:all"],
+        [Permission.read(Role.any())],
       );
 
       const fileUrl = `${env.APPWRITE_ENDPOINT}/storage/buckets/${env.VENDOR_PROFILE_STORAGE_BUCKET_ID}/files/${fileId}/view?project=${env.APPWRITE_PROJECT_ID}`;
