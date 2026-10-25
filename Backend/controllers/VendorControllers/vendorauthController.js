@@ -272,6 +272,7 @@ const vendorauthController = {
         category,
         storeDescription,
         location,
+        phone,
         deviceId,
       } = req.body;
 
@@ -357,6 +358,7 @@ const vendorauthController = {
           category,
           storeDescription,
           location: location || "",
+          phone: phone || "",
           profileImage: "",
           coverImage: "",
           socialLinks: [],

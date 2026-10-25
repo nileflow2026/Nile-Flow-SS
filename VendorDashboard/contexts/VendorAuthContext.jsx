@@ -59,7 +59,6 @@ export const VendorAuthProvider = ({ children }) => {
   // Debug state changes
   useEffect(() => {
     console.log("[VendorAuth] State updated:", {
-      user,
       isAuthenticated,
       loading,
       vendorId: user?.id,
@@ -89,6 +88,7 @@ export const VendorAuthProvider = ({ children }) => {
       category,
       storeDescription,
       location,
+      phone,
     ) => {
       console.log("[VendorAuth] Register called");
       const result = await vendorAuthAPI.registerVendor(
@@ -100,14 +100,18 @@ export const VendorAuthProvider = ({ children }) => {
         category,
         storeDescription,
         location,
+        phone,
       );
 
-      console.log("[VendorAuth] Register result:", result);
+      console.log("[VendorAuth] Register result:", {
+        success: result.success,
+        vendorId: result.data?.vendor?.id,
+      });
 
       if (result.success && result.data?.vendor) {
         console.log(
           "[VendorAuth] Setting vendor after registration:",
-          result.data.vendor,
+          result.data.vendor.id,
         );
         setUser(result.data.vendor);
         setIsAuthenticated(true);

@@ -545,6 +545,24 @@ function ProductDetailPage() {
                 className={`relative w-full justify-center overflow-hidden py-3 text-sm sm:flex-1 sm:py-3.5 ${
                   addingToCart ? '!bg-gray-300 !bg-none text-gray-700 shadow-none hover:scale-100' : ''
                 }`}
+                onClick={handleBuyNow}
+                disabled={!inStock || addingToCart}
+              >
+                {addingToCart ? (
+                  <>
+                    <span
+                      className="cart-checkout-progress absolute inset-y-0 left-0 bg-emerald-700"
+                      aria-hidden="true"
+                    />
+                    <span className="relative z-10">Preparing checkout…</span>
+                  </>
+                ) : inStock ? 'Buy now' : 'Out of stock'}
+              </PrimaryButton>
+              <Button
+                variant="outline"
+                className={`relative w-full justify-center overflow-hidden py-3 text-sm sm:flex-1 sm:py-3.5 ${
+                  addingToCart ? '!border-gray-300 !bg-gray-100 !text-gray-700 hover:scale-100' : ''
+                }`}
                 onClick={handleAddToCart}
                 disabled={!inStock || addingToCart}
               >
@@ -557,24 +575,6 @@ function ProductDetailPage() {
                     <span className="relative z-10">Adding to cart…</span>
                   </>
                 ) : inStock ? `Add to cart — ${priceStr}` : 'Out of stock'}
-              </PrimaryButton>
-              <Button
-                variant="outline"
-                className={`relative w-full justify-center overflow-hidden py-3 text-sm sm:w-auto sm:py-3.5 ${
-                  addingToCart ? '!border-gray-300 !bg-gray-100 !text-gray-700 hover:scale-100' : ''
-                }`}
-                onClick={handleBuyNow}
-                disabled={!inStock || addingToCart}
-              >
-                {addingToCart ? (
-                  <>
-                    <span
-                      className="cart-checkout-progress absolute inset-y-0 left-0 bg-amber-500"
-                      aria-hidden="true"
-                    />
-                    <span className="relative z-10">Preparing checkout…</span>
-                  </>
-                ) : 'Buy now'}
               </Button>
             </div>
 

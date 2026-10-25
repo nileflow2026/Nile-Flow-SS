@@ -193,6 +193,7 @@ const Register = () => {
         formData.category,
         formData.storeDescription,
         formData.location,
+        formData.phone,
       );
 
       if (result.success) {

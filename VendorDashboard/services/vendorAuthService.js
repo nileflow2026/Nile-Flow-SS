@@ -26,6 +26,7 @@ export const registerVendor = async (
   category,
   storeDescription,
   location,
+  phone,
 ) => {
   try {
     const deviceId = getDeviceId();
@@ -39,6 +40,7 @@ export const registerVendor = async (
       category,
       storeDescription,
       location,
+      phone,
       deviceId,
     });
 
