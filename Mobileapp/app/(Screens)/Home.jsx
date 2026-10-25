@@ -24,6 +24,7 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import BannerCarousel from "../components/BannerCarousel";
 import PremiumBanner from "../components/PremiumBanner";
 import PremiumDeals from "../components/PremiumDeals";
+import BusinessShowcase from "../../components/businesses/BusinessShowcase";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -475,6 +476,8 @@ const Home = () => {
         />
 
         <DealsSpecialOffers />
+
+        <BusinessShowcase />
 
         {/* Featured Products Section */}
         <FeaturedProducts />

@@ -32,6 +32,12 @@ export const queryKeys = {
     list: () => ["categories", "list"],
   },
 
+  businesses: {
+    all: () => ["businesses"],
+    directory: (category = "") => ["businesses", "directory", category],
+    profile: (businessId) => ["businesses", "profile", businessId],
+  },
+
   orders: {
     all: () => ["orders"],
     list: (page = 1) => ["orders", "list", page],

@@ -327,7 +327,7 @@ const VendorStore = () => {
             </View>
 
             {/* ── Contact Information ──────────────────────── */}
-            {hasContactInfo && (
+            {/* {hasContactInfo && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Contact</Text>
                 <View style={styles.contactRow}>
@@ -372,7 +372,7 @@ const VendorStore = () => {
                   ) : null}
                 </View>
               </View>
-            )}
+            )} */}
 
             {/* ── Search & Sort ────────────────────────────── */}
             <View style={styles.section}>
@@ -459,7 +459,7 @@ const VendorStore = () => {
             )}
 
             {/* ── Contact Seller CTA ──────────────────────── */}
-            <View style={styles.ctaSection}>
+           {/*  <View style={styles.ctaSection}>
               <Text style={styles.ctaTitle}>Interested in this store?</Text>
               <Text style={styles.ctaSubtitle}>
                 {whatsapp
@@ -493,7 +493,7 @@ const VendorStore = () => {
                   </TouchableOpacity>
                 ) : null}
               </View>
-            </View>
+            </View> */}
 
             {/* Bottom spacer */}
             <View style={{ height: 40 }} />
