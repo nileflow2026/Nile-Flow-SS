@@ -300,50 +300,6 @@ function HomePage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8" aria-labelledby="home-deals-heading">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-600">Save more today</p>
-            <h2 id="home-deals-heading" className="mt-1 text-xl font-bold text-[var(--color-text-primary)] sm:text-2xl">
-              Deals and special offers
-            </h2>
-          </div>
-          <Link to="/deals" className="shrink-0 text-sm font-semibold text-red-600 hover:text-red-700">
-            View all
-          </Link>
-        </div>
-
-        <div className="-mx-4 mt-5 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0" aria-label={dealsLoading ? 'Loading deals' : 'Browse deals'}>
-          <div className="flex w-max gap-3 px-4 pb-2 sm:w-auto sm:flex-wrap sm:px-0">
-            {dealsLoading ? (
-              [1, 2, 3].map((item) => (
-                <div key={item} className="h-20 w-44 shrink-0 animate-pulse rounded-2xl bg-[var(--color-surface-muted)] sm:w-52" />
-              ))
-            ) : (
-              [
-                { type: 'flash', label: 'Flash Sales', count: dealCounts.flash, icon: '⚡', tone: 'from-red-600 to-orange-500' },
-                { type: 'product', label: 'Deals', count: dealCounts.deals, icon: '🏷️', tone: 'from-amber-500 to-orange-500' },
-                { type: 'ending-soon', label: 'Ending Soon', count: dealCounts.endingSoon, icon: '⏱️', tone: 'from-rose-500 to-red-500' },
-              ].map((offer) => (
-                <Link
-                  key={offer.type}
-                  to={`/deals?type=${offer.type}`}
-                  className={`flex w-44 shrink-0 items-center gap-3 rounded-2xl bg-gradient-to-r ${offer.tone} p-4 text-white shadow-[var(--shadow-sm)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-md)] sm:w-52`}
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl" aria-hidden="true">
-                    {offer.icon}
-                  </span>
-                  <span className="min-w-0 font-semibold">
-                    <span className="block">{offer.label}</span>
-                    <span className="text-xs font-normal text-white/80">{offer.count} active</span>
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
       <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8" aria-labelledby="home-businesses-heading">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -402,6 +358,52 @@ function HomePage() {
           </p>
         )}
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8" aria-labelledby="home-deals-heading">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-red-600">Save more today</p>
+            <h2 id="home-deals-heading" className="mt-1 text-xl font-bold text-[var(--color-text-primary)] sm:text-2xl">
+              Deals and special offers
+            </h2>
+          </div>
+          <Link to="/deals" className="shrink-0 text-sm font-semibold text-red-600 hover:text-red-700">
+            View all
+          </Link>
+        </div>
+
+        <div className="-mx-4 mt-5 overflow-x-auto overflow-y-hidden scrollbar-none sm:mx-0" aria-label={dealsLoading ? 'Loading deals' : 'Browse deals'}>
+          <div className="flex w-max gap-3 px-4 pb-2 sm:w-auto sm:flex-wrap sm:px-0">
+            {dealsLoading ? (
+              [1, 2, 3].map((item) => (
+                <div key={item} className="h-20 w-44 shrink-0 animate-pulse rounded-2xl bg-[var(--color-surface-muted)] sm:w-52" />
+              ))
+            ) : (
+              [
+                { type: 'flash', label: 'Flash Sales', count: dealCounts.flash, icon: '⚡', tone: 'from-red-600 to-orange-500' },
+                { type: 'product', label: 'Deals', count: dealCounts.deals, icon: '🏷️', tone: 'from-amber-500 to-orange-500' },
+                { type: 'ending-soon', label: 'Ending Soon', count: dealCounts.endingSoon, icon: '⏱️', tone: 'from-rose-500 to-red-500' },
+              ].map((offer) => (
+                <Link
+                  key={offer.type}
+                  to={`/deals?type=${offer.type}`}
+                  className={`flex w-44 shrink-0 items-center gap-3 rounded-2xl bg-gradient-to-r ${offer.tone} p-4 text-white shadow-[var(--shadow-sm)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-md)] sm:w-52`}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 text-xl" aria-hidden="true">
+                    {offer.icon}
+                  </span>
+                  <span className="min-w-0 font-semibold">
+                    <span className="block">{offer.label}</span>
+                    <span className="text-xs font-normal text-white/80">{offer.count} active</span>
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

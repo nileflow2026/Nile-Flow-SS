@@ -19,6 +19,7 @@ const publicVendorFields = [
   "whatsapp",
   "location",
   "address",
+  "avatar",
   "profileImage",
   "coverImage",
   "category",
@@ -86,6 +87,7 @@ const vendorInfoController = {
 
       // Try fetching from the main vendor collection first
       let vendorDoc = null;
+      let vendorImageDoc = null;
 
       // Check MAIN_VENDORS_COLLECTION_ID if it exists
       const mainVendorCollectionId =
@@ -101,6 +103,22 @@ const vendorInfoController = {
         } catch (_) {
           // Not found in main, fall through to vendor database
           vendorDoc = null;
+        }
+      }
+
+      if (
+        vendorDoc &&
+        env.VENDOR_DATABASE_ID &&
+        env.VENDOR_COLLECTION_ID
+      ) {
+        try {
+          vendorImageDoc = await db.getDocument(
+            env.VENDOR_DATABASE_ID,
+            env.VENDOR_COLLECTION_ID,
+            vendorId,
+          );
+        } catch (_) {
+          vendorImageDoc = null;
         }
       }
 
@@ -140,7 +158,12 @@ const vendorInfoController = {
         });
       }
 
-      const publicVendor = sanitizePublicVendor(vendorDoc);
+      const publicVendor = sanitizePublicVendor({
+        ...vendorDoc,
+        avatar: vendorImageDoc?.avatar || vendorDoc.avatar,
+        profileImage: vendorImageDoc?.profileImage || vendorDoc.profileImage,
+        coverImage: vendorImageDoc?.coverImage || vendorDoc.coverImage,
+      });
 
       return res.json({
         success: true,

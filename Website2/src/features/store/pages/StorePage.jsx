@@ -10,6 +10,7 @@ import EmptyState from '@shared/ui/empty-state/EmptyState'
 import StarRating from '@shared/ui/star-rating/StarRating'
 import Input from '@shared/ui/input/Input'
 import { productService, vendorService } from '@api/services'
+import { imageProxyUrl } from '@api/config'
 import { SeoHead } from '@shared/seo/SeoHead'
 
 const SORT_OPTIONS = [
@@ -17,6 +18,11 @@ const SORT_OPTIONS = [
   { value: 'price-low', label: 'Price: Low → High' },
   { value: 'price-high', label: 'Price: High → Low' },
 ]
+
+function getStoreImageSource(image, width, quality) {
+  if (!image) return ''
+  return /^https?:\/\//i.test(image) ? imageProxyUrl(image, width, quality) : image
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -133,6 +139,8 @@ function StorePage() {
   const storeDescription = vendor?.storeDescription || vendor?.description || ''
   const storeLogo = vendor?.profileImage || vendor?.avatar || vendor?.logo || ''
   const storeCover = vendor?.coverImage || vendor?.cover || ''
+  const storeLogoSource = getStoreImageSource(storeLogo, 192, 80)
+  const storeCoverSource = getStoreImageSource(storeCover, 1400, 78)
   const vendorRating = vendor?.storeStats?.rating || vendor?.rating || 0
   const vendorRatingCount = vendor?.storeStats?.totalRatings || vendor?.ratingsCount || 0
   const joinedDate = formatDate(vendor?.createdAt || vendor?.joinedAt)
@@ -184,7 +192,15 @@ function StorePage() {
       {/* ── Store Header ───────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_50%),linear-gradient(135deg,rgba(16,185,129,0.10)_0%,var(--color-background)_45%,rgba(245,158,11,0.10)_100%)]">
         {storeCover && (
-          <img src={storeCover} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+          <img
+            src={storeCoverSource}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover opacity-20"
+            onError={(event) => {
+              event.currentTarget.style.visibility = 'hidden'
+            }}
+          />
         )}
         <div className="responsive-shell py-10 sm:py-14 lg:py-16">
           <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
@@ -192,9 +208,14 @@ function StorePage() {
             <div className="shrink-0">
               {storeLogo ? (
                 <img
-                  src={storeLogo}
+                  src={storeLogoSource}
                   alt={`${storeName} logo`}
                   className="h-24 w-24 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] object-cover shadow-[var(--shadow-md)] sm:h-28 sm:w-28"
+                  onError={(event) => {
+                    if (event.currentTarget.dataset.fallbackApplied) return
+                    event.currentTarget.dataset.fallbackApplied = 'true'
+                    event.currentTarget.src = '/logo.png'
+                  }}
                 />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-[var(--color-border)] bg-[var(--color-primary)] text-3xl font-bold text-white shadow-[var(--shadow-md)] sm:h-28 sm:w-28">
