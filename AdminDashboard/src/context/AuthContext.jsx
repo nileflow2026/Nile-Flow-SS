@@ -6,11 +6,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import authService, {
-  getCurrentUser,
-  signinAdmin,
-  signoutAdmin,
-} from "../../authService";
+import { getCurrentUser, signinAdmin, signoutAdmin } from "../../authService";
 
 const AuthContext = createContext(null);
 
@@ -45,9 +41,9 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(false);
           }
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          console.error("Auth initialization failed:", error);
+
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -78,23 +74,6 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener("auth:logout", handleLogout);
   }, []);
 
-  const signup = useCallback(async (email, password, username) => {
-    const deviceId = getDeviceId();
-    const result = await authService.signup(
-      email,
-      password,
-      username,
-      deviceId
-    );
-
-    if (result.success) {
-      setUser(result.data.user);
-      setIsAuthenticated(true);
-    }
-
-    return result;
-  }, []);
-
   const signin = useCallback(async (email, password) => {
     const deviceId = getDeviceId();
     const result = await signinAdmin(email, password, deviceId);
@@ -123,7 +102,6 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     isLoading,
-    signup,
     signin,
     logout,
     updateUser,

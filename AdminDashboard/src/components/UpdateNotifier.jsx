@@ -86,8 +86,8 @@ class UpdateNotifierBoundary extends Component {
   static getDerivedStateFromError() {
     return { crashed: true };
   }
-  componentDidCatch(err) {
-    console.error("[UpdateNotifier] Isolated error:", err);
+  componentDidCatch() {
+    console.error("[AdminDashboard] Update notifier failed.");
   }
   render() {
     if (this.state.crashed) return null;

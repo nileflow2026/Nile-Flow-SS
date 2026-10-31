@@ -63,7 +63,7 @@ export default function UserPage() {
         try {
           const ordersData = await getUserOrders(userId);
           setOrders(ordersData || []);
-        } catch (orderError) {
+        } catch {
           setOrders([]);
         }
 
@@ -71,7 +71,7 @@ export default function UserPage() {
         try {
           const addressData = await getUserAddresses(userId);
           setAddresses(addressData || []);
-        } catch (addressError) {
+        } catch {
           setAddresses([]);
         }
 
@@ -88,7 +88,7 @@ export default function UserPage() {
           } else {
             setUser(userDoc);
           }
-        } catch (prefsErr) {
+        } catch {
           setUser(userDoc);
         }
 

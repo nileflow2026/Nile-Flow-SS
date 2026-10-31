@@ -1,14 +1,46 @@
 const { Query } = require("node-appwrite");
 const { db } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+
+const MAX_CUSTOMER_PAGE_SIZE = 50;
+
+const parseNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+};
+
+const normalizeCustomerSummary = (customer) => ({
+  id: customer.id,
+  name: customer.name || "Customer",
+  email: customer.email || "",
+  phone: customer.phone || "",
+  orders: customer.orders || 0,
+  totalSpent: Number(customer.totalSpentRaw || 0),
+  totalSpentDisplay: `$${Number(customer.totalSpentRaw || 0).toFixed(2)}`,
+  status: customer.status || "Active",
+  joinDate: customer.joinDate || null,
+  loyaltyPoints: customer.loyaltyPoints || 0,
+  lastOrderDate: customer.lastOrderDate || null,
+  firstOrderDate: customer.firstOrderDate || null,
+});
+
 // Get all customers (for admin/vendor dashboard)
 const getAllCustomers = async (req, res) => {
   try {
-    // Get all orders to extract customer data
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(
+      MAX_CUSTOMER_PAGE_SIZE,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 25),
+    );
+
     const orders = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
-      [Query.limit(1000)]
+      [Query.limit(1000)],
     );
 
     // Group orders by user to get customer statistics
@@ -81,39 +113,49 @@ const getAllCustomers = async (req, res) => {
         // Calculate loyalty points (1 point per $1 spent + 10 points per order)
         const loyaltyPoints = Math.round(data.totalSpent + data.orders * 10);
 
-        return {
+        return normalizeCustomerSummary({
           id: userId,
           name: details.name,
           email: details.email,
           phone: details.phone,
           orders: data.orders,
-          totalSpent: `$${data.totalSpent.toFixed(2)}`,
           totalSpentRaw: data.totalSpent,
           status: status,
-          joinDate: new Date(details.joinDate).toISOString().split("T")[0],
+          joinDate: details.joinDate
+            ? new Date(details.joinDate).toISOString().split("T")[0]
+            : null,
           loyaltyPoints: loyaltyPoints,
           lastOrderDate: data.lastOrderDate,
           firstOrderDate: data.firstOrderDate,
-        };
-      }
+        });
+      },
     );
 
     // Sort by total spent (descending)
-    customers.sort((a, b) => b.totalSpentRaw - a.totalSpentRaw);
+    customers.sort((a, b) => b.totalSpent - a.totalSpent);
+
+    const safeCustomers = customers.slice(
+      (page - 1) * pageSize,
+      page * pageSize,
+    );
 
     res.json({
       success: true,
-      customers: customers,
+      customers: safeCustomers,
+      total: customers.length,
+      page,
+      limit: pageSize,
+      totalPages: Math.ceil(customers.length / pageSize),
       stats: {
         totalCustomers: customers.length,
         activeCustomers: customers.filter((c) => c.status === "Active").length,
         vipCustomers: customers.filter((c) => c.status === "VIP").length,
         totalOrders: customers.reduce((sum, c) => sum + c.orders, 0),
-        totalRevenue: customers.reduce((sum, c) => sum + c.totalSpentRaw, 0),
+        totalRevenue: customers.reduce((sum, c) => sum + c.totalSpent, 0),
         averageOrderValue:
           customers.length > 0
             ? (
-                customers.reduce((sum, c) => sum + c.totalSpentRaw, 0) /
+                customers.reduce((sum, c) => sum + c.totalSpent, 0) /
                 customers.reduce((sum, c) => sum + c.orders, 0)
               ).toFixed(2)
             : 0,
@@ -137,7 +179,7 @@ const getCustomerDetails = async (req, res) => {
     const orders = await db.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_ORDERS_COLLECTION,
-      [Query.equal("users", customerId)]
+      [Query.equal("users", customerId), Query.limit(25)],
     );
 
     if (orders.documents.length === 0) {
@@ -154,12 +196,7 @@ const getCustomerDetails = async (req, res) => {
 
     orders.documents.forEach((order) => {
       // Parse amount
-      let orderAmount = 0;
-      if (typeof order.amount === "number") {
-        orderAmount = order.amount;
-      } else if (typeof order.amount === "string") {
-        orderAmount = parseFloat(order.amount) || 0;
-      }
+      const orderAmount = parseNumber(order.amount);
       totalSpent += orderAmount;
 
       // Update dates
@@ -224,24 +261,27 @@ const getCustomerDetails = async (req, res) => {
       id: customerId,
       name: firstOrder.username || "Customer",
       email: firstOrder.customerEmail || "",
-      phone: "", // Would come from user collection
+      phone: "",
       orders: orders.total,
       totalSpent: `$${totalSpent.toFixed(2)}`,
       status: status,
       joinDate: new Date(firstOrderDate).toISOString().split("T")[0],
       loyaltyPoints: loyaltyPoints,
       lastOrderDate: lastOrderDate,
-      averageOrderValue: `$${(totalSpent / orders.total).toFixed(2)}`,
-      favoriteProducts: favoriteProducts,
+      averageOrderValue: `$${(totalSpent / Math.max(orders.total, 1)).toFixed(2)}`,
+      favoriteProducts: favoriteProducts.slice(0, 5),
       orderHistory: orders.documents
         .map((order) => ({
           orderId: order.orderId || order.$id,
           date: order.createdAt,
-          amount: `$${order.amount || 0}`,
+          amount: `$${parseNumber(order.amount).toFixed(2)}`,
           status: order.status || "completed",
-          items: JSON.parse(order.items || "[]").length,
+          items: Array.isArray(JSON.parse(order.items || "[]"))
+            ? JSON.parse(order.items || "[]").length
+            : 0,
         }))
-        .sort((a, b) => new Date(b.date) - new Date(a.date)),
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 10),
     };
 
     res.json({

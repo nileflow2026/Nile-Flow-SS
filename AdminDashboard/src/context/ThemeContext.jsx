@@ -19,8 +19,8 @@ export const ThemeProvider = ({ children }) => {
           "dark",
           savedTheme === "dark",
         );
-      } catch (error) {
-        console.error("Failed to fetch theme from prefs:", error.message);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
 
@@ -47,9 +47,9 @@ export const ThemeProvider = ({ children }) => {
           theme: newTheme,
         };
         await updateUserPreferences(user.$id, updatedPrefs);
-        console.log("✅ Theme saved to prefs:", newTheme);
-      } catch (error) {
-        console.error("❌ Failed to save theme to prefs:", error.message);
+
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     } else {
       // Guests: keep theme in memory only (no localStorage persistence)

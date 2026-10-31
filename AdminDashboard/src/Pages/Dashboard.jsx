@@ -63,7 +63,7 @@ export default function Dashboard() {
   const [drillData, setDrillData] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { user } = useAuth();
-  console.log("useAuth()", useAuth());
+
 
   const getDateFilter = () => {
     const today = new Date();
@@ -77,7 +77,6 @@ export default function Dashboard() {
     }
   };
 
-  /* console.log("Orders before filter:", orders); */
   const filteredOrders = orders.filter((order) => {
     const createdAt = new Date(order.$createdAt);
     return createdAt >= getDateFilter();
@@ -98,8 +97,8 @@ export default function Dashboard() {
         setOrders(fetchedOrders);
         setProducts(fetchedProducts);
         setUserCount(fetchedUsers);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
 
@@ -146,8 +145,8 @@ export default function Dashboard() {
           o.$id === orderId ? { ...o, orderStatus: newStatus } : o,
         ),
       );
-    } catch (error) {
-      console.error("Status update failed:", error);
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     } finally {
       setUpdatingId(null);
     }

@@ -99,13 +99,13 @@ const AddCareerForm = ({ onCareerAdded }) => {
         (resp) => resp.trim() !== "",
       );
       // Replace with your actual backend URL
-      const response = await axiosClient.post("/api/admin/careers/add", {
+      await axiosClient.post("/api/admin/careers/add", {
         ...formData,
         image: imageUrl, // Pass the Appwrite image URL to the backend
         responsibilities: cleanedResponsibilities, // Pass the array to the backend
         requirements: cleanedRequirements, // Pass the array to the backend
       });
-      console.log("Career added successfully:", response.data);
+
       setSuccess(true);
       setFormData({
         title: "",
@@ -121,8 +121,8 @@ const AddCareerForm = ({ onCareerAdded }) => {
       if (onCareerAdded) {
         onCareerAdded();
       }
-    } catch (err) {
-      console.error("Failed to add career:", err);
+    } catch {
+
       setError("Failed to add career. Please try again.");
     } finally {
       setIsSubmitting(false);

@@ -40,7 +40,7 @@ export async function initializeSession() {
     // Attempt to restore session from existing cookies
     const client = await getClient();
     const response = await client.get('/api/admin/auth/getcurrentuser');
-    
+
     if (response.data?.user) {
       const user = response.data.user;
       TokenManager.markAuthenticated(user.id || user.$id);
@@ -49,10 +49,10 @@ export async function initializeSession() {
       startSessionMonitoring();
       return { authenticated: true, user };
     }
-    
+
     // Try silent refresh as fallback
     return await silentRefresh();
-  } catch (error) {
+  } catch {
     // No valid session — this is normal on first load
     TokenManager.markUnauthenticated();
     return { authenticated: false, user: null };
@@ -100,7 +100,7 @@ export async function silentRefresh() {
   })();
 
   TokenManager.setPendingRefresh(refreshPromise);
-  
+
   try {
     return await refreshPromise;
   } finally {
@@ -212,7 +212,7 @@ export async function revokeAllSessions() {
     TokenManager.broadcast('auth:session-revoked');
     AuditLogger.log('SESSIONS_REVOKED', { reason: 'manual' });
   } catch {
-    // Best-effort
+    console.error("[AdminDashboard] Operation failed.");
   }
 }
 

@@ -50,8 +50,8 @@ const DealsManagement = () => {
         params: filter !== 'all' ? { type: filter } : {},
       })
       setDeals(response.data?.deals || [])
-    } catch (error) {
-      console.error('Failed to fetch deals:', error)
+    } catch {
+
       toast.error('Could not load deals')
     } finally {
       setLoading(false)
@@ -62,8 +62,8 @@ const DealsManagement = () => {
     try {
       const allProducts = await getProducts()
       setProducts(allProducts)
-    } catch (error) {
-      console.error('Failed to fetch products:', error)
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   }
 
@@ -71,8 +71,8 @@ const DealsManagement = () => {
     try {
       const response = await axiosClient.get('/api/admin/deals/analytics')
       setAnalytics(response.data?.analytics || null)
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error)
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   }
 
@@ -148,7 +148,7 @@ const DealsManagement = () => {
         handleCloseForm()
       }, 1500)
     } catch (error) {
-      console.error('Failed to create deal:', error)
+
       setFormStatus({
         type: 'error',
         text: error.response?.data?.error || 'Failed to create deal. Product may already have an active deal.'
@@ -168,8 +168,8 @@ const DealsManagement = () => {
       })
       setDeals((prev) => prev.map((d) => d.$id === deal.$id ? { ...d, ...response.data?.deal } : d))
       toast.success('Deal updated')
-    } catch (error) {
-      console.error('Failed to update deal:', error)
+    } catch {
+
       toast.error('Failed to update deal')
     }
   }
@@ -180,8 +180,8 @@ const DealsManagement = () => {
       await axiosClient.delete(`/api/admin/deals/${dealId}`)
       setDeals((prev) => prev.filter((d) => d.$id !== dealId))
       toast.success('Deal deleted')
-    } catch (error) {
-      console.error('Failed to delete deal:', error)
+    } catch {
+
       toast.error('Failed to delete deal')
     }
   }

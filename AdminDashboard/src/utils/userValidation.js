@@ -17,7 +17,7 @@ export const validateUserId = async (userId) => {
 
     return { exists: true, user: userDoc };
   } catch (error) {
-    console.error("User validation error:", error);
+
 
     if (error.response?.status === 404) {
       return { exists: false, error: "User not found in database" };
@@ -46,19 +46,11 @@ export const debugListUsers = async () => {
     const response = await axiosClient.get("/api/users/users");
     const users = response.data;
 
-    console.log(
-      "Available users:",
-      users.map((user) => ({
-        id: user.$id,
-        username: user.username,
-        email: user.email,
-        created: user.$createdAt,
-      })),
-    );
+
 
     return users;
-  } catch (error) {
-    console.error("Error listing users for debug:", error);
+  } catch {
+
     return [];
   }
 };
@@ -68,10 +60,8 @@ export const debugListUsers = async () => {
  * @returns {Promise<Object>}
  */
 export const debugAppwriteConfig = async () => {
-  console.log(
-    "debugAppwriteConfig: Appwrite SDK is no longer available on the frontend.",
-  );
-  console.log("Use the backend API endpoints instead.");
+
+
   return {
     success: false,
     error: "Appwrite SDK removed from frontend — use backend API",

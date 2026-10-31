@@ -82,8 +82,8 @@ const Finance = () => {
     try {
       const reports = await listTOTReports(filters);
       setTotReports(reports.reports || []);
-    } catch (err) {
-      console.error("Failed to load TOT reports:", err);
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   };
 
@@ -91,8 +91,8 @@ const Finance = () => {
     try {
       const report = await getTOTReportByMonth(month);
       setCurrentReport(report);
-    } catch (err) {
-      console.error("Failed to load current report:", err);
+    } catch {
+
       setCurrentReport(null);
     }
   };
@@ -101,8 +101,8 @@ const Finance = () => {
     try {
       const health = await getFinanceHealth();
       setSystemHealth(health);
-    } catch (err) {
-      console.error("Failed to load system health:", err);
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   };
 

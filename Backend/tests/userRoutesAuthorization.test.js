@@ -8,6 +8,7 @@ const path = require("node:path");
 const routePath = path.resolve(__dirname, "../routes/userRoutes.js");
 const authenticateToken = (_req, _res, next) => next();
 const adminOnly = (_req, _res, next) => next();
+const apiLimiter = (_req, _res, next) => next();
 let preferenceCalls = 0;
 let storedPreferences = {};
 const originalLoad = Module._load;
@@ -19,6 +20,9 @@ Module._load = function loadWithRouteStubs(request, parent, isMain) {
     }
     if (request === "../middleware/auth") {
       return { adminOnly };
+    }
+    if (request === "../middleware/rate-limiter") {
+      return { apiLimiter };
     }
     if (request === "../controllers/AdminControllers/userController") {
       return { getAdminProfile: () => {}, getUsers: () => {} };
@@ -82,8 +86,10 @@ test("user listing requires authentication and verified admin authorization", ()
   const route = getRoute("get", "/users");
 
   assert.ok(route);
-  assert.equal(route.stack[0].handle, authenticateToken);
-  assert.equal(route.stack[1].handle, adminOnly);
+  const handlers = route.stack.map((layer) => layer.handle);
+  assert.ok(handlers.includes(apiLimiter));
+  assert.ok(handlers.includes(authenticateToken));
+  assert.ok(handlers.includes(adminOnly));
 });
 
 test("preference reads and writes reject cross-user targets before Appwrite access", async () => {
@@ -97,7 +103,7 @@ test("preference reads and writes reject cross-user targets before Appwrite acce
   for (const [method, pathname] of paths) {
     const route = getRoute(method, pathname);
     assert.ok(route, `${method.toUpperCase()} ${pathname} exists`);
-    const handler = route.stack[1].handle;
+    const handler = route.stack.at(-1).handle;
     const res = createResponse();
 
     await handler(
@@ -123,7 +129,7 @@ test("preference endpoints reject attempts to change protected fields", async ()
   for (const route of [putRoute, patchRoute]) {
     const res = createResponse();
 
-    await route.stack[1].handle(
+    await route.stack.at(-1).handle(
       {
         params: { userId: "signed-in-user" },
         user: { userId: "signed-in-user" },
@@ -149,7 +155,7 @@ test("preference reads return only allowlisted display preferences", async () =>
   const route = getRoute("get", "/users/:userId/preferences");
   const res = createResponse();
 
-  await route.stack[1].handle(
+  await route.stack.at(-1).handle(
     {
       params: { userId: "signed-in-user" },
       user: { userId: "signed-in-user" },

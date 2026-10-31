@@ -64,7 +64,7 @@ export default function Staff() {
           toast.warning("No staff data available");
         }
       } catch (err) {
-        console.error("Error fetching staff:", err);
+
         setError(err.message || "Failed to load staff data");
         toast.error("Failed to load staff data");
       } finally {
@@ -190,7 +190,7 @@ export default function Staff() {
       setStaffList((prev) => prev.filter((staff) => staff.$id !== id));
       toast.success("Staff member deleted successfully");
     } catch (error) {
-      console.error("Error deleting staff:", error);
+
       toast.error("Failed to delete staff member");
     }
   };
@@ -206,7 +206,7 @@ export default function Staff() {
       );
       toast.success("Staff member updated successfully");
     } catch (error) {
-      console.error("Error updating staff:", error);
+
       toast.error("Failed to update staff member");
     }
   };

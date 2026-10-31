@@ -14,11 +14,11 @@ export default function Terms() {
         {/* Header */}
         <div className="mb-8">
           <Link
-            to="/register"
+            to="/login"
             className="inline-flex items-center gap-2 text-sm font-medium text-[#8B4513] dark:text-[#D4A017] hover:text-[#B8860B] dark:hover:text-[#FFD700] transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Registration
+            Back to Sign In
           </Link>
 
           <div className="flex items-center gap-4 mb-6">

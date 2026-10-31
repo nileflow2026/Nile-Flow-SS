@@ -62,9 +62,9 @@ export default function Navbar({ toggleSidebar }) {
           setUser(matchedUser);
           setDbUser(matchedUser);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
-          console.error("Error loading user info:", err.message);
+          console.error("[AdminDashboard] Failed to load navigation user.");
         }
       }
     };
@@ -81,8 +81,8 @@ export default function Navbar({ toggleSidebar }) {
     const initializeNotifications = async () => {
       try {
         await fetchAdminNotifications();
-      } catch (err) {
-        console.error("Failed to fetch admin notifications:", err.message);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
 
@@ -109,8 +109,8 @@ export default function Navbar({ toggleSidebar }) {
     try {
       await signoutAdmin();
       navigate("/login");
-    } catch (err) {
-      console.error("Logout error:", err);
+    } catch {
+
       toast.error("Failed to log out. Please try again.");
     }
   };

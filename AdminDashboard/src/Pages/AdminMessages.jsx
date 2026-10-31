@@ -131,7 +131,7 @@ const AdminMessages = () => {
       setMessages(response.data);
       toast.success("Messages loaded successfully");
     } catch (error) {
-      console.error("Error fetching messages:", error);
+
       toast.error("Failed to load messages");
     } finally {
       setLoading(false);
@@ -184,7 +184,7 @@ const AdminMessages = () => {
 
       setReplyMessage("");
     } catch (error) {
-      console.error("Error sending reply:", error);
+
       toast.error("Failed to send reply", {
         description: error.message || "Please try again",
       });

@@ -17,8 +17,8 @@ const PremiumDealForm = ({ onProductAdded }) => {
       try {
         const allProducts = await getProducts();
         setProducts(allProducts);
-      } catch (error) {
-        console.error("Failed to fetch products for premium deals:", error);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
     fetchAllProducts();
@@ -44,10 +44,7 @@ const PremiumDealForm = ({ onProductAdded }) => {
       onProductAdded(); // Call parent function to refresh product list
       setSelectedProduct(""); // Reset form
     } catch (error) {
-      console.error(
-        "Failed to mark product as premium deal:",
-        error.response?.data?.error
-      );
+
       setStatus(
         `Error: ${
           error.response?.data?.error || "Failed to mark as premium deal."
@@ -70,10 +67,7 @@ const PremiumDealForm = ({ onProductAdded }) => {
       setStatus("Premium deal status removed successfully!");
       onProductAdded(); // Refresh product list
     } catch (error) {
-      console.error(
-        "Failed to remove premium deal status:",
-        error.response?.data?.error
-      );
+
       setStatus(
         `Error: ${
           error.response?.data?.error || "Failed to remove premium status."

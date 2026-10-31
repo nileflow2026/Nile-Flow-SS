@@ -24,8 +24,8 @@ export async function checkForUpdate() {
     }
 
     return { hasUpdate: false };
-  } catch (err) {
-    console.error("[VersionManager] Version check failed", err);
+  } catch {
+
     return { hasUpdate: false };
   }
 }

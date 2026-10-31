@@ -57,8 +57,8 @@ export default function Commission() {
       // Fetch GMV data
       const gmvData = await getGMVData(timeframe);
       setGmvData(gmvData || {});
-    } catch (error) {
-      console.error("Error fetching commission data:", error);
+    } catch {
+
       showMessage("Failed to fetch commission data", "error");
     } finally {
       setLoading(false);
@@ -79,8 +79,8 @@ export default function Commission() {
 
       // Refresh analytics after rate update
       setTimeout(() => fetchCommissionData(), 1000);
-    } catch (error) {
-      console.error("Error updating commission rate:", error);
+    } catch {
+
       showMessage("Failed to update commission rate", "error");
     } finally {
       setUpdating(false);
@@ -108,8 +108,8 @@ export default function Commission() {
 
       // Refresh data after recalculation
       setTimeout(() => fetchCommissionData(), 2000);
-    } catch (error) {
-      console.error("Error batch recalculating commissions:", error);
+    } catch {
+
       showMessage("Failed to recalculate commissions", "error");
     } finally {
       setRecalculating(false);

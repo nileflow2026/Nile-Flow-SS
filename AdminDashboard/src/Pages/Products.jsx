@@ -13,7 +13,7 @@ import {
   Star,
   Flame,
   Grid,
-  List, 
+  List,
   Download,
   Eye,
   Edit,
@@ -113,7 +113,7 @@ export default function Products() {
         const cats = response.data;
         setCategories(Array.isArray(cats) ? cats : []);
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
+
         toast.error("Failed to load categories");
       }
     };
@@ -130,7 +130,7 @@ export default function Products() {
         setError(null);
         toast.success(`${data?.length || 0} products loaded`);
       } catch (error) {
-        console.error("Failed to fetch products:", error);
+
         setError(error.message);
         toast.error("Failed to load products");
       } finally {
@@ -1509,7 +1509,7 @@ export default function Products() {
                       setRefreshTrigger((prev) => !prev);
                       toast.success("Subcategory created successfully!");
                     } catch (error) {
-                      console.error("Error creating subcategory:", error);
+
                       toast.error("Failed to create subcategory");
                     } finally {
                       setIsCreatingSubcategory(false);

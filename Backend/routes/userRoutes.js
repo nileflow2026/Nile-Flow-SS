@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authenticateToken = require("../middleware/authMiddleware");
 const { adminOnly } = require("../middleware/auth");
+const { apiLimiter } = require("../middleware/rate-limiter");
 const {
   getAdminProfile,
   getUsers,
@@ -56,12 +57,13 @@ const canAccessPreferences = (req) =>
   req.user?.userId && req.user.userId === req.params.userId;
 
 // Protected route
-router.get("/admin/profile", authenticateToken, adminOnly, getAdminProfile);
-router.get("/audit-logs", authenticateToken, adminOnly, getAuditLogs);
-router.post("/log", authenticateToken, logAuditEntry);
-router.get("/users", authenticateToken, adminOnly, getUsers);
+router.get("/admin/profile", apiLimiter, authenticateToken, adminOnly, getAdminProfile);
+router.get("/audit-logs", apiLimiter, authenticateToken, adminOnly, getAuditLogs);
+router.post("/log", apiLimiter, authenticateToken, logAuditEntry);
+router.get("/users", apiLimiter, authenticateToken, adminOnly, getUsers);
 router.get(
   "/users/:userId/preferences",
+  apiLimiter,
   authenticateToken,
   async (req, res) => {
     try {
@@ -114,6 +116,7 @@ router.get(
  */
 router.put(
   "/users/:userId/preferences",
+  apiLimiter,
   authenticateToken,
   async (req, res) => {
     try {
@@ -178,6 +181,7 @@ router.put(
  */
 router.patch(
   "/api/users/:userId/preferences",
+  apiLimiter,
   authenticateToken,
   async (req, res) => {
     try {

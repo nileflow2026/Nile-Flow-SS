@@ -55,7 +55,7 @@ export default function ApplicantsDashboard() {
         setError(null);
         toast.success(`${applicationsData.length} applications loaded`);
       } catch (error) {
-        console.error("Error fetching applications:", error);
+
         setError(error.message || "Failed to load applications");
         toast.error("Failed to load applications");
       } finally {
@@ -174,8 +174,8 @@ export default function ApplicantsDashboard() {
         description: `${applicantName}'s CV is being downloaded`,
         icon: <Download className="w-4 h-4 text-green-500" />,
       });
-    } catch (error) {
-      console.error("Error downloading CV:", error);
+    } catch {
+
       toast.error("Failed to download CV", {
         description: "Please try again or contact support",
       });

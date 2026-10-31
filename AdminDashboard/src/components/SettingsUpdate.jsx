@@ -23,8 +23,8 @@ export default function SettingsUpdate({ onClose }) {
       try {
         const response = await axiosClient.get('/api/settings/getsettings');
         setSettings(response.data);
-      } catch (err) {
-        console.error('Failed to fetch settings:', err.message);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
 
@@ -48,20 +48,20 @@ export default function SettingsUpdate({ onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-  
+
     // Basic validation
     if (!settings.appName || !settings.currency || !settings.currencySymbol || !settings.taxRate) {
       toast.error('All fields are required.');
       setIsSubmitting(false);
       return;
     }
-  
+
     if (isNaN(settings.taxRate) || Number(settings.taxRate) < 0) {
       toast.error('Tax rate must be a valid number.');
       setIsSubmitting(false);
       return;
     }
-  
+
     try {
       await axiosClient.post('/api/settings/updatesettings', settings);
       toast.success('Settings updated successfully!', {
@@ -70,14 +70,14 @@ export default function SettingsUpdate({ onClose }) {
           color: '#fff',
         },
       });
-      
+
       handleClose();
-    } catch (err) {
-      console.error('Failed to update settings:', err.message);
+    } catch {
+
       toast.error('Failed to update settings.');
     }
   };
-  
+
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -97,13 +97,13 @@ export default function SettingsUpdate({ onClose }) {
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Update Settings</h2>
-           
+
            <button
             onClick={handleClose}
             className="text-gray-500 hover:text-red-600 text-xl font-bold"
           >
             &times;
-          </button> 
+          </button>
         </div>
 
         <form onSubmit={handleSubmit}>

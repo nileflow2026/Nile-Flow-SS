@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 import App from "./App";
 import Login from "./Pages/Login";
-import Register from "./Pages/Register";
 import Dashboard from "./Pages/Dashboard";
 import { ThemeProvider } from "./context/ThemeContext";
 import NotificationsPage from "./Pages/NotificationsPage";
@@ -29,9 +28,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           {/* Default path redirects to login */}
           <Route path="/" element={<Navigate to="/login" />} />
 
-          {/* Login and Register should be publicly accessible */}
+          {/* Login is the only public account route. */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/register"
+            element={<Navigate to="/login" replace />}
+          />
 
           {/* Protected routes with RouteGuard — no flash of protected content */}
           <Route

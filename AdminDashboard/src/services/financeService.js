@@ -23,7 +23,8 @@ export const getTOTReport = async (month, forceRegenerate = false) => {
     const response = await axiosClient.get(`/api/finance/tot-report?${params}`);
     return response.data;
   } catch (error) {
-    console.error("[Finance] getTOTReport error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -38,7 +39,8 @@ export const getTOTReportByMonth = async (month) => {
     const response = await axiosClient.get(`/api/finance/tot-report/${month}`);
     return response.data;
   } catch (error) {
-    console.error("[Finance] getTOTReportByMonth error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -66,7 +68,8 @@ export const listTOTReports = async (filters = {}) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[Finance] listTOTReports error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -87,7 +90,8 @@ export const exportTOTReport = async (month, format = "csv") => {
     );
     return response;
   } catch (error) {
-    console.error("[Finance] exportTOTReport error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -101,7 +105,8 @@ export const getFinanceDashboard = async () => {
     const response = await axiosClient.get("/api/finance/dashboard");
     return response.data;
   } catch (error) {
-    console.error("[Finance] getFinanceDashboard error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -115,7 +120,8 @@ export const getFinanceHealth = async () => {
     const response = await axiosClient.get("/api/finance/health");
     return response.data;
   } catch (error) {
-    console.error("[Finance] getFinanceHealth error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -129,7 +135,8 @@ export const getFinanceDocs = async () => {
     const response = await axiosClient.get("/api/finance/docs");
     return response.data;
   } catch (error) {
-    console.error("[Finance] getFinanceDocs error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };
@@ -166,7 +173,8 @@ export const downloadTOTReport = async (month, format = "csv") => {
       link.remove();
     }
   } catch (error) {
-    console.error("[Finance] downloadTOTReport error:", error);
+    console.error("[AdminDashboard] Finance operation failed.");
+
     throw error;
   }
 };

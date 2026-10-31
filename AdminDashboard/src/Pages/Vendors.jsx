@@ -69,7 +69,7 @@ export default function Vendors() {
       setTotalPages(vendorData.totalPages || 1);
       setStats(statsData);
     } catch (err) {
-      console.error("Error loading vendors:", err);
+
       setError(err);
       toast.error("Failed to load vendors");
     } finally {
@@ -94,7 +94,7 @@ export default function Vendors() {
       toast.success(
         `Vendor ${newStatus ? "activated" : "deactivated"} successfully`
       );
-    } catch (err) {
+    } catch {
       toast.error("Failed to update vendor status");
     } finally {
       setUpdatingId(null);

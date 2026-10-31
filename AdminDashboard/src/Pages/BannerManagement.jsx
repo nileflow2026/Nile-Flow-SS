@@ -86,7 +86,9 @@ function BannerManagement() {
           try {
             const errData = JSON.parse(xhr.responseText)
             errMsg = errData.error || errData.message || errMsg
-          } catch {}
+          } catch {
+            console.error("[AdminDashboard] Operation failed.");
+          }
           reject(new Error(errMsg))
         }
       }

@@ -82,7 +82,7 @@ export default function Orders() {
         const orderType = showCancelledOnly ? "cancelled orders" : "orders";
         toast.success(`${data.length} ${orderType} loaded successfully`);
       } catch (err) {
-        console.error("Error fetching orders:", err);
+
         setError(err.message || "Failed to load orders");
         toast.error("Failed to load orders");
       } finally {
@@ -99,8 +99,8 @@ export default function Orders() {
       try {
         const ridersData = await getRiders();
         setRiders(ridersData);
-      } catch (err) {
-        console.error("Error fetching riders:", err);
+      } catch {
+
         toast.error("Failed to load riders");
       }
     };
@@ -156,8 +156,8 @@ export default function Orders() {
       setShowAssignModal(false);
       setSelectedOrderForAssignment(null);
       setPickupAddress("NileFlow Warehouse, Industrial Area, Nairobi"); // Reset to default
-    } catch (err) {
-      console.error("Error assigning rider:", err);
+    } catch {
+
       toast.error("Failed to assign delivery");
     } finally {
       setAssigningRider(false);
@@ -188,8 +188,8 @@ export default function Orders() {
       }));
 
       return deliveryAddress;
-    } catch (error) {
-      console.error("Error fetching customer address:", error);
+    } catch {
+
       return null;
     }
   };

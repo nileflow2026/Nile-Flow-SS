@@ -44,9 +44,7 @@ export default function UsersTable() {
   const getCorrectUserId = (apiUser) => {
     const dbUser = dbUsers.find((db) => db.email === apiUser.email);
     if (dbUser && dbUser.$id !== apiUser.$id) {
-      console.warn(
-        `Using corrected DB ID ${dbUser.$id} instead of API ID ${apiUser.$id} for user ${apiUser.email}`,
-      );
+
       return dbUser.$id;
     }
     return apiUser.$id;
@@ -58,24 +56,17 @@ export default function UsersTable() {
       setIsLoading(true);
       setError(null);
       try {
-        console.log("=== DEBUGGING USER FETCH FROM API ===");
+
 
         // Get users from API
         const usersData = await fetchUsers();
-        console.log(
-          "Users from API:",
-          usersData.map((u) => ({
-            id: u.$id,
-            username: u.username,
-            email: u.email,
-          })),
-        );
+
         setUsers(usersData);
 
         // Direct DB comparison no longer available — Appwrite SDK removed from frontend
         setDbUsers(usersData); // Use API data directly
       } catch (err) {
-        console.error("Error loading users:", err);
+
         setError(err);
         toast.error("Failed to load users");
       } finally {
@@ -156,8 +147,8 @@ export default function UsersTable() {
 
       setUsers((prev) => prev.filter((user) => user.$id !== userId));
       toast.success("User deleted successfully");
-    } catch (error) {
-      console.error("Error deleting user:", error);
+    } catch {
+
       toast.error("Failed to delete user");
     } finally {
       setIsDeleting(false);
@@ -185,8 +176,8 @@ export default function UsersTable() {
       setUsers((prev) => prev.filter((user) => !selectedUsers.has(user.$id)));
       setSelectedUsers(new Set());
       toast.success(`${selectedUsers.size} users deleted successfully`);
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
+    } catch {
+
       toast.error("Failed to delete some users");
     } finally {
       setIsDeleting(false);
@@ -650,9 +641,7 @@ export default function UsersTable() {
                         <button
                           onClick={() => {
                             const correctId = getCorrectUserId(user);
-                            console.log(
-                              `Navigating to user profile with ID: ${correctId}`,
-                            );
+
                             navigate(`/users/${correctId}`);
                           }}
                           className="p-2 rounded-lg hover:bg-[#E8D6B5]/20 dark:hover:bg-[#3A3A3A] transition-colors"

@@ -17,8 +17,8 @@ const FeaturedForm = ({ onProductAdded }) => {
       try {
         const allProducts = await getProducts();
         setProducts(allProducts);
-      } catch (error) {
-        console.error("Failed to fetch products for featured list:", error);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
     fetchAllProducts();
@@ -44,7 +44,7 @@ const FeaturedForm = ({ onProductAdded }) => {
       setStatus("Product successfully marked as featured!");
       onProductAdded(); // Call parent function to refresh product list
     } catch (error) {
-      console.error("Failed to feature product:", error.response?.data?.error);
+
       setStatus(
         `Error: ${error.response?.data?.error || "Failed to feature product."}`
       );

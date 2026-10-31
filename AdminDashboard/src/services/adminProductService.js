@@ -9,9 +9,9 @@ export const adminProductService = {
       const response = await axiosClient.get(
         "/api/admin/products/products/pending"
       );
-      return response.data; 
+      return response.data;
     } catch (error) {
-      console.error("Get pending products error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch pending products"
       );
@@ -26,7 +26,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Get approved products error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch approved products"
       );
@@ -41,7 +41,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Get rejected products error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch rejected products"
       );
@@ -56,7 +56,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Approve product error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to approve product"
       );
@@ -72,7 +72,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Reject product error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to reject product"
       );
@@ -87,7 +87,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Get product details error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch product details"
       );
@@ -112,7 +112,7 @@ export const adminProductService = {
       const response = await axiosClient.get(url);
       return response.data;
     } catch (error) {
-      console.error("Get all products error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch products"
       );
@@ -128,7 +128,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Update product error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to update product"
       );
@@ -143,7 +143,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Delete product error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to delete product"
       );
@@ -158,7 +158,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Get product stats error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to fetch product statistics"
       );
@@ -174,7 +174,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Bulk approve error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to bulk approve products"
       );
@@ -189,7 +189,7 @@ export const adminProductService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Bulk reject error:", error);
+
       throw new Error(
         error.response?.data?.error || "Failed to bulk reject products"
       );

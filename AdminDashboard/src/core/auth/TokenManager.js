@@ -36,8 +36,8 @@ function _notify(event) {
   _listeners.forEach((fn) => {
     try {
       fn(event);
-    } catch (e) {
-      // Swallow listener errors
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   });
 }

@@ -47,7 +47,7 @@ const ProductApprovals = () => {
         setPendingProducts(pendingRes.value.data.products || []);
       } else {
         const msg = pendingRes.reason?.message || "Failed to fetch pending products";
-        console.error("Failed to fetch pending products:", pendingRes.reason);
+
         errors.push(msg);
       }
 
@@ -55,7 +55,7 @@ const ProductApprovals = () => {
         setApprovedProducts(approvedRes.value.data.products || []);
       } else {
         const msg = approvedRes.reason?.message || "Failed to fetch approved products";
-        console.error("Failed to fetch approved products:", approvedRes.reason);
+
         errors.push(msg);
       }
 
@@ -63,7 +63,7 @@ const ProductApprovals = () => {
         setRejectedProducts(rejectedRes.value.data.products || []);
       } else {
         const msg = rejectedRes.reason?.message || "Failed to fetch rejected products";
-        console.error("Failed to fetch rejected products:", rejectedRes.reason);
+
         errors.push(msg);
       }
 
@@ -72,7 +72,7 @@ const ProductApprovals = () => {
       }
     } catch (err) {
       setError(err.message || "Failed to load products");
-      console.error("Fetch products error:", err);
+
     } finally {
       setLoading(false);
       setSelectedProducts(new Set()); // Clear selections
@@ -104,7 +104,7 @@ const ProductApprovals = () => {
       }
     } catch (err) {
       alert(err.message || "Failed to approve product");
-      console.error(err);
+
     }
   };
 
@@ -139,7 +139,7 @@ const ProductApprovals = () => {
       }
     } catch (err) {
       alert(err.message || "Failed to reject product");
-      console.error(err);
+
     }
   };
 
@@ -175,7 +175,7 @@ const ProductApprovals = () => {
       }
     } catch (err) {
       alert(err.message || "Failed to bulk approve products");
-      console.error(err);
+
     }
   };
 
@@ -220,7 +220,7 @@ const ProductApprovals = () => {
       }
     } catch (err) {
       alert(err.message || "Failed to bulk reject products");
-      console.error(err);
+
     }
   };
 

@@ -58,8 +58,8 @@ export default function Settings() {
         setLoading(true);
         const currentUser = await getProfile();
         setUser(currentUser);
-      } catch (err) {
-        console.error("Error fetching user:", err.message);
+      } catch {
+
         toast.error("Failed to load user profile");
       } finally {
         setLoading(false);
@@ -74,8 +74,8 @@ export default function Settings() {
       await signoutAdmin();
       toast.success("Logged out successfully");
       navigate("/login");
-    } catch (err) {
-      console.error("Logout failed:", err.message);
+    } catch {
+
       toast.error("Logout failed. Please try again.");
     }
   };
@@ -88,7 +88,7 @@ export default function Settings() {
       toast.success("Database backup created successfully", {
         description: "Backup file is ready for download",
       });
-    } catch (err) {
+    } catch {
       toast.error("Backup failed. Please try again.");
     } finally {
       setBackupLoading(false);

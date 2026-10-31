@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const result = await SessionManager.initializeSession();
-        
+
         if (cancelled) return;
 
         if (result.authenticated && result.user) {
@@ -96,9 +96,9 @@ export const AuthProvider = ({ children }) => {
           setIsAuthenticated(false);
           markAuditNotReady();
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          console.error('[AuthProvider] Initialization error:', error);
+
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -178,7 +178,7 @@ export const AuthProvider = ({ children }) => {
     if (isRestoring || isLoading) return;
     if (isAuthenticated) return;
 
-    const publicPaths = ['/login', '/register', '/'];
+    const publicPaths = ['/login', '/'];
     const isPublicPath = publicPaths.some(
       (path) => location.pathname === path || location.pathname.startsWith(path)
     );
@@ -247,7 +247,7 @@ export const AuthProvider = ({ children }) => {
       });
       await signoutAdmin();
     } catch {
-      // Proceed with local cleanup even if server request fails
+      console.error("[AdminDashboard] Operation failed.");
     } finally {
       setUser(null);
       setIsAuthenticated(false);
@@ -282,7 +282,7 @@ export const AuthProvider = ({ children }) => {
         TokenManager.markAuthenticated(response.data.user.id || response.data.user.$id);
       }
     } catch {
-      // Silently fail — may not be authenticated
+      console.error("[AdminDashboard] Operation failed.");
     }
   }, []);
 

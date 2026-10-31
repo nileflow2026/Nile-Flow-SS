@@ -64,20 +64,13 @@ test("admin customer and vendor management routes require admin authorization", 
     "../../middleware/authMiddleware": authenticateToken,
     "../../middleware/auth": { adminOnly },
     "../../controllers/VendorControllers/customerController": controllerProxy,
+    "../../middleware/rate-limiter": { apiLimiter: middleware },
   });
-  const customerAuthIndex = customerRoutes.stack.findIndex(
-    (layer) => layer.handle === authenticateToken,
-  );
-  const customerAdminIndex = customerRoutes.stack.findIndex(
-    (layer) => layer.handle === adminOnly,
-  );
-  const firstCustomerRouteIndex = customerRoutes.stack.findIndex(
-    (layer) => layer.route,
-  );
-
-  assert.ok(customerAuthIndex >= 0);
-  assert.ok(customerAdminIndex > customerAuthIndex);
-  assert.ok(firstCustomerRouteIndex > customerAdminIndex);
+  const customerRoute = findRoute(customerRoutes, "get", "/");
+  const customerHandlers = customerRoute.stack.map((layer) => layer.handle);
+  assert.ok(customerHandlers.includes(middleware));
+  assert.ok(customerHandlers.includes(authenticateToken));
+  assert.ok(customerHandlers.includes(adminOnly));
 
   const vendorRoutes = loadRouter("routes/vendorAdminRoutes.js", {
     "../controllers/AdminControllers/vendorAdminController": controllerProxy,
@@ -135,6 +128,32 @@ test("password change and AI chat require authentication", () => {
   assertHasGuards(findRoute(aiRoutes, "post", "/chat"), [
     authenticateToken,
     middleware,
+  ]);
+
+  const userRoutes = loadRouter("routes/userRoutes.js", {
+    "../middleware/authMiddleware": authenticateToken,
+    "../middleware/auth": { adminOnly },
+    "../controllers/AdminControllers/userController": controllerProxy,
+    "../controllers/AdminControllers/auditLoggerController": controllerProxy,
+    "../src/appwrite": { users: { getPrefs: async () => ({}) } },
+    "../middleware/rate-limiter": { apiLimiter: middleware },
+  });
+  assertHasGuards(findRoute(userRoutes, "get", "/users"), [
+    middleware,
+    authenticateToken,
+    adminOnly,
+  ]);
+
+  const customerRoutes = loadRouter("routes/Vendorroutes/customerRoutes.js", {
+    "../../middleware/authMiddleware": authenticateToken,
+    "../../middleware/auth": { adminOnly },
+    "../../controllers/VendorControllers/customerController": controllerProxy,
+    "../../middleware/rate-limiter": { apiLimiter: middleware },
+  });
+  assertHasGuards(findRoute(customerRoutes, "get", "/"), [
+    middleware,
+    authenticateToken,
+    adminOnly,
   ]);
 });
 

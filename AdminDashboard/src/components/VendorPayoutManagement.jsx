@@ -79,8 +79,8 @@ const VendorPayoutManagement = () => {
 
       const data = await getVendorPayoutReconciliation(params);
       setReconciliationData(data.data);
-    } catch (error) {
-      console.error("Failed to load reconciliation data:", error);
+    } catch {
+
       setError("Failed to load payout data. Please try again.");
     } finally {
       setLoading(false);
@@ -91,8 +91,8 @@ const VendorPayoutManagement = () => {
     try {
       const health = await getPayoutSystemHealth();
       setSystemHealth(health);
-    } catch (error) {
-      console.error("Failed to load system health:", error);
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     }
   };
 
@@ -102,8 +102,8 @@ const VendorPayoutManagement = () => {
     try {
       const trail = await getPayoutAuditTrail(entityId);
       setAuditTrail(trail.data || []);
-    } catch (error) {
-      console.error("Failed to load audit trail:", error);
+    } catch {
+
       setError("Failed to load audit trail.");
     }
   };
@@ -133,7 +133,7 @@ const VendorPayoutManagement = () => {
       });
       loadReconciliationData(); // Refresh data
     } catch (error) {
-      console.error("Failed to generate batch:", error);
+
       setError(
         error.response?.data?.error || "Failed to generate payout batch",
       );
@@ -172,7 +172,7 @@ const VendorPayoutManagement = () => {
       });
       loadReconciliationData(); // Refresh data
     } catch (error) {
-      console.error("Failed to execute batch:", error);
+
       setError(error.response?.data?.error || "Failed to execute payout batch");
     } finally {
       setLoading(false);
@@ -201,7 +201,7 @@ const VendorPayoutManagement = () => {
       });
       loadReconciliationData(); // Refresh data
     } catch (error) {
-      console.error("Failed to complete payout:", error);
+
       setError(error.response?.data?.error || "Failed to complete payout");
     } finally {
       setLoading(false);

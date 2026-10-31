@@ -30,7 +30,8 @@ export const getVendorPayoutReconciliation = async (params = {}) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] getReconciliation error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -48,7 +49,8 @@ export const getPayoutAuditTrail = async (entity_id, limit = 100) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] getAuditTrail error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -68,7 +70,8 @@ export const calculateVendorPayouts = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] calculatePayouts error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -91,7 +94,8 @@ export const generatePayoutBatch = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] generateBatch error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -114,7 +118,8 @@ export const executePayoutBatch = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] executeBatch error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -135,7 +140,8 @@ export const completePayout = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] completePayout error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -156,7 +162,8 @@ export const failPayout = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] failPayout error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };
@@ -172,7 +179,8 @@ export const getPayoutSystemHealth = async () => {
     );
     return response.data;
   } catch (error) {
-    console.error("[VendorPayout] getSystemHealth error:", error);
+    console.error("[AdminDashboard] Vendor payout operation failed.");
+
     throw error;
   }
 };

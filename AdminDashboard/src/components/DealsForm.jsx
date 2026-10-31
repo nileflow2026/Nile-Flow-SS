@@ -17,8 +17,8 @@ const DealsForm = ({ onProductAdded }) => {
       try {
         const allProducts = await getProducts();
         setProducts(allProducts);
-      } catch (error) {
-        console.error("Failed to fetch products for deals:", error);
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
     fetchAllProducts();
@@ -44,10 +44,7 @@ const DealsForm = ({ onProductAdded }) => {
       setStatus("Product successfully added to deals!");
       onProductAdded();
     } catch (error) {
-      console.error(
-        "Failed to add product to deals:",
-        error.response?.data?.error
-      );
+
       setStatus(
         `Error: ${
           error.response?.data?.error || "Failed to add product to deals."

@@ -27,8 +27,8 @@ export default function StaffForm() {
       await createStaff(formData);
       setSuccessMsg('Staff member created successfully.');
       setFormData({ name: '', role: '', address: '', email: '', phonenumber: '' });
-    } catch (err) {
-      console.error('Submit error:', err);
+    } catch {
+      console.error("[AdminDashboard] Operation failed.");
     } finally {
       setLoading(false);
     }

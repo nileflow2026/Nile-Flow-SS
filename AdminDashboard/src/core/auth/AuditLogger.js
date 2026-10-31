@@ -130,7 +130,7 @@ function sendToBackend(entry) {
     const url = `${axiosClient.defaults.baseURL}/api/audit-logs/log`;
     navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
   } catch {
-    // navigator.sendBeacon can fail in very old browsers — silently ignore
+    console.error("[AdminDashboard] Operation failed.");
   }
 }
 

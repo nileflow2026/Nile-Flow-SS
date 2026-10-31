@@ -43,7 +43,7 @@ const RewardsForm = ({ onRewardAdded }) => {
       setRewardKey("");
       setCategory("Storytelling Journey");
     } catch (error) {
-      console.error("Failed to add reward:", error.response?.data?.error);
+
       setStatus(
         `Error: ${error.response?.data?.error || "Failed to add reward."}`
       );

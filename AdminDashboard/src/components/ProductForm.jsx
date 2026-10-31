@@ -46,9 +46,9 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         ); // Replace with your categories endpoint
         const cats = response.data;
         setCategories(Array.isArray(cats) ? cats : []);
-        console.log("Fetched categories:", cats);
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
+
+      } catch {
+        console.error("[AdminDashboard] Operation failed.");
       }
     };
     fetchCategories();
@@ -166,8 +166,8 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
           // Assuming your backend returns an object like { subcategories: [...] }
           const subs = response.data?.subcategories;
           setSubcategories(Array.isArray(subs) ? subs : []);
-        } catch (error) {
-          console.error("Failed to fetch subcategories:", error);
+        } catch {
+
           setSubcategories([]); // Clear subcategories on error or if none exist
         }
       };
@@ -208,8 +208,8 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         if (file.type === "image/webp") {
           try {
             uploadFile = await convertImageToJPGorPNG(file, "image/png");
-          } catch (err) {
-            console.error("Image conversion failed", err);
+          } catch {
+
             alert("Failed to convert webp image.");
             setUploading(false);
             return;
@@ -219,9 +219,9 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         try {
           const imageUrl = await uploadFileViaBackend(uploadFile);
           setForm({ ...form, image: imageUrl });
-        } catch (err) {
+        } catch {
           alert("Failed to upload primary image.");
-          console.error(err);
+
         } finally {
           setUploading(false);
         }
@@ -240,8 +240,8 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         if (file.type === "image/webp") {
           try {
             convertedFile = await convertImageToJPGorPNG(file, "image/png");
-          } catch (err) {
-            console.error("Image conversion failed", err);
+          } catch {
+
             alert(`Failed to convert file: ${file.name}`);
             continue; // skip this file
           }
@@ -249,9 +249,9 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
         try {
           const imageUrl = await uploadFileViaBackend(convertedFile);
           uploadedUrls.push(imageUrl);
-        } catch (err) {
+        } catch {
           alert(`Failed to upload file: ${file.name}`);
-          console.error(err);
+
         }
       }
 
@@ -285,7 +285,7 @@ export default function ProductForm({ product, onProductAdded, onCancel }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
-    console.log(`Setting form.${name} to:`, value);
+
   };
 
   const handleArrayChange = (e, index, field) => {

@@ -222,27 +222,25 @@ export default function NotificationsPage() {
     const fetchAllNotifications = async () => {
       setLoading(true);
       try {
-        console.log("Starting comprehensive notification fetch...");
+
 
         // Try the comprehensive fetching function first
         let data = await fetchAllNotificationTypes();
 
         // If that fails or returns limited results, try the original admin endpoint
         if (!data || data.length === 0) {
-          console.log(
-            "Comprehensive fetch returned no data, trying admin endpoint...",
-          );
+
           data = await fetchAdminNotifications();
         }
 
-        console.log("Final data received:", data);
-        console.log("Notification count:", data?.length || 0);
+
+
 
         // Log all unique types found
         let allTypes = [];
         if (data && data.length > 0) {
           allTypes = [...new Set(data.map((n) => n.type).filter(Boolean))];
-          console.log("All notification types found:", allTypes);
+
         }
 
         let filteredData = data || [];
@@ -261,13 +259,8 @@ export default function NotificationsPage() {
         setNotifications(sorted);
         toast.success(`${sorted.length} notifications loaded`);
 
-        if (allTypes.length > 0) {
-          console.log(
-            `Loaded notifications with types: ${allTypes.join(", ")}`,
-          );
-        }
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+
         toast.error("Failed to load notifications: " + error.message);
       } finally {
         setLoading(false);
@@ -280,17 +273,17 @@ export default function NotificationsPage() {
     const forceRefresh = async () => {
       setLoading(true);
       try {
-        console.log("🔄 Manual force refresh triggered");
+
         const data = await forceRefreshNotifications();
 
-        console.log("Force refresh data:", data);
-        console.log("Force refresh count:", data?.length || 0);
+
+
 
         if (data && data.length > 0) {
           const allTypes = [
             ...new Set(data.map((n) => n.type).filter(Boolean)),
           ];
-          console.log("Force refresh types:", allTypes);
+
         }
 
         let filteredData = data || [];
@@ -311,7 +304,7 @@ export default function NotificationsPage() {
           `🔄 Force refreshed: ${sorted.length} notifications loaded`,
         );
       } catch (error) {
-        console.error("Force refresh failed:", error);
+
         toast.error("Force refresh failed: " + error.message);
       } finally {
         setLoading(false);
@@ -414,8 +407,8 @@ export default function NotificationsPage() {
         );
         toast.success("Notification marked as read");
       }
-    } catch (err) {
-      console.error("Failed to update read status:", err);
+    } catch {
+
       toast.error("Failed to update notification");
     }
   };
@@ -440,8 +433,8 @@ export default function NotificationsPage() {
         setSelectedNotifications(new Set());
         toast.success(`${response.updated} notifications marked as read`);
       }
-    } catch (err) {
-      console.error("Failed to update read status:", err);
+    } catch {
+
       toast.error("Failed to update notifications");
     }
   };
@@ -462,8 +455,8 @@ export default function NotificationsPage() {
         await clearAllNotifications();
         setNotifications([]);
         toast.success("All notifications cleared");
-      } catch (err) {
-        console.error("Error clearing notifications:", err);
+      } catch {
+
         toast.error("Failed to clear notifications");
       }
     }
@@ -702,7 +695,7 @@ export default function NotificationsPage() {
                         <option value="promotion">Promotion, opted in users</option>
                         <option value="app_update">App update</option>
                         <option value="service_announcement">
-                          Service announcement 
+                          Service announcement
                         </option>
                       </select>
                     </label>

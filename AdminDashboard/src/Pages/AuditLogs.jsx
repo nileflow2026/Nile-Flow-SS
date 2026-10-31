@@ -61,7 +61,7 @@ export default function AuditLogs() {
         setError(null);
         toast.success(`${data?.length || 0} audit logs loaded`);
       } catch (err) {
-        console.error("Error fetching audit logs:", err);
+
         setError(err.message || "Failed to load audit logs");
         toast.error("Failed to load audit logs");
       } finally {

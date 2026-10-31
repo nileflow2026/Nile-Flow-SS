@@ -53,8 +53,8 @@ export const login = async (credentials) => {
 export const logout = async () => {
   try {
     await axiosClient.post('/api/admin/auth/logout');
-  } catch (error) {
-    console.error('Logout error:', error);
+  } catch {
+    console.error("[AdminDashboard] Operation failed.");
   }
 };
 
@@ -117,8 +117,8 @@ export const fetchUsers = async () => {
   try {
     const response = await axiosClient.get('/api/admin/users');
     return response.data?.users || [];
-  } catch (error) {
-    console.error('Error fetching users:', error);
+  } catch {
+
     return [];
   }
 };
@@ -129,8 +129,8 @@ export const getVendors = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/vendors', { params: filters });
     return response.data?.vendors || [];
-  } catch (error) {
-    console.error('Error fetching vendors:', error);
+  } catch {
+
     return [];
   }
 };
@@ -139,8 +139,8 @@ export const getVendorStats = async () => {
   try {
     const response = await axiosClient.get('/api/admin/vendors/stats');
     return response.data?.stats || {};
-  } catch (error) {
-    console.error('Error fetching vendor stats:', error);
+  } catch {
+
     return {};
   }
 };
@@ -178,8 +178,8 @@ export const getOrders = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/orders', { params: filters });
     return response.data?.orders || [];
-  } catch (error) {
-    console.error('Error fetching orders:', error);
+  } catch {
+
     return [];
   }
 };
@@ -188,8 +188,8 @@ export const getCancelledOrders = async () => {
   try {
     const response = await axiosClient.get('/api/admin/orders/cancelled');
     return response.data?.orders || [];
-  } catch (error) {
-    console.error('Error fetching cancelled orders:', error);
+  } catch {
+
     return [];
   }
 };
@@ -198,8 +198,8 @@ export const getRiders = async () => {
   try {
     const response = await axiosClient.get('/api/admin/riders');
     return response.data?.riders || [];
-  } catch (error) {
-    console.error('Error fetching riders:', error);
+  } catch {
+
     return [];
   }
 };
@@ -229,8 +229,8 @@ export const getCustomerAddress = async (customerId) => {
   try {
     const response = await axiosClient.get(`/api/admin/customers/${customerId}/address`);
     return response.data?.address || null;
-  } catch (error) {
-    console.error('Error fetching customer address:', error);
+  } catch {
+
     return null;
   }
 };
@@ -241,8 +241,8 @@ export const getProducts = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/products', { params: filters });
     return response.data?.products || [];
-  } catch (error) {
-    console.error('Error fetching products:', error);
+  } catch {
+
     return [];
   }
 };
@@ -257,8 +257,8 @@ export const getNotifications = async (type) => {
     }
     const response = await axiosClient.get(url);
     return response.data?.notifications || [];
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
+  } catch {
+
     return [];
   }
 };
@@ -267,8 +267,8 @@ export const clearAllNotifications = async () => {
   try {
     const response = await axiosClient.delete('/api/notifications/clear');
     return response.data;
-  } catch (error) {
-    console.error('Error clearing notifications:', error);
+  } catch {
+
     return null;
   }
 };
@@ -277,8 +277,8 @@ export const fetchAdminNotifications = async () => {
   try {
     const response = await axiosClient.get('/api/notifications/admin');
     return response.data?.result || [];
-  } catch (error) {
-    console.error('Error fetching admin notifications:', error);
+  } catch {
+
     return [];
   }
 };
@@ -287,8 +287,8 @@ export const markNotificationsAsRead = async (ids) => {
   try {
     const response = await axiosClient.post('/api/notifications/mark-as-read', { ids });
     return response.data;
-  } catch (error) {
-    console.error('Error marking notifications as read:', error);
+  } catch {
+
     return null;
   }
 };
@@ -297,8 +297,8 @@ export const fetchAllNotificationTypes = async () => {
   try {
     const response = await axiosClient.get('/api/notifications/admin');
     return response.data?.result || response.data?.notifications || [];
-  } catch (error) {
-    console.error('Error fetching all notifications:', error);
+  } catch {
+
     return [];
   }
 };
@@ -310,8 +310,8 @@ export const forceRefreshNotifications = async () => {
       `/api/notifications/admin?_t=${timestamp}&force=true`,
     );
     return response.data?.result || response.data?.notifications || [];
-  } catch (error) {
-    console.error('Error force refreshing notifications:', error);
+  } catch {
+
     return [];
   }
 };
@@ -322,8 +322,8 @@ export const getDashboardStats = async () => {
   try {
     const response = await axiosClient.get('/api/admin/stats');
     return response.data?.stats || {};
-  } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+  } catch {
+
     return {};
   }
 };
@@ -332,8 +332,8 @@ export const getAuditLogs = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/audit-logs', { params: filters });
     return response.data?.logs || [];
-  } catch (error) {
-    console.error('Error fetching audit logs:', error);
+  } catch {
+
     return [];
   }
 };
@@ -344,8 +344,8 @@ export const getCommissionSettings = async () => {
   try {
     const response = await axiosClient.get('/api/admin/commission/settings');
     return response.data?.settings || {};
-  } catch (error) {
-    console.error('Error fetching commission settings:', error);
+  } catch {
+
     return {};
   }
 };
@@ -364,8 +364,8 @@ export const getCommissionAnalytics = async (filters = {}) => {
     const response = await axiosClient.get('/api/admin/commission/analytics', { params: filters });
     // Backend may return { success: true, data: {...} } or { success: true, analytics: {...} }
     return response.data?.analytics || response.data?.data || {};
-  } catch (error) {
-    console.error('Error fetching commission analytics:', error);
+  } catch {
+
     return {};
   }
 };
@@ -374,8 +374,8 @@ export const getGMVData = async (timeframe = 'last30') => {
   try {
     const response = await axiosClient.get('/api/admin/commission/gmv', { params: { timeframe } });
     return response.data?.gmv || {};
-  } catch (error) {
-    console.error('Error fetching GMV data:', error);
+  } catch {
+
     return {};
   }
 };
@@ -395,8 +395,8 @@ export const getUserOrders = async (userId) => {
   try {
     const response = await axiosClient.get(`/api/admin/users/${userId}/orders`);
     return response.data?.orders || [];
-  } catch (error) {
-    console.error('Error fetching user orders:', error);
+  } catch {
+
     return [];
   }
 };
@@ -405,8 +405,8 @@ export const getUserAddresses = async (userId) => {
   try {
     const response = await axiosClient.get(`/api/admin/users/${userId}/addresses`);
     return response.data?.addresses || [];
-  } catch (error) {
-    console.error('Error fetching user addresses:', error);
+  } catch {
+
     return [];
   }
 };
@@ -415,8 +415,8 @@ export const getUserPreferences = async (userId) => {
   try {
     const response = await axiosClient.get(`/api/admin/users/${userId}/preferences`);
     return response.data?.preferences || {};
-  } catch (error) {
-    console.error('Error fetching user preferences:', error);
+  } catch {
+
     return {};
   }
 };
@@ -456,18 +456,18 @@ export const getBroadcastAudienceStats = async () => {
   try {
     const response = await axiosClient.get('/api/admin/newsletter/broadcast-stats');
     return response.data?.data || {};
-  } catch (error) {
-    console.error('Error fetching audience stats:', error);
+  } catch {
+
     return {};
   }
 };
- 
+
 export const listSubscribers = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/newsletter/subscribers', { params: filters });
     return response.data?.subscribers || [];
-  } catch (error) {
-    console.error('Error listing subscribers:', error);
+  } catch {
+
     return [];
   }
 };
@@ -487,8 +487,8 @@ export const exportSubscribersCSV = async () => {
       responseType: 'blob',
     });
     return response.data;
-  } catch (error) {
-    console.error('Error exporting subscribers:', error);
+  } catch {
+
     return null;
   }
 };
@@ -499,8 +499,8 @@ export const getBanners = async () => {
   try {
     const response = await axiosClient.get('/api/v1/banners');
     return response.data?.banners || response.data || [];
-  } catch (error) {
-    console.error('Error fetching banners:', error);
+  } catch {
+
     return [];
   }
 };
@@ -542,8 +542,8 @@ export const getPendingProducts = async () => {
   try {
     const response = await axiosClient.get('/api/admin/products/pending');
     return response.data?.products || [];
-  } catch (error) {
-    console.error('Error fetching pending products:', error);
+  } catch {
+
     return [];
   }
 };
@@ -572,8 +572,8 @@ export const getCommissionData = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/commission', { params: filters });
     return response.data?.commission || {};
-  } catch (error) {
-    console.error('Error fetching commission data:', error);
+  } catch {
+
     return {};
   }
 };
@@ -582,8 +582,8 @@ export const getFinanceData = async (filters = {}) => {
   try {
     const response = await axiosClient.get('/api/admin/finance', { params: filters });
     return response.data?.finance || {};
-  } catch (error) {
-    console.error('Error fetching finance data:', error);
+  } catch {
+
     return {};
   }
 };
@@ -594,8 +594,8 @@ export const getSettings = async () => {
   try {
     const response = await axiosClient.get('/api/admin/settings');
     return response.data?.settings || {};
-  } catch (error) {
-    console.error('Error fetching settings:', error);
+  } catch {
+
     return {};
   }
 };
@@ -620,8 +620,8 @@ export const getDeals = async (type = 'all', options = {}) => {
 
     const response = await axiosClient.get('/api/admin/deals', { params });
     return response.data?.deals || [];
-  } catch (error) {
-    console.error('Error fetching deals:', error);
+  } catch {
+
     throw new Error('Failed to fetch deals');
   }
 };
@@ -642,8 +642,8 @@ export const createDeal = async (dealData) => {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data?.deal;
-  } catch (error) {
-    console.error('Error creating deal:', error);
+  } catch {
+
     throw new Error('Failed to create deal');
   }
 };
@@ -664,8 +664,8 @@ export const updateDeal = async (dealId, dealData) => {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data?.deal;
-  } catch (error) {
-    console.error('Error updating deal:', error);
+  } catch {
+
     throw new Error('Failed to update deal');
   }
 };
@@ -674,8 +674,8 @@ export const deleteDeal = async (dealId) => {
   try {
     const response = await axiosClient.delete(`/api/admin/deals/${dealId}`);
     return response.data?.success;
-  } catch (error) {
-    console.error('Error deleting deal:', error);
+  } catch {
+
     return false;
   }
 };
@@ -684,8 +684,8 @@ export const getDealAnalytics = async () => {
   try {
     const response = await axiosClient.get('/api/admin/deals/analytics');
     return response.data?.analytics || {};
-  } catch (error) {
-    console.error('Error fetching deal analytics:', error);
+  } catch {
+
     return {};
   }
 };
