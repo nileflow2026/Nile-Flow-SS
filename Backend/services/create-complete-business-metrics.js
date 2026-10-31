@@ -1,17 +1,10 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role, ID } = require("node-appwrite");
+const { ID } = require("node-appwrite");
 
 async function createCompleteBusinessMetrics() {
   try {
     console.log("🔧 Creating complete business_metrics collection...");
-
-    const permissions = [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
 
     const collectionName = "Business & Supply Metrics (Complete)";
 
@@ -20,7 +13,7 @@ async function createCompleteBusinessMetrics() {
       env.APPWRITE_DATABASE_ID,
       ID.unique(),
       collectionName,
-      permissions,
+      [],
       true
     );
 

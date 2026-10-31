@@ -13,6 +13,7 @@ const socketService = require("../../services/socketService");
 const { getRequestedOrderStatus } = require("../../utils/orderStatusRequest");
 const { enqueuePushNotification } = require("../../services/pushNotificationService");
 const logger = require("../../utils/logger");
+const { toSafeUserResponse } = require("../../utils/safeUserResponse");
 
 const getCancelledOrders = async (req, res) => {
   try {
@@ -797,10 +798,12 @@ const getUsers = async (_req, res) => {
     const { documents } = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
+      [Query.limit(100)],
     );
-    res.json(documents);
+    res.json(documents.map(toSafeUserResponse));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error("Failed to list admin users:", e.message);
+    res.status(500).json({ error: "Failed to list users." });
   }
 };
 

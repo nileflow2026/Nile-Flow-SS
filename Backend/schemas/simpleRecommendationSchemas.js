@@ -1,4 +1,4 @@
-const { Client, Databases, ID, Permission, Role } = require("node-appwrite");
+const { Client, Databases, ID } = require("node-appwrite");
 const { db } = require("../src/appwrite");
 const { env } = require("../src/env");
 
@@ -18,12 +18,7 @@ class SimpleRecommendationSchemas {
 
   // Helper method to get default permissions for collections
   getDefaultPermissions() {
-    return [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
+    return [];
   }
 
   async initializeDatabase() {

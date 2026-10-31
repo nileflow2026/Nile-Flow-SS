@@ -325,13 +325,19 @@ const handleAiChat = async (req, res) => {
 
   try {
     // 1. Validate and sanitize input
-    const { userId, message, sessionId, userName } = sanitizer.sanitize(
-      req.body,
-    );
+    const { message, sessionId } = sanitizer.sanitize(req.body);
+    const userId = req.user?.userId;
 
-    if (!userId || !message) {
+    if (!userId) {
+      return res.status(401).json({
+        error: "Authentication is required",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    if (!message) {
       return res.status(400).json({
-        error: "userId and message are required",
+        error: "message is required",
         code: "MISSING_REQUIRED_FIELDS",
       });
     }
@@ -353,7 +359,7 @@ const handleAiChat = async (req, res) => {
     logger.info(`Classified intent: ${intent}`);
 
     // 3. Fetch user context (profile + recent orders)
-    const userContext = await getUserContext(userId, userName);
+    const userContext = await getUserContext(userId);
 
     // 4. Get additional context based on intent
     let additionalContext = {};

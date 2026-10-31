@@ -5,6 +5,6 @@ const {
   changePassword,
 } = require("../controllers/AdminControllers/passwordController");
 
-router.post("/user/password/change", changePassword);
+router.post("/user/password/change", authenticateToken, changePassword);
 
 module.exports = router;

@@ -4,6 +4,11 @@ const { db } = require("../../services/appwriteService");
 const { instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
 
+const sanitizeVendor = (vendor) => {
+  const { password, confirmPassword, ...safe } = vendor;
+  return safe;
+};
+
 const vendorAdminController = {
   /**
    * GET /api/admin/vendors
@@ -63,7 +68,7 @@ const vendorAdminController = {
         return res.json({
           success: true,
           data: {
-            vendors: merged,
+            vendors: merged.map(sanitizeVendor),
             total: merged.length,
             page: pageNum,
             limit: limitNum,
@@ -78,10 +83,7 @@ const vendorAdminController = {
       );
 
       // Sanitize vendors (remove passwords)
-      const sanitizedVendors = response.documents.map((vendor) => {
-        const { password, confirmPassword, ...safe } = vendor;
-        return safe;
-      });
+      const sanitizedVendors = response.documents.map(sanitizeVendor);
 
       res.json({
         success: true,
@@ -125,7 +127,7 @@ const vendorAdminController = {
       }
 
       // Sanitize
-      const { password, confirmPassword, ...safe } = vendor;
+      const safe = sanitizeVendor(vendor);
 
       res.json({
         success: true,
@@ -170,7 +172,7 @@ const vendorAdminController = {
         }
       );
 
-      const { password, confirmPassword, ...safe } = updated;
+      const safe = sanitizeVendor(updated);
 
       res.json({
         success: true,

@@ -1,6 +1,5 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role } = require("node-appwrite");
 
 async function testCreateRecommendationCollection() {
   try {
@@ -16,12 +15,7 @@ async function testCreateRecommendationCollection() {
       env.APPWRITE_DATABASE_ID,
       collectionId,
       collectionName,
-      [
-        Permission.read(Role.any()),
-        Permission.create(Role.any()),
-        Permission.update(Role.any()),
-        Permission.delete(Role.any()),
-      ],
+      [],
       true // documentSecurity
     );
 

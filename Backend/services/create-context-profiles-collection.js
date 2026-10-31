@@ -1,19 +1,12 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role, ID } = require("node-appwrite");
+const { ID } = require("node-appwrite");
 
 async function createContextProfilesCollection() {
   try {
     console.log(
       "🌍 Creating context_profiles collection for ContextCultureTower..."
     );
-
-    const permissions = [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
 
     const collectionName = "Context & Culture Profiles";
 
@@ -22,7 +15,7 @@ async function createContextProfilesCollection() {
       env.APPWRITE_DATABASE_ID,
       ID.unique(),
       collectionName,
-      permissions,
+      [],
       true
     );
 

@@ -390,7 +390,6 @@ const cashonDelivery = async (req, res) => {
 
   try {
     console.log("=== PAYMENT ON DELIVERY REQUEST ===");
-    console.log("Request Body:", JSON.stringify(req.body, null, 2));
 
     const {
       cart,
@@ -760,9 +759,8 @@ const stripewebpayment = async (req, res) => {
       return res.status(400).json({ message: "Username is required" });
 
     console.log("=== STRIPE WEB PAYMENT REQUEST ===");
-    console.log("Request Body:", JSON.stringify(req.body, null, 2));
     console.log(
-      `Processing Stripe order for ${username}, ${cart.length} items`,
+      `Processing Stripe order with ${cart.length} items`,
     );
 
     // 1. CHECK STOCK AVAILABILITY BEFORE CREATING ORDER
@@ -2079,8 +2077,7 @@ const initiateMpesaPayment = async (req, res) => {
  */
 const mpesaCallback1 = async (req, res) => {
   try {
-    console.log("=== M-PESA CALLBACK RECEIVED ===");
-    console.log("Callback Body:", JSON.stringify(req.body, null, 2));
+    console.info("M-Pesa payment callback received");
 
     const { Body } = req.body;
     const stkCallback = Body?.stkCallback;
@@ -2209,8 +2206,7 @@ const mpesaCallback1 = async (req, res) => {
 
 const mpesaCallback = async (req, res) => {
   try {
-    console.log("=== M-PESA CALLBACK RECEIVED ===");
-    console.log("Callback Body:", JSON.stringify(req.body, null, 2));
+    console.info("M-Pesa payment callback received");
 
     const { Body } = req.body;
     const stkCallback = Body?.stkCallback;

@@ -274,14 +274,30 @@ async function revokeAllUserRefreshTokens(userId) {
 /**
  * Sanitize user object for client.
  */
-function sanitizeUser(userObj) {
+function sanitizeUser(userObj, role = userObj.prefs?.role || "user") {
   return {
     id: userObj.$id,
     email: userObj.email,
     username: userObj.name || userObj.prefs?.username || null,
-    role: userObj.prefs?.role || "user",
+    role,
     avatar: userObj.prefs?.avatar || null,
   };
+}
+
+async function isRegisteredAdmin(userId) {
+  try {
+    const profile = await instrumentedDb.getDocument(
+      env.APPWRITE_DATABASE_ID,
+      env.APPWRITE_ADMIN_COLLECTION_ID,
+      userId,
+    );
+    return profile.role === "admin";
+  } catch (error) {
+    if (error.code === 404) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 /* --------------------- Controllers --------------------- */
@@ -452,7 +468,17 @@ const signin = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    const role = user.prefs?.role || "user";
+    if (!(await isRegisteredAdmin(user.$id))) {
+      await users.deleteSession(user.$id, session.$id).catch((cleanupError) =>
+        log.error(
+          "Could not remove a rejected admin sign-in session:",
+          cleanupError?.message,
+        ),
+      );
+      return res.status(401).json({ error: "Invalid credentials." });
+    }
+
+    const role = "admin";
     const accessPayload = { sub: user.$id, role, email: user.email };
     const accessToken = signAccessToken(accessPayload);
     const refreshPayload = { sub: user.$id };
@@ -498,7 +524,7 @@ const signin = async (req, res) => {
 
     return res.status(200).json({
       message: "Signin successful",
-      user: sanitizeUser(user),
+      user: sanitizeUser(user, role),
     });
   } catch (error) {
     log.error("Signin error:", error?.message);
@@ -653,10 +679,15 @@ const handleRefreshToken = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
+    if (!(await isRegisteredAdmin(user.$id))) {
+      await revokeAllUserRefreshTokens(userId);
+      return res.status(401).json({ error: "Invalid refresh token." });
+    }
+
     // 7) Issue new access token
     const newAccessPayload = {
       sub: user.$id,
-      role: user.prefs?.role || "user",
+      role: "admin",
     };
     const newAccessToken = signAccessToken(newAccessPayload);
 
@@ -830,7 +861,7 @@ const getCurrentUser = async (req, res) => {
     const user = await getCachedUser(decoded.sub);
 
     return res.status(200).json({
-      user: sanitizeUser(user),
+      user: sanitizeUser(user, decoded.role),
     });
   } catch (error) {
     log.error("Get current user failed:", error?.message || error);

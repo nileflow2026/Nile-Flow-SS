@@ -13,7 +13,7 @@ const { apiLimiter } = require("../middleware/rate-limiter");
 // AI Chat endpoint with authentication and rate limiting
 router.post(
   "/chat",
-  /* authenticateToken */ // Ensure user is authenticated
+  authenticateToken,
   apiLimiter, // Apply rate limiting
   handleAiChat, // Main AI chat handler
 );

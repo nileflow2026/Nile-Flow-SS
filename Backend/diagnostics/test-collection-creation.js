@@ -1,18 +1,9 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role } = require("node-appwrite");
 
 async function testCollectionCreation() {
   try {
     console.log("🧪 Testing collection creation...");
-
-    // Get default permissions
-    const permissions = [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
 
     // Try to create a simple test collection
     const testId = "test_" + Date.now();
@@ -22,7 +13,7 @@ async function testCollectionCreation() {
       env.APPWRITE_DATABASE_ID,
       testId,
       "Test Collection",
-      permissions,
+      [],
       true // documentSecurity
     );
 

@@ -1,17 +1,9 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role } = require("node-appwrite");
 
 async function createSingleCollection() {
   try {
     console.log("🧪 Creating a single test recommendation collection...");
-
-    const permissions = [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
 
     const collectionId = "rec_sessions_" + Date.now();
     const collectionName = "Recommendation Sessions Test";
@@ -23,7 +15,7 @@ async function createSingleCollection() {
       env.APPWRITE_DATABASE_ID,
       collectionId,
       collectionName,
-      permissions,
+      [],
       true // documentSecurity
     );
 

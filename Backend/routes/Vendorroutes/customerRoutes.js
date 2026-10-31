@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const authenticateToken = require("../../middleware/authMiddleware");
+const { adminOnly } = require("../../middleware/auth");
 const {
   getAllCustomers,
   getCustomerInsights,
   getCustomerDetails,
 } = require("../../controllers/VendorControllers/customerController");
-// Protect routes (admin only for now, can adjust for vendors)
-router.use(authenticateToken);
+router.use(authenticateToken, adminOnly);
 
 router.get("/", getAllCustomers);
 router.get("/insights", getCustomerInsights);

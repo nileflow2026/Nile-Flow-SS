@@ -1,6 +1,7 @@
 const { Query } = require("node-appwrite");
 const { users, instrumentedDb } = require("../../services/appwriteService");
 const { env } = require("../../src/env");
+const { toSafeUserResponse } = require("../../utils/safeUserResponse");
 
 // controllers/adminController.js
 
@@ -31,15 +32,29 @@ const getAdminProfile = async (req, res) => {
   }
 };
 
-const getUsers = async (_req, res) => {
+const getUsers = async (req, res) => {
   try {
-    const { documents } = await instrumentedDb.listDocuments(
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, Number.parseInt(req.query.limit, 10) || 25),
+    );
+    const response = await instrumentedDb.listDocuments(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_USER_COLLECTION_ID,
+      [Query.limit(limit), Query.offset((page - 1) * limit)],
     );
-    res.json({ users: documents });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+
+    return res.json({
+      users: response.documents.map(toSafeUserResponse),
+      total: response.total,
+      page,
+      limit,
+      totalPages: Math.ceil(response.total / limit),
+    });
+  } catch (error) {
+    console.error("Failed to list users:", error.message);
+    return res.status(500).json({ error: "Failed to list users." });
   }
 };
 

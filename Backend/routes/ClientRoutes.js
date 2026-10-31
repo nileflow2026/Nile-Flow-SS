@@ -58,8 +58,8 @@ const {
 router.get("/profile", authenticateToken, getCustomerProfile);
 router.get("/update-currencies", authenticateToken, updateCurrencyRates);
 router.get("/customer-orders", authenticateToken, getCustomerOrders);
-router.post("/customer-searches", saveRecentSearch);
-router.get("/customer-recent-search", getRecentSearches);
+router.post("/customer-searches", authenticateToken, saveRecentSearch);
+router.get("/customer-recent-search", authenticateToken, getRecentSearches);
 router.get("/popular-searches", getPopularSearches);
 router.get("/fetch-product", currencyMiddleware, getProducts);
 router.get("/fetch-product-mobile", currencyMiddleware, getProductsForMobile);

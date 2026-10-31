@@ -166,24 +166,28 @@ const getCustomerOrders = async (req, res) => {
 };
 
 const saveRecentSearch = async (req, res) => {
-  const { userId, query } = req.body;
+  const userId = req.user?.userId;
+  const { query } = req.body || {};
 
-  if (!userId || !query) {
-    return res.status(400).json({ message: "Missing userId or query." });
+  if (!userId) {
+    return res.status(401).json({ message: "Authentication is required." });
+  }
+  if (!query || typeof query !== "string" || query.length > 200) {
+    return res.status(400).json({ message: "A valid search query is required." });
   }
 
   try {
     const timestamp = Math.floor(Date.now() / 1000); // seconds
-    const result = await instrumentedDb.createDocument(
+    await instrumentedDb.createDocument(
       env.APPWRITE_DATABASE_ID,
       env.APPWRITE_SEARCH_COLLECTION, // recentSearches
       ID.unique(),
       { userId, query, timestamp },
     );
 
-    return res
-      .status(201)
-      .json({ message: "Recent search saved!", document: result });
+    return res.status(201).json({
+      message: "Recent search saved!",
+    });
   } catch (error) {
     console.error("Error saving recent search:", error);
     return res.status(500).json({ message: "Internal server error." });

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authenticateToken = require("../middleware/authMiddleware");
+const { adminOnly } = require("../middleware/auth");
 const {
   getAdminProfile,
   getUsers,
@@ -25,11 +26,40 @@ const defaultPreferences = {
   theme: "light",
 };
 
+const isAllowedPreferenceObject = (preferences) =>
+  preferences &&
+  typeof preferences === "object" &&
+  !Array.isArray(preferences) &&
+  Object.entries(preferences).every(
+    ([key, value]) =>
+      Object.hasOwn(defaultPreferences, key) &&
+      typeof value === typeof defaultPreferences[key],
+  );
+
+const pickAllowedPreferences = (preferences = {}) => {
+  if (
+    !preferences ||
+    typeof preferences !== "object" ||
+    Array.isArray(preferences)
+  ) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.keys(defaultPreferences)
+      .filter((key) => Object.hasOwn(preferences, key))
+      .map((key) => [key, preferences[key]]),
+  );
+};
+
+const canAccessPreferences = (req) =>
+  req.user?.userId && req.user.userId === req.params.userId;
+
 // Protected route
-router.get("/admin/profile", authenticateToken, getAdminProfile);
-router.get("/audit-logs", authenticateToken, getAuditLogs);
+router.get("/admin/profile", authenticateToken, adminOnly, getAdminProfile);
+router.get("/audit-logs", authenticateToken, adminOnly, getAuditLogs);
 router.post("/log", authenticateToken, logAuditEntry);
-router.get("/users", authenticateToken, getUsers);
+router.get("/users", authenticateToken, adminOnly, getUsers);
 router.get(
   "/users/:userId/preferences",
   authenticateToken,
@@ -37,30 +67,23 @@ router.get(
     try {
       const { userId } = req.params;
 
-      // Validate userId
-      if (!userId) {
-        return res.status(400).json({
+      if (!canAccessPreferences(req)) {
+        return res.status(403).json({
           success: false,
-          error: "User ID is required",
+          error: "You can only access your own preferences",
         });
       }
 
-      // Appwrite Users API Implementation
       try {
-        // Get user preferences using Appwrite Users API
         const userPreferences = await users.getPrefs(userId);
+        const preferences = {
+          ...defaultPreferences,
+          ...pickAllowedPreferences(userPreferences),
+        };
 
-        // If no preferences exist, return defaults
-        const preferences =
-          Object.keys(userPreferences).length === 0
-            ? defaultPreferences
-            : { ...defaultPreferences, ...userPreferences };
-
-        console.log(`Fetching preferences for user: ${userId}`);
-
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
-          preferences: preferences,
+          preferences,
           message: "User preferences retrieved successfully",
         });
       } catch (appwriteError) {
@@ -81,7 +104,6 @@ router.get(
       res.status(500).json({
         success: false,
         error: "Failed to fetch user preferences",
-        message: error.message,
       });
     }
   }
@@ -98,31 +120,33 @@ router.put(
       const { userId } = req.params;
       const { preferences } = req.body;
 
-      // Validate input
-      if (!userId) {
-        return res.status(400).json({
+      if (!canAccessPreferences(req)) {
+        return res.status(403).json({
           success: false,
-          error: "User ID is required",
+          error: "You can only update your own preferences",
         });
       }
 
-      if (!preferences || typeof preferences !== "object") {
+      if (!isAllowedPreferenceObject(preferences)) {
         return res.status(400).json({
           success: false,
-          error: "Valid preferences object is required",
+          error: "Preferences contain invalid or unsupported values",
         });
       }
 
-      // Appwrite Users API Implementation
       try {
-        // Update user preferences using Appwrite Users API
-        const updatedPreferences = await users.updatePrefs(userId, preferences);
+        const currentPreferences = await users.getPrefs(userId);
+        const updatedPreferences = await users.updatePrefs(userId, {
+          ...currentPreferences,
+          ...preferences,
+        });
 
-        console.log("Updated preferences for user:", userId);
-
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
-          preferences: updatedPreferences,
+          preferences: {
+            ...defaultPreferences,
+            ...pickAllowedPreferences(updatedPreferences),
+          },
           message: "User preferences updated successfully",
         });
       } catch (appwriteError) {
@@ -143,7 +167,6 @@ router.put(
       res.status(500).json({
         success: false,
         error: "Failed to update user preferences",
-        message: error.message,
       });
     }
   }
@@ -161,32 +184,33 @@ router.patch(
       const { userId } = req.params;
       const updates = req.body;
 
-      if (!userId) {
-        return res.status(400).json({
+      if (!canAccessPreferences(req)) {
+        return res.status(403).json({
           success: false,
-          error: "User ID is required",
+          error: "You can only update your own preferences",
         });
       }
 
-      // Appwrite Users API Implementation
-      try {
-        // Get current preferences first
-        const currentPreferences = await users.getPrefs(userId);
+      if (!isAllowedPreferenceObject(updates)) {
+        return res.status(400).json({
+          success: false,
+          error: "Preferences contain invalid or unsupported values",
+        });
+      }
 
-        // Merge with updates
+      try {
+        const currentPreferences = await users.getPrefs(userId);
         const updatedPreferences = await users.updatePrefs(userId, {
           ...currentPreferences,
           ...updates,
         });
 
-        console.log(
-          `Partially updated preferences for user: ${userId}`,
-          updates
-        );
-
-        res.status(200).json({
+        return res.status(200).json({
           success: true,
-          preferences: updatedPreferences,
+          preferences: {
+            ...defaultPreferences,
+            ...pickAllowedPreferences(updatedPreferences),
+          },
           message: "User preferences partially updated successfully",
         });
       } catch (appwriteError) {
@@ -207,7 +231,6 @@ router.patch(
       res.status(500).json({
         success: false,
         error: "Failed to update user preferences",
-        message: error.message,
       });
     }
   }

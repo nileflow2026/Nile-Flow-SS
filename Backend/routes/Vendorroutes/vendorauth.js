@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../../controllers/VendorControllers/vendorauthController");
 const authenticateToken = require("../../middleware/authMiddleware");
+const { adminOnly } = require("../../middleware/auth");
 const {
   loginSchema,
   validationSchemas,
@@ -20,6 +21,11 @@ router.post("/forgot-password/send-code", authController.sendVendorResetCode);
 router.post("/forgot-password/verify", authController.verifyVendorResetCode);
 
 // Admin: direct password reset (requires auth)
-router.post("/reset-vendor-password", authenticateToken, authController.resetVendorPassword);
+router.post(
+  "/reset-vendor-password",
+  authenticateToken,
+  adminOnly,
+  authController.resetVendorPassword,
+);
 
 module.exports = router;

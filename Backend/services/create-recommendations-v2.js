@@ -1,17 +1,9 @@
 const { db } = require("./src/appwrite");
 const { env } = require("./src/env");
-const { Permission, Role } = require("node-appwrite");
 
 async function createRecommendationCollectionsV2() {
   try {
     console.log("🚀 Creating Recommendation Collections (V2)...");
-
-    const permissions = [
-      Permission.read(Role.any()),
-      Permission.create(Role.any()),
-      Permission.update(Role.any()),
-      Permission.delete(Role.any()),
-    ];
 
     const collections = [
       {
@@ -62,7 +54,7 @@ async function createRecommendationCollectionsV2() {
           env.APPWRITE_DATABASE_ID,
           collectionConfig.id,
           collectionConfig.name,
-          permissions,
+          [],
           true
         );
 
