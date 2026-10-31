@@ -4,7 +4,7 @@
  * Run this script to initialize the campaign types in your database
  */
 
-const { Databases, Client, ID, Permission, Role } = require("node-appwrite");
+const { Databases, Client, ID } = require("node-appwrite");
 require("dotenv").config();
 
 const client = new Client();
@@ -63,12 +63,7 @@ const createCampaignTypesCollection = async () => {
         DATABASE_ID,
         COLLECTION_ID,
         "Campaign Types",
-        [
-          Permission.read(Role.any()),
-          Permission.create(Role.users()),
-          Permission.update(Role.users()),
-          Permission.delete(Role.users()),
-        ]
+        []
       );
       console.log("✓ Collection created successfully");
     } catch (error) {

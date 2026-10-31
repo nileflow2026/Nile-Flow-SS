@@ -18,8 +18,6 @@ const {
   Client,
   Databases,
   ID,
-  Permission,
-  Role,
   IndexType,
 } = require("node-appwrite");
 const path = require("path");
@@ -39,12 +37,7 @@ async function createCollectionSafe(name, collectionId) {
       DATABASE_ID,
       collectionId || ID.unique(),
       name,
-      [
-        Permission.read(Role.any()),
-        Permission.create(Role.users()),
-        Permission.update(Role.users()),
-        Permission.delete(Role.users()),
-      ],
+      [],
     );
     console.log(`✅ Created collection "${name}" → ID: ${col.$id}`);
     return col.$id;

@@ -2,13 +2,13 @@
 
 **Assessment date:** 2026-10-31
 
-**Scope:** The initial assessment was a read-only repository review of the Node.js/Express backend and configuration files relevant to its API, Appwrite integration, authentication, payment callbacks, and checked-in client environment files. Follow-up source remediations are recorded separately below. Appwrite MCP was also used to list database metadata in the Nile Flow project; no collection ACLs, documents, customer records, production logs, or application endpoints were queried. The project's production status was not established. No credential values or PII are reproduced below.
+**Scope:** The initial assessment was a read-only repository review of the Node.js/Express backend and configuration files relevant to its API, Appwrite integration, authentication, payment callbacks, and checked-in client environment files. Follow-up source remediations are recorded separately below. Appwrite MCP was later used to inspect database and storage permission metadata and change ACLs in the connected Nile Flow project. No row contents, files, customer records, production logs, or application endpoints were queried. Whether the connected project is the production project was not established. No credential values or PII are reproduced below.
 
 ## 1. Executive Summary
 
 **Risk at initial audit: CRITICAL source-level exposure.** Repository evidence confirmed routes that could issue an admin identity publicly or let a low-privilege authenticated caller access other users' data. This establishes serious source-level vulnerabilities, but does **not** establish that the affected revision was deployed, that any request exploited it, or that a breach occurred. Production deployment state, Appwrite ACLs, and service logs were not accessed.
 
-**Current worktree status:** NF-01 through NF-07 have source-level remediations and regression coverage for the affected authorization paths. NF-10 has been removed from Git's index, but credential validity, rotation, and history cleanup remain owner actions. NF-11 is partially remediated: callback-body logging was removed, but durable idempotency and provider-side payment verification remain unresolved. NF-18's public collection-permission defaults have been removed from setup code; existing Appwrite collection ACLs remain unverified. NF-08, NF-09, NF-12, NF-14, NF-16 (auditability), and NF-17 remain open or partial. None of the source changes have been deployed or verified against production.
+**Current worktree status:** NF-01 through NF-07 have source-level remediations and regression coverage for the affected authorization paths. NF-10 has been removed from Git's index, but credential validity, rotation, and history cleanup remain owner actions. NF-11 is partially remediated: callback-body logging was removed, but durable idempotency and provider-side payment verification remain unresolved. NF-18's public permission defaults have been removed from setup code. In the connected Appwrite project, all 97 database tables were verified with empty table permissions and row security disabled; six public asset buckets were reduced to read-only public access, and the Feed Videos bucket has no bucket-level permissions. Project identity, API-key scope, deployment, and production status remain unverified. NF-08, NF-09, NF-12, NF-14, NF-16 (auditability), and NF-17 remain open or partial. None of the source changes have been deployed or verified against production.
 
 The source paths made user and customer records potentially retrievable without a legitimate admin authorization decision. The code does **not** prove how many documents were returned, what was deployed at incident time, whether any access occurred, or whether the reported user collection was fetched through the API or directly from Appwrite. A permissive Appwrite collection ACL or exposed server key remains a plausible additional path and must be checked in the production Appwrite console and access logs.
 
@@ -16,7 +16,7 @@ The source paths made user and customer records potentially retrievable without 
 
 1. Password reset codes/tokens remain plaintext in user documents and the public reset flow lacks explicit attempt/issuance limits.
 2. The M-Pesa callback still needs authenticated provider verification, amount/currency matching, and durable idempotency.
-3. Live Appwrite collection/document ACLs, API-key scopes, deployment revision, and access logs remain unverified.
+3. The connected Appwrite database and storage ACLs have been tightened, but it is unknown whether this is the production project. API-key scopes, deployment revision, and access logs remain unverified.
 4. The Sentry-auth-token-named value was removed from the Git index, but provider revocation and Git-history cleanup are not verified.
 5. Administrative user exports still lack a dedicated export audit trail; the public health endpoint still exposes unnecessary user-count metadata.
 
@@ -71,10 +71,10 @@ The repository does not contain a definitive ACL configuration for the deployed 
 | NF-12 | 🟡 MEDIUM | CONFIRMED | Reset-code endpoint revealed account existence and reset endpoints lacked explicit rate limits | Open |
 | NF-13 | 🟡 MEDIUM | CONFIRMED | Preference/password errors and preference logging could disclose internal data | Preference fields are allowlisted; remaining error paths require review |
 | NF-14 | ⚪ LOW | CONFIRMED | Customer monetary totals were formatted as USD despite KES payment flows | Open |
-| NF-15 | 🟡 MEDIUM | NEEDS RUNTIME VERIFICATION | Appwrite collection ACLs and API-key scopes cannot be established from repository | Open; recommendation setup defaults were hardened but existing live ACLs are unverified |
+| NF-15 | 🟡 MEDIUM | NEEDS RUNTIME VERIFICATION | Appwrite collection ACLs and API-key scopes cannot be established from repository | Connected project's table and bucket ACLs were hardened and metadata rechecked; production identity, file-level state, and API-key scopes remain unverified |
 | NF-16 | 🟡 MEDIUM | CONFIRMED | Sensitive user export lacked dedicated audit and bounded query | Bounded safe DTO is implemented; dedicated export auditing remains open |
 | NF-17 | ⚪ LOW | CONFIRMED | Public Appwrite health route disclosed total user count and raw errors | Open |
-| NF-18 | 🟠 HIGH | CONFIRMED IN SETUP CODE | Recommendation/context/metrics collection templates granted public CRUD permissions | Setup defaults hardened in worktree; existing collection ACLs remain unverified |
+| NF-18 | 🟠 HIGH | CONFIRMED IN SETUP CODE | Recommendation/context/metrics collection templates granted public CRUD permissions | Setup defaults hardened in worktree; connected project's database table ACLs were closed, production identity remains unverified |
 
 ## 4. Detailed Findings
 
@@ -568,14 +568,14 @@ Items in this roadmap describe the initial remediation plan. Source changes have
 
 ## 7. Manual Verification Required
 
-These items cannot be established from this repository and were not checked against live services. The only Appwrite MCP request in scope listed database metadata; it did not inspect collection ACLs, document permissions, records, or API-key scopes.
+These items cannot be established from this repository. Appwrite MCP inspected and changed table and bucket ACL metadata in the connected project, but the project has not been confirmed as production. No row or file contents, file-level permissions, API-key scopes, production logs, or application endpoints were inspected.
 
-1. **Appwrite collection/document permissions**
-   - In Appwrite Console, open the deployed project, each database, then the user, customer/profile, orders, refresh-token, address, notification, and audit collections.
-   - Inspect both collection-level permissions and document-level security/default permissions.
-   - Verify `read` is not granted to `Role.any()` or broad `Role.users()` for sensitive records. Check whether document-level permissions override or expand collection defaults.
-   - Inspect every storage bucket used for profiles, applications/CVs, banners, and vendor assets for public read/list/write.
-   - Repeat with an unauthenticated client and a normal customer identity in a non-production project.
+1. **Appwrite project identity and permissions**
+   - In Appwrite Console, confirm whether the connected project is the project serving production.
+   - Recheck all 97 database tables. They should have empty table permissions and row security disabled in the connected project.
+   - Recheck storage buckets. Public asset buckets should grant read only, Feed Videos should have no bucket-level permissions, and no bucket should grant anonymous or all-user create, update, or delete.
+   - Inspect file-level permissions and any other projects or databases not covered by the connected project.
+   - In a non-production project, verify that unauthenticated and normal-user direct database reads fail, while authenticated backend routes still allow a customer to read only their own profile, orders, and addresses.
 2. **Appwrite API key scopes and use**
    - In the Appwrite project API-key console, identify the key injected as `APPWRITE_API_KEY` without copying its value into tickets or this report.
    - Record the exact scopes, creator, creation date, last-use/rotation history, and whether it is shared by other applications.
@@ -714,13 +714,18 @@ The report deeply covers the confirmed incident paths, core user/customer reads,
 - Removed full M-Pesa callback-body logging.
 - Removed the tracked `Mobileapp/.env` file from Git's index; the local ignored file remains.
 - Changed recommendation, context-profile, business-metrics, and related setup helpers to create collections without client permissions.
+- Changed group-buy and campaign-type setup scripts to create collections without client permissions.
+- In the connected Appwrite project, verified all 89 Nile Flow Database tables, 3 RiderDatabase tables, 5 VendorDatabase tables, and 0 LogisticsDatabase tables. All 97 tables have empty table permissions and row security disabled. This preserves application reads through authenticated backend routes while closing direct client database access.
+- Updated Product Images, CategoryImages, BANNER_STORAGE_BUCKET, TEAM_MEMBERS_STORAGE_BUCKET, Promotional Images, and VENDOR_PROFILES to public read only, removing anonymous and authenticated-user create, update, and delete grants. The Feed Videos bucket remains without bucket-level permissions. Product Images is limited to 50 MB and common raster image extensions. Public read remains intentional for storefront and site media.
 
-These are source/worktree changes only. They do not update a production deployment, revoke credentials, rewrite Git history, alter existing Appwrite ACLs, or establish that a production incident is contained.
+These Appwrite ACL changes affect the connected project, but the project's production status is unknown. They do not update a backend deployment, revoke credentials, rewrite Git history, inspect existing row or file contents, or establish that a production incident is contained.
 
 ### Validation performed
 
 - 14 focused security regression tests passed in the follow-up run.
 - JavaScript syntax checks passed for the eight recommendation/schema setup files changed in the follow-up.
+- Focused authorization regression tests passed, 9 passed and 0 failed, after the ACL setup-script changes.
+- JavaScript syntax checks passed for the group-buy and campaign-type setup scripts.
 - `git diff --check` passed.
 - The broader backend suite previously reached 91/92 passing; the remaining route-load test requires Redis configuration (`REDIS_URL`). A broader retry produced repeated localhost Redis retries and was stopped.
 - ESLint could not run because the installed ESLint 9 configuration is incompatible with the repository's existing configuration mode.
